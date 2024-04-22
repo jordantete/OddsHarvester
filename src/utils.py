@@ -1,6 +1,6 @@
 from datetime import datetime
 
-LEAGUES_URLS_MAPPING = {
+FOOTBALL_LEAGUES_URLS_MAPPING = {
     "premier-league": 'https://www.oddsportal.com/football/england/premier-league',
     "ligue-1": 'https://www.oddsportal.com/football/france/ligue-1',
     "bundesliga": 'https://www.oddsportal.com/football/germany/bundesliga',
@@ -13,6 +13,10 @@ LEAGUES_URLS_MAPPING = {
     "liga-portugal": "https://www.oddsportal.com/football/portugal/liga-portugal",
     "eredivisie": "https://www.oddsportal.com/football/netherlands/eredivisie",
     "champions-league": "https://www.oddsportal.com/football/europe/champions-league"
+}
+
+TENNIS_LEAGUES_ULRS_MAPPING = {
+    "test": "test"
 }
 
 FRENCH_ODDS_SCRAPPER_LEAGUE_URLS_MAPPING = {

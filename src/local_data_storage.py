@@ -3,7 +3,7 @@ from pathlib import Path
 
 DEFAULT_FILE_PATH = 'scraped_data.csv'
 
-class DataStorage:
+class LocalDataStorage:
     def __init__(self, file_path = DEFAULT_FILE_PATH):
         self.file_path = file_path
         self.file_exists = Path(self.file_path).exists()

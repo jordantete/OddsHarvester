@@ -2,21 +2,48 @@ service: odds-harvester
 
 provider:
   name: aws
-  runtime: python3.9
+  architecture: arm64 # Necessary to run on AWS Lambda
   region: eu-west-3
   versionFunctions: false
-  #environment:
-    #API_KEY: ${env:API_KEY}
+  ecr:
+    images:
+      seleniumChrome:
+        path: ./
+        file: Dockerfile
+  environment:
+    BUCKET_NAME: odds-portal-scrapped-odds
+  iam:
+    role:
+      statements:
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+          - s3:GetObject
+          - s3:DeleteObject
+        Resource: "arn:aws:s3:::odds-portal-scrapped-odds"
 
 functions:
-  webhook:
-    handler: src.main.lambda_handler
-    timeout: 30 # seconds
-    memorySize: 256 # mb
-    description: Retrieve sports betting odds
+  scanAndStoreOddsPortalDataV2:
+    image:
+      name: seleniumChrome
+    timeout: 200 # seconds
+    memorySize: 2048 # mb
+    description: Retrieve and store sports betting odds
+    events:
+      - eventBridge:
+        schedule: rate(2 hours)
 
 package:
   individually: true
+  patterns:
+    - "!node_modules/**"
+    - "!src/chromedriver"
 
 plugins:
   - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    slim: true
+    strip: false  # Set to `true` to remove symbols from compiled files
+    noDeploy: ['boto3']  # Exclude packages already available in the AWS environment

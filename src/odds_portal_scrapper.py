@@ -1,33 +1,32 @@
-import time, re, random
-from utils import LEAGUES_URLS_MAPPING
-from data_storage import DataStorage
+import time, re, random, os
+from utils import FOOTBALL_LEAGUES_URLS_MAPPING
 from logger import LOGGER
-from bs4 import BeautifulSoup
 from odds_portal_odds_extractor import OddsPortalOddsExtractor
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 class OddsPortalScrapper:
-    def __init__(self, league: str):
-        self.league = league
+    def __init__(self):
         self.__initialize_webdriver()
     
     def __initialize_webdriver(self):
-        chrome_options = webdriver.ChromeOptions()
+        chrome_options = Options()
+        chrome_options.binary_location = '/opt/chrome/chrome'
         chrome_options.add_argument("--headless")
-        chrome_options.add_argument("--unlimited-storage")
         chrome_options.add_argument("--full-memory-crash-report")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--ignore-certificate-errors")
         chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-setuid-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+        
+        service = Service(executable_path="/opt/chromedriver")
+        self.driver = webdriver.Chrome(service=service, options=chrome_options)
         self.driver.set_window_size(1800, 2500)
 
     """Scrolls down the page in a loop until no new content is loaded or a timeout is reached."""
@@ -46,10 +45,10 @@ class OddsPortalScrapper:
             if time.time() > end_time:
                 break
 
-    def __get_base_url(self, season: str = None) -> str:
-        base_url = LEAGUES_URLS_MAPPING.get(self.league)
+    def __get_base_url(self, league: str, season: str = None) -> str:
+        base_url = LEAGUES_URLS_MAPPING.get(league)
         if not base_url:
-            raise ValueError(f"URL mapping not found for league: {self.league}")
+            raise ValueError(f"URL mapping not found for league: {league}")
         
         if not season:
             return base_url
@@ -63,7 +62,7 @@ class OddsPortalScrapper:
     def __set_odds_format(self, odds_format: str = "EU Odds"):
         LOGGER.info(f"Set Odds Format {odds_format}")
         try:
-            button = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.group > button.gap-2")))
+            button = WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.group > button.gap-2")))
             button.click()
             time.sleep(2)            
             formats = self.driver.find_elements(By.CSS_SELECTOR, "div.group > div.dropdown-content > ul > li > a")
@@ -84,7 +83,11 @@ class OddsPortalScrapper:
         for row in event_rows:
             links = row.find_all('a', href=True)
             for link in links:
-                hrefs.append(link['href'])
+                # Parse link:
+                link_href = link['href']
+                parts = link_href.strip('/').split('/')
+                if len(parts) > 3:
+                    hrefs.append(link_href)
         return hrefs
     
     def __scrape_match_data(self, match_link):
@@ -104,48 +107,47 @@ class OddsPortalScrapper:
             odds_extractor = OddsPortalOddsExtractor(self.driver)                
             ft_1x2_odds_data = odds_extractor.extract_1X2_odds(period="FullTime")
             #over_under_1_5_odds_data = odds_extractor.extract_over_under_odds(over_under_type_chosen="1.5", period="FullTime")
-            #over_under_2_5_odds_data = odds_extractor.extract_over_under_odds(over_under_type_chosen="2.5", period="FullTime")
+            over_under_2_5_odds_data = odds_extractor.extract_over_under_odds(over_under_type_chosen="2.5", period="FullTime")
             #double_chance_odds_data = odds_extractor.extract_double_chance_odds(period="FullTime")
             scrapped_data = {
                 "date": date,
                 "homeTeam": homeTeam,
                 "awayTeam": awayTeam,
-                "ft_1x2_odds_data": ft_1x2_odds_data
+                "ft_1x2_odds_data": ft_1x2_odds_data,
+                "over_under_2_5_odds_data": over_under_2_5_odds_data
             }
             return scrapped_data
         except NoSuchElementException as e:
             LOGGER.warn(f"Elements not found on page: {match_link}. Possibly not the correct page. Error: {e}")
             return None
 
-    def __extract_matchs_data(self):
-        odds_data = []
+    def __extract_match_links(self):
+        match_links = []
         self.__scroll_until_loaded()
         time.sleep(random.uniform(3, 5))
         try:
             match_links = self.__get_match_links()
-            match_pattern = re.compile(r'.+-[A-Za-z0-9]+/$') # Filter hrefs to only include those with a detailed path (assumed to contain team names)
-            filtered_match_links = [href for href in match_links if match_pattern.match(href)] # Ex link: /football/france/ligue-1-2022-2023/toulouse-auxerre-xvkheAlf/
-
-            if not filtered_match_links:
-                raise ValueError(f"No matches links found, plese check. match_links: {match_links} - filtered_match_links: {filtered_match_links}")
+            if not match_links:
+                raise ValueError(f"No matches links found, plese check. match_links: {match_links}")
             LOGGER.info(f"After filtering fetched matches, remaining links: {len(filtered_match_links)}")
-
-            ## TODO: For testing purpose only scrape the first 3 matchs
-            #for link in filtered_match_links[:3]:
-            for link in filtered_match_links:
-                match_data = self.__scrape_match_data(match_link=link)
-                if match_data:
-                    odds_data.append(match_data)
         except Exception as e:
             LOGGER.error(f"While extracting data: {e}")
         finally:
-            return odds_data
+            return match_links
     
     def __scrape_odds(self):
         try:
             self.__set_odds_format()
-            data = self.__extract_matchs_data()
-            return data
+            match_links = self.__extract_match_links()
+            odds_data = []
+
+            ## TODO: For testing purpose only scrape odds for the first 3 matchs
+            for link in match_links[:3]:
+            #for link in match_links:
+                match_data = self.__scrape_match_data(match_link=link)
+                if match_data:
+                    odds_data.append(match_data)
+            return odds_data
         except Exception as e:
             LOGGER.error(f"Extracting data or setting odds format: {e}")
 
@@ -173,10 +175,10 @@ class OddsPortalScrapper:
                     LOGGER.error(f"error: {error}")
         return historic_odds
 
-    def get_historic_odds(self, season: str, nbr_of_pages: int = None):
-        LOGGER.info(f"Will grab historic odds for season: {season} and league: {self.league}")
+    def get_historic_odds(self, league: str, season: str, nbr_of_pages: int = None):
+        LOGGER.info(f"Will grab historic odds for season: {season} and league: {league}")
         try:
-            base_url = self.__get_base_url(season=season)
+            base_url = self.__get_base_url(league=league, season=season)
             self.driver.get(base_url)
             historic_odds = self.__scrape_odds_historic(nbr_of_pages=nbr_of_pages)
             return historic_odds
@@ -185,10 +187,23 @@ class OddsPortalScrapper:
         finally:
             self.driver.quit()
     
-    def get_next_matchs_odds(self):
-        LOGGER.info(f"Will grab next matchs odds for league: {self.league}")
+    def get_next_matchs_odds(self, league: str):
+        LOGGER.info(f"Will grab next matchs odds for league: {league}")
         try:
-            base_url = self.__get_base_url()
+            base_url = self.__get_base_url(league=league)
+            self.driver.get(base_url)
+            next_matchs_odds = self.__scrape_odds()
+            return next_matchs_odds
+        except Exception as error:
+            LOGGER.error(f"Error: {error}")
+        finally:
+            self.driver.quit()
+    
+    ## Sport can be: football, basketball, hockey, volleyball, etc..
+    def get_upcoming_matchs_odds(self, sport: str, date):
+        LOGGER.info(f"Will grab next matchs odds for sport: {sport} at date: {date}")
+        try:
+            base_url = f"https://www.oddsportal.com/matches/{sport}/{date}/"
             self.driver.get(base_url)
             next_matchs_odds = self.__scrape_odds()
             return next_matchs_odds

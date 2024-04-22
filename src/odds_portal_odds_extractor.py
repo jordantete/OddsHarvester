@@ -55,7 +55,7 @@ class OddsPortalOddsExtractor:
             LOGGER.info(f"No matching element found for market_value: {market_value}")
             return False
         except Exception as e:
-            LOGGER.error(f"Error while attempting to click by regex: {e}")
+            LOGGER.error(f"Error while attempting to select desired over under market {market_value}: {e}")
             return False
     
     """Selects the match period based on the provided period string."""
@@ -71,7 +71,9 @@ class OddsPortalOddsExtractor:
     
     """Extracts 1X2 odds for the specified period (FullTime, 1stHalf, 2ndHalf)."""
     def extract_1X2_odds(self, period: str):
-        self.__select_match_period(period=period)
+        LOGGER.info(f"Scraping odds for 1x2 for period: {period}")
+        ## TODO: assume that "FullTime" is selected - call __select_match_period only if {period} is not already selected
+        #self.__select_match_period(period=period)
         bookmaker_rows_selector = "div.border-black-borders.flex.h-9.border-b.border-l.border-r.text-xs"     
         WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, bookmaker_rows_selector)))
         bookmaker_rows = self.driver.find_elements(By.CSS_SELECTOR, bookmaker_rows_selector)
@@ -90,9 +92,10 @@ class OddsPortalOddsExtractor:
     
     """Extract Over/Under odds for the specified period (FullTime, 1stHalf, 2ndHalf)."""
     def extract_over_under_odds(self, over_under_type_chosen: str, period: str):
-        self.__select_match_period(period=period)
+        ## TODO: assume that "FullTime" is selected - call __select_match_period only if {period} is not already selected
+        #self.__select_match_period(period=period)
         time.sleep(2)
-        LOGGER.info(f"Scraping odd for under/over {over_under_type_chosen}")
+        LOGGER.info(f"Scraping odds for under/over {over_under_type_chosen}")
         markets_scrollbar_selector = 'ul.visible-links.bg-black-main.odds-tabs > li'
         WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, markets_scrollbar_selector)))
         
@@ -100,11 +103,11 @@ class OddsPortalOddsExtractor:
             raise Exception("Over/Under tab not found or couldn't be clicked.")
         
         time.sleep(2)
-        self.driver.execute_script("window.scrollBy(0, 300);")
+        self.driver.execute_script("window.scrollBy(0, 400);")
         time.sleep(2)
         options_selector = 'div.flex.w-full.items-center.justify-start.pl-3.font-bold'
         if not self.__select_over_under_market(options_selector, over_under_type_chosen):
-            raise Exception(f"Option {target_text_regex} not found or couldn't be clicked.")
+            raise Exception(f"Option {over_under_type_chosen} not found or couldn't be clicked.")
 
         time.sleep(2)
         rows_selector = 'div[data-v-59b97132].border-black-borders'

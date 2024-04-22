@@ -1,9 +1,8 @@
 import time, re, os, csv
 from logger import LOGGER
+from utils import FRENCH_ODDS_SCRAPPER_LEAGUE_URLS_MAPPING
 from selenium import webdriver
 from bs4 import BeautifulSoup
-from utils import FRENCH_ODDS_SCRAPPER_LEAGUE_URLS_MAPPING
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 
 SAVED_HTML_FILE_PATH = "page_content.html"
@@ -17,9 +16,10 @@ class FrenchOddsScrapper:
         self.__initialize_webdriver()
 
     def __initialize_webdriver(self):
-        options = webdriver.ChromeOptions()
-        options.add_argument("--headless")
-        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument("--headless")
+        service = Service(executable_path="/opt/chromedriver")
+        self.driver = webdriver.Chrome(service=service, options=chrome_options)
         self.driver.set_window_size(1800, 2500)
     
     def __read_html_file(self, file_path):
