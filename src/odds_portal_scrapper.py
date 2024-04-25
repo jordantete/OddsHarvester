@@ -24,7 +24,7 @@ class OddsPortalScrapper:
         chrome_options.add_argument("--ignore-certificate-errors")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        
+
         service = Service(executable_path="/opt/chromedriver")
         self.driver = webdriver.Chrome(service=service, options=chrome_options)
         self.driver.set_window_size(1800, 2500)

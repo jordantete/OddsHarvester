@@ -2,12 +2,12 @@ service: odds-harvester
 
 provider:
   name: aws
-  architecture: arm64 # Necessary to run on AWS Lambda
+  architecture: arm64
   region: eu-west-3
   versionFunctions: false
   ecr:
     images:
-      seleniumChrome:
+      playwrightPython:
         path: ./
         file: Dockerfile
   environment:
@@ -25,7 +25,7 @@ provider:
 functions:
   scanAndStoreOddsPortalDataV2:
     image:
-      name: seleniumChrome
+      name: playwrightPython
     timeout: 200 # seconds
     memorySize: 2048 # mb
     description: Retrieve and store sports betting odds
