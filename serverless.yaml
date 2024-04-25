@@ -26,7 +26,7 @@ functions:
   scanAndStoreOddsPortalDataV2:
     image:
       name: playwrightPython
-    timeout: 200 # seconds
+    timeout: 300 # seconds
     memorySize: 2048 # mb
     description: Retrieve and store sports betting odds
     events:
@@ -37,7 +37,6 @@ package:
   individually: true
   patterns:
     - "!node_modules/**"
-    - "!src/chromedriver"
 
 plugins:
   - serverless-python-requirements

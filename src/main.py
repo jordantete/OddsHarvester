@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-import json, requests
+import os
 from logger import LOGGER
 from utils import get_current_date_time_string
 from odds_portal_scrapper import OddsPortalScrapper
@@ -8,9 +7,6 @@ from local_data_storage import LocalDataStorage
 from remote_data_storage import RemoteDataStorage
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
-
-from playwright.sync_api import sync_playwright
-
 
 def get_odds_portal_historic_odds(league_name: str, season: str):
     file_path = f"/data/{league_name}_{season}_{get_current_date_time_string()}.json"
@@ -46,8 +42,9 @@ def scan_and_store_odds_portal_data(event=0, context=0):
     tomorrow_date = today_date + timedelta(days=1)
     formatted_today_date = today_date.strftime('%Y%m%d')
     formatted_tomorrow_date = tomorrow_date.strftime('%Y%m%d')
-    # tomorow_football_matches_data = get_all_upcoming_event_odds(sport="football", date=formatted_tomorrow_date)
-    # LOGGER.info(f"tomorow_football_matches_data: {tomorow_football_matches_data}")
+    tomorow_football_matches_data = get_all_upcoming_event_odds(sport="football", date=formatted_tomorrow_date)
+    LOGGER.info(f"tomorow_football_matches_data: {tomorow_football_matches_data}")
+    return {'statusCode': 200, "body": "Success"}
     # csv_writer = S3CSVWriter('your-bucket-name')
     # data = [
     #     {'name': 'Alice', 'age': 30},
@@ -56,14 +53,6 @@ def scan_and_store_odds_portal_data(event=0, context=0):
     # ]
     # csv_writer.write_csv_to_s3(data, 'path/to/yourfile.csv')
 
-def test_playwright_python():
-    print("WIll test playwright python")
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True, args=["--disable-gpu", "--single-process"])
-        page = browser.new_page()
-        page.goto("http://google.com")
-        print(page.title())
-        browser.close()
-
-if __name__ == "__main__":
-    test_playwright_python()
+is_lambda = os.environ.get("AWS_EXECUTION_ENV") is not None
+if not is_lambda:
+    scan_and_store_odds_portal_data()
