@@ -46,9 +46,9 @@ def scan_and_store_odds_portal_data(event=0, context=0):
     formatted_tomorrow_date = tomorrow_date.strftime('%Y%m%d')
     tomorow_football_matches_data = get_all_upcoming_event_odds(sport="football", date=formatted_tomorrow_date)
     LOGGER.info(f"tomorow_football_matches_data: {tomorow_football_matches_data}")
-    csv_filename = 'odds_data.csv'
+    csv_filename = f'odds_data.csv'
     data_storage = RemoteDataStorage()
-    stodata_storagerage.process_and_upload(data, csv_filename)
+    data_storage.process_and_upload(tomorow_football_matches_data, csv_filename)
     return {'statusCode': 200, "body": "Success"}
 
 if not is_lambda:
