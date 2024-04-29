@@ -55,6 +55,7 @@ class OddsPortalOddsExtractor:
     
     """Selects the match period based on the provided period string."""
     def __select_match_period(self, period: str):
+        LOGGER.info(f"Will select match period: {period}")
         match_period_button_selector = "div[data-testid='kickoff-events-nav'] > div"
         cleaned_period = period.replace("\n", "").replace(" ", "")
         try:
@@ -67,12 +68,16 @@ class OddsPortalOddsExtractor:
     """Extracts 1X2 odds for the specified period (FullTime, 1stHalf, 2ndHalf)."""
     def extract_1X2_odds(self, period: str):
         LOGGER.info(f"Scraping odds for 1x2 for period: {period}")
+        odds_data = []
         ## TODO: assume that "FullTime" is selected - call __select_match_period only if {period} is not already selected
         #self.__select_match_period(period=period)
         bookmaker_rows_selector = "div.border-black-borders.flex.h-9.border-b.border-l.border-r.text-xs"
         self.page.wait_for_selector(bookmaker_rows_selector, state="attached", timeout=10000)
         bookmaker_rows = self.page.query_selector_all(bookmaker_rows_selector)
-        odds_data = []
+
+        if not bookmaker_rows:
+            LOGGER.info(f"Failed to find bookmaker rows elements using all bookmaker_rows_selector {bookmaker_rows_selector}")
+            return odds_data
 
         for row in bookmaker_rows:
             try:
@@ -97,7 +102,7 @@ class OddsPortalOddsExtractor:
             raise Exception("Over/Under tab not found or couldn't be clicked.")
         
         self.page.wait_for_timeout(2000)
-        self.page.evaluate("window.scrollBy(0, 400);")
+        self.page.evaluate("window.scrollBy(0, 500);") # Scroll verticaly to reach Over selector row
         self.page.wait_for_timeout(2000)
 
         options_selector = 'div.flex.w-full.items-center.justify-start.pl-3.font-bold'
@@ -105,18 +110,25 @@ class OddsPortalOddsExtractor:
             raise Exception(f"Option {over_under_type_chosen} not found or couldn't be clicked.")
 
         self.page.wait_for_timeout(2000)
-        rows_selector = 'div[data-v-59b97132].border-black-borders'
-        rows = self.page.query_selector_all(rows_selector)
-        data = []
+        odds_data = []
+        rows_selector = 'div[data-v-3d9d04c2].border-black-borders'
+        #rows_selector = 'div:has-text("Bookmakers")' # find a way to not make use of id which changes frequently
+
+        rows = self.page.query_selector_all(rows_selector)    
+
+        if not rows:
+            LOGGER.info(f"Failed to find bookmaker rows elements using all rows_selector {rows_selector}")
+            return odds_data
+
         for row in rows:
             bookmaker_name = row.query_selector('a > p').text_content().strip() if row.query_selector('a > p') else 'Unknown'
             odds_elements = row.query_selector_all('div.flex-center.font-bold > div > p.height-content')
             odds_over = odds_elements[0].text_content().strip() if len(odds_elements) > 0 else 'N/A'
             odds_under = odds_elements[1].text_content().strip() if len(odds_elements) > 1 else 'N/A'
             
-            if bookmaker_name != 'Unknown' and odds_over != 'N/A' and odds_under != 'N/A':
-                data.append({"bookmakerName": bookmaker_name, "oddsOver": odds_over, "oddsUnder": odds_under})
-        return data
+            if bookmaker_name != 'Unknown' and odds_over != 'N/A' and odds_under != 'N/A' and bookmaker_name not in odds_data:
+                odds_data.append({"bookmakerName": bookmaker_name, "oddsOver": odds_over, "oddsUnder": odds_under})
+        return odds_data
     
     """Extract Double Chance odds for the specified period (FullTime, 1stHalf, 2ndHalf)."""
     def extract_double_chance_odds(self, period: str):

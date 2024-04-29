@@ -8,6 +8,8 @@ from remote_data_storage import RemoteDataStorage
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
 
+is_lambda = os.environ.get("AWS_EXECUTION_ENV") is not None
+
 def get_odds_portal_historic_odds(league_name: str, season: str):
     file_path = f"/data/{league_name}_{season}_{get_current_date_time_string()}.json"
     odds_portal_scrapper = OddsPortalScrapper()
@@ -26,7 +28,7 @@ def get_french_bookamker_odds(league_name: str):
     french_odds_scrapper.scrape_and_store_matches()
 
 def get_all_upcoming_event_odds(sport: str, date: str):
-    odds_portal_scrapper = OddsPortalScrapper()
+    odds_portal_scrapper = OddsPortalScrapper(headless_mode=is_lambda)
     odds = odds_portal_scrapper.get_upcoming_matchs_odds(sport=sport, date=date)
     return odds
 
@@ -44,15 +46,10 @@ def scan_and_store_odds_portal_data(event=0, context=0):
     formatted_tomorrow_date = tomorrow_date.strftime('%Y%m%d')
     tomorow_football_matches_data = get_all_upcoming_event_odds(sport="football", date=formatted_tomorrow_date)
     LOGGER.info(f"tomorow_football_matches_data: {tomorow_football_matches_data}")
+    csv_filename = 'odds_data.csv'
+    data_storage = RemoteDataStorage()
+    stodata_storagerage.process_and_upload(data, csv_filename)
     return {'statusCode': 200, "body": "Success"}
-    # csv_writer = S3CSVWriter('your-bucket-name')
-    # data = [
-    #     {'name': 'Alice', 'age': 30},
-    #     {'name': 'Bob', 'age': 25},
-    #     {'name': 'Charlie', 'age': 35}
-    # ]
-    # csv_writer.write_csv_to_s3(data, 'path/to/yourfile.csv')
 
-is_lambda = os.environ.get("AWS_EXECUTION_ENV") is not None
 if not is_lambda:
     scan_and_store_odds_portal_data()

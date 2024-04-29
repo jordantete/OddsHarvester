@@ -6,13 +6,13 @@ from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright, TimeoutError, Error
 
 class OddsPortalScrapper:
-    def __init__(self):
+    def __init__(self, headless_mode: bool):
+        self.headless_mode = headless_mode
         self.__initialize_webdriver()
     
     def __initialize_webdriver(self):
         playwright = sync_playwright().start()
         browser_args = [
-            '--window-size=1800,2500',
             '--window-position=000,000',
             "--full-memory-crash-report",
             '--disable-accelerated-2d-canvas',
@@ -48,12 +48,14 @@ class OddsPortalScrapper:
             '--hide-scrollbars',
             '--mute-audio'
         ]
-        self.browser = playwright.chromium.launch(headless=False, args=browser_args)
-        context = self.browser.new_context(ignore_https_errors=True, permissions=['notifications'],)
+        self.browser = playwright.chromium.launch(headless=self.headless_mode, args=browser_args)
+        context = self.browser.new_context(ignore_https_errors=True, permissions=['notifications'])
         self.page = context.new_page()
 
     """Scrolls down the page in a loop until no new content is loaded or a timeout is reached."""
     def __scroll_until_loaded(self, timeout=30, scroll_pause_time=1.5):
+        self.page.set_viewport_size({'width': 1200, 'height': 800})
+
         end_time = time.time() + timeout
         last_height = self.page.evaluate("document.body.scrollHeight")
         
@@ -107,7 +109,6 @@ class OddsPortalScrapper:
         for row in event_rows:
             links = row.find_all('a', href=True)
             for link in links:
-                # Parse link:
                 link_href = link['href']
                 parts = link_href.strip('/').split('/')
                 if len(parts) > 3:
@@ -124,7 +125,7 @@ class OddsPortalScrapper:
             team_elements = self.page.query_selector_all('span.truncate')
 
             if not date_elements or not team_elements:
-                raise Error("Not on the expected page.")
+                raise Error("Not on the expected page. date_elements or teams_elements are None.")
             
             ## TODO: extract only date if day & time_value are not used
             day, date, time_value = [element.inner_text() for element in date_elements]
@@ -167,7 +168,7 @@ class OddsPortalScrapper:
             odds_data = []
 
             ## TODO: For testing purpose only scrape odds for the first 3 matchs
-            for link in match_links[:3]:
+            for link in match_links[:2]:
             #for link in match_links:
                 match_data = self.__scrape_match_data(match_link=link)
                 if match_data:
