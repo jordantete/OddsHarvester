@@ -1,7 +1,7 @@
 import boto3, csv
 from logger import LOGGER
 
-S3_BUCKET_NAME = "odds-portal-scrapped-odds"
+S3_BUCKET_NAME = "odds-portal-scrapped-odds-cad8822c179f12cg"
 AWE_REGION = "eu-west-3"
 
 class RemoteDataStorage:

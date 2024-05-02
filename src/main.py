@@ -1,4 +1,4 @@
-import os
+import os, asyncio
 from logger import LOGGER
 from utils import get_current_date_time_string
 from odds_portal_scrapper import OddsPortalScrapper
@@ -27,9 +27,10 @@ def get_french_bookamker_odds(league_name: str):
     french_odds_scrapper = FrenchOddsScrapper(league=league_name)
     french_odds_scrapper.scrape_and_store_matches()
 
-def get_all_upcoming_event_odds(sport: str, date: str):
+async def get_all_upcoming_event_odds(sport: str, date: str):
     odds_portal_scrapper = OddsPortalScrapper(headless_mode=is_lambda)
-    odds = odds_portal_scrapper.get_upcoming_matchs_odds(sport=sport, date=date)
+    await odds_portal_scrapper.initialize_webdriver()
+    odds = await odds_portal_scrapper.get_upcoming_matchs_odds(sport=sport, date=date)
     return odds
 
 def scrape_concurently():
@@ -38,18 +39,29 @@ def scrape_concurently():
     with ThreadPoolExecutor(max_workers=6) as executor:
         executor.map(lambda x: get_odds_portal_historic_odds(*x), leagues_seasons)
 
-def scan_and_store_odds_portal_data(event=0, context=0):
+async def scan_and_store_odds_portal_data_async(event=0, context=0):
     LOGGER.info(f"scan_and_store_odds_portal_matches - event: {event} - context: {context}")
     today_date = datetime.now()
     tomorrow_date = today_date + timedelta(days=1)
     formatted_today_date = today_date.strftime('%Y%m%d')
     formatted_tomorrow_date = tomorrow_date.strftime('%Y%m%d')
-    tomorow_football_matches_data = get_all_upcoming_event_odds(sport="football", date=formatted_tomorrow_date)
-    LOGGER.info(f"tomorow_football_matches_data: {tomorow_football_matches_data}")
-    csv_filename = f'odds_data.csv'
-    data_storage = RemoteDataStorage()
-    data_storage.process_and_upload(tomorow_football_matches_data, csv_filename)
-    return {'statusCode': 200, "body": "Success"}
+
+    tomorrow_football_matches_data = await get_all_upcoming_event_odds(sport="football", date=formatted_tomorrow_date)
+    LOGGER.info(f"tomorrow_football_matches_data: {tomorrow_football_matches_data}")
+
+    if tomorrow_football_matches_data:
+        csv_filename = f'odds_data_{formatted_tomorrow_date}.csv'
+        data_storage = RemoteDataStorage()
+        executor = ThreadPoolExecutor()
+        await asyncio.get_event_loop().run_in_executor(executor, data_storage.process_and_upload, tomorrow_football_matches_data, csv_filename)
+        return {'statusCode': 200, "body": "File uploaded successfully"}
+    else:
+        LOGGER.info("No data to upload.")
+        return {'statusCode': 400, "body": "No data to upload"}
+
+def scan_and_store_odds_portal_data(event=0, context=0):
+    loop = asyncio.get_event_loop()
+    return loop.run_until_complete(scan_and_store_odds_portal_data_async(event, context))
 
 if not is_lambda:
     scan_and_store_odds_portal_data()

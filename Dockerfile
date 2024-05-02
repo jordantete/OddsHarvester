@@ -17,6 +17,6 @@ RUN pip install -r requirements.txt --target "${LAMBDA_TASK_ROOT}"
 
 # Install Playwright browsers
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN python -m playwright install
+RUN python -m playwright install chromium
 
 CMD ["main.scan_and_store_odds_portal_data"]
