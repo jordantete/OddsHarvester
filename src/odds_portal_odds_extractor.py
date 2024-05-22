@@ -41,6 +41,7 @@ class OddsPortalOddsExtractor:
     async def __can_select_over_under_market(self, selector: str, market_value: str) -> bool:
         LOGGER.info(f"__can_select_over_under_market with selector: {selector} and market_value: {market_value}")
         try:
+            await self.page.wait_for_selector(f"{selector} p", timeout=5000)
             elements = await self.page.query_selector_all(f"{selector} p")
             LOGGER.info(f"__can_select_over_under_market number of elements found: {len(elements)}")
             for element in elements:

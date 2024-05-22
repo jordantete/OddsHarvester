@@ -10,10 +10,11 @@ class RemoteDataStorage:
         self.s3_client = boto3.client('s3', region_name=region_name)
         LOGGER.info(f"RemoteDataStorage initialized for bucket: {self.bucket_name}")
     
-    def __flatten_data(self, data):
+    def __flatten_data(self, data, timestamp):
         flattened_data = []
         for entry in data:
             base_info = {
+                'scraped_at': timestamp,
                 'date': entry['date'],
                 'homeTeam': entry['homeTeam'],
                 'awayTeam': entry['awayTeam']
@@ -44,7 +45,7 @@ class RemoteDataStorage:
         """ Saves the provided data to a CSV file. """
         LOGGER.info(f"Saving data to CSV file: {filename}")
         try:
-            fieldnames = ['date', 'homeTeam', 'awayTeam', 'bookMakerName_1X2', 'homeWin', 'draw', 'awayWin', 'bookMakerName_OU', 'oddsOver', 'oddsUnder']
+            fieldnames = ['scraped_at', 'date', 'homeTeam', 'awayTeam', 'bookMakerName_1X2', 'homeWin', 'draw', 'awayWin', 'bookMakerName_OU', 'oddsOver', 'oddsUnder']
             with open(filename, mode='w', newline='') as file:
                 writer = csv.DictWriter(file, fieldnames=fieldnames)
                 writer.writeheader()
@@ -64,10 +65,10 @@ class RemoteDataStorage:
         except Exception as e:
             LOGGER.error(f"Failed to upload {filename} to S3: {e}")
     
-    def process_and_upload(self, data, filename, object_name=None):
+    def process_and_upload(self, data, timestamp, filename, object_name=None):
         """ Handles the entire flow: flattening data, saving to CSV, and uploading to S3. """
         try:
-            flattened_data = self.__flatten_data(data)
+            flattened_data = self.__flatten_data(data, timestamp)
             self.__save_to_csv(flattened_data, filename)
             self.__upload_to_s3(filename, object_name)
         except Exception as e:

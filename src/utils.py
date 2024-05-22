@@ -1,4 +1,6 @@
+import time, requests
 from datetime import datetime
+from logger import LOGGER
 
 FOOTBALL_LEAGUES_URLS_MAPPING = {
     "premier-league": 'https://www.oddsportal.com/football/england/premier-league',
@@ -32,3 +34,34 @@ def get_current_date_time_string():
     now = datetime.now()
     date_time_string = now.strftime('%Y-%m-%d %H:%M:%S')
     return date_time_string
+
+def measure_network_performance():
+    try:
+        start_time = time.time()
+        response = requests.get("https://www.google.com", timeout=5)
+        latency = time.time() - start_time
+        
+        if response.status_code != 200:
+            raise Exception(f"Unexpected status code: {response.status_code}")
+
+        LOGGER.info(f"Latency to www.google.com: {latency:.4f} seconds")
+
+        # Measure download throughput
+        start_time = time.time()
+        response = requests.get("https://speed.hetzner.de/100MB.bin", stream=True, timeout=5)
+        total_length = response.headers.get('content-length')
+
+        if total_length is None:
+            raise Exception("Could not get content length for throughput test")
+
+        download_size = 0
+        for chunk in response.iter_content(chunk_size=4096):
+            if chunk:
+                download_size += len(chunk)
+
+        throughput = download_size / (time.time() - start_time)
+        LOGGER.info(f"Download throughput: {throughput / 1_000_000:.2f} MB/s")
+        return {'latency': latency, 'throughput': throughput / 1_000_000}
+    except Exception as e:
+        LOGGER.error(f"An error occurred while measuring network performance: {e}")
+        return None

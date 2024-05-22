@@ -20,7 +20,15 @@ class OddsPortalScrapper:
             self.playwright = await async_playwright().start()
 
             LOGGER.info("Launching browser...")
-            self.browser = await self.playwright.chromium.launch(headless=self.headless_mode, args=["--disable-dev-shm-usage", "--ipc=host", "--single-process", "--no-zygote"])
+            browser_args = [
+                "--disable-dev-shm-usage", "--ipc=host", "--single-process", "--window-size=1920,1080", "--no-sandbox",
+                "--no-zygote", "--allow-running-insecure-content", "--autoplay-policy=user-gesture-required"
+                "--disable-component-update", "--no-default-browser-check", "--disable-domain-reliability",
+                "--disable-features=AudioServiceOutOfProcess,IsolateOrigins,site-per-process", "--disable-print-preview", 
+                "--disable-setuid-sandbox", "--disable-site-isolation-trials", "--disable-speech-api",
+                "--disable-web-security", "--disk-cache-size=33554432", "--enable-features=SharedArrayBuffer",
+                "--hide-scrollbars", "--ignore-gpu-blocklist", "--in-process-gpu", "--mute-audio", "--no-pings", "--disable-gpu"]
+            self.browser = await self.playwright.chromium.launch(headless=self.headless_mode, args=browser_args)
 
             LOGGER.info("Opening new page from browser...")
             self.page = await self.browser.new_page()
@@ -43,13 +51,13 @@ class OddsPortalScrapper:
         LOGGER.info("Cleaned up Playwright resources.")
 
     """Scrolls down the page in a loop until no new content is loaded or a timeout is reached."""
-    async def __scroll_until_loaded(self, timeout=45, scroll_pause_time=2.5):
+    async def __scroll_until_loaded(self, timeout=60, scroll_pause_time=10, max_scrolls=15):
         LOGGER.info("Will scroll to the bottom of the page.")
-        await self.page.set_viewport_size({'width': 1200, 'height': 800})
         end_time = time.time() + timeout
         last_height = await self.page.evaluate("document.body.scrollHeight")
         LOGGER.info(f"__scroll_until_loaded last_height: {last_height}")
 
+        scroll_attempts = 0
         while True:
             await self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             await self.page.wait_for_timeout(scroll_pause_time * 1000)  # Convert seconds to milliseconds
@@ -57,11 +65,16 @@ class OddsPortalScrapper:
             LOGGER.info(f"__scroll_until_loaded new_height: {new_height}")
 
             if new_height == last_height:
-                LOGGER.info(f"__scroll_until_loaded reach bottom of the page. new_height == last_height.")
-                break
+                scroll_attempts += 1
+                if scroll_attempts > 2:
+                    LOGGER.info("No more new content detected.")
+                    break
+            else:
+                scroll_attempts = 0
 
             last_height = new_height
-            if time.time() > end_time:
+            if time.time() > end_time or scroll_attempts > max_scrolls:
+                LOGGER.info("Reached the end of the scrolling time or maximum scroll attempts.")
                 break
 
     def __get_base_url(self, league: str, season: str = None) -> str:
@@ -95,9 +108,10 @@ class OddsPortalScrapper:
     
     async def __parse_match_links(self):
         html_content = await self.page.content()
-        LOGGER.info(f"Will parse match links from page content - html_content: {html_content}")
+        LOGGER.info(f"Will parse match links from page content")
         soup = BeautifulSoup(html_content, 'lxml')
         event_rows = soup.find_all(class_=re.compile("^eventRow"))
+        LOGGER.info(f"Found number of event_rows: {len(event_rows)}")
         hrefs = []
         for row in event_rows:
             links = row.find_all('a', href=True)
@@ -110,17 +124,18 @@ class OddsPortalScrapper:
     
     async def __scrape_match_data(self, match_link):
         LOGGER.info(f"Will scrape match url: {match_link}")
-        await self.page.goto(f"https://www.oddsportal.com{match_link}")
-        await self.page.wait_for_timeout(2000)
+        await self.page.goto(f"https://www.oddsportal.com{match_link}", timeout=150000, wait_until="domcontentloaded")
 
         try:
+            await self.page.wait_for_selector('div.bg-event-start-time ~ p', timeout=5000)
+            await self.page.wait_for_selector('span.truncate', timeout=5000)
             date_elements = await self.page.query_selector_all('div.bg-event-start-time ~ p')
             team_elements = await self.page.query_selector_all('span.truncate')
 
             if not date_elements or not team_elements:
-                raise Error("Not on the expected page. date_elements or teams_elements are None.")
+                LOGGER.warn("Not on the expected page. date_elements or teams_elements are None.")
+                return None
             
-            ## TODO: extract only date if day & time_value are not used
             day, date, time_value = [await element.inner_text() for element in date_elements]
             homeTeam, awayTeam = [await element.inner_text() for element in team_elements]
             odds_extractor = OddsPortalOddsExtractor(self.page)                
@@ -143,7 +158,7 @@ class OddsPortalScrapper:
     async def __extract_match_links(self):
         match_links = []
         await self.__scroll_until_loaded()
-        await self.page.wait_for_timeout(int(random.uniform(3000, 5000)))  # waiting between 3 to 5 seconds
+        await self.page.wait_for_timeout(int(random.uniform(5000, 8000)))
         try:
             match_links = await self.__parse_match_links()
             if not match_links:
@@ -160,8 +175,8 @@ class OddsPortalScrapper:
             match_links = await self.__extract_match_links()
             odds_data = []
 
-            ## TODO: For testing purpose only scrape odds for the first 3 matchs
-            for link in match_links[:2]:
+            ## TODO: For testing purpose only scrape odds for the first 15 matchs
+            for link in match_links[:15]:
             #for link in match_links:
                 match_data = await self.__scrape_match_data(match_link=link)
                 if match_data:
@@ -218,12 +233,28 @@ class OddsPortalScrapper:
         finally:
             await self.browser.close()
     
+    # async def __take_screenshot(self):
+    #     try:
+    #         screenshot_path = f'/tmp/screenshot_{uuid.uuid4().hex}.png'
+    #         await self.page.screenshot(path=screenshot_path)
+    #         self.upload_to_s3(screenshot_path)
+    #     except Exception as e:
+    #         LOGGER.error(f"Failed to take screenshot: {e}")
+    
+    # def __upload_to_s3(self, file_path):
+    #     try:
+    #         s3_key = file_path.split('/')[-1]  # Extract file name
+    #         s3_client.upload_file(file_path, self.s3_bucket_name, s3_key)
+    #         LOGGER.info(f"Uploaded screenshot to S3: s3://{self.s3_bucket_name}/{s3_key}")
+    #     except Exception as e:
+    #         LOGGER.error(f"Failed to upload screenshot to S3: {e}")
+    
     ## Sport can be: football, basketball, hockey, volleyball, etc..
     async def get_upcoming_matchs_odds(self, sport: str, date):
-        LOGGER.info(f"Will grab next matchs odds for sport: {sport} at date: {date}")
+        LOGGER.info(f"Will grab upcoming matchs odds for sport: {sport} at date: {date}")
         try:
             base_url = f"https://www.oddsportal.com/matches/{sport}/{date}/"
-            await self.page.goto(base_url)
+            await self.page.goto(base_url, timeout=200000, wait_until="domcontentloaded")
             next_matchs_odds = await self.__scrape_odds()
             return next_matchs_odds
         except Exception as error:
