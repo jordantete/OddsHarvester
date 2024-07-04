@@ -5,11 +5,11 @@ provider:
   architecture: arm64
   region: eu-west-3
   versionFunctions: false
-  # ecr:
-  #   images:
-  #     playwright_python_arm64:
-  #       path: ./
-  #       file: Dockerfile
+  ecr:
+    images:
+      playwright_python_arm64:
+        path: ./
+        file: Dockerfile
   iam:
     role:
       statements:
@@ -18,19 +18,18 @@ provider:
           - s3:PutObject
           - s3:GetObject
           - s3:DeleteObject
-        Resource: "arn:aws:s3:::odds-portal-scrapped-odds-cad8822c179f12cg"
+        Resource: "arn:aws:s3:::odds-portal-scrapped-odds-cad8822c179f12cg/*"
 
 functions:
   scanAndStoreOddsPortalDataV2:
-    image: 792108524308.dkr.ecr.eu-west-3.amazonaws.com/serverless-odds-harvester-dev:playwright_python_arm64
-    # image:
-    #   name: playwright_python_arm64
-    timeout: 120 # seconds
+    image:
+      name: playwright_python_arm64
+    timeout: 360 # seconds
     memorySize: 2048 # mb
     description: Retrieve and store sports betting odds
     events:
       - eventBridge:
-        schedule: rate(60 minutes)
+        schedule: rate(2 hours)
 
 package:
   individually: true

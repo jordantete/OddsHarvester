@@ -45,8 +45,6 @@ def measure_network_performance():
             raise Exception(f"Unexpected status code: {response.status_code}")
 
         LOGGER.info(f"Latency to www.google.com: {latency:.4f} seconds")
-
-        # Measure download throughput
         start_time = time.time()
         response = requests.get("https://speed.hetzner.de/100MB.bin", stream=True, timeout=5)
         total_length = response.headers.get('content-length')

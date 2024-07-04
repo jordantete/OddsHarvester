@@ -233,22 +233,6 @@ class OddsPortalScrapper:
         finally:
             await self.browser.close()
     
-    # async def __take_screenshot(self):
-    #     try:
-    #         screenshot_path = f'/tmp/screenshot_{uuid.uuid4().hex}.png'
-    #         await self.page.screenshot(path=screenshot_path)
-    #         self.upload_to_s3(screenshot_path)
-    #     except Exception as e:
-    #         LOGGER.error(f"Failed to take screenshot: {e}")
-    
-    # def __upload_to_s3(self, file_path):
-    #     try:
-    #         s3_key = file_path.split('/')[-1]  # Extract file name
-    #         s3_client.upload_file(file_path, self.s3_bucket_name, s3_key)
-    #         LOGGER.info(f"Uploaded screenshot to S3: s3://{self.s3_bucket_name}/{s3_key}")
-    #     except Exception as e:
-    #         LOGGER.error(f"Failed to upload screenshot to S3: {e}")
-    
     ## Sport can be: football, basketball, hockey, volleyball, etc..
     async def get_upcoming_matchs_odds(self, sport: str, date):
         LOGGER.info(f"Will grab upcoming matchs odds for sport: {sport} at date: {date}")

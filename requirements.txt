@@ -5,3 +5,6 @@ Flask==3.0.3
 playwright==1.43.0
 lxml
 pytest
+requests
+pandas
+pytz
