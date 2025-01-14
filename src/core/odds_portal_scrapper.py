@@ -1,5 +1,4 @@
-import time, re, random, os, asyncio
-from utils import FOOTBALL_LEAGUES_URLS_MAPPING
+import time, re, random
 from logger import LOGGER
 from odds_portal_odds_extractor import OddsPortalOddsExtractor
 from bs4 import BeautifulSoup

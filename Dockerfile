@@ -7,6 +7,7 @@ WORKDIR "${LAMBDA_TASK_ROOT}"
 
 # Set environment variables for Python
 ENV PYTHONPATH="${LAMBDA_TASK_ROOT}:${PYTHONPATH}"
+ENV PYTHONUNBUFFERED=1
 
 # Copy function code
 COPY src ${LAMBDA_TASK_ROOT}
@@ -19,4 +20,6 @@ RUN pip install -r requirements.txt --target "${LAMBDA_TASK_ROOT}"
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN python -m playwright install chromium
 
-CMD ["main.scan_and_store_odds_portal_data"]
+# Default to Lambda handler, but allow override for CLI usage
+ENTRYPOINT ["python"]
+CMD ["-m", "main.lambda_handler"]

@@ -1,79 +1,104 @@
-import os, asyncio, uuid, pytz
-from logger import LOGGER
-from utils import get_current_date_time_string, measure_network_performance
-from odds_portal_scrapper import OddsPortalScrapper
-from comparateur_de_cotes_scraper import FrenchOddsScrapper
-from local_data_storage import LocalDataStorage
-from remote_data_storage import RemoteDataStorage
+import asyncio
+import pytz
+import uuid
 from datetime import datetime, timedelta
-from concurrent.futures import ThreadPoolExecutor
+from cli.arguments import parse_args
+from core.scraper import OddsScraper
+from storage.local_data_storage import LocalDataStorage
+from storage.remote_data_storage import RemoteDataStorage
+from playwright.async_api import async_playwright
+import logging
+from logger import setup_logger
 
-is_lambda = os.environ.get("AWS_EXECUTION_ENV") is not None
+class OddsPortalApp:
+    def __init__(self):
+        setup_logger()
+        self.logger = logging.getLogger(self.__class__.__name__)
 
-def get_odds_portal_historic_odds(league_name: str, season: str):
-    file_path = f"/data/{league_name}_{season}_{get_current_date_time_string()}.json"
-    odds_portal_scrapper = OddsPortalScrapper()
-    scrapped_historic_odds = odds_portal_scrapper.get_historic_odds(league=league_name, season=season)
-    flattened_historic_odds = [item for sublist in scrapped_historic_odds for item in sublist]
-    storage = LocalDataStorage(file_path)
-    storage.append_data(flattened_historic_odds)
-    LOGGER.info(f"Historic odds for {league_name} season {season} have been scrapped and stored.")
+    async def run_scraper(
+        self,
+        sport: str,
+        date: str | None = None,
+        league: str | None = None,
+        season: str | None = None,
+        storage_type: str = 'local',
+        headless: bool = True
+    ) -> dict:
+        """Core scraping function that can be called from CLI or Lambda"""
+        self.logger.info(f"Starting scraper with parameters: sport={sport}, date={date}, "
+                    f"league={league}, season={season}, storage_type={storage_type}")
+        
+        storage = LocalDataStorage() if storage_type == 'local' else RemoteDataStorage()
+        
+        async with async_playwright() as playwright:
+            browser = await playwright.chromium.launch(headless=headless)
+            page = await browser.new_page()
+            
+            scraper = OddsScraper(
+                page=page,
+                sport=sport,
+                headless=headless
+            )
+            
+            try:
+                data = await scraper.scrape(date=date, league=league, season=season)
+                if data:
+                    if storage_type == 'remote':
+                        current_date = datetime.now(pytz.timezone('UTC'))
+                        file_id = uuid.uuid4().hex[:8]
+                        filename = f'/tmp/odds_data_{current_date.strftime("%Y%m%d")}_{file_id}.csv'
+                        storage.process_and_upload(data, current_date.strftime("%m/%d/%Y, %H:%M:%S"), filename)
+                    else:
+                        storage.append_data(data)
+                        
+                    self.logger.info(f"Successfully stored {len(data)} records")
+                    return {'statusCode': 200, 'body': 'Data scraped and stored successfully'}
+                else:
+                    self.logger.warning("No data was scraped")
+                    return {'statusCode': 400, 'body': 'No data was scraped'}
+                    
+            except Exception as e:
+                self.logger.error(f"Error during scraping process: {str(e)}", exc_info=True)
+                return {'statusCode': 500, 'body': f'Error during scraping: {str(e)}'}
+            finally:
+                await browser.close()
 
-def get_odds_portal_next_matchs_odds(league_name: str):
-    odds_portal_scrapper = OddsPortalScrapper()
-    odds_portal_scrapper.get_next_matchs_odds(league=league_name)
-
-def get_french_bookamker_odds(league_name: str):
-    french_odds_scrapper = FrenchOddsScrapper(league=league_name)
-    french_odds_scrapper.scrape_and_store_matches()
-
-async def get_all_upcoming_event_odds(sport: str, date: str):
-    odds_portal_scrapper = OddsPortalScrapper(headless_mode=is_lambda)
-    await odds_portal_scrapper.initialize_webdriver()
-    odds = await odds_portal_scrapper.get_upcoming_matchs_odds(sport=sport, date=date)
-    return odds
-
-def scrape_concurently():
-    ## TODO: testing purposes
-    leagues_seasons = [('liga', '2021-2022')]
-    with ThreadPoolExecutor(max_workers=6) as executor:
-        executor.map(lambda x: get_odds_portal_historic_odds(*x), leagues_seasons)
-
-async def scan_and_store_odds_portal_data_async(event=0, context=0):
-    LOGGER.info(f"scan_and_store_odds_portal_matches - event: {event} - context: {context}")
-
-    paris_tz = pytz.timezone('Europe/Paris')
-    today_date = datetime.now(paris_tz)
-    next_days_date = today_date + timedelta(days=2)
-    formatted_next_days_date = next_days_date.strftime('%Y%m%d')
-
-    next_days_football_matches_data = await get_all_upcoming_event_odds(sport="football", date=formatted_next_days_date)
-    LOGGER.info(f"tomorrow_football_matches_data: {next_days_football_matches_data}")
-
-    if next_days_football_matches_data:
-        random_string_id = uuid.uuid4().hex
-        csv_filename = f'/tmp/odds_data_{formatted_next_days_date}_{random_string_id}.csv'
-        data_storage = RemoteDataStorage()
-        executor = ThreadPoolExecutor()
-        await asyncio.get_event_loop().run_in_executor(
-            executor, 
-            data_storage.process_and_upload, 
-            next_days_football_matches_data, 
-            today_date.strftime("%m/%d/%Y, %H:%M:%S"), 
-            csv_filename
+    async def cli_main(self):
+        """Entry point for CLI usage"""
+        args = parse_args()
+        return await self.run_scraper(
+            sport=args.sport,
+            date=args.date,
+            league=args.league,
+            season=args.season,
+            storage_type=args.storage,
+            headless=args.headless
         )
-        return {'statusCode': 200, "body": "File uploaded successfully"}
-    else:
-        LOGGER.warn("No data to upload.")
-        return {'statusCode': 400, "body": "No data to upload"}
 
-def scan_and_store_odds_portal_data(event=0, context=0):
-    network_results = measure_network_performance()
-    if network_results:
-        LOGGER.info(f"Network performance: {network_results}")
+    def lambda_handler(self, event, context):
+        """Entry point for AWS Lambda"""
+        self.logger.info(f"Lambda invocation with event: {event}")
+        
+        paris_tz = pytz.timezone('Europe/Paris')
+        next_day = datetime.now(paris_tz) + timedelta(days=1)
+        formatted_date = next_day.strftime('%Y%m%d')
+        
+        return asyncio.get_event_loop().run_until_complete(
+            self.run_scraper(
+                sport="football",
+                date=formatted_date,
+                storage_type="remote",
+                headless=True
+            )
+        )
 
-    loop = asyncio.get_event_loop()
-    return loop.run_until_complete(scan_and_store_odds_portal_data_async(event, context))
+def main():
+    app = OddsPortalApp()
+    asyncio.run(app.cli_main())
 
-if not is_lambda:
-    scan_and_store_odds_portal_data()
+def lambda_handler(event, context):
+    app = OddsPortalApp()
+    return app.lambda_handler(event, context)
+
+if __name__ == "__main__":
+    main()

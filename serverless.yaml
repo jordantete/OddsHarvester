@@ -42,5 +42,5 @@ plugins:
 custom:
   pythonRequirements:
     slim: true
-    strip: false  # Set to `true` to remove symbols from compiled files
-    noDeploy: ['boto3']  # Exclude packages already available in the AWS environment
+    strip: false
+    noDeploy: ['boto3']
