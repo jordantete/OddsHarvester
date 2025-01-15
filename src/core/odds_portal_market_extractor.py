@@ -2,32 +2,10 @@ import re, logging
 from playwright.async_api import TimeoutError
 from bs4 import BeautifulSoup
 
-class OddsPortalOddsExtractor:
+class OddsPortalMarketExtractor:
     def __init__(self, page):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.page = page
-
-    """ This method attempts to click an element based on its text content."""
-    async def __click_by_inner_text(self, selector: str, text: str) -> bool:
-        try:
-            cleaned_text = ''.join(text.split())
-            elements = await self.page.query_selector_all(f'xpath=//{selector}[contains(text(), "{cleaned_text}")]')
-
-            if not elements:
-                self.logger.info(f"Element with text '{text}' not found.")
-                return False
-
-            for element in elements:
-                if ''.join(await element.text_content().split()) == cleaned_text:
-                    await element.click()
-                    return True
-
-        except Exception as e:
-            self.logger.error(f"Error clicking element with text '{text}': {e}")
-            return False
-        
-        self.logger.info(f"Element with text '{text}' not found.")
-        return False
 
     async def __click_by_text(self, selector: str, text: str) -> bool:
         elements = await self.page.query_selector_all(selector)

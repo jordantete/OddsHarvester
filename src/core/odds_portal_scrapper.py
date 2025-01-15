@@ -1,81 +1,42 @@
-import time, re, random
-from odds_portal_odds_extractor import OddsPortalOddsExtractor
+import re, random, logging
+from typing import Any, Dict, List, Optional
 from bs4 import BeautifulSoup
-from playwright.async_api import async_playwright, TimeoutError, Error
+from playwright.async_api import Page, TimeoutError, Error
 from src.utils.constants import FOOTBALL_LEAGUES_URLS_MAPPING
+from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 
 class OddsPortalScrapper:
-    def __init__(self, headless_mode: bool):
-        self.logger.info(f"OddsPortalScrapper will be initialized with headless_mode set to: {headless_mode}")
-        self.headless_mode = headless_mode
-        self.playwright = None
-        self.browser = None
-        self.context = None
-        self.page = None
+    def __init__(
+        self, 
+        page: Page, 
+        sport: str
+    ):
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.info(f"OddsPortalScrapper will be initialized for sport: {sport}")
+        self.page = page
+        self.sport = sport
     
-    async def initialize_webdriver(self):
+    async def scrape(
+        self,
+        date: Optional[str] = None,
+        league: Optional[str] = None,
+        season: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Main scraping method"""
         try:
-            self.logger.info("Starting Playwright...")
-            self.playwright = await async_playwright().start()
-
-            self.logger.info("Launching browser...")
-            browser_args = [
-                "--disable-dev-shm-usage", "--ipc=host", "--single-process", "--window-size=1920,1080", "--no-sandbox",
-                "--no-zygote", "--allow-running-insecure-content", "--autoplay-policy=user-gesture-required"
-                "--disable-component-update", "--no-default-browser-check", "--disable-domain-reliability",
-                "--disable-features=AudioServiceOutOfProcess,IsolateOrigins,site-per-process", "--disable-print-preview", 
-                "--disable-setuid-sandbox", "--disable-site-isolation-trials", "--disable-speech-api",
-                "--disable-web-security", "--disk-cache-size=33554432", "--enable-features=SharedArrayBuffer",
-                "--hide-scrollbars", "--ignore-gpu-blocklist", "--in-process-gpu", "--mute-audio", "--no-pings", "--disable-gpu"]
-            self.browser = await self.playwright.chromium.launch(headless=self.headless_mode, args=browser_args)
-
-            self.logger.info("Opening new page from browser...")
-            self.page = await self.browser.new_page()
-        
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Playwright: {str(e)}")
-            await self.__cleanup()
-            raise
-
-    async def __cleanup(self):
-        """Cleanup resources to avoid leaks in case of initialization failure."""
-        if self.page:
-            await self.page.close()
-        if self.context:
-            await self.context.close()
-        if self.browser:
-            await self.browser.close()
-        if self.playwright:
-            await self.playwright.stop()
-        self.logger.info("Cleaned up Playwright resources.")
-
-    """Scrolls down the page in a loop until no new content is loaded or a timeout is reached."""
-    async def __scroll_until_loaded(self, timeout=60, scroll_pause_time=10, max_scrolls=15):
-        self.logger.info("Will scroll to the bottom of the page.")
-        end_time = time.time() + timeout
-        last_height = await self.page.evaluate("document.body.scrollHeight")
-        self.logger.info(f"__scroll_until_loaded last_height: {last_height}")
-
-        scroll_attempts = 0
-        while True:
-            await self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            await self.page.wait_for_timeout(scroll_pause_time * 1000)  # Convert seconds to milliseconds
-            new_height = await self.page.evaluate("document.body.scrollHeight")
-            self.logger.info(f"__scroll_until_loaded new_height: {new_height}")
-
-            if new_height == last_height:
-                scroll_attempts += 1
-                if scroll_attempts > 2:
-                    self.logger.info("No more new content detected.")
-                    break
+            self.logger.info(f"Starting scrape for date={date}, league={league}, season={season}")
+            await self._set_odds_format()
+            
+            if league and season:
+                self.logger.info(f"Scraping historical odds for {league} season {season}")
+                return await self._scrape_historical(league, season)
             else:
-                scroll_attempts = 0
-
-            last_height = new_height
-
-            if time.time() > end_time or scroll_attempts > max_scrolls:
-                self.logger.info("Reached the end of the scrolling time or maximum scroll attempts.")
-                break
+                self.logger.info(f"Scraping upcoming matches for date {date}")
+                return await self._scrape_upcoming(date)
+                
+        except Exception as e:
+            self.logger.error(f"Error during scraping: {str(e)}", exc_info=True)
+            return []
 
     def __get_base_url(self, league: str, season: str = None) -> str:
         base_url = FOOTBALL_LEAGUES_URLS_MAPPING.get(league)
@@ -144,11 +105,12 @@ class OddsPortalScrapper:
             
             day, date, time_value = [await element.inner_text() for element in date_elements]
             homeTeam, awayTeam = [await element.inner_text() for element in team_elements]
-            odds_extractor = OddsPortalOddsExtractor(self.page)                
-            ft_1x2_odds_data = await odds_extractor.extract_1X2_odds(period="FullTime")
-            #over_under_1_5_odds_data = await odds_extractor.extract_over_under_odds(over_under_type_chosen="1.5", period="FullTime")
-            over_under_2_5_odds_data = await odds_extractor.extract_over_under_odds(over_under_type_chosen="2.5", period="FullTime")
-            #double_chance_odds_data = await odds_extractor.extract_double_chance_odds(period="FullTime")
+
+            odds_market_extractor = OddsPortalMarketExtractor(self.page)                
+            ft_1x2_odds_data = await odds_market_extractor.extract_1X2_odds(period="FullTime")
+            #over_under_1_5_odds_data = await odds_market_extractor.extract_over_under_odds(over_under_type_chosen="1.5", period="FullTime")
+            over_under_2_5_odds_data = await odds_market_extractor.extract_over_under_odds(over_under_type_chosen="2.5", period="FullTime")
+            #double_chance_odds_data = await odds_market_extractor.extract_double_chance_odds(period="FullTime")
             scrapped_data = {
                 "date": date,
                 "homeTeam": homeTeam,
