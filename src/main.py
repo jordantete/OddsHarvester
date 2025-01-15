@@ -1,14 +1,11 @@
-import asyncio
-import pytz
-import uuid
+import asyncio, pytz, uuid, logging
 from datetime import datetime, timedelta
 from cli.arguments import parse_args
 from core.scraper import OddsScraper
 from storage.local_data_storage import LocalDataStorage
 from storage.remote_data_storage import RemoteDataStorage
 from playwright.async_api import async_playwright
-import logging
-from logger import setup_logger
+from src.utils.setup_logging import setup_logger
 
 class OddsPortalApp:
     def __init__(self):
@@ -34,11 +31,7 @@ class OddsPortalApp:
             browser = await playwright.chromium.launch(headless=headless)
             page = await browser.new_page()
             
-            scraper = OddsScraper(
-                page=page,
-                sport=sport,
-                headless=headless
-            )
+            scraper = OddsScraper(page=page, sport=sport, headless=headless)
             
             try:
                 data = await scraper.scrape(date=date, league=league, season=season)
@@ -60,6 +53,7 @@ class OddsPortalApp:
             except Exception as e:
                 self.logger.error(f"Error during scraping process: {str(e)}", exc_info=True)
                 return {'statusCode': 500, 'body': f'Error during scraping: {str(e)}'}
+            
             finally:
                 await browser.close()
 

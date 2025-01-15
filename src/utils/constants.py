@@ -1,5 +1,3 @@
-from datetime import datetime
-
 FOOTBALL_LEAGUES_URLS_MAPPING = {
     "premier-league": 'https://www.oddsportal.com/football/england/premier-league',
     "ligue-1": 'https://www.oddsportal.com/football/france/ligue-1',
@@ -14,8 +12,3 @@ FOOTBALL_LEAGUES_URLS_MAPPING = {
     "eredivisie": "https://www.oddsportal.com/football/netherlands/eredivisie",
     "champions-league": "https://www.oddsportal.com/football/europe/champions-league"
 }
-
-def get_current_date_time_string():
-    now = datetime.now()
-    date_time_string = now.strftime('%Y-%m-%d %H:%M:%S')
-    return date_time_string
