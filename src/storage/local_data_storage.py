@@ -27,6 +27,7 @@ class LocalDataStorage:
                     for row in data:
                         writer.writerow(row)
                 self.logger.info(f"Successfully appended {len(data)} records to {self.file_path}")
+                
         except Exception as e:
             self.logger.error(f"Error appending data to file: {str(e)}", exc_info=True)
             raise

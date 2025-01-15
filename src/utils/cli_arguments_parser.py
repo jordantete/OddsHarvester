@@ -1,6 +1,6 @@
 import argparse, re
 from typing import NamedTuple, List
-from storage_type import StorageType
+from src.storage.storage_type import StorageType
 from src.utils.constants import SUPPORTED_SPORTS, SUPPORTED_MARKETS, FOOTBALL_LEAGUES_URLS_MAPPING, DATE_FORMAT_REGEX
 
 class ScraperArgs(NamedTuple):

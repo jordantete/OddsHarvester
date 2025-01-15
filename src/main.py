@@ -1,7 +1,7 @@
 import asyncio, pytz, uuid, logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
-from cli.arguments import parse_args
+from src.utils.cli_arguments_parser import parse_args
 from src.core.browser_helper import BrowserHelper
 from src.core.odds_portal_scrapper import OddsPortalScrapper
 from src.utils.setup_logging import setup_logger
@@ -27,6 +27,7 @@ class OddsPortalScrapperApp:
     ) -> dict:
         """Core scraping function that can be called from CLI or Lambda"""
         self.logger.info(f"Starting scraper with parameters: sport={sport}, date={date}, league={league}, season={season}, storage_type={storage_type}, headless={headless}")
+        
         try:
             scraped_data = await self._perform_scraping(
                 sport=sport, 
@@ -131,7 +132,7 @@ class OddsPortalScrapperApp:
             self.run_scraper(
                 sport="football",
                 date=formatted_date,
-                league="premier-league"
+                league="premier-league",
                 storage_type="remote",
                 headless=True,
                 markets=["1x2"]

@@ -2,16 +2,24 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run main.py",
+            "name": "Debug OddsPortalScrapperApp",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/main.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/src",
             "env": {
+                "PYTHONPATH": "${workspaceFolder}",
                 "PYTHONUNBUFFERED": "1"
             },
-            "justMyCode": false
+            "justMyCode": false,
+            "args": [
+                "--sport", "football",
+                "--league", "premier-league",
+                "--season", "2023-2024",
+                "--storage", "local",
+                "--markets", "1x2"
+            ]
         }
     ]
 }
