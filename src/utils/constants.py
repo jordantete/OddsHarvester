@@ -1,3 +1,19 @@
+ODDSPORTAL_BASE_URL = "https://www.oddsportal.com"
+ODDS_FORMAT = "EU Odds"
+DATE_FORMAT_REGEX = r"^\d{4}-\d{2}-\d{2}$"  # YYYY-MM-DD
+
+SUPPORTED_SPORTS = [
+    "football"
+]
+
+SUPPORTED_MARKETS = [
+    "1x2",           # Full-time 1X2 odds
+    "over_under_1_5", # Over/Under 1.5 goals
+    "over_under_2_5", # Over/Under 2.5 goals
+    "btts",           # Both Teams to Score
+    "double_chance"   # Double chance odds
+]
+
 FOOTBALL_LEAGUES_URLS_MAPPING = {
     "premier-league": 'https://www.oddsportal.com/football/england/premier-league',
     "ligue-1": 'https://www.oddsportal.com/football/france/ligue-1',

@@ -1,23 +1,21 @@
 import re, logging
-from playwright.async_api import TimeoutError
+from playwright.async_api import Page, TimeoutError
 from bs4 import BeautifulSoup
+from src.core.browser_helper import BrowserHelper
 
 class OddsPortalMarketExtractor:
-    def __init__(self, page):
+    def __init__(
+        self, 
+        page: Page,
+        browser_helper: BrowserHelper
+    ):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.page = page
+        self.browser_helper = browser_helper
 
-    async def __click_by_text(self, selector: str, text: str) -> bool:
-        elements = await self.page.query_selector_all(selector)
-        for element in elements:
-            element_text = await element.text_content()
-            if element_text and text in element_text:
-                await element.click()
-                return True
-        return False
-    
     async def __can_select_over_under_market(self, selector: str, market_value: str) -> bool:
         self.logger.info(f"__can_select_over_under_market with selector: {selector} and market_value: {market_value}")
+        
         try:
             await self.page.wait_for_selector(f"{selector} p", timeout=5000)
             elements = await self.page.query_selector_all(f"{selector} p")
@@ -32,7 +30,7 @@ class OddsPortalMarketExtractor:
                     await parent_div.click()
                     return True
                 
-            self.logger.warn(f"No matching element found for market_value: {market_value}")
+            self.logger.warning(f"No matching element found for market_value: {market_value}")
             return False
         
         except Exception as e:
@@ -47,14 +45,14 @@ class OddsPortalMarketExtractor:
         try:
             button = await self.page.wait_for_selector(match_period_button_selector, state="visible", timeout=5000)
             
-            if not await self.__click_by_inner_text(match_period_button_selector, cleaned_period):
+            if not await self.browser_helper.click_by_inner_text(page=self.page, selector=match_period_button_selector, text=cleaned_period):
                 self.logger.error(f"Button with match period: {period} not found or could not be clicked.")
         
         except TimeoutError:
             self.logger.error(f"Timed out waiting for match period button to become clickable: {period}")
     
-    """Extracts 1X2 odds for the specified period (FullTime, 1stHalf, 2ndHalf)."""
     async def extract_1X2_odds(self, period: str):
+        """Extracts 1X2 odds for the specified period (FullTime, 1stHalf, 2ndHalf)."""
         self.logger.info(f"Scraping odds for 1x2 for period: {period}")
         odds_data = []
         ## TODO: assume that "FullTime" is selected - call __select_match_period only if {period} is not already selected
@@ -91,7 +89,7 @@ class OddsPortalMarketExtractor:
         bookmaker_blocks = soup.find_all('div', attrs={'class': re.compile(r'^border-black-borders flex h-9')})
         
         if not bookmaker_blocks:
-            self.logger.warn("No bookmaker_blocks found, check class names and HTML structure")
+            self.logger.warning("No bookmaker_blocks found, check class names and HTML structure")
             return []
 
         odds_data = []
@@ -101,7 +99,7 @@ class OddsPortalMarketExtractor:
             odds_blocks = block.find_all('div', class_=re.compile(r'flex-center.*flex-col.*font-bold'))
 
             if not odds_blocks:
-                self.logger.warn("No odds_blocks found, check class names and HTML structure")
+                self.logger.warning("No odds_blocks found, check class names and HTML structure")
                 return []
 
             odds_over = 'N/A'
@@ -120,14 +118,14 @@ class OddsPortalMarketExtractor:
         self.logger.info(f"Successfully fetch over/under odds_data: {odds_data}")
         return odds_data
     
-    """Extract Over/Under odds for the specified period (FullTime, 1stHalf, 2ndHalf)."""
     async def extract_over_under_odds(self, over_under_type_chosen: str, period: str):
+        """Extract Over/Under odds for the specified period (FullTime, 1stHalf, 2ndHalf)."""
         #await self.__select_match_period(period=period) ## assume that "FullTime" is selected - call __select_match_period only if {period} is not already selected
         self.logger.info(f"Scraping odds for under/over {over_under_type_chosen}")
         markets_scrollbar_selector = 'ul.visible-links.bg-black-main.odds-tabs > li'
         await self.page.wait_for_selector(markets_scrollbar_selector, state="visible")
         
-        if not await self.__click_by_text(markets_scrollbar_selector, 'Over/Under'):
+        if not await self.browser_helper.click_by_text(page=self.page, selector=markets_scrollbar_selector, text='Over/Under'):
             self.logger.error("Over/Under tab not found or couldn't be clicked.")
             return []
         
@@ -146,7 +144,6 @@ class OddsPortalMarketExtractor:
         odds_data = await self.__extract_bookmakers_and_over_under_odds(html_content=html_content)
         return odds_data
     
-    """Extract Double Chance odds for the specified period (FullTime, 1stHalf, 2ndHalf)."""
     async def extract_double_chance_odds(self, period: str):
         self.logger("WORK IN PROGRESS - scrape 1X, X2, etc..")
         ## Select double chance in scrollbar - Scrape bookmaker odds for 1X, X2, 12
