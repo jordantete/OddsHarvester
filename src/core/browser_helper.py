@@ -107,8 +107,42 @@ class BrowserHelper:
         
         self.logger.info(f"Element with text '{text}' not found.")
         return False
+    
+    async def wait_and_click(
+        self, 
+        page: Page,
+        selector: str, 
+        text: str = None,
+        timeout: float = 5000
+    ):
+        """
+        Waits for a selector and optionally clicks an element based on its text.
 
-    async def click_by_text(
+        Args:
+            page (Page): The Playwright page instance to interact with.
+            selector (str): The CSS selector to wait for.
+            text (str): Optional. The text of the element to click.
+            timeout (float): The waiting time for the element to click.
+
+        Returns:
+            bool: True if the element is clicked successfully, False otherwise.
+        """
+        try:
+            await page.wait_for_selector(selector=selector, timeout=timeout)
+
+            if text:
+                return await self._click_by_text(page=page, selector=selector, text=text)
+            else:
+                # Click the first element matching the selector
+                element = await page.query_selector(selector)
+                await element.click()
+                return True
+
+        except Exception as e:
+            self.logger.error(f"Error waiting for or clicking selector '{selector}': {e}")
+            return False
+    
+    async def _click_by_text(
         self, 
         page: Page,
         selector: str, 
@@ -134,11 +168,14 @@ class BrowserHelper:
         """
         try:
             elements = await page.query_selector_all(selector)
+
             for element in elements:
                 element_text = await element.text_content()
+
                 if element_text and text in element_text:
                     await element.click()
                     return True
+                
             self.logger.info(f"Element with text '{text}' not found.")
             return False
         

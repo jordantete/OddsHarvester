@@ -254,7 +254,7 @@ class OddsPortalScrapper:
         self, 
         match_link: str, 
         markets: Optional[List[str]] = None
-    ):
+    ) -> Optional[Dict[str, Any]]:
         """
         Scrape data for a specific match based on the desired markets.
 
@@ -266,11 +266,12 @@ class OddsPortalScrapper:
             Optional[Dict[str, Any]]: A dictionary containing scraped data, or None if scraping fails.
         """
         self.logger.info(f"Will scrape match url: {match_link}")
-        await self.page.goto(f"{ODDSPORTAL_BASE_URL}{match_link}", timeout=150000, wait_until="domcontentloaded")
 
         try:
+            await self.page.goto(f"{ODDSPORTAL_BASE_URL}{match_link}", timeout=150000, wait_until="domcontentloaded")
             await self.page.wait_for_selector('div.bg-event-start-time ~ p', timeout=5000)
             await self.page.wait_for_selector('span.truncate', timeout=5000)
+
             date_elements = await self.page.query_selector_all('div.bg-event-start-time ~ p')
             team_elements = await self.page.query_selector_all('span.truncate')
 
@@ -278,25 +279,40 @@ class OddsPortalScrapper:
                 self.logger.warning("Not on the expected page. date_elements or teams_elements are None.")
                 return None
             
-            day, date, time_value = [await element.inner_text() for element in date_elements]
-            homeTeam, awayTeam = [await element.inner_text() for element in team_elements]
+            _, date, _ = [await element.inner_text() for element in date_elements]
+            home_team, away_team = [await element.inner_text() for element in team_elements]
 
-            odds_market_extractor = OddsPortalMarketExtractor(page=self.page, browser_helper=self.browser_helper)                
-            ft_1x2_odds_data = await odds_market_extractor.extract_1X2_odds(period="FullTime")
-            #over_under_1_5_odds_data = await odds_market_extractor.extract_over_under_odds(over_under_type_chosen="1.5", period="FullTime")
-            over_under_2_5_odds_data = await odds_market_extractor.extract_over_under_odds(over_under_type_chosen="2.5", period="FullTime")
-            #double_chance_odds_data = await odds_market_extractor.extract_double_chance_odds(period="FullTime")
+            odds_market_extractor = OddsPortalMarketExtractor(page=self.page, browser_helper=self.browser_helper)
+
+            market_methods = {
+                "1x2": odds_market_extractor.extract_1X2_odds,
+                "over_under_1_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="1.5"),
+                "over_under_2_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="2.5"),
+                "btts": odds_market_extractor.extract_btts_odds,
+                "double_chance": odds_market_extractor.extract_double_chance_odds,
+            }
+
             scrapped_data = {
                 "date": date,
-                "homeTeam": homeTeam,
-                "awayTeam": awayTeam,
-                "ft_1x2_odds_data": ft_1x2_odds_data,
-                "over_under_2_5_odds_data": over_under_2_5_odds_data
+                "homeTeam": home_team,
+                "awayTeam": away_team,
             }
+
+            for market in markets or []:
+                try:
+                    if market in market_methods:
+                        self.logger.info(f"Scraping market: {market}")
+                        scrapped_data[f"{market}_data"] = await market_methods[market]()
+                    else:
+                        self.logger.warning(f"Market '{market}' is not supported.")
+                except Exception as e:
+                    self.logger.error(f"Error scraping market '{market}': {e}")
+                    scrapped_data[f"{market}_data"] = None
+
             return scrapped_data
         
         except Error as e:
-            self.logger.warning(f"Elements not found on page: {match_link}. Possibly not the correct page. Error: {e}")
+            self.logger.error(f"Error scraping match data from {match_link}: {e}")
             return None
 
     async def _extract_match_links_for_page(
