@@ -64,9 +64,8 @@ def parse_args() -> ScraperArgs:
         default=["1x2"],
         help="List of markets to scrape (e.g., '1x2', 'over_under_2_5'). Default is ['1x2']."
     )
+    
     args = parser.parse_args()
-
-    # Validate arguments
     validate_args(args)
 
     return ScraperArgs(

@@ -1,0 +1,37 @@
+[project]
+name = "OddsHarvester"
+version = "0.1.0"
+description = "A Python application to scrape and manage odds data from OddsPortal website."
+authors = [{ name = "Jordan TETE", email = "tetej171@gmail.com" }]
+readme = "README.md"
+license = { file = "LICENSE.txt" }
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.12.3",
+    "boto3>=1.36.0",
+    "lxml>=5.3.0",
+    "playwright>=1.49.1",
+    "pytest>=8.3.4",
+    "pytest-mock>=3.14.0",
+    "pytz>=2024.2",
+]
+
+[project.urls]
+repository= "https://github.com/jordantete/OddsHarvester"
+issues = "https://github.com/jordantete/OddsHarvester/issues"
+discussions = "https://github.com/jordantete/OddsHarvester/discussions"
+
+[tool.pytest.ini_options]
+pythonpath = "."
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+[tool.black]
+line-length = 120
+skip-string-normalization = true
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
