@@ -21,7 +21,7 @@ RUN uv install
 
 # Install Playwright browsers
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN python -m playwright install chromium
+RUN playwright install chromium
 
 # Default to Lambda handler, but allow override for CLI usage
 ENTRYPOINT ["python"]

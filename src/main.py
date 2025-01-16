@@ -71,8 +71,8 @@ class OddsPortalScrapperApp:
         try:
             browser_helper = BrowserHelper()
             scraper = OddsPortalScrapper(browser_helper=browser_helper)
-            await scraper.initialize_playwright(is_webdriver_headless=is_webdriver_headless)
-            return await scraper.scrape(sport= sport, date=date, league=league, season=season)
+            await scraper.initialize_and_start_playwright(is_webdriver_headless=is_webdriver_headless)
+            return await scraper.scrape(sport=sport, date=date, league=league, season=season, markets=markets)
         
         except Exception as e:
             self.logger.error(f"Error during scraping: {str(e)}")

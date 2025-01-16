@@ -41,8 +41,5 @@ profile_results.prof
 # VS Code
 .vscode/
 
-# Conda
-conda_packages.txt
-
 # Secrets
 .env

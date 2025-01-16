@@ -5,7 +5,8 @@ from playwright.async_api import async_playwright, Page, TimeoutError, Error
 from core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from core.url_builder import URLBuilder
 from core.browser_helper import BrowserHelper
-from utils.constants import ODDS_FORMAT, ODDSPORTAL_BASE_URL, PLAYWRIGHT_BROWSER_ARGS
+from utils.utils import is_running_in_docker
+from utils.constants import ODDS_FORMAT, ODDSPORTAL_BASE_URL, PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER
 
 class OddsPortalScrapper:
     SCRAPING_CONCURENT_TASKS = 10 # Limit concurrency to 10 tasks (adjust as needed)
@@ -32,17 +33,45 @@ class OddsPortalScrapper:
         self.browser = browser
         self.playwright = playwright
     
-    async def initialize_playwright(
+    async def initialize_and_start_playwright(
         self, 
         is_webdriver_headless: bool
     ):
         """
-        Initialize Playwright and assign its instances to the class.
+        Initialize and start Playwright with a browser and page.
 
         Args:
-            is_webdriver_headless (bool): Whether the browser should run in headless mode.
+            is_webdriver_headless (bool): Whether to start the browser in headless mode.
         """
-        self.playwright, self.browser, self.page = await self._initialize_and_start_playwright(is_webdriver_headless)
+        try:
+            self.logger.info("Starting Playwright...")
+            self.playwright = await async_playwright().start()
+
+            self.logger.info("Launching browser...")
+            browser_args = PLAYWRIGHT_BROWSER_ARGS_DOCKER if is_running_in_docker() else PLAYWRIGHT_BROWSER_ARGS
+            self.browser = await self.playwright.chromium.launch(headless=is_webdriver_headless, args=browser_args)
+
+            self.logger.info("Opening new page from browser...")
+            self.page = await self.browser.new_page()
+        
+        except Exception as e:
+            self.logger.error(f"Failed to initialize Playwright: {str(e)}")
+            raise
+    
+    async def cleanup(self):
+        """
+        Cleanup Playwright resources to avoid memory leaks.
+        """
+        self.logger.info("Cleaning up Playwright resources...")
+        if self.page:
+            await self.page.close()
+        if self.context:
+            await self.context.close()
+        if self.browser:
+            await self.browser.close()
+        if self.playwright:
+            await self.playwright.stop()
+        self.logger.info("Playwright resources cleanup complete.")
     
     async def scrape(
         self,
@@ -67,7 +96,6 @@ class OddsPortalScrapper:
         """
         try:
             self.logger.info(f"Start scraping for date={date}, league={league}, season={season}")
-            await self._set_odds_format()
             
             if league and season:
                 self.logger.info(f"Scraping historical odds for {league} season {season}")
@@ -99,11 +127,12 @@ class OddsPortalScrapper:
         Returns:
             List[Dict[str, Any]]: A list of dictionaries containing scraped historical odds data.
         """
-        base_url = URLBuilder.get_base_url(league, season)
-        self.logger.info(f"Fetching historical odds from URL: {base_url}")
-
         try:
+            base_url = URLBuilder.get_base_url(league, season)
+            self.logger.info(f"Fetching historical odds from URL: {base_url}")
             await self.page.goto(base_url)
+            await self._set_odds_format()
+
             all_links = []
             pagination_links = await self.page.query_selector_all("a.pagination-link:not([rel='next'])")
             total_pages = [int(await link.inner_text()) for link in pagination_links if (await link.inner_text()).isdigit()]
@@ -123,8 +152,7 @@ class OddsPortalScrapper:
                     await self.page.goto(page_url)
                     await self.page.wait_for_timeout(random.randint(2000, 5000))
 
-                    self._extract_match_links_for_page(page=self.page)
-                    links = await self._extract_match_links()
+                    links = await self._extract_match_links_for_page(page=self.page)
                     all_links.extend(links)
 
                 except Exception as page_error:
@@ -163,6 +191,7 @@ class OddsPortalScrapper:
             base_url = URLBuilder.get_upcoming_url(sport, date)
             self.logger.info(f"Fetching upcoming odds from URL: {base_url}")
             await self.page.goto(base_url)
+            await self._set_odds_format()
 
             links = await self._extract_match_links_for_page(page=self.page)
             if not links:
@@ -318,7 +347,7 @@ class OddsPortalScrapper:
     async def _extract_match_links_for_page(
         self,
         page: Page
-    ):
+    )-> List[str]:
         """
         Extract match links from the current page.
 
@@ -328,11 +357,10 @@ class OddsPortalScrapper:
         Returns:
             List[str]: A list of match links found on the page.
         """
-        match_links = []
-        await self.browser_helper.scroll_until_loaded(page=page)
-        await page.wait_for_timeout(int(random.uniform(5000, 8000)))
-
         try:
+            match_links = []
+            await self.browser_helper.scroll_until_loaded(page=page)
+            await page.wait_for_timeout(int(random.uniform(5000, 8000)))
             match_links = await self._parse_match_links_for_page(page=page)            
             self.logger.info(f"After filtering fetched matches, remaining links: {len(match_links)}")
         
@@ -345,7 +373,7 @@ class OddsPortalScrapper:
     async def _parse_match_links_for_page(
         self, 
         page: Page
-    ):
+    ) -> List[str]:
         """
         Parse match links from the HTML content of the current page.
 
@@ -372,42 +400,3 @@ class OddsPortalScrapper:
                 if len(parts) > 3:
                     hrefs.append(link_href)
         return hrefs
-
-    async def _initialize_and_start_playwright(
-        self, 
-        is_webdriver_headless: bool
-    ):
-        """
-        Initialize and start Playwright with a browser and page.
-
-        Args:
-            is_webdriver_headless (bool): Whether to start the browser in headless mode.
-        """
-        try:
-            self.logger.info("Starting Playwright...")
-            self.playwright = await async_playwright().start()
-
-            self.logger.info("Launching browser...")
-            self.browser = await self.playwright.chromium.launch(headless=is_webdriver_headless, args=PLAYWRIGHT_BROWSER_ARGS)
-
-            self.logger.info("Opening new page from browser...")
-            self.page = await self.browser.new_page()
-        
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Playwright: {str(e)}")
-            raise
-    
-    async def cleanup(self):
-        """
-        Cleanup Playwright resources to avoid memory leaks.
-        """
-        self.logger.info("Cleaning up Playwright resources...")
-        if self.page:
-            await self.page.close()
-        if self.context:
-            await self.context.close()
-        if self.browser:
-            await self.browser.close()
-        if self.playwright:
-            await self.playwright.stop()
-        self.logger.info("Playwright resources cleanup complete.")

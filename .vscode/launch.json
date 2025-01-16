@@ -15,8 +15,9 @@
             "justMyCode": false,
             "args": [
                 "--sport", "football",
-                "--league", "premier-league",
-                "--season", "2023-2024",
+                // "--league", "premier-league",
+                "--date", "20250117",
+                // "--season", "2023-2024",
                 "--storage", "local",
                 "--markets", "1x2"
             ]

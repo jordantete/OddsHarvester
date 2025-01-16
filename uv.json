@@ -1,5 +1,8 @@
 {
     "venv": ".venv",
     "python": "python3.12",
-    "pythonpath": ["src"]
+    "pythonpath": ["src"],
+    "scripts": {
+        "post-install": "playwright install chromium"
+    }
 }

@@ -1,6 +1,6 @@
 ODDSPORTAL_BASE_URL = "https://www.oddsportal.com"
 ODDS_FORMAT = "EU Odds"
-DATE_FORMAT_REGEX = r"^\d{4}-\d{2}-\d{2}$"  # YYYY-MM-DD
+DATE_FORMAT_REGEX = r"^\d{4}\d{2}\d{2}$"  # YYYYMMDD
 
 SUPPORTED_SPORTS = [
     "football"
@@ -29,7 +29,9 @@ FOOTBALL_LEAGUES_URLS_MAPPING = {
     "champions-league": "https://www.oddsportal.com/football/europe/champions-league"
 }
 
-PLAYWRIGHT_BROWSER_ARGS = [
+PLAYWRIGHT_BROWSER_ARGS = ["--disable-dev-shm-usage", "--no-sandbox"]
+
+PLAYWRIGHT_BROWSER_ARGS_DOCKER = [
     "--disable-dev-shm-usage", "--ipc=host", "--single-process", "--window-size=1920,1080", "--no-sandbox",
     "--no-zygote", "--allow-running-insecure-content", "--autoplay-policy=user-gesture-required"
     "--disable-component-update", "--no-default-browser-check", "--disable-domain-reliability",
