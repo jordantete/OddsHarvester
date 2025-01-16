@@ -1,6 +1,6 @@
 from typing import Optional
-from src.utils.utils import get_football_league_url
-from src.utils.constants import ODDSPORTAL_BASE_URL
+from utils.utils import get_football_league_url
+from utils.constants import ODDSPORTAL_BASE_URL
 
 class URLBuilder:
     """

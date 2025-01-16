@@ -2,10 +2,10 @@ import re, random, logging, asyncio
 from typing import Any, Dict, List, Optional
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright, Page, TimeoutError, Error
-from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
-from src.core.url_builder import URLBuilder
-from src.core.browser_helper import BrowserHelper
-from src.utils.constants import ODDS_FORMAT, ODDSPORTAL_BASE_URL, PLAYWRIGHT_BROWSER_ARGS
+from core.odds_portal_market_extractor import OddsPortalMarketExtractor
+from core.url_builder import URLBuilder
+from core.browser_helper import BrowserHelper
+from utils.constants import ODDS_FORMAT, ODDSPORTAL_BASE_URL, PLAYWRIGHT_BROWSER_ARGS
 
 class OddsPortalScrapper:
     SCRAPING_CONCURENT_TASKS = 10 # Limit concurrency to 10 tasks (adjust as needed)

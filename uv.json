@@ -1,0 +1,5 @@
+{
+    "venv": ".venv",
+    "python": "python3.12",
+    "pythonpath": ["src"]
+}

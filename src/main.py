@@ -1,12 +1,12 @@
 import asyncio, pytz, uuid, logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
-from src.utils.cli_arguments_parser import parse_args
-from src.core.browser_helper import BrowserHelper
-from src.core.odds_portal_scrapper import OddsPortalScrapper
-from src.utils.setup_logging import setup_logger
-from src.utils.utils import build_response
-from src.storage.storage_type import StorageType
+from utils.cli_arguments_parser import parse_args
+from core.browser_helper import BrowserHelper
+from core.odds_portal_scrapper import OddsPortalScrapper
+from utils.setup_logging import setup_logger
+from utils.utils import build_response
+from storage.storage_type import StorageType
 
 class OddsPortalScrapperApp:
     DEFAULT_TIMEZONE = 'Europe/Paris'

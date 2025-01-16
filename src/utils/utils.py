@@ -1,5 +1,5 @@
 from datetime import datetime
-from src.utils.constants import FOOTBALL_LEAGUES_URLS_MAPPING
+from utils.constants import FOOTBALL_LEAGUES_URLS_MAPPING
 
 def build_response(status_code: int, message: str) -> dict:
     """Helper method to build a consistent response."""

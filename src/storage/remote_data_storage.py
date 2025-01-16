@@ -1,5 +1,4 @@
-import boto3, csv
-import logging
+import boto3, csv, logging
 
 class RemoteDataStorage:
     S3_BUCKET_NAME = "odds-portal-scrapped-odds-cad8822c179f12cg"

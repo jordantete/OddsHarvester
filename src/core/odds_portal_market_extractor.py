@@ -1,7 +1,7 @@
 import re, logging
 from playwright.async_api import Page, TimeoutError
 from bs4 import BeautifulSoup
-from src.core.browser_helper import BrowserHelper
+from core.browser_helper import BrowserHelper
 
 class OddsPortalMarketExtractor:
     """
