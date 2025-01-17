@@ -12,12 +12,44 @@ class BrowserHelper:
         """
         self.logger = logging.getLogger(self.__class__.__name__)
     
+    async def dismiss_cookie_banner(
+        self, 
+        page: Page, 
+        selector: str = "#onetrust-accept-btn-handler", 
+        timeout: int = 3000
+    ):
+        """
+        Dismiss the cookie banner if it appears on the page.
+
+        Args:
+            page (Page): The Playwright page instance to interact with.
+            selector (str): The CSS selector for the cookie banner's accept button.
+            timeout (int): Maximum time to wait for the banner (default: 5000ms).
+
+        Returns:
+            bool: True if the banner was dismissed, False otherwise.
+        """
+        try:
+            self.logger.info("Checking for cookie banner...")
+            await page.wait_for_selector(selector, timeout=timeout)
+            self.logger.info("Cookie banner found. Dismissing it.")
+            await page.click(selector)
+            return True
+        
+        except TimeoutError:
+            self.logger.info("No cookie banner detected.")
+            return False
+        
+        except Exception as e:
+            self.logger.error(f"Error while dismissing cookie banner: {e}")
+            return False
+    
     async def scroll_until_loaded(
             self, 
             page: Page,
             timeout=60, 
-            scroll_pause_time=10,
-            max_scrolls=15
+            scroll_pause_time=3,
+            max_scrolls=10
         ):
         """
         Scrolls down the page until no new content is loaded or a timeout is reached.

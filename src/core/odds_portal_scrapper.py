@@ -6,10 +6,10 @@ from core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from core.url_builder import URLBuilder
 from core.browser_helper import BrowserHelper
 from utils.utils import is_running_in_docker
-from utils.constants import ODDS_FORMAT, ODDSPORTAL_BASE_URL, PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER
+from utils.constants import ODDS_FORMAT, ODDSPORTAL_BASE_URL, PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER, USER_AGENT
 
 class OddsPortalScrapper:
-    SCRAPING_CONCURENT_TASKS = 10 # Limit concurrency to 10 tasks (adjust as needed)
+    SCRAPING_CONCURENT_TASKS = 2 # Limit concurrency to x tasks (adjust as needed)
 
     def __init__(
         self, 
@@ -49,10 +49,22 @@ class OddsPortalScrapper:
 
             self.logger.info("Launching browser...")
             browser_args = PLAYWRIGHT_BROWSER_ARGS_DOCKER if is_running_in_docker() else PLAYWRIGHT_BROWSER_ARGS
-            self.browser = await self.playwright.chromium.launch(headless=is_webdriver_headless, args=browser_args)
 
-            self.logger.info("Opening new page from browser...")
-            self.page = await self.browser.new_page()
+            ## TODO: use proxy there if needed
+            self.browser = await self.playwright.chromium.launch(
+                headless=is_webdriver_headless, 
+                args=browser_args
+            )
+
+            ## TODO: Update local & timezone_id if needed
+            self.context = await self.browser.new_context(
+                locale="fr-BE",
+                timezone_id="Europe/Brussels",
+                user_agent=USER_AGENT
+            )
+
+            self.logger.info("Opening initial page from context...")
+            self.page = await self.context.new_page()
         
         except Exception as e:
             self.logger.error(f"Failed to initialize Playwright: {str(e)}")
@@ -130,8 +142,10 @@ class OddsPortalScrapper:
         try:
             base_url = URLBuilder.get_base_url(league, season)
             self.logger.info(f"Fetching historical odds from URL: {base_url}")
+
             await self.page.goto(base_url)
             await self._set_odds_format()
+            await self.browser_helper.dismiss_cookie_banner(page=self.page)
 
             all_links = []
             pagination_links = await self.page.query_selector_all("a.pagination-link:not([rel='next'])")
@@ -192,8 +206,9 @@ class OddsPortalScrapper:
             self.logger.info(f"Fetching upcoming odds from URL: {base_url}")
             await self.page.goto(base_url)
             await self._set_odds_format()
-
+            await self.browser_helper.dismiss_cookie_banner(page=self.page)
             links = await self._extract_match_links_for_page(page=self.page)
+
             if not links:
                 self.logger.warning("No match links found for upcoming matches.")
                 return []
@@ -211,6 +226,52 @@ class OddsPortalScrapper:
             self.logger.error(f"Unexpected error during upcoming odds scraping: {e}", exc_info=True)
             raise RuntimeError(f"Failed to scrape upcoming matches: {e}") from e
 
+    async def _set_odds_format(
+        self, 
+        odds_format: str = ODDS_FORMAT
+    ):
+        """
+        Set the odds format on the page.
+
+        Args:
+            odds_format (str): The desired odds format.
+        """
+        self.logger.info(f"Will set Odds Format: {odds_format}")
+
+        try:
+            button_selector = "div.group > button.gap-2"
+            await self.page.wait_for_selector(button_selector, state="attached", timeout=5000)
+            dropdown_button = await self.page.query_selector(button_selector)
+
+            # Check if the desired format is already selected
+            current_format = await dropdown_button.inner_text()
+            self.logger.info(f"Current odds format detected: {current_format}")
+
+            if current_format == odds_format:
+                self.logger.info(f"Odds format is already set to '{odds_format}'. Skipping format selection.")
+                return
+
+            await dropdown_button.click()
+            await self.page.wait_for_timeout(1000) 
+            format_option_selector = "div.group > div.dropdown-content > ul > li > a"
+            format_options = await self.page.query_selector_all(format_option_selector)
+            
+            for option in format_options:
+                option_text = await option.inner_text()
+                if option_text == odds_format:
+                    self.logger.info(f"Selecting odds format: {option_text}")
+                    await option.click()
+                    self.logger.info(f"Odds format successfully changed to '{odds_format}'.")
+                    return
+            
+            self.logger.warning(f"Desired odds format '{odds_format}' not found in the dropdown options.")
+
+        except TimeoutError:
+            self.logger.error("Timeout occurred while attempting to set odds format. The dropdown may not have loaded.")
+
+        except Exception as e:
+            self.logger.error(f"Unexpected error while setting odds format: {e}", exc_info=True)
+
     async def _extract_match_odds(
         self, 
         match_links: List[str],
@@ -227,19 +288,26 @@ class OddsPortalScrapper:
             List[Dict[str, Any]]: A list of dictionaries containing scraped odds data.
         """
         self.logger.info(f"Starting to scrape odds for {len(match_links)} match links...")
-
         semaphore = asyncio.Semaphore(self.SCRAPING_CONCURENT_TASKS)
         failed_links = []
 
         async def scrape_with_semaphore(link):
             async with semaphore:
+                tab = None
                 try:
-                    return await self._scrape_match_data(match_link=link, markets=markets)
+                    tab = await self.context.new_page()
+                    data = await self._scrape_match_data(page=tab, match_link=link, markets=markets)
+                    self.logger.info(f"Successfully scraped match link: {link}")
+                    return data
                 
                 except Exception as e:
-                    self.logger.error(f"Failed to scrape data for link {link}: {e}")
+                    self.logger.error(f"Error scraping link {link}: {e}")
                     failed_links.append(link)
                     return None
+                
+                finally:
+                    if tab:
+                        await tab.close()
 
         tasks = [scrape_with_semaphore(link) for link in match_links]
         results = await asyncio.gather(*tasks)
@@ -248,39 +316,14 @@ class OddsPortalScrapper:
         self.logger.info(f"Successfully scraped odds data for {len(odds_data)} matches.")
 
         if failed_links:
+            ## TODO: implement retry mechanism for failed links
             self.logger.warning(f"Failed to scrape data for {len(failed_links)} links: {failed_links}")
 
         return odds_data
-
-    async def _set_odds_format(
-        self, 
-        odds_format: str = ODDS_FORMAT
-    ):
-        """
-        Set the odds format on the page.
-
-        Args:
-            odds_format (str): The desired odds format (default is ODDS_FORMAT).
-        """
-        self.logger.info(f"Will set Odds Format: {odds_format}")
-
-        try:
-            button = await self.page.wait_for_selector("div.group > button.gap-2", state="attached")
-            await button.click()
-            await self.page.wait_for_timeout(2000) 
-            formats = await self.page.query_selector_all("div.group > div.dropdown-content > ul > li > a")
-            
-            for f in formats:
-                if await f.inner_text() == odds_format:
-                    await f.click()
-                    self.logger.info(f"Odds format changed")
-                    break
-        
-        except TimeoutError:
-            self.logger.warning(f"Odds have not been changed: Maybe because odds are already set in the required format")
     
     async def _scrape_match_data(
         self, 
+        page: Page,
         match_link: str, 
         markets: Optional[List[str]] = None
     ) -> Optional[Dict[str, Any]]:
@@ -288,6 +331,7 @@ class OddsPortalScrapper:
         Scrape data for a specific match based on the desired markets.
 
         Args:
+            page (Page): A Playwright Page instance for this task.
             match_link (str): The link to the match page.
             markets (Optional[List[str]]): A list of markets to scrape (e.g., ['1x2', 'over_under_2_5']).
 
@@ -297,12 +341,12 @@ class OddsPortalScrapper:
         self.logger.info(f"Will scrape match url: {match_link}")
 
         try:
-            await self.page.goto(f"{ODDSPORTAL_BASE_URL}{match_link}", timeout=150000, wait_until="domcontentloaded")
-            await self.page.wait_for_selector('div.bg-event-start-time ~ p', timeout=5000)
-            await self.page.wait_for_selector('span.truncate', timeout=5000)
+            await page.goto(f"{ODDSPORTAL_BASE_URL}{match_link}", timeout=5000, wait_until="domcontentloaded")
+            await page.wait_for_selector('div.bg-event-start-time ~ p', timeout=5000)
+            await page.wait_for_selector('span.truncate', timeout=5000)
 
-            date_elements = await self.page.query_selector_all('div.bg-event-start-time ~ p')
-            team_elements = await self.page.query_selector_all('span.truncate')
+            date_elements = await page.query_selector_all('div.bg-event-start-time ~ p')
+            team_elements = await page.query_selector_all('span.truncate')
 
             if not date_elements or not team_elements:
                 self.logger.warning("Not on the expected page. date_elements or teams_elements are None.")
@@ -311,7 +355,7 @@ class OddsPortalScrapper:
             _, date, _ = [await element.inner_text() for element in date_elements]
             home_team, away_team = [await element.inner_text() for element in team_elements]
 
-            odds_market_extractor = OddsPortalMarketExtractor(page=self.page, browser_helper=self.browser_helper)
+            odds_market_extractor = OddsPortalMarketExtractor(page=page, browser_helper=self.browser_helper)
 
             market_methods = {
                 "1x2": odds_market_extractor.extract_1X2_odds,
@@ -360,7 +404,7 @@ class OddsPortalScrapper:
         try:
             match_links = []
             await self.browser_helper.scroll_until_loaded(page=page)
-            await page.wait_for_timeout(int(random.uniform(5000, 8000)))
+            await page.wait_for_timeout(int(random.uniform(2000, 5000)))
             match_links = await self._parse_match_links_for_page(page=page)            
             self.logger.info(f"After filtering fetched matches, remaining links: {len(match_links)}")
         

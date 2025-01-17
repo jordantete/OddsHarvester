@@ -1,12 +1,17 @@
-import logging, sys
+import logging
 
-def setup_logger():
-    """Initialize root logger configuration"""
-    root_logger = logging.getLogger('OddsPortalScraper')
+def setup_logger(log_level: int = logging.INFO):
+    """
+    Sets up logging with options for console.
 
-    if not root_logger.handlers:
-        root_logger.setLevel(logging.INFO)
-        detailed_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s')
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(detailed_formatter)
-        root_logger.addHandler(console_handler)
+    Args:
+        log_level (int): The logging level (e.g., logging.INFO, logging.DEBUG).
+    """
+    handlers = []
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    handlers.append(console_handler)
+
+    logging.basicConfig(level=log_level, handlers=handlers)
+    logging.info(f"Logging initialized. Log level: {logging.getLevelName(log_level)}")
