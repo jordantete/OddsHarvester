@@ -42,7 +42,11 @@ class OddsPortalScrapperApp:
                 return build_response(400, "No data was scraped")
 
             storage = self._initialize_storage(storage_type)
-            await self._store_data(storage, scraped_data, storage_type)
+            await self._store_data(
+                storage=storage, 
+                data=scraped_data, 
+                storage_type=storage_type
+            )
             return build_response(200, "Data scraped and stored successfully")
 
         except Exception as e:

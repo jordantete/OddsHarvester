@@ -44,6 +44,33 @@ class BrowserHelper:
             self.logger.error(f"Error while dismissing cookie banner: {e}")
             return False
     
+    async def navigate_to_market_tab(
+        self, 
+        page: Page, 
+        market_tab_name: str, 
+        timeout=5000
+    ):
+        """
+        Navigate to a specific market tab by its name.
+
+        Args:
+            page: The Playwright page instance.
+            market_tab_name: The name of the market tab to navigate to (e.g., 'Over/Under').
+            timeout: Timeout in milliseconds.
+
+        Returns:
+            bool: True if the market tab was successfully selected, False otherwise.
+        """
+        markets_tab_selector = 'ul.visible-links.bg-black-main.odds-tabs > li'
+        self.logger.info(f"Attempting to navigate to market tab: {market_tab_name}")
+
+        if not await self._wait_and_click(page=page, selector=markets_tab_selector, text=market_tab_name, timeout=timeout):
+            self.logger.error(f"Failed to find or click the {market_tab_name} tab.")
+            return False
+
+        self.logger.info(f"Successfully navigated to {market_tab_name} tab.")
+        return True
+    
     async def scroll_until_loaded(
             self, 
             page: Page,
@@ -95,6 +122,58 @@ class BrowserHelper:
             if time.time() > end_time or scroll_attempts > max_scrolls:
                 self.logger.info("Reached the end of the scrolling time or maximum scroll attempts.")
                 break
+    
+    async def scroll_until_visible_and_click_parent(
+        self,
+        page,
+        selector,
+        text=None,
+        timeout=60,
+        scroll_pause_time=2
+    ):
+        """
+        Scrolls the page until an element matching the selector and text is visible, then clicks its parent element.
+
+        Args:
+            page (Page): The Playwright page instance.
+            selector (str): The CSS selector of the element.
+            text (str): Optional. The text content to match.
+            timeout (int): Timeout in seconds (default: 60).
+            scroll_pause_time (int): Pause time in seconds between scrolls (default: 2).
+
+        Returns:
+            bool: True if the parent element was clicked successfully, False otherwise.
+        """
+        end_time = time.time() + timeout
+
+        while time.time() < end_time:
+            elements = await page.query_selector_all(selector)
+
+            for element in elements:
+                if text:
+                    element_text = await element.text_content()
+
+                    if element_text and text in element_text:
+                        bounding_box = await element.bounding_box()
+
+                        if bounding_box:
+                            self.logger.info(f"Element with text '{text}' is visible. Clicking its parent.")
+                            parent_element = await element.evaluate_handle("element => element.parentElement")
+                            await parent_element.click()
+                            return True
+                else:
+                    bounding_box = await element.bounding_box()
+                    if bounding_box:
+                        self.logger.info("Element is visible. Clicking its parent.")
+                        parent_element = await element.evaluate_handle("element => element.parentElement")
+                        await parent_element.click()
+                        return True
+
+            await page.evaluate("window.scrollBy(0, 500);")
+            await page.wait_for_timeout(scroll_pause_time * 1000)
+
+        self.logger.warning(f"Failed to find and click parent of element matching selector '{selector}' with text '{text}' within timeout.")
+        return False
 
     async def click_by_inner_text(
         self, 
@@ -140,7 +219,7 @@ class BrowserHelper:
         self.logger.info(f"Element with text '{text}' not found.")
         return False
     
-    async def wait_and_click(
+    async def _wait_and_click(
         self, 
         page: Page,
         selector: str, 

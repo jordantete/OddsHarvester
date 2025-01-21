@@ -6,10 +6,10 @@ from core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from core.url_builder import URLBuilder
 from core.browser_helper import BrowserHelper
 from utils.utils import is_running_in_docker
-from utils.constants import ODDS_FORMAT, ODDSPORTAL_BASE_URL, PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER, USER_AGENT
+from utils.constants import ODDS_FORMAT, ODDSPORTAL_BASE_URL, PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER, BROWSER_USER_AGENT, BROWSER_LOCALE_TIMEZONE, BROWSER_TIMEZONE_ID
 
 class OddsPortalScrapper:
-    SCRAPING_CONCURENT_TASKS = 2 # Limit concurrency to x tasks (adjust as needed)
+    SCRAPING_CONCURENT_TASKS = 1 # Limit concurrency to x tasks (adjust as needed)
 
     def __init__(
         self, 
@@ -56,11 +56,10 @@ class OddsPortalScrapper:
                 args=browser_args
             )
 
-            ## TODO: Update local & timezone_id if needed
             self.context = await self.browser.new_context(
-                locale="fr-BE",
-                timezone_id="Europe/Brussels",
-                user_agent=USER_AGENT
+                locale=BROWSER_LOCALE_TIMEZONE,
+                timezone_id=BROWSER_TIMEZONE_ID,
+                user_agent=BROWSER_USER_AGENT
             )
 
             self.logger.info("Opening initial page from context...")
@@ -106,14 +105,12 @@ class OddsPortalScrapper:
         Returns:
             List[Dict[str, Any]]: A list of dictionaries containing scraped odds data.
         """
-        try:
-            self.logger.info(f"Start scraping for date={date}, league={league}, season={season}")
-            
+        try:            
             if league and season:
-                self.logger.info(f"Scraping historical odds for {league} season {season}")
+                self.logger.info(f"Scraping historical odds for league: {league} season: {season} markets: {markets}")
                 return await self._scrape_historic_odds(league=league, season=season, markets=markets, max_pages=None)
             else:
-                self.logger.info(f"Scraping upcoming matches for date {date}")
+                self.logger.info(f"Scraping upcoming matches for sport:{sport} date: {date} markets: {markets}")
                 return await self._scrape_upcoming_matches(sport=sport, date=date, markets=markets)
                 
         except Exception as e:
@@ -204,6 +201,7 @@ class OddsPortalScrapper:
         try:
             base_url = URLBuilder.get_upcoming_url(sport, date)
             self.logger.info(f"Fetching upcoming odds from URL: {base_url}")
+
             await self.page.goto(base_url)
             await self._set_odds_format()
             await self.browser_helper.dismiss_cookie_banner(page=self.page)
@@ -258,6 +256,7 @@ class OddsPortalScrapper:
             
             for option in format_options:
                 option_text = await option.inner_text()
+
                 if option_text == odds_format:
                     self.logger.info(f"Selecting odds format: {option_text}")
                     await option.click()
@@ -294,6 +293,7 @@ class OddsPortalScrapper:
         async def scrape_with_semaphore(link):
             async with semaphore:
                 tab = None
+                
                 try:
                     tab = await self.context.new_page()
                     data = await self._scrape_match_data(page=tab, match_link=link, markets=markets)
@@ -338,22 +338,28 @@ class OddsPortalScrapper:
         Returns:
             Optional[Dict[str, Any]]: A dictionary containing scraped data, or None if scraping fails.
         """
-        self.logger.info(f"Will scrape match url: {match_link}")
+        full_match_url = f"{ODDSPORTAL_BASE_URL}{match_link}"
+        self.logger.info(f"Will scrape match url: {full_match_url}")
 
         try:
-            await page.goto(f"{ODDSPORTAL_BASE_URL}{match_link}", timeout=5000, wait_until="domcontentloaded")
-            await page.wait_for_selector('div.bg-event-start-time ~ p', timeout=5000)
-            await page.wait_for_selector('span.truncate', timeout=5000)
+            await page.goto(full_match_url, timeout=5000, wait_until="domcontentloaded")
 
-            date_elements = await page.query_selector_all('div.bg-event-start-time ~ p')
-            team_elements = await page.query_selector_all('span.truncate')
+            html_content = await page.content()
+            soup = BeautifulSoup(html_content, "lxml")
 
-            if not date_elements or not team_elements:
-                self.logger.warning("Not on the expected page. date_elements or teams_elements are None.")
-                return None
-            
-            _, date, _ = [await element.inner_text() for element in date_elements]
-            home_team, away_team = [await element.inner_text() for element in team_elements]
+            match_date_element = soup.select('div[data-testid="game-time-item"] p')
+            match_date = match_date_element[1].text.strip().rstrip(",") if len(match_date_element) > 1 else None
+
+            home_team_element = soup.select_one('div[data-testid="game-host"] p')
+            away_team_element = soup.select_one('div[data-testid="game-guest"] p')
+            home_team = home_team_element.text.strip() if home_team_element else None
+            away_team = away_team_element.text.strip() if away_team_element else None
+
+            home_score_element = soup.select_one('div[data-testid="game-host"] ~ div')
+            home_score = home_score_element.text.strip() if home_score_element else None
+
+            away_score_element = soup.select_one('div[data-testid="game-guest"]').find_previous_sibling("div") if soup.select_one('div[data-testid="game-guest"]') else None
+            away_score = away_score_element.text.strip() if away_score_element else None
 
             odds_market_extractor = OddsPortalMarketExtractor(page=page, browser_helper=self.browser_helper)
 
@@ -361,14 +367,18 @@ class OddsPortalScrapper:
                 "1x2": odds_market_extractor.extract_1X2_odds,
                 "over_under_1_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="1.5"),
                 "over_under_2_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="2.5"),
+                "over_under_3_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="3.5"),
+                "over_under_4_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="4.5"),
                 "btts": odds_market_extractor.extract_btts_odds,
                 "double_chance": odds_market_extractor.extract_double_chance_odds,
             }
 
             scrapped_data = {
-                "date": date,
-                "homeTeam": home_team,
-                "awayTeam": away_team,
+                "date": match_date,
+                "home_team": home_team,
+                "away_team": away_team,
+                "home_score": home_score,
+                "away_score": away_score,
             }
 
             for market in markets or []:
@@ -378,6 +388,7 @@ class OddsPortalScrapper:
                         scrapped_data[f"{market}_data"] = await market_methods[market]()
                     else:
                         self.logger.warning(f"Market '{market}' is not supported.")
+
                 except Exception as e:
                     self.logger.error(f"Error scraping market '{market}': {e}")
                     scrapped_data[f"{market}_data"] = None

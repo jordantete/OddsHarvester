@@ -1,6 +1,7 @@
 import argparse, re
 from typing import NamedTuple, List
 from storage.storage_type import StorageType
+from utils.utils import parse_over_under_market
 from utils.constants import SUPPORTED_SPORTS, SUPPORTED_MARKETS, FOOTBALL_LEAGUES_URLS_MAPPING, DATE_FORMAT_REGEX
 
 class ScraperArgs(NamedTuple):
@@ -19,9 +20,14 @@ def validate_args(args: argparse.Namespace):
     errors = []
 
     # Validate markets
-    invalid_markets = [market for market in args.markets if market not in SUPPORTED_MARKETS]
-    if invalid_markets:
-        errors.append(f"Invalid markets: {', '.join(invalid_markets)}. Supported markets are: {', '.join(SUPPORTED_MARKETS)}.")
+    for market in args.markets:
+        if market.startswith("over_under_"):
+            try:
+                parse_over_under_market(market)
+            except ValueError as e:
+                errors.append(str(e))
+        elif market not in SUPPORTED_MARKETS:
+            errors.append(f"Invalid market: {market}. Supported markets are: {', '.join(SUPPORTED_MARKETS)}.")
 
     # Validate sport
     if args.sport not in SUPPORTED_SPORTS:
