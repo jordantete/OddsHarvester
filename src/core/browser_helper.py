@@ -76,7 +76,8 @@ class BrowserHelper:
             page: Page,
             timeout=60, 
             scroll_pause_time=3,
-            max_scrolls=10
+            max_scrolls=10,
+            content_check_selector: str = None
         ):
         """
         Scrolls down the page until no new content is loaded or a timeout is reached.
@@ -91,9 +92,10 @@ class BrowserHelper:
             timeout (int): The maximum time (in seconds) to attempt scrolling (default: 60).
             scroll_pause_time (int): The time (in seconds) to pause between scrolls (default: 10).
             max_scrolls (int): The maximum number of scroll attempts before stopping (default: 15).
+            content_check_selector (str): Optional CSS selector to check for new content after scrolling.
 
-        Raises:
-            Exception: If an unexpected error occurs during scrolling.
+        Returns:
+            bool: True if scrolling completed successfully, False if stopped due to timeout or max scrolls.
         """
         self.logger.info("Will scroll to the bottom of the page.")
         end_time = time.time() + timeout
@@ -103,19 +105,27 @@ class BrowserHelper:
 
         while True:
             await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            await page.wait_for_timeout(scroll_pause_time * 1000)  # Convert seconds to milliseconds
+            await page.wait_for_timeout(scroll_pause_time * 1000)
 
             new_height = await page.evaluate("document.body.scrollHeight")
             self.logger.info(f"__scroll_until_loaded new_height: {new_height}")
 
             if new_height == last_height:
                 scroll_attempts += 1
-
-                if scroll_attempts > 2:
-                    self.logger.info("No more new content detected.")
-                    break
+                self.logger.debug(f"No new content detected. Scroll attempt {scroll_attempts}/{max_scrolls}.")
+                
+                if scroll_attempts >= max_scrolls:
+                    self.logger.info("Max scroll attempts reached. Stopping scroll.")
+                    return False
             else:
-                scroll_attempts = 0
+                scroll_attempts = 0  # Reset attempts if content is detected
+
+            # Optionally check for specific content loaded
+            if content_check_selector:
+                elements = await page.query_selector_all(content_check_selector)
+                if elements:
+                    self.logger.info(f"Content detected with selector '{content_check_selector}'. Stopping scroll.")
+                    return True
 
             last_height = new_height
 
