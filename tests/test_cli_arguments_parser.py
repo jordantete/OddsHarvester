@@ -1,4 +1,4 @@
-import pytest
+import pytest, re
 from argparse import Namespace
 from src.utils.cli_arguments_parser import validate_args, parse_args
 from src.utils.constants import SUPPORTED_SPORTS, SUPPORTED_MARKETS, FOOTBALL_LEAGUES_URLS_MAPPING
@@ -8,7 +8,7 @@ VALID_ARGS = Namespace(
     sport=SUPPORTED_SPORTS[0],  # Dynamically use a valid sport
     league=list(FOOTBALL_LEAGUES_URLS_MAPPING.keys())[0],  # Use the first valid league
     season="2023-2024",
-    date="2025-01-01",
+    date="20250101",
     storage="local",
     headless=True,
     markets=SUPPORTED_MARKETS[:2]  # Use the first two valid markets
@@ -24,7 +24,8 @@ def test_validate_args_invalid_market():
     invalid_args = Namespace(**vars(VALID_ARGS))
     invalid_args.markets = ["invalid_market"]
 
-    with pytest.raises(ValueError, match="Invalid markets"):
+    expected_error_message = (f"Invalid market: invalid_market. Supported markets are: {', '.join(SUPPORTED_MARKETS)}.")
+    with pytest.raises(ValueError, match=re.escape(expected_error_message)):
         validate_args(invalid_args)
 
 def test_validate_args_invalid_sport():
@@ -61,7 +62,7 @@ def test_parse_args_valid(mocker):
     assert args.sport == SUPPORTED_SPORTS[0]
     assert args.league == list(FOOTBALL_LEAGUES_URLS_MAPPING.keys())[0]
     assert args.season == "2023-2024"
-    assert args.date == "2025-01-01"
+    assert args.date == "20250101"
     assert args.storage == "local"
     assert args.headless is True
     assert args.markets == SUPPORTED_MARKETS[:2]
@@ -89,6 +90,7 @@ def test_parse_args_defaults(mocker):
 def test_combination_valid_invalid_args():
     invalid_args = Namespace(**vars(VALID_ARGS))
     invalid_args.markets = ["1x2", "invalid_market"]
+    expected_error_message = (f"Invalid market: invalid_market. Supported markets are: {', '.join(SUPPORTED_MARKETS)}.")
 
-    with pytest.raises(ValueError, match="Invalid markets"):
+    with pytest.raises(ValueError, match=re.escape(expected_error_message)):
         validate_args(invalid_args)
