@@ -1,7 +1,5 @@
 # Byte-compiled / optimized / DLL files
-*.DS_Store
 __pycache__/
-*.pyc
 *.py[cod]
 
 # C extensions
@@ -22,6 +20,7 @@ var/
 .installed.cfg
 *.egg
 node_modules
+.serverless/
 
 # Installer logs
 pip-log.txt
@@ -34,12 +33,16 @@ pip-delete-this-directory.txt
 nosetests.xml
 coverage.xml
 
-# Ignore profiling output files
-*.prof
-profile_results.prof
-
-# VS Code
-.vscode/
-
 # Secrets
 .env
+.env.yml
+
+# Conda
+conda_packages.txt
+
+# VSCode
+.vscode/
+
+# Ignore Lambda Layer Artifacts
+lambda_layer.zip
+python/
