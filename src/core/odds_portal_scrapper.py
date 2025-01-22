@@ -6,10 +6,11 @@ from core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from core.url_builder import URLBuilder
 from core.browser_helper import BrowserHelper
 from utils.utils import is_running_in_docker
+from utils.command_enum import CommandEnum
 from utils.constants import ODDS_FORMAT, ODDSPORTAL_BASE_URL, PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER, BROWSER_USER_AGENT, BROWSER_LOCALE_TIMEZONE, BROWSER_TIMEZONE_ID
 
 class OddsPortalScrapper:
-    SCRAPING_CONCURENT_TASKS = 1 # Limit concurrency to x tasks (adjust as needed)
+    SCRAPING_CONCURENT_TASKS = 2 # Limit concurrency to x tasks (adjust as needed)
 
     def __init__(
         self, 
@@ -86,7 +87,8 @@ class OddsPortalScrapper:
     
     async def scrape(
         self,
-        sport: str,
+        command: CommandEnum,
+        sport: Optional[str] = None,
         date: Optional[str] = None,
         league: Optional[str] = None,
         season: Optional[str] = None,
@@ -96,7 +98,8 @@ class OddsPortalScrapper:
         Main entry point for scraping odds data.
 
         Args:
-            sport (str): The sport to scrape odds for (e.g., "football").
+            command (str): The subparser command used ('scrape-upcoming' or 'scrape-historic').
+            sport (Optional[str]): The sport to scrape odds for (e.g., "football").
             date (Optional[str]): The date for scraping upcoming matches (YYYY-MM-DD format).
             league (Optional[str]): The league to scrape historical odds for.
             season (Optional[str]): The season for scraping historical odds.
@@ -105,14 +108,26 @@ class OddsPortalScrapper:
         Returns:
             List[Dict[str, Any]]: A list of dictionaries containing scraped odds data.
         """
-        try:            
-            if league and season:
-                self.logger.info(f"Scraping historical odds for league: {league} season: {season} markets: {markets}")
-                return await self._scrape_historic_odds(league=league, season=season, markets=markets, max_pages=None)
-            else:
-                self.logger.info(f"Scraping upcoming matches for sport:{sport} date: {date} markets: {markets}")
-                return await self._scrape_upcoming_matches(sport=sport, date=date, markets=markets)
+        try:
+            self.logger.info(f"Command received: {command}")
+            
+            if command == CommandEnum.HISTORIC:
+                if not league or not season:
+                    raise ValueError("Both 'league' and 'season' must be provided for historic scraping.")
                 
+                self.logger.info(f"Scraping historical odds for league={league}, season={season}, markets={markets}")
+                return await self._scrape_historic_odds(league=league, season=season, markets=markets, max_pages=None)
+            
+            elif command == CommandEnum.UPCOMING_MATCHES:
+                if not date:
+                    raise ValueError("A valid 'date' must be provided for upcoming matches scraping.")
+                
+                self.logger.info(f"Scraping upcoming matches for sport={sport}, date={date}, league={league}, markets={markets}")
+                return await self._scrape_upcoming_matches(sport=sport, date=date, league=league, markets=markets)
+            
+            else:
+                raise ValueError(f"Unknown command: {command}. Supported commands are 'upcoming-matches' and 'historic'.")
+
         except Exception as e:
             self.logger.error(f"Error during scraping process: {e}", exc_info=True)
             return []
@@ -137,7 +152,7 @@ class OddsPortalScrapper:
             List[Dict[str, Any]]: A list of dictionaries containing scraped historical odds data.
         """
         try:
-            base_url = URLBuilder.get_base_url(league, season)
+            base_url = URLBuilder.get_historic_matches_url(league, season)
             self.logger.info(f"Fetching historical odds from URL: {base_url}")
 
             await self.page.goto(base_url)
@@ -185,6 +200,7 @@ class OddsPortalScrapper:
         self, 
         sport: str, 
         date: str,
+        league: Optional[str] = None,
         markets: Optional[List[str]] = None
     ) -> List[Dict[str, Any]]:
         """
@@ -199,7 +215,7 @@ class OddsPortalScrapper:
             List[Dict[str, Any]]: List of dictionaries containing match odds data.
         """
         try:
-            base_url = URLBuilder.get_upcoming_url(sport, date)
+            base_url = URLBuilder.get_upcoming_matches_url(sport=sport, date=date, league=league)
             self.logger.info(f"Fetching upcoming odds from URL: {base_url}")
 
             await self.page.goto(base_url)
@@ -414,8 +430,8 @@ class OddsPortalScrapper:
         """
         try:
             match_links = []
-            await self.browser_helper.scroll_until_loaded(page=page)
-            await page.wait_for_timeout(int(random.uniform(2000, 5000)))
+            await self.browser_helper.scroll_until_loaded(page=page, timeout=15, max_scroll_attempts=2)
+            await page.wait_for_timeout(int(random.uniform(2000, 4000)))
             match_links = await self._parse_match_links_for_page(page=page)            
             self.logger.info(f"After filtering fetched matches, remaining links: {len(match_links)}")
         

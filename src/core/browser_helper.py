@@ -74,9 +74,9 @@ class BrowserHelper:
     async def scroll_until_loaded(
             self, 
             page: Page,
-            timeout=60, 
-            scroll_pause_time=3,
-            max_scrolls=10,
+            timeout=30, 
+            scroll_pause_time=2,
+            max_scroll_attempts=5,
             content_check_selector: str = None
         ):
         """
@@ -89,13 +89,13 @@ class BrowserHelper:
 
         Args:
             page (Page): The Playwright page instance to interact with.
-            timeout (int): The maximum time (in seconds) to attempt scrolling (default: 60).
-            scroll_pause_time (int): The time (in seconds) to pause between scrolls (default: 10).
-            max_scrolls (int): The maximum number of scroll attempts before stopping (default: 15).
+            timeout (int): The maximum time (in seconds) to attempt scrolling (default: 30).
+            scroll_pause_time (int): The time (in seconds) to pause between scrolls (default: 2).
+            max_scroll_attempts (int): The maximum number of attempts to detect new content (default: 5).
             content_check_selector (str): Optional CSS selector to check for new content after scrolling.
 
         Returns:
-            bool: True if scrolling completed successfully, False if stopped due to timeout or max scrolls.
+            bool: True if scrolling completed successfully, False otherwise.
         """
         self.logger.info("Will scroll to the bottom of the page.")
         end_time = time.time() + timeout
@@ -103,35 +103,35 @@ class BrowserHelper:
         self.logger.info(f"__scroll_until_loaded last_height: {last_height}")
         scroll_attempts = 0
 
-        while True:
+        while time.time() < end_time:
             await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             await page.wait_for_timeout(scroll_pause_time * 1000)
 
             new_height = await page.evaluate("document.body.scrollHeight")
             self.logger.info(f"__scroll_until_loaded new_height: {new_height}")
 
-            if new_height == last_height:
-                scroll_attempts += 1
-                self.logger.debug(f"No new content detected. Scroll attempt {scroll_attempts}/{max_scrolls}.")
-                
-                if scroll_attempts >= max_scrolls:
-                    self.logger.info("Max scroll attempts reached. Stopping scroll.")
-                    return False
-            else:
-                scroll_attempts = 0  # Reset attempts if content is detected
-
-            # Optionally check for specific content loaded
+            # Check if content is loaded using optional selector
             if content_check_selector:
                 elements = await page.query_selector_all(content_check_selector)
                 if elements:
                     self.logger.info(f"Content detected with selector '{content_check_selector}'. Stopping scroll.")
                     return True
 
+            # Check if scroll height has stopped changing
+            if new_height == last_height:
+                scroll_attempts += 1
+                self.logger.debug(f"No new content detected. Scroll attempt {scroll_attempts}/{max_scroll_attempts}.")
+
+                if scroll_attempts >= max_scroll_attempts:
+                    self.logger.info("Maximum scroll attempts reached. Stopping scroll.")
+                    return False
+            else:
+                scroll_attempts = 0  # Reset attempts if content is detected
+
             last_height = new_height
 
-            if time.time() > end_time or scroll_attempts > max_scrolls:
-                self.logger.info("Reached the end of the scrolling time or maximum scroll attempts.")
-                break
+        self.logger.info("Reached scrolling timeout without detecting new content.")
+        return False
     
     async def scroll_until_visible_and_click_parent(
         self,

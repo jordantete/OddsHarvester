@@ -6,7 +6,7 @@ class RemoteDataStorage:
 
     def __init__(
         self, 
-        bucket_name: str, 
+        bucket_name: str,
         region_name: str
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -73,5 +73,6 @@ class RemoteDataStorage:
             flattened_data = self._flatten_data(data, timestamp)
             self._save_to_csv(flattened_data, filename)
             self._upload_to_s3(filename, object_name)
+            
         except Exception as e:
             self.logger.error(f"Failed to process and upload data: {e}")

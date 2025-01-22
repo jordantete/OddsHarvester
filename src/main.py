@@ -1,11 +1,12 @@
 import asyncio, pytz, uuid, logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
-from utils.cli_arguments_parser import parse_args
+from utils.cli_argument_handler import CLIArgumentHandler
 from core.browser_helper import BrowserHelper
 from core.odds_portal_scrapper import OddsPortalScrapper
 from utils.setup_logging import setup_logger
 from utils.utils import build_response
+from utils.command_enum import CommandEnum
 from storage.storage_type import StorageType
 
 class OddsPortalScrapperApp:
@@ -17,7 +18,8 @@ class OddsPortalScrapperApp:
 
     async def run_scraper(
         self,
-        sport: str,
+        command: CommandEnum,
+        sport: str | None = None,
         date: str | None = None,
         league: str | None = None,
         season: str | None = None,
@@ -26,10 +28,11 @@ class OddsPortalScrapperApp:
         markets: List[str] | None = None
     ) -> dict:
         """Core scraping function that can be called from CLI or Lambda"""
-        self.logger.info(f"Starting scraper with parameters: sport={sport}, date={date}, league={league}, season={season}, storage_type={storage_type}, headless={headless}")
+        self.logger.info(f"Starting scraper with parameters: command={command} sport={sport}, date={date}, league={league}, season={season}, storage_type={storage_type}, headless={headless}")
         
         try:
             scraped_data = await self._perform_scraping(
+                command=command,
                 sport=sport, 
                 date=date, 
                 league=league, 
@@ -64,7 +67,8 @@ class OddsPortalScrapperApp:
 
     async def _perform_scraping(
         self,
-        sport: str,
+        command: CommandEnum,
+        sport: str | None,
         date: str | None,
         league: str | None,
         season: str | None,
@@ -76,7 +80,15 @@ class OddsPortalScrapperApp:
             browser_helper = BrowserHelper()
             scraper = OddsPortalScrapper(browser_helper=browser_helper)
             await scraper.initialize_and_start_playwright(is_webdriver_headless=is_webdriver_headless)
-            return await scraper.scrape(sport=sport, date=date, league=league, season=season, markets=markets)
+
+            return await scraper.scrape(
+                command=command,
+                sport=sport, 
+                date=date, 
+                league=league, 
+                season=season, 
+                markets=markets
+            )
         
         except Exception as e:
             self.logger.error(f"Error during scraping: {str(e)}")
@@ -89,36 +101,28 @@ class OddsPortalScrapperApp:
         self, 
         storage, 
         data: list, 
-        storage_type: str
+        storage_type: StorageType
     ):
         """Store the scraped data."""
         try:
-            if storage_type == StorageType.REMOTE.value:
+            if storage_type == StorageType.REMOTE:
                 current_date = datetime.now(pytz.timezone('UTC'))
                 file_id = uuid.uuid4().hex[:8]
-                filename = f'/tmp/odds_data_{current_date.strftime("%Y%m%d")}_{file_id}.csv'
-                storage.process_and_upload(data, current_date.strftime("%m/%d/%Y, %H:%M:%S"), filename)
+                file_path = f'/tmp/odds_data_{current_date.strftime("%Y%m%d")}_{file_id}.csv'
+                storage.process_and_upload(
+                    data=data, 
+                    timestamp=current_date.strftime("%m/%d/%Y, %H:%M:%S"), 
+                    filename=file_path
+                )
             else:
-                storage.append_data(data)
+                file_path = "/data/test.csv"
+                storage.save_data(data=data, file_path=file_path)
 
             self.logger.info(f"Successfully stored {len(data)} records.")
 
         except Exception as e:
             self.logger.error(f"Error during data storage: {str(e)}")
             raise
-
-    async def cli_main(self):
-        """Entry point for CLI usage"""
-        args = parse_args()
-        return await self.run_scraper(
-            sport=args.sport,
-            date=args.date,
-            league=args.league,
-            season=args.season,
-            storage_type=args.storage,
-            headless=args.headless,
-            markets=args.markets
-        )
 
     def lambda_handler(
         self, 
@@ -144,8 +148,34 @@ class OddsPortalScrapperApp:
         )
 
 def main():
-    app = OddsPortalScrapperApp()
-    asyncio.run(app.cli_main())
+    """Main entry point for CLI usage."""
+    handler = CLIArgumentHandler()
+
+    try:
+        args = handler.parse_and_validate_args()
+        logging.info(f"Parsed arguments: {args}")
+
+        app = OddsPortalScrapperApp()
+        asyncio.run(
+            app.run_scraper(
+                command=args.command,
+                sport=args.sport if hasattr(args, "sport") else None,
+                date=args.date if hasattr(args, "date") else None,
+                league=args.league if hasattr(args, "league") else None,
+                season=args.season if hasattr(args, "season") else None,
+                storage_type=args.storage,
+                headless=args.headless,
+                markets=args.markets
+            )
+        )
+
+    except ValueError as e:
+        logging.error(f"Argument validation failed: {str(e)}")
+        print(f"Error: {str(e)}\nUse '--help' for more information.")
+    
+    except Exception as e:
+        logging.error(f"Unexpected error: {str(e)}", exc_info=True)
+        print(f"An unexpected error occurred: {str(e)}")
 
 def lambda_handler(event: Dict[str, Any], context: Any):
     app = OddsPortalScrapperApp()

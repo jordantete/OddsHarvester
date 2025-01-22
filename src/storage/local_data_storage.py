@@ -1,14 +1,27 @@
 import csv, logging
 from pathlib import Path
+from typing import List, Dict, Union
 
 class LocalDataStorage:
-    def __init__(self, file_path: str = 'scraped_data.csv'):
+    def __init__(
+        self, 
+        default_file_path: str = "scraped_data.csv"
+    ):
+        """
+        Initialize LocalDataStorage.
+
+        Args:
+            default_file_path (str): Default file path to use if none is provided in append_data.
+        """
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.file_path = file_path
-        self.file_exists = Path(self.file_path).exists()
-        self.logger.info(f"Initialized LocalDataStorage with file path: {file_path}")
+        self.default_file_path = default_file_path
+        self.logger.info(f"Initialized LocalDataStorage with default file path: {self.default_file_path}")
     
-    def append_data(self, data):
+    def save_data(
+        self, 
+        data: Union[Dict, List[Dict]], 
+        file_path: str = None
+    ):
         if isinstance(data, dict):
             data = [data]
 
