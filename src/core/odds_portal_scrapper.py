@@ -172,17 +172,25 @@ class OddsPortalScrapper:
 
             for page_number in pages_to_scrape:
                 try:
-                    page_url = f"{base_url}#/page/{page_number}"
-                    self.logger.info(f"Processing page: {page_url}")
+                    self.logger.info(f"Processing page: {page_number}")
+                    tab = await self.context.new_page()
                     
-                    await self.page.goto(page_url)
-                    await self.page.wait_for_timeout(random.randint(2000, 5000))
-
-                    links = await self._extract_match_links_for_page(page=self.page)
+                    page_url = f"{base_url}#/page/{page_number}"
+                    self.logger.info(f"Navigating to page URL: {page_url}")
+                    await tab.goto(page_url, timeout=10000, wait_until="domcontentloaded")
+                    await tab.wait_for_timeout(random.randint(2000, 4000))
+                    
+                    links = await self._extract_match_links_for_page(page=tab)
                     all_links.extend(links)
+                    
+                    self.logger.info(f"Extracted {len(links)} links from page {page_number}.")
 
                 except Exception as page_error:
                     self.logger.error(f"Error processing page {page_number}: {page_error}")
+                
+                finally:
+                    if 'tab' in locals() and tab:
+                        await tab.close()
 
             unique_links = list(set(all_links))
             self.logger.info(f"Found {len(unique_links)} unique match links across {len(pages_to_scrape)} pages.")
