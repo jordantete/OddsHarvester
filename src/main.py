@@ -11,8 +11,14 @@ from storage.storage_type import StorageType
 from storage.storage_format import StorageFormat
 
 class OddsPortalScrapperApp:
-    def __init__(self):
-        setup_logger()
+    def __init__(
+        self, 
+        save_log_to_file: bool = False
+    ):
+        setup_logger(
+            log_level=logging.DEBUG,
+            save_to_file=save_log_to_file
+        )
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def run_scraper(
@@ -166,7 +172,7 @@ def main():
         args = handler.parse_and_validate_args()
         logging.info(f"Parsed arguments: {args}")
 
-        app = OddsPortalScrapperApp()
+        app = OddsPortalScrapperApp(save_log_to_file=args.save_logs)
         asyncio.run(
             app.run_scraper(
                 command=args.command,

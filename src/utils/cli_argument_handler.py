@@ -57,6 +57,11 @@ class CLIArgumentHandler:
             help="Storage format for saving data when using local storage)."
         )
         upcoming_parser.add_argument("--headless", action="store_true", help="Run the scraper in headless mode.")
+        upcoming_parser.add_argument(
+            "--save_logs",
+            action="store_true",
+            help="Save logs to a local file (default: False)."
+        )
 
         # Historical odds
         historic_parser = subparsers.add_parser("scrape_historic", help="Scrape historical odds for a specific league and season.")
@@ -87,6 +92,11 @@ class CLIArgumentHandler:
             help="Storage format for saving data when using local storage."
         )
         historic_parser.add_argument("--headless", action="store_true", help="Run the scraper in headless mode.")
+        historic_parser.add_argument(
+            "--save_logs",
+            action="store_true",
+            help="Save logs to a local file (default: False)."
+        )
 
     def parse_and_validate_args(self) -> argparse.Namespace:
         """Parses and validates command-line arguments."""
