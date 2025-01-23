@@ -85,7 +85,7 @@ class TestCLIArgumentHandler:
             "--date", "2025-01-01",
         ]
         parsed_args = cli_handler.parser.parse_args(args)
-        assert parsed_args.markets == "1x2"
+        assert parsed_args.markets == ["1x2"]
         assert parsed_args.storage == "local"
         assert parsed_args.headless is False
         assert parsed_args.save_logs is False
