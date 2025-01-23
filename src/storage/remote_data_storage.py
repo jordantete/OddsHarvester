@@ -1,78 +1,84 @@
-import boto3, csv, logging
+import boto3, json, logging, os
+from typing import List, Dict, Any
 
 class RemoteDataStorage:
     S3_BUCKET_NAME = "odds-portal-scrapped-odds-cad8822c179f12cg"
     AWE_REGION = "eu-west-3"
 
-    def __init__(
-        self, 
-        bucket_name: str,
-        region_name: str
-    ):
+    def __init__(self):
+        """
+        Initializes the RemoteDataStorage class with an S3 client and logger.
+        """
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.bucket_name = bucket_name
-        self.s3_client = boto3.client('s3', region_name=region_name)
-        self.logger.info(f"RemoteDataStorage initialized for bucket: {self.bucket_name}")
+        self.s3_client = boto3.client('s3', region_name=self.AWE_REGION)
+        self.logger.info(f"RemoteDataStorage initialized for region: {self.AWE_REGION} and bucket: {self.S3_BUCKET_NAME}")
     
-    def _flatten_data(self, data, timestamp):
-        flattened_data = []
-        for entry in data:
-            base_info = {
-                'scraped_at': timestamp,
-                'date': entry['date'],
-                'homeTeam': entry['homeTeam'],
-                'awayTeam': entry['awayTeam']
-            }
-            for odds in entry.get('ft_1x2_odds_data', []):
-                row = {**base_info}
-                row.update({
-                    'bookMakerName_1X2': odds['bookMakerName'],
-                    'homeWin': odds['homeWin'],
-                    'draw': odds['draw'],
-                    'awayWin': odds['awayWin']
-                })
-                flattened_data.append(row)
-            
-            for odds in entry.get('over_under_2_5_odds_data', []):
-                row = {**base_info}
-                row.update({
-                    'bookMakerName_OU': odds['bookmakerName'],
-                    'oddsOver': odds['oddsOver'],
-                    'oddsUnder': odds['oddsUnder']
-                })
-                flattened_data.append(row)
-        return flattened_data
-    
-    def _save_to_csv(self, data, filename):
-        self.logger.info(f"Saving data to CSV file: {filename}")
-        try:
-            fieldnames = ['scraped_at', 'date', 'homeTeam', 'awayTeam', 'bookMakerName_1X2', 'homeWin', 'draw', 'awayWin', 'bookMakerName_OU', 'oddsOver', 'oddsUnder']
+    def _save_to_json(
+        self, 
+        data: List[Dict[str, Any]], 
+        file_name: str
+    ) -> None:
+        """
+        Saves the data to a JSON file locally.
 
-            with open(filename, mode='w', newline='') as file:
-                writer = csv.DictWriter(file, fieldnames=fieldnames)
-                writer.writeheader()
-                for row in data:
-                    writer.writerow(row)
+        Args:
+            data: The raw scraped data.
+            file_name: The name of the JSON file.
+        """
+        self.logger.info(f"Saving data to JSON file: {file_name}")
+        try:
+            with open(file_name, "w", encoding="utf-8") as file:
+                json.dump(data, file, indent=4)
+            self.logger.info(f"Data successfully saved to {file_name}")
 
         except Exception as e:
-            self.logger.error(f"Failed to save data to CSV: {e}")
+            self.logger.error(f"Failed to save data to JSON: {e}")
+            raise
 
-    def _upload_to_s3(self, filename, object_name=None):
+    def _upload_to_s3(
+        self, 
+        file_name: str, 
+        object_name: str = None
+    ) -> None:
+        """
+        Uploads a file to the configured S3 bucket.
+
+        Args:
+            file_name: The file to upload.
+            object_name: The name of the object in S3. Defaults to the filename.
+        """
         if object_name is None:
-            object_name = filename
+            object_name = file_name
+
         try:
-            self.logger.info(f"Uploading {filename} to bucket {self.bucket_name} as {object_name}")
-            self.s3_client.upload_file(filename, self.bucket_name, object_name)
-            self.logger.info(f"File uploaded successfully to {self.bucket_name}/{object_name}")
+            self.logger.info(f"Uploading {file_name} to bucket {self.S3_BUCKET_NAME} as {object_name}")
+            self.s3_client.upload_file(file_name, self.S3_BUCKET_NAME, object_name)
+            self.logger.info(f"File uploaded successfully to {self.S3_BUCKET_NAME}/{object_name}")
 
         except Exception as e:
-            self.logger.error(f"Failed to upload {filename} to S3: {e}")
+            self.logger.error(f"Failed to upload {file_name} to S3: {e}")
+            raise
     
-    def process_and_upload(self, data, timestamp, filename, object_name=None):
+    def process_and_upload(
+        self, 
+        data: List[Dict[str, Any]], 
+        file_path: str, 
+        object_name: str = None
+    ) -> None:
+        """
+        Saves data as a JSON file locally and uploads it to S3.
+
+        Args:
+            data: The raw scraped data.
+            file_name: The name of the JSON file.
+            object_name: The name of the object in S3. Defaults to the filename.
+        """
         try:
-            flattened_data = self._flatten_data(data, timestamp)
-            self._save_to_csv(flattened_data, filename)
-            self._upload_to_s3(filename, object_name)
-            
+            self.logger.info("Starting the process to save and upload data.")
+            self._save_to_json(data=data, file_name=file_path)
+            self._upload_to_s3(file_name=file_path, object_name=object_name)
+            self.logger.info("Data processed and uploaded successfully.")
+
         except Exception as e:
             self.logger.error(f"Failed to process and upload data: {e}")
+            raise

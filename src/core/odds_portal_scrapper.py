@@ -6,7 +6,7 @@ from playwright.async_api import async_playwright, Page, TimeoutError, Error
 from core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from core.url_builder import URLBuilder
 from core.browser_helper import BrowserHelper
-from utils.utils import is_running_in_docker
+from utils.utils import is_running_in_docker, setup_proxy_config
 from utils.command_enum import CommandEnum
 from utils.constants import ODDS_FORMAT, ODDSPORTAL_BASE_URL, PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER, BROWSER_USER_AGENT, BROWSER_LOCALE_TIMEZONE, BROWSER_TIMEZONE_ID
 
@@ -37,13 +37,15 @@ class OddsPortalScrapper:
     
     async def initialize_and_start_playwright(
         self, 
-        is_webdriver_headless: bool
+        is_webdriver_headless: bool,
+        proxy: Optional[Dict[str, str]] = None
     ):
         """
         Initialize and start Playwright with a browser and page.
 
         Args:
             is_webdriver_headless (bool): Whether to start the browser in headless mode.
+            proxy (Optional[Dict[str, str]]): Proxy configuration with keys 'server', 'username', and 'password'.
         """
         try:
             self.logger.info("Starting Playwright...")
@@ -51,11 +53,12 @@ class OddsPortalScrapper:
 
             self.logger.info("Launching browser...")
             browser_args = PLAYWRIGHT_BROWSER_ARGS_DOCKER if is_running_in_docker() else PLAYWRIGHT_BROWSER_ARGS
+            proxy_config = setup_proxy_config()
 
-            ## TODO: use proxy there if needed
             self.browser = await self.playwright.chromium.launch(
                 headless=is_webdriver_headless, 
-                args=browser_args
+                args=browser_args,
+                proxy=proxy_config if proxy_config else None
             )
 
             self.context = await self.browser.new_context(

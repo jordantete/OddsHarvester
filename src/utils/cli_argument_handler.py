@@ -11,11 +11,7 @@ class CLIArgumentHandler:
     def __init__(self):
         self.parser = argparse.ArgumentParser(
             description="OddsHarvester CLI for scraping betting odds data.",
-            epilog="Examples:\n"
-                "  Scrape upcoming matches:\n"
-                "    python main.py scrape_upcoming --sport football --date 20250101 --markets 1x2, btts\n"
-                "  Scrape historical odds:\n"
-                "    python main.py scrape_historic --league premier-league --season 2022-2023\n",
+            epilog=self._generate_help_message(),
             formatter_class=argparse.RawTextHelpFormatter
         )
         self._initialize_subparsers()
@@ -27,83 +23,121 @@ class CLIArgumentHandler:
             help="Specify whether you want to scrape upcoming matches or historical odds."
         )
 
-        # Upcoming matches
         upcoming_parser = subparsers.add_parser("scrape_upcoming", help="Scrape odds for upcoming matches.")
-        upcoming_parser.add_argument("--sport", type=str, required=True, help="The sport to scrape (e.g., football).")
-        upcoming_parser.add_argument("--date", type=str, required=True, help="Date for upcoming matches (YYYY-MM-DD).")
-        upcoming_parser.add_argument("--league", type=str, help="Specific league to target for upcoming matches (e.g., premier-league).")
-        upcoming_parser.add_argument(
+        self._add_upcoming_arguments(upcoming_parser)
+
+        historic_parser = subparsers.add_parser("scrape_historic", help="Scrape historical odds for a specific league and/or season.")
+        self._add_historic_arguments(historic_parser)
+
+    def _add_upcoming_arguments(self, parser):
+        parser.add_argument("--sport", type=str, required=True, help="The sport to scrape (e.g., football).")
+        parser.add_argument("--date", type=str, required=True, help="Date for upcoming matches (YYYYMMDD).")
+        parser.add_argument("--league", type=str, help="Specific league to target for upcoming matches (e.g., premier-league).")
+        parser.add_argument(
             "--markets",
-            type=str,
-            default="1x2",
+            type=lambda s: s.split(','),
+            default=["1x2"],
             help=f"Comma-separated list of markets to scrape (default: 1x2). Supported: {', '.join(SUPPORTED_MARKETS)}."
         )
-        upcoming_parser.add_argument(
-            "--storage", 
-            type=str, 
-            choices=[f.value for f in StorageType], 
+        parser.add_argument(
+            "--storage",
+            type=str,
+            choices=[f.value for f in StorageType],
             default="local",
             help="Storage type for scraped data (default: local)."
         )
-        upcoming_parser.add_argument(
+        parser.add_argument(
             "--file_path",
             type=str,
             help="File path for saving data when using local storage (default: scraped_data.csv)."
         )
-        upcoming_parser.add_argument(
-            "--format",
-            type=str,
-            choices=[f.value for f in StorageFormat],
-            help="Storage format for saving data when using local storage)."
-        )
-        upcoming_parser.add_argument("--headless", action="store_true", help="Run the scraper in headless mode.")
-        upcoming_parser.add_argument(
-            "--save_logs",
-            action="store_true",
-            help="Save logs to a local file (default: False)."
-        )
-
-        # Historical odds
-        historic_parser = subparsers.add_parser("scrape_historic", help="Scrape historical odds for a specific league and season.")
-        historic_parser.add_argument("--league", type=str, required=True, help="The league to scrape (e.g., premier-league).")
-        historic_parser.add_argument("--season", type=str, required=True, help="Season to scrape (format: YYYY-YYYY).")
-        historic_parser.add_argument(
-            "--markets",
-            type=str,
-            default="1x2",
-            help=f"Comma-separated list of markets to scrape (default: 1x2). Supported: {', '.join(SUPPORTED_MARKETS)}."
-        )
-        historic_parser.add_argument(
-            "--storage", 
-            type=str, 
-            choices=[f.value for f in StorageType], 
-            default="local",
-            help="Storage type for scraped data (default: local)."
-        )
-        historic_parser.add_argument(
-            "--file_path",
-            type=str,
-            help="File path for saving data when using local storage (default: scraped_data.csv."
-        )
-        historic_parser.add_argument(
+        parser.add_argument(
             "--format",
             type=str,
             choices=[f.value for f in StorageFormat],
             help="Storage format for saving data when using local storage."
         )
-        historic_parser.add_argument("--headless", action="store_true", help="Run the scraper in headless mode.")
-        historic_parser.add_argument(
+        parser.add_argument("--headless", action="store_true", help="Run the scraper in headless mode.")
+        parser.add_argument(
             "--save_logs",
             action="store_true",
-            help="Save logs to a local file (default: False)."
+            help="Save logs to a local file for debugging (default: False)."
+        )
+
+    def _add_historic_arguments(self, parser):
+        parser.add_argument("--league", type=str, required=True, help="The league to scrape (e.g., premier-league).")
+        parser.add_argument("--season", type=str, required=True, help="Season to scrape (format: YYYY-YYYY).")
+        parser.add_argument(
+            "--markets",
+            type=lambda s: s.split(','),
+            default=["1x2"],
+            help=f"Comma-separated list of markets to scrape (default: 1x2). Supported: {', '.join(SUPPORTED_MARKETS)}."
+        )
+        parser.add_argument(
+            "--storage",
+            type=str,
+            choices=[f.value for f in StorageType],
+            default="local",
+            help="Storage type for scraped data (default: local)."
+        )
+        parser.add_argument(
+            "--file_path",
+            type=str,
+            help="File path for saving data when using local storage (default: scraped_data.csv)."
+        )
+        parser.add_argument(
+            "--format",
+            type=str,
+            choices=[f.value for f in StorageFormat],
+            help="Storage format for saving data when using local storage."
+        )
+        parser.add_argument("--headless", action="store_true", help="Run the scraper in headless mode.")
+        parser.add_argument(
+            "--save_logs",
+            action="store_true",
+            help="Save logs to a local file for debugging (default: False)."
+        )
+
+    def _generate_help_message(self):
+        return (
+            "Commands and arguments:\n\n"
+            "  scrape_upcoming:\n"
+            "    --sport         The sport to scrape (e.g., football).\n"
+            "    --date          Date for upcoming matches (YYYYMMDD).\n"
+            "    --league        Specific league to target for upcoming matches.\n"
+            "    --markets       Comma-separated list of betting markets to scrape (default: 1x2).\n"
+            "    --storage       Storage type for scraped data (local or remote; default: local).\n"
+            "    --file_path     File path to save data locally (default: scraped_data.csv).\n"
+            "    --format        Format for saving local data (json).\n"
+            "    --headless      Run the scraper in headless mode (default: False).\n"
+            "    --save_logs     Save logs to a local file for debugging (default: False).\n\n"
+            "  scrape_historic:\n"
+            "    --league        The league to scrape (e.g., premier-league).\n"
+            "    --season        Season to scrape (format: YYYY-YYYY).\n"
+            "    --markets       Comma-separated list of betting markets to scrape (default: 1x2).\n"
+            "    --storage       Storage type for scraped data (local or remote; default: local).\n"
+            "    --file_path     File path to save data locally (default: scraped_data.csv).\n"
+            "    --format        Format for saving local data (json).\n"
+            "    --headless      Run the scraper in headless mode (default: False).\n"
+            "    --save_logs     Save logs to a local file for debugging (default: False).\n\n"
+            "Examples:\n"
+            "  Scrape upcoming matches:\n"
+            "    python main.py scrape_upcoming --sport football --date 20250101 --markets 1x2,btts --storage local --file_path output.json\n\n"
+            "  Scrape historical odds:\n"
+            "    python main.py scrape_historic --league premier-league --season 2022-2023 --markets 1x2 --storage remote --headless\n"
         )
 
     def parse_and_validate_args(self) -> argparse.Namespace:
         """Parses and validates command-line arguments."""
         args = self.parser.parse_args()
+        
+        if not args.command:
+            self.parser.print_help()
+            exit(1)
+
         self._validate_command(args.command)
 
-        if args.markets:
+        if isinstance(args.markets, str):
             args.markets = [market.strip() for market in args.markets.split(",")]
 
         self._validate_args(args)

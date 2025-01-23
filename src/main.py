@@ -94,7 +94,11 @@ class OddsPortalScrapperApp:
         try:
             browser_helper = BrowserHelper()
             scraper = OddsPortalScrapper(browser_helper=browser_helper)
-            await scraper.initialize_and_start_playwright(is_webdriver_headless=is_webdriver_headless)
+
+            await scraper.initialize_and_start_playwright(
+                is_webdriver_headless=is_webdriver_headless,
+                proxy=None
+            )
 
             return await scraper.scrape(
                 command=command,
@@ -122,18 +126,20 @@ class OddsPortalScrapperApp:
     ):
         """Store the scraped data."""
         try:
-            if storage_type == StorageType.REMOTE:
+            if storage_type == StorageType.REMOTE.value:
                 storage.process_and_upload(
                     data=data, 
-                    timestamp=datetime.now(pytz.timezone('UTC')).strftime("%m/%d/%Y, %H:%M:%S"), 
-                    filename=file_path
+                    file_path=file_path
                 )
-            else:
+            elif storage_type == StorageType.LOCAL.value:
                 storage.save_data(
                     data=data, 
                     file_path=file_path, 
                     storage_format=storage_format
                 )
+            else:
+                self.logger.error("Unsupported StorageType. Data will not be stored")
+                raise Exception
 
             self.logger.info(f"Successfully stored {len(data)} records.")
 
