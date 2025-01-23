@@ -1,4 +1,4 @@
-import asyncio, pytz, uuid, logging
+import asyncio, pytz, logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 from utils.cli_argument_handler import CLIArgumentHandler
@@ -8,10 +8,9 @@ from utils.setup_logging import setup_logger
 from utils.utils import build_response
 from utils.command_enum import CommandEnum
 from storage.storage_type import StorageType
+from storage.storage_format import StorageFormat
 
 class OddsPortalScrapperApp:
-    DEFAULT_TIMEZONE = 'Europe/Paris'
-
     def __init__(self):
         setup_logger()
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -24,11 +23,19 @@ class OddsPortalScrapperApp:
         league: str | None = None,
         season: str | None = None,
         storage_type: str = 'local',
+        storage_format: str = 'csv',
+        file_path: str = 'scraped_data',
         headless: bool = True,
         markets: List[str] | None = None
     ) -> dict:
         """Core scraping function that can be called from CLI or Lambda"""
-        self.logger.info(f"Starting scraper with parameters: command={command} sport={sport}, date={date}, league={league}, season={season}, storage_type={storage_type}, headless={headless}")
+        self.logger.info(
+            f"""Starting scraper with parameters: 
+            command={command} sport={sport}, date={date}, league={league},
+            season={season}, storage_type={storage_type}, storage_format={storage_format},
+            file_path={file_path}, headless={headless}
+            """
+        )
         
         try:
             scraped_data = await self._perform_scraping(
@@ -48,7 +55,9 @@ class OddsPortalScrapperApp:
             await self._store_data(
                 storage=storage, 
                 data=scraped_data, 
-                storage_type=storage_type
+                storage_type=storage_type, 
+                storage_format=storage_format, 
+                file_path=file_path
             )
             return build_response(200, "Data scraped and stored successfully")
 
@@ -101,22 +110,24 @@ class OddsPortalScrapperApp:
         self, 
         storage, 
         data: list, 
-        storage_type: StorageType
+        storage_type: StorageType, 
+        storage_format: StorageFormat,
+        file_path: str
     ):
         """Store the scraped data."""
         try:
             if storage_type == StorageType.REMOTE:
-                current_date = datetime.now(pytz.timezone('UTC'))
-                file_id = uuid.uuid4().hex[:8]
-                file_path = f'/tmp/odds_data_{current_date.strftime("%Y%m%d")}_{file_id}.csv'
                 storage.process_and_upload(
                     data=data, 
-                    timestamp=current_date.strftime("%m/%d/%Y, %H:%M:%S"), 
+                    timestamp=datetime.now(pytz.timezone('UTC')).strftime("%m/%d/%Y, %H:%M:%S"), 
                     filename=file_path
                 )
             else:
-                file_path = "/data/test.csv"
-                storage.save_data(data=data, file_path=file_path)
+                storage.save_data(
+                    data=data, 
+                    file_path=file_path, 
+                    storage_format=storage_format
+                )
 
             self.logger.info(f"Successfully stored {len(data)} records.")
 
@@ -132,7 +143,7 @@ class OddsPortalScrapperApp:
         """Entry point for AWS Lambda"""
         self.logger.info(f"Lambda invocation with event: {event} and context: {context}")
         
-        paris_tz = pytz.timezone(self.DEFAULT_TIMEZONE)
+        paris_tz = pytz.timezone('Europe/Paris')
         next_day = datetime.now(paris_tz) + timedelta(days=1)
         formatted_date = next_day.strftime('%Y%m%d')
         
@@ -164,6 +175,8 @@ def main():
                 league=args.league if hasattr(args, "league") else None,
                 season=args.season if hasattr(args, "season") else None,
                 storage_type=args.storage,
+                storage_format=args.format if hasattr(args, "format") else None,
+                file_path=args.file_path if hasattr(args, "file_path") else None,
                 headless=args.headless,
                 markets=args.markets
             )

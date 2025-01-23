@@ -16,6 +16,12 @@ def is_running_in_docker() -> bool:
     """Detect if the app is running inside a Docker container."""
     return os.path.exists('/.dockerenv')
 
+def ensure_directory_exists(file_path: str):
+    """Ensures the directory for the given file path exists. If it doesn't exist, creates it."""
+    directory = os.path.dirname(file_path)
+    if directory and not os.path.exists(directory):
+        os.makedirs(directory)
+
 def parse_over_under_market(arg: str) -> OverUnderMarket:
     """Parse the console argument into the corresponding OverUnderMarket enum."""
     try:

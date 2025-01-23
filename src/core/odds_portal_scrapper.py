@@ -1,4 +1,5 @@
-import re, random, logging, asyncio
+import re, random, logging, asyncio, json
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright, Page, TimeoutError, Error
@@ -363,65 +364,127 @@ class OddsPortalScrapper:
             Optional[Dict[str, Any]]: A dictionary containing scraped data, or None if scraping fails.
         """
         full_match_url = f"{ODDSPORTAL_BASE_URL}{match_link}"
-        self.logger.info(f"Will scrape match url: {full_match_url}")
+        self.logger.info(f"Scraping match URL: {full_match_url}")
 
         try:
             await page.goto(full_match_url, timeout=5000, wait_until="domcontentloaded")
+            match_details = await self._extract_match_details_event_header(page)
 
-            html_content = await page.content()
-            soup = BeautifulSoup(html_content, "lxml")
+            if not match_details:
+                self.logger.warning(f"No match details found for {full_match_url}")
+                return None
 
-            match_date_element = soup.select('div[data-testid="game-time-item"] p')
-            match_date = match_date_element[1].text.strip().rstrip(",") if len(match_date_element) > 1 else None
+            if markets:
+                self.logger.info(f"Scraping markets: {markets}")
+                market_data = await self._scrape_markets(page, markets)
+                match_details.update(market_data)
 
-            home_team_element = soup.select_one('div[data-testid="game-host"] p')
-            away_team_element = soup.select_one('div[data-testid="game-guest"] p')
-            home_team = home_team_element.text.strip() if home_team_element else None
-            away_team = away_team_element.text.strip() if away_team_element else None
+            return match_details
 
-            home_score_element = soup.select_one('div[data-testid="game-host"] ~ div')
-            home_score = home_score_element.text.strip() if home_score_element else None
-
-            away_score_element = soup.select_one('div[data-testid="game-guest"]').find_previous_sibling("div") if soup.select_one('div[data-testid="game-guest"]') else None
-            away_score = away_score_element.text.strip() if away_score_element else None
-
-            odds_market_extractor = OddsPortalMarketExtractor(page=page, browser_helper=self.browser_helper)
-
-            market_methods = {
-                "1x2": odds_market_extractor.extract_1X2_odds,
-                "over_under_1_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="1.5"),
-                "over_under_2_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="2.5"),
-                "over_under_3_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="3.5"),
-                "over_under_4_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="4.5"),
-                "btts": odds_market_extractor.extract_btts_odds,
-                "double_chance": odds_market_extractor.extract_double_chance_odds,
-            }
-
-            scrapped_data = {
-                "date": match_date,
-                "home_team": home_team,
-                "away_team": away_team,
-                "home_score": home_score,
-                "away_score": away_score,
-            }
-
-            for market in markets or []:
-                try:
-                    if market in market_methods:
-                        self.logger.info(f"Scraping market: {market}")
-                        scrapped_data[f"{market}_data"] = await market_methods[market]()
-                    else:
-                        self.logger.warning(f"Market '{market}' is not supported.")
-
-                except Exception as e:
-                    self.logger.error(f"Error scraping market '{market}': {e}")
-                    scrapped_data[f"{market}_data"] = None
-
-            return scrapped_data
-        
         except Error as e:
             self.logger.error(f"Error scraping match data from {match_link}: {e}")
             return None
+
+    async def _extract_match_details_event_header(    
+        self, 
+        page: Page
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Extract match details such as date, teams, and scores from the react event header.
+
+        Args:
+            page (Page): A Playwright Page instance for this task.
+
+        Returns:
+            Optional[Dict[str, Any]]: A dictionary containing match details, or None if header is is not found.
+        """
+        try:
+            html_content = await page.content()
+            soup = BeautifulSoup(html_content, 'html.parser')
+            script_tag = soup.find('div', id='react-event-header')
+
+            if not script_tag:
+                self.logger.error("Error: Couldn't find the JSON-LD script tag.")
+                return None
+        
+            try:
+                json_data = json.loads(script_tag.get('data'))
+            except (TypeError, json.JSONDecodeError):
+                self.logger.error("Error: Failed to parse JSON data.")
+                return None
+
+            event_body = json_data.get("eventBody", {})
+            event_data = json_data.get("eventData", {})
+
+            self.logger.debug("Debug - JSON Data:", json.dumps(json_data, indent=2))
+
+            unix_timestamp = event_body.get("startDate")
+            match_date = (
+                datetime.fromtimestamp(unix_timestamp, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
+                if unix_timestamp
+                else None
+            )
+
+            match_data = {
+                "match_date": match_date,
+                "home_team": event_data.get("home"),
+                "away_team": event_data.get("away"),
+                "league_name": event_data.get("tournamentName"),
+                "home_score": event_body.get("homeResult"),
+                "away_score": event_body.get("awayResult"),
+                "partial_results": event_body.get("partialresult"),
+                "venue": event_body.get("venue"),
+                "venue_town": event_body.get("venueTown"),
+                "venue_country": event_body.get("venueCountry"),
+            }
+
+            return match_data
+        
+        except Exception as e:
+            self.logger.error(f"Error extracting match details while parsing React event Header: {e}")
+            return None
+
+    async def _scrape_markets(
+        self, 
+        page: Page, 
+        markets: List[str]
+    ) -> Dict[str, Any]:
+        """
+        Scrape market data for the given match.
+
+        Args:
+            page (Page): A Playwright Page instance for this task.
+            markets (List[str]): A list of markets to scrape (e.g., ['1x2', 'over_under_2_5']).
+
+        Returns:
+            Dict[str, Any]: A dictionary containing market data.
+        """
+        market_data = {}
+        odds_market_extractor = OddsPortalMarketExtractor(page=page, browser_helper=self.browser_helper)
+
+        market_methods = {
+            "1x2": odds_market_extractor.extract_1X2_odds,
+            "over_under_1_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="1.5"),
+            "over_under_2_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="2.5"),
+            "over_under_3_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="3.5"),
+            "over_under_4_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="4.5"),
+            "btts": odds_market_extractor.extract_btts_odds,
+            "double_chance": odds_market_extractor.extract_double_chance_odds,
+        }
+
+        for market in markets:
+            try:
+                if market in market_methods:
+                    self.logger.info(f"Scraping market: {market}")
+                    market_data[f"{market}_market"] = await market_methods[market]()
+                else:
+                    self.logger.warning(f"Market '{market}' is not supported.")
+
+            except Exception as e:
+                self.logger.error(f"Error scraping market '{market}': {e}")
+                market_data[f"{market}_market"] = None
+
+        return market_data
 
     async def _extract_match_links_for_page(
         self,

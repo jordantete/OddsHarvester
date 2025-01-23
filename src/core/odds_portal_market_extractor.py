@@ -124,7 +124,7 @@ class OddsPortalMarketExtractor:
             
             await self.page.wait_for_timeout(self.SCROLL_PAUSE_TIME)
             html_content = await self.page.content()
-            return await self._parse_over_under_odds(html_content=html_content)
+            return await self._parse_over_under_odds(html_content=html_content, period=period)
         
         except Exception as e:
             self.logger.error(f"Error during Over/Under odds extraction: {e}")
@@ -132,13 +132,15 @@ class OddsPortalMarketExtractor:
     
     async def _parse_over_under_odds(
         self, 
-        html_content: str
+        html_content: str,
+        period: str = "FullTime"
     ) -> list:
         """
         Parses Over/Under odds data from the page's HTML content.
 
         Args:
             html_content (str): The HTML content of the page.
+            period (str): The match period to scrape odds for.
 
         Returns:
             list[dict]: A list of dictionaries containing bookmaker odds data.
@@ -168,7 +170,8 @@ class OddsPortalMarketExtractor:
                 odds_data.append({
                     "bookmaker_name": bookmaker_name, 
                     "odds_over": odds_over, 
-                    "odds_under": odds_under
+                    "odds_under": odds_under,
+                    "period": period
                 })
 
             except:
@@ -219,7 +222,10 @@ class OddsPortalMarketExtractor:
 
                 odds_containers = row.find_all("div", class_=re.compile(r"border-black-borders.*flex.*min-w-\[60px\].*flex-col.*items-center.*justify-center.*gap-1.*border-l"))
                 odds_labels = ["1X", "12", "X2"]
-                odds_data = {"bookmaker_name": bookmaker_name}
+                odds_data = {
+                    "bookmaker_name": bookmaker_name, 
+                    "period:": period
+                }
 
                 for idx, label in enumerate(odds_labels):
                     if idx >= len(odds_containers):
@@ -309,6 +315,7 @@ class OddsPortalMarketExtractor:
                         "bookmaker_name": bookmaker_name,
                         "btts_yes": btts_yes,
                         "btts_no": btts_no,
+                        "period": period
                     })
 
                 except Exception as row_error:

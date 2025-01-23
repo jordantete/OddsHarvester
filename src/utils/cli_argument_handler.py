@@ -5,6 +5,7 @@ from utils.constants import SUPPORTED_SPORTS, SUPPORTED_MARKETS, FOOTBALL_LEAGUE
 from utils.utils import parse_over_under_market
 from utils.command_enum import CommandEnum
 from storage.storage_type import StorageType
+from storage.storage_format import StorageFormat
 
 class CLIArgumentHandler:
     def __init__(self):
@@ -12,21 +13,22 @@ class CLIArgumentHandler:
             description="OddsHarvester CLI for scraping betting odds data.",
             epilog="Examples:\n"
                 "  Scrape upcoming matches:\n"
-                "    python main.py scrape-upcoming --sport football --date 20250101 --markets 1x2, btts\n"
+                "    python main.py scrape_upcoming --sport football --date 20250101 --markets 1x2, btts\n"
                 "  Scrape historical odds:\n"
-                "    python main.py scrape-historic --league premier-league --season 2022-2023\n",
+                "    python main.py scrape_historic --league premier-league --season 2022-2023\n",
             formatter_class=argparse.RawTextHelpFormatter
         )
         self._initialize_subparsers()
 
     def _initialize_subparsers(self):
         subparsers = self.parser.add_subparsers(
-            title="Commands", dest="command",
+            title="Commands", 
+            dest="command",
             help="Specify whether you want to scrape upcoming matches or historical odds."
         )
 
         # Upcoming matches
-        upcoming_parser = subparsers.add_parser("scrape-upcoming", help="Scrape odds for upcoming matches.")
+        upcoming_parser = subparsers.add_parser("scrape_upcoming", help="Scrape odds for upcoming matches.")
         upcoming_parser.add_argument("--sport", type=str, required=True, help="The sport to scrape (e.g., football).")
         upcoming_parser.add_argument("--date", type=str, required=True, help="Date for upcoming matches (YYYY-MM-DD).")
         upcoming_parser.add_argument("--league", type=str, help="Specific league to target for upcoming matches (e.g., premier-league).")
@@ -37,13 +39,27 @@ class CLIArgumentHandler:
             help=f"Comma-separated list of markets to scrape (default: 1x2). Supported: {', '.join(SUPPORTED_MARKETS)}."
         )
         upcoming_parser.add_argument(
-            "--storage", type=str, choices=["local", "remote"], default="local",
+            "--storage", 
+            type=str, 
+            choices=[f.value for f in StorageType], 
+            default="local",
             help="Storage type for scraped data (default: local)."
+        )
+        upcoming_parser.add_argument(
+            "--file_path",
+            type=str,
+            help="File path for saving data when using local storage (default: scraped_data.csv)."
+        )
+        upcoming_parser.add_argument(
+            "--format",
+            type=str,
+            choices=[f.value for f in StorageFormat],
+            help="Storage format for saving data when using local storage)."
         )
         upcoming_parser.add_argument("--headless", action="store_true", help="Run the scraper in headless mode.")
 
         # Historical odds
-        historic_parser = subparsers.add_parser("scrape-historic", help="Scrape historical odds for a specific league and season.")
+        historic_parser = subparsers.add_parser("scrape_historic", help="Scrape historical odds for a specific league and season.")
         historic_parser.add_argument("--league", type=str, required=True, help="The league to scrape (e.g., premier-league).")
         historic_parser.add_argument("--season", type=str, required=True, help="Season to scrape (format: YYYY-YYYY).")
         historic_parser.add_argument(
@@ -53,8 +69,22 @@ class CLIArgumentHandler:
             help=f"Comma-separated list of markets to scrape (default: 1x2). Supported: {', '.join(SUPPORTED_MARKETS)}."
         )
         historic_parser.add_argument(
-            "--storage", type=str, choices=["local", "remote"], default="local",
+            "--storage", 
+            type=str, 
+            choices=[f.value for f in StorageType], 
+            default="local",
             help="Storage type for scraped data (default: local)."
+        )
+        historic_parser.add_argument(
+            "--file_path",
+            type=str,
+            help="File path for saving data when using local storage (default: scraped_data.csv."
+        )
+        historic_parser.add_argument(
+            "--format",
+            type=str,
+            choices=[f.value for f in StorageFormat],
+            help="Storage format for saving data when using local storage."
         )
         historic_parser.add_argument("--headless", action="store_true", help="Run the scraper in headless mode.")
 
@@ -87,6 +117,9 @@ class CLIArgumentHandler:
         
         if hasattr(args, 'date'):
             errors.extend(self._validate_date(args.command, args.date))
+        
+        if hasattr(args, 'file_path') or hasattr(args, 'format'):
+            errors.extend(self._validate_file_args(args))
 
         errors.extend(self._validate_storage(args.storage))
 
@@ -140,3 +173,33 @@ class CLIArgumentHandler:
         except ValueError:
             return [f"Invalid storage type: '{storage}'. Supported storage types are: {', '.join([e.value for e in StorageType])}"]
         return []
+
+    def _validate_file_args(
+        self, 
+        args: argparse.Namespace
+    ) -> List[str]:
+        """Validates the file_path and file_format arguments."""
+        errors = []
+
+        extracted_format = None
+        if args.file_path:
+            if '.' in args.file_path:
+                extracted_format = args.file_path.split('.')[-1].lower()
+            else:
+                errors.append(f"File path '{args.file_path}' must include a valid file extension (e.g., '.csv' or '.json').")
+
+        if args.format:
+            if args.format not in [f.value for f in StorageFormat]:
+                errors.append(f"Invalid file format: '{args.format}'. Supported formats are: {', '.join(f.value for f in StorageFormat)}.")
+            elif extracted_format and args.format != extracted_format:
+                errors.append(f"Mismatch between file format '{args.format}' and file path extension '{extracted_format}'.")
+
+        elif extracted_format:
+            if extracted_format not in [f.value for f in StorageFormat]:
+                errors.append(f"Invalid file extension in file path: '{extracted_format}'. Supported formats are: {', '.join(f.value for f in StorageFormat)}.")
+            args.format = extracted_format
+
+        if args.file_path and args.format and not args.file_path.endswith(f".{args.format}"):
+            errors.append(f"File path '{args.file_path}' must end with '.{args.format}'.")
+
+        return errors
