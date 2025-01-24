@@ -53,7 +53,7 @@ class OddsPortalScrapper:
 
             self.logger.info("Launching browser...")
             browser_args = PLAYWRIGHT_BROWSER_ARGS_DOCKER if is_running_in_docker() else PLAYWRIGHT_BROWSER_ARGS
-            proxy_config = setup_proxy_config()
+            proxy_config = setup_proxy_config(proxy=proxy)
 
             self.browser = await self.playwright.chromium.launch(
                 headless=is_webdriver_headless, 
