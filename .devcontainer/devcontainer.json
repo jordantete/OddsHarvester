@@ -23,8 +23,7 @@
 				"ms-azuretools.vscode-docker",
 				"oderwat.indent-rainbow",
 				"ms-python.isort",
-				"esbenp.prettier-vscode",
-				"zhuangtongfa.material-theme"
+				"esbenp.prettier-vscode"
 			]
 		}
 	}
