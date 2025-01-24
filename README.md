@@ -51,8 +51,8 @@ These markets are defined in the `SUPPORTED_MARKETS` section of the `constants.p
 1. [🎯 Features](#-features)
 2. [🛠️ Local Installation](#-local-installation)
 3. [⚡ Usage](#-usage)
-    [🔧 CLI Commands](#cli-commands)
-    [🐳 Running Inside a Docker Container](#running-inside-a-docker-container)
+    - [🔧 CLI Commands](#cli-commands)
+    - [🐳 Running Inside a Docker Container](#-running-inside-a-docker-container)
 4. [⚙️ Configuration](#-configuration)
 5. [🤝 Contributing](#-contributing)
 6. [📜 License](#-license)
@@ -169,8 +169,9 @@ OddsHarvester is compatible with Docker, allowing you to run the application sea
    Start a Docker container based on the built image. Map the necessary ports if required and specify any volumes to persist data. Pass any CLI arguments (e.g., `scrape_upcoming`) as part of the Docker run command.
 
 **Tips**:
-- Use volume mapping to store logs or output data on the host machine.
-- Ensure your `constants.py` file is configured correctly if you're using proxies or targeting specific regions.
+- **Volume Mapping**: Use volume mapping to store logs or output data on the host machine.  
+- **Proxy Configuration**: Ensure your `constants.py` file is configured correctly if you’re using proxies or targeting specific regions.  
+- **Container Reusability**: Assign a unique container name to avoid conflicts when running multiple instances.
 
 
 ## **⚙️ Configuration**
