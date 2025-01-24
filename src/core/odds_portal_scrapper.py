@@ -8,10 +8,19 @@ from core.url_builder import URLBuilder
 from core.browser_helper import BrowserHelper
 from utils.utils import is_running_in_docker, setup_proxy_config
 from utils.command_enum import CommandEnum
-from utils.constants import ODDS_FORMAT, ODDSPORTAL_BASE_URL, PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER, BROWSER_USER_AGENT, BROWSER_LOCALE_TIMEZONE, BROWSER_TIMEZONE_ID
+from utils.constants import (
+    ODDS_FORMAT, ODDSPORTAL_BASE_URL, PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER, 
+    BROWSER_USER_AGENT, BROWSER_LOCALE_TIMEZONE, BROWSER_TIMEZONE_ID, SCRAPE_CONCURRENCY_TASKS
+) 
 
 class OddsPortalScrapper:
-    SCRAPING_CONCURENT_TASKS = 2 # Limit concurrency to x tasks (adjust as needed)
+    """
+    This class handles the scraping of odds data from the OddsPortal website.
+    
+    It supports fetching both historical and upcoming match odds for various sports and markets. 
+    The class leverages Playwright for browser automation and includes robust error handling, 
+    concurrency management, and customization options for proxies, odds format, and target markets.
+    """
 
     def __init__(
         self, 
@@ -315,7 +324,7 @@ class OddsPortalScrapper:
             List[Dict[str, Any]]: A list of dictionaries containing scraped odds data.
         """
         self.logger.info(f"Starting to scrape odds for {len(match_links)} match links...")
-        semaphore = asyncio.Semaphore(self.SCRAPING_CONCURENT_TASKS)
+        semaphore = asyncio.Semaphore(SCRAPE_CONCURRENCY_TASKS)
         failed_links = []
 
         async def scrape_with_semaphore(link):

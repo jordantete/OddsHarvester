@@ -53,6 +53,7 @@ These markets are defined in the `SUPPORTED_MARKETS` section of the `constants.p
 3. [⚡ Usage](#-usage)
     - [🔧 CLI Commands](#cli-commands)
     - [🐳 Running Inside a Docker Container](#-running-inside-a-docker-container)
+    - [☁️ Cloud Deployment](#-cloud-deployment)
 4. [⚙️ Configuration](#-configuration)
 5. [🤝 Contributing](#-contributing)
 6. [📜 License](#-license)
@@ -174,6 +175,52 @@ OddsHarvester is compatible with Docker, allowing you to run the application sea
 - **Container Reusability**: Assign a unique container name to avoid conflicts when running multiple instances.
 
 
+### **☁️ Cloud Deployment**
+
+OddsHarvester can also be deployed on a cloud provider using the **Serverless Framework**, enabling scalable and efficient execution of its features in a serverless environment.
+
+**Serverless Framework Setup:**
+
+1. **Serverless Configuration**:  
+   The application includes a `serverless.yaml` file located at the root of the project. This file defines the deployment configuration for a serverless environment. Users can customize the configuration as needed, including:
+   - **Provider**: Specify the cloud provider (e.g., AWS).
+   - **Region**: Set the desired deployment region (e.g., `eu-west-3`).
+   - **Resources**: Update the S3 bucket details or permissions as required.
+
+2. **Docker Integration**:  
+   The app uses a Docker image (`playwright_python_arm64`) to ensure compatibility with the serverless architecture. The Dockerfile is already included in the project and configured in `serverless.yaml`.
+
+3. **Permissions**:  
+   By default, the app is configured with IAM roles to:
+   - Upload (`PutObject`), retrieve (`GetObject`), and delete (`DeleteObject`) files from an S3 bucket.  
+     Update the `Resource` field in `serverless.yaml` with the ARN of your S3 bucket.
+
+4. **Function Details**:
+   - **Function Name**: `scanAndStoreOddsPortalDataV2`
+   - **Memory Size**: 2048 MB
+   - **Timeout**: 360 seconds
+   - **Event Trigger**: Runs automatically every 2 hours (`rate(2 hours)`) via EventBridge.
+
+
+**Customizing Your Configuration:**
+To tailor the serverless deployment for your needs:
+- Open the `serverless.yaml` file in the root directory.
+- Update the relevant fields:
+  - S3 bucket ARN in the IAM policy.
+  - Scheduling rate for the EventBridge trigger.
+  - Resource limits (e.g., memory size or timeout).
+
+
+**Deploying to your prefered Cloud provider:**
+1. Install the Serverless Framework:
+   - Follow the installation guide at [Serverless Framework](https://www.serverless.com/).
+2. Deploy the application:
+   - Use the `sls deploy` command to deploy the app to your cloud provider.
+3. Verify the deployment:
+   - Confirm that the function is scheduled correctly and check logs or S3 outputs.
+
+
+
 ## **⚙️ Configuration**
 
 ### Constants
@@ -184,6 +231,7 @@ OddsHarvester uses a `constants.py` file to define important parameters for brow
 - **`BROWSER_LOCALE_TIMEZONE`**: Set the locale for the browser (e.g., `"en-US"`).
 - **`BROWSER_TIMEZONE_ID`**: Specify the browser's timezone (e.g., `"Europe/Paris"`).
 - **`ODDS_FORMAT`**: Configure the desired odds format (e.g., `Decimal Odds`, `Fractional Odds`).
+- **`SCRAPE_CONCURRENCY_TASKS`**: Adjust the number of concurrent tasks the scraper can handle. Controls how many pages or tasks are processed simultaneously. Increasing this value can speed up scraping but may increase the risk of being blocked by the target website. Use cautiously based on your network and system capabilities.
 
 To modify these values, locate the `constants.py` file in the `utils` folder and edit the parameters as needed.
 

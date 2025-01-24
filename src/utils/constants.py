@@ -51,6 +51,7 @@ FOOTBALL_LEAGUES_URLS_MAPPING = {
     "world-championship-2026": "https://www.oddsportal.com/football/world/world-championship-2026/"
 }
 
+SCRAPE_CONCURRENCY_TASKS = 2
 BROWSER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
 BROWSER_LOCALE_TIMEZONE = "fr-BE"
 BROWSER_TIMEZONE_ID = "Europe/Brussels"
