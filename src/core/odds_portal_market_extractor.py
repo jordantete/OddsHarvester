@@ -166,6 +166,8 @@ class OddsPortalMarketExtractor:
 
                 odds_over = odds_blocks[0].get_text(strip=True)
                 odds_under = odds_blocks[1].get_text(strip=True)
+                odds_over = re.sub(r"(\d+\.\d+)\1", r"\1", odds_over)
+                odds_under = re.sub(r"(\d+\.\d+)\1", r"\1", odds_under)
                 
                 odds_data.append({
                     "bookmaker_name": bookmaker_name, 
