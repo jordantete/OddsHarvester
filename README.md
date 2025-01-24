@@ -42,7 +42,6 @@ OddsHarvester currently supports **football** as the only sport for scraping, wi
 
 These markets are defined in the `SUPPORTED_MARKETS` section of the `constants.py` file.
 
----
 
 ## **📖 Table of Contents**
 
@@ -57,8 +56,6 @@ These markets are defined in the `SUPPORTED_MARKETS` section of the `constants.p
 7. [💬 Feedback](#-feedback)
 8. [❗ Disclaimer](#-disclaimer)
 
-
----
 
 ## **🛠️ Local Installation**
 
@@ -107,7 +104,6 @@ These markets are defined in the `SUPPORTED_MARKETS` section of the `constants.p
 
 By following these steps, you should have **OddsHarvester** set up and ready to use.
 
----
 
 ## **⚡ Usage**
 
@@ -173,7 +169,6 @@ OddsHarvester is compatible with Docker, allowing you to run the application sea
 - Use volume mapping to store logs or output data on the host machine.
 - Ensure your `constants.py` file is configured correctly if you're using proxies or targeting specific regions.
 
----
 
 ## **⚙️ Configuration**
 
@@ -184,7 +179,7 @@ OddsHarvester uses a `constants.py` file to define important parameters for brow
 - **`BROWSER_USER_AGENT`**: Define the user agent string used by the browser to simulate specific devices or browsers.
 - **`BROWSER_LOCALE_TIMEZONE`**: Set the locale for the browser (e.g., `"en-US"`).
 - **`BROWSER_TIMEZONE_ID`**: Specify the browser's timezone (e.g., `"Europe/Paris"`).
-- **`ODDS_FORMAT`**: Configure the desired odds format (e.g., `decimal`, `fractional`).
+- **`ODDS_FORMAT`**: Configure the desired odds format (e.g., `Decimal Odds`, `Fractional Odds`).
 
 To modify these values, locate the `constants.py` file in the `utils` folder and edit the parameters as needed.
 
@@ -206,25 +201,20 @@ await scraper.initialize_and_start_playwright(
 )
 ```
 
----
 
 ## **🤝 Contributing**
 
 Contributions are welcome! If you have ideas, improvements, or bug fixes, feel free to submit an issue or a pull request. Please ensure that your contributions follow the project’s coding standards and include clear descriptions for any changes.
 
----
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE.txt) file for more details.
 
----
 
 ## **💬 Feedback**
 
 Have any questions or feedback? Feel free to reach out via the issues tab on GitHub. We’d love to hear from you!
-
----
 
 ## **❗ Disclaimer**
 
