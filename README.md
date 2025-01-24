@@ -25,6 +25,9 @@ Here’s a list of upcoming features and improvements planned for OddsHarvester:
 - **Scrape the Evolution of Odds Over Time**  
   Enable analysis of how odds change over time (historical data only).
 
+  - **Increase code coverage**  
+  Add more unit tests to cover the core components of the app.
+
 💡 Suggestions for new features or improvements are always welcome! Feel free to open an issue or contribute directly to the repository.
 
 ### **Current Support**
@@ -48,8 +51,8 @@ These markets are defined in the `SUPPORTED_MARKETS` section of the `constants.p
 1. [🎯 Features](#-features)
 2. [🛠️ Local Installation](#-local-installation)
 3. [⚡ Usage](#-usage)
-    - [🔧 CLI Commands](#cli-commands)
-    - [🐳 Running Inside a Docker Container](#running-inside-a-docker-container)
+    [🔧 CLI Commands](#cli-commands)
+    [🐳 Running Inside a Docker Container](#running-inside-a-docker-container)
 4. [⚙️ Configuration](#-configuration)
 5. [🤝 Contributing](#-contributing)
 6. [📜 License](#-license)
