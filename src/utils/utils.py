@@ -1,6 +1,6 @@
 import os, logging
 from typing import Optional, Dict
-from src.core.over_under_market import OverUnderMarket
+from core.over_under_market import OverUnderMarket
 from utils.constants import FOOTBALL_LEAGUES_URLS_MAPPING
 
 logger = logging.getLogger(__name__)

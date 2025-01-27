@@ -1,7 +1,7 @@
 import csv, logging, os, json
 from typing import List, Dict, Union, Optional
-from src.utils.utils import ensure_directory_exists
-from src.storage.storage_format import StorageFormat
+from utils.utils import ensure_directory_exists
+from storage.storage_format import StorageFormat
 
 class LocalDataStorage:
     """
