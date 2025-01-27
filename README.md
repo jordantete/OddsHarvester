@@ -164,10 +164,14 @@ OddsHarvester is compatible with Docker, allowing you to run the application sea
 
 2. **Build the Docker Image**  
    Navigate to the project's root directory, where the `Dockerfile` is located. Build the Docker image using the appropriate Docker build command.  
-   Assign a name to the image, such as `odds-harvester`.
+   Assign a name to the image, such as `odds-harvester`: `docker build -t odds-harvester:local --target local-dev .`
 
 3. **Run the Container**  
-   Start a Docker container based on the built image. Map the necessary ports if required and specify any volumes to persist data. Pass any CLI arguments (e.g., `scrape_upcoming`) as part of the Docker run command.
+   Start a Docker container based on the built image. Map the necessary ports if required and specify any volumes to persist data. Pass any CLI arguments (e.g., `scrape_upcoming`) as part of the Docker run command: 
+   `docker run --rm odds-harvester:latest python3 -m main scrape_upcoming --sport football --date 20250125 --markets 1x2 --storage local --file_path output.json --headless`
+
+4.	**Interactive Mode for Debugging**
+   If you need to debug or run commands interactively: `docker run --rm -it odds-harvester:latest /bin/bash`
 
 **Tips**:
 - **Volume Mapping**: Use volume mapping to store logs or output data on the host machine.  
@@ -177,7 +181,21 @@ OddsHarvester is compatible with Docker, allowing you to run the application sea
 
 ### **☁️ Cloud Deployment**
 
-OddsHarvester can also be deployed on a cloud provider using the **Serverless Framework**, enabling scalable and efficient execution of its features in a serverless environment.
+OddsHarvester can also be deployed on a cloud provider using the **Serverless Framework**, with a Docker image to ensure compatibility with AWS Lambda (Dockerfile will need to be tweaked if you want to deploy on a different cloud provider).
+
+**Why Use a Docker Image?**
+
+1.	AWS Lambda’s Deployment Size Limit:
+   AWS Lambda has a hard limit of 50MB for direct deployment packages, which includes code, dependencies, and assets. Playwright and its browser dependencies far exceed this limit.
+
+2.	Playwright’s Incompatibility with Lambda Layers:
+   Playwright cannot be installed as an AWS Lambda layer because:
+      •	Its browser dependencies require system libraries that are unavailable in Lambda’s standard runtime environment.
+      •	Packaging these libraries within Lambda layers would exceed the layer size limit.
+
+3.	Solution:
+   Using a Docker image solves these limitations by bundling the entire runtime environment, including Playwright, its browsers, and all required libraries, into a single package. This ensures a consistent and compatible execution environment.
+
 
 **Serverless Framework Setup:**
 
@@ -188,7 +206,8 @@ OddsHarvester can also be deployed on a cloud provider using the **Serverless Fr
    - **Resources**: Update the S3 bucket details or permissions as required.
 
 2. **Docker Integration**:  
-   The app uses a Docker image (`playwright_python_arm64`) to ensure compatibility with the serverless architecture. The Dockerfile is already included in the project and configured in `serverless.yaml`.
+   The app uses a Docker image (`playwright_python_arm64`) to ensure compatibility with the serverless architecture. The Dockerfile is already included in the project and configured in `serverless.yaml`. 
+   You'll need to build the image locally (see section above) and push the Docker image to ECR.
 
 3. **Permissions**:  
    By default, the app is configured with IAM roles to:
@@ -218,7 +237,6 @@ To tailor the serverless deployment for your needs:
    - Use the `sls deploy` command to deploy the app to your cloud provider.
 3. Verify the deployment:
    - Confirm that the function is scheduled correctly and check logs or S3 outputs.
-
 
 
 ## **⚙️ Configuration**

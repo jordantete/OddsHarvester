@@ -22,7 +22,6 @@
 				"ms-playwright.playwright",
 				"ms-azuretools.vscode-docker",
 				"oderwat.indent-rainbow",
-				"ms-python.isort",
 				"esbenp.prettier-vscode"
 			]
 		}

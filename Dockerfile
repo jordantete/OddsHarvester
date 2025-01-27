@@ -1,33 +1,35 @@
-FROM public.ecr.aws/lambda/python:3.12
+# Stage 1: Base setup with dependencies
+FROM mcr.microsoft.com/playwright/python:v1.49.1-noble AS base
 
-# Install uv
+# Install uv globally
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Add needed system dependencies
-RUN dnf install -y wget xorg-x11-server-Xvfb gtk3-devel libnotify-devel nss libXScrnSaver alsa-lib tar
-
 # Set environment variables
+ENV PYTHONUNBUFFERED=1
 ENV LAMBDA_TASK_ROOT=/var/task
 WORKDIR "${LAMBDA_TASK_ROOT}"
 
-# Ensure Python output is unbuffered
-ENV PYTHONUNBUFFERED=1
-
-# Copy function code
+# Copy application files
 COPY src ${LAMBDA_TASK_ROOT}
-
-# Ensure all referenced files are in the correct working directory
 COPY pyproject.toml uv.lock README.md LICENSE.txt ${LAMBDA_TASK_ROOT}
 
-# Initialize uv and install dependencies
+# Install dependencies
 RUN uv sync --frozen
 
-# Install Playwright browser
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN pip install playwright
+# Stage 2: AWS Lambda runtime
+FROM public.ecr.aws/lambda/python:3.12 AS aws-lambda
+
+# Copy all files from the base stage
+COPY --from=base /var/task /var/task
+
+# Set Lambda runtime handler
+CMD ["main.lambda_handler"]
+
+# Stage 3: Local development/testing
+FROM base AS local-dev
 
 # Activate the virtual environment
 ENV PATH="${LAMBDA_TASK_ROOT}/.venv/bin:$PATH"
 
-# Set default command for local execution
-CMD ["python3", "-m", "main"]
+# Set default command for local testing
+CMD ["xvfb-run", "--", "python3", "-m", "main"]
