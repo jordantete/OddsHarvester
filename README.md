@@ -77,7 +77,9 @@ These markets are defined in the `SUPPORTED_MARKETS` section of the `constants.p
 
    ```bash
    pip install uv
-   uv setup
+   uv sync
+   cd src
+   python main.py --help
    ```
 
 3. **Manual Setup (Optional)**:
