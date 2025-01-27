@@ -14,7 +14,7 @@ OddsHarvester is an application designed to scrape and process sports betting od
 
 ## **🚀 Roadmap**
 
-Here’s a list of upcoming features and improvements planned for OddsHarvester:
+Here’s a list of upcoming features and improvements planned for **OddsHarvester**:
 
 - **Expanded Football Markets**  
   Add support for additional football betting markets, such as: Half-Time/Full-Time, Draw No Bet, European Handicap.
@@ -78,35 +78,34 @@ These markets are defined in the `SUPPORTED_MARKETS` section of the `constants.p
    ```bash
    pip install uv
    uv sync
-   cd src
-   python main.py --help
    ```
 
 3. **Manual Setup (Optional)**:
 
    If you prefer to set up manually, follow these steps:
 
-   - **Create a virtual environment**: Use Python's `venv` module to create an isolated environment for the project. Activate it depending on your operating system:
+   - **Create a virtual environment**: Use Python's `venv` module to create an isolated environment (or `virtualenv`) for the project. Activate it depending on your operating system:
+      - `pvython3 -m venv .venv`
 
-     - On Unix/MacOS:  
+     - On Unix/MacOS:
        `source venv/bin/activate`
+
      - On Windows:  
        `venv\Scripts\activate`
 
-   - **Install dependencies**: Install the required Python packages:  
-       `pip install -r requirements.txt`.
+   - **Install dependencies with pip**: Use pip with the `--use-pep517` flag to install directly from the `pyproject.toml` file: 
+       `pip install . --use-pep517`.
 
-   - **Set up Playwright**: 
-        Install Playwright and its browser dependencies:  
-       `playwright install`.
-       
-       Alternatively, if you'll only make use of one browser (here chromium for instance):
-       `playwright install chromium`.
+   - **Or install dependencies with poetry**: If you prefer poetry for dependency management:
+         `poetry install`
 
 4. **Verify Installation**: 
 
    Ensure all dependencies are installed and Playwright is set up by running the following command:  
-   `python main.py --help`.
+   ```bash
+   cd src
+   python main.py --help
+   ```
 
 By following these steps, you should have **OddsHarvester** set up and ready to use.
 
