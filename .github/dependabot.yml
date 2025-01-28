@@ -1,0 +1,11 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "playwright"
+        reason: "Temporary compatibility issues. Revisit after migration to Python 3.13."
+    labels:
+      - "pip-dependencies"
