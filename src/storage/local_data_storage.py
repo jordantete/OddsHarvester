@@ -50,7 +50,7 @@ class LocalDataStorage:
             raise ValueError("Data must be a dictionary or a list of dictionaries.")
 
         target_file_path = file_path or self.default_file_path
-        format_to_use = storage_format.lower() if storage_format else self.storage_format
+        format_to_use = storage_format.lower() if storage_format else self.default_storage_format.value
 
         if format_to_use not in [f.value for f in StorageFormat]:
             raise ValueError(f"Invalid storage format. Supported formats are: {', '.join(f.value for f in StorageFormat)}.")
