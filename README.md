@@ -50,10 +50,12 @@ OddsHarvester currently supports **football** as the only sport for scraping, wi
 
 - **1x2**: Full-time 1X2 odds  
 - **Over/Under Goals**:  
+  - Over/Under 0.5 goals  
   - Over/Under 1.5 goals  
   - Over/Under 2.5 goals  
   - Over/Under 3.5 goals  
   - Over/Under 4.5 goals  
+- Over/Under 5.5 goals  
 - **BTTS**: Both Teams to Score  
 - **Double Chance**: Double chance odds  
 - **Draw No Bet**: Draw no Bet odds  

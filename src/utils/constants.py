@@ -7,13 +7,16 @@ SUPPORTED_SPORTS = [
 ]
 
 SUPPORTED_MARKETS = [
-    "1x2",           # Full-time 1X2 odds
+    "1x2",            # Full-time 1X2 odds
+    "over_under_0_5", # Over/Under 0.5 goals
     "over_under_1_5", # Over/Under 1.5 goals
     "over_under_2_5", # Over/Under 2.5 goals
     "over_under_3_5", # Over/Under 3.5 goals
     "over_under_4_5", # Over/Under 4.5 goals
+    "over_under_5_5", # Over/Under 5.5 goals
     "btts",           # Both Teams to Score
-    "double_chance"   # Double chance odds
+    "double_chance",  # Double chance odds
+    "draw_no_bet"     # DNB odds
 ]
 
 FOOTBALL_LEAGUES_URLS_MAPPING = {

@@ -476,12 +476,15 @@ class OddsPortalScrapper:
 
         market_methods = {
             "1x2": odds_market_extractor.extract_1X2_odds,
+            "over_under_0_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="0.5"),
             "over_under_1_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="1.5"),
             "over_under_2_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="2.5"),
             "over_under_3_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="3.5"),
             "over_under_4_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="4.5"),
+            "over_under_5_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="5.5"),
             "btts": odds_market_extractor.extract_btts_odds,
             "double_chance": odds_market_extractor.extract_double_chance_odds,
+            "draw_no_bet": odds_market_extractor.extract_draw_no_bet_odds,
         }
 
         for market in markets:

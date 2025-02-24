@@ -15,10 +15,7 @@ class OddsPortalScrapperApp:
         self, 
         save_log_to_file: bool = False
     ):
-        setup_logger(
-            log_level=logging.DEBUG,
-            save_to_file=save_log_to_file
-        )
+        setup_logger(log_level=logging.DEBUG, save_to_file=save_log_to_file)
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def run_scraper(
