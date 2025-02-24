@@ -349,11 +349,9 @@ class OddsPortalScrapper:
         tasks = [scrape_with_semaphore(link) for link in match_links]
         results = await asyncio.gather(*tasks)
         odds_data = [result for result in results if result is not None]
-
         self.logger.info(f"Successfully scraped odds data for {len(odds_data)} matches.")
 
         if failed_links:
-            ## TODO: implement retry mechanism for failed links
             self.logger.warning(f"Failed to scrape data for {len(failed_links)} links: {failed_links}")
 
         return odds_data
@@ -421,13 +419,13 @@ class OddsPortalScrapper:
         
             try:
                 json_data = json.loads(script_tag.get('data'))
+
             except (TypeError, json.JSONDecodeError):
                 self.logger.error("Error: Failed to parse JSON data.")
                 return None
 
             event_body = json_data.get("eventBody", {})
             event_data = json_data.get("eventData", {})
-
             self.logger.debug("Debug - JSON Data:", json.dumps(json_data, indent=2))
 
             unix_timestamp = event_body.get("startDate")
@@ -437,7 +435,7 @@ class OddsPortalScrapper:
                 else None
             )
 
-            match_data = {
+            return {
                 "match_date": match_date,
                 "home_team": event_data.get("home"),
                 "away_team": event_data.get("away"),
@@ -449,8 +447,6 @@ class OddsPortalScrapper:
                 "venue_town": event_body.get("venueTown"),
                 "venue_country": event_body.get("venueCountry"),
             }
-
-            return match_data
         
         except Exception as e:
             self.logger.error(f"Error extracting match details while parsing React event Header: {e}")
@@ -475,16 +471,16 @@ class OddsPortalScrapper:
         odds_market_extractor = OddsPortalMarketExtractor(page=page, browser_helper=self.browser_helper)
 
         market_methods = {
-            "1x2": odds_market_extractor.extract_1X2_odds,
+            "1x2": odds_market_extractor.extract_odds(market_name="1X2", period="FullTime", odds_labels=["1", "X", "2"]),
             "over_under_0_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="0.5"),
             "over_under_1_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="1.5"),
             "over_under_2_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="2.5"),
             "over_under_3_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="3.5"),
             "over_under_4_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="4.5"),
             "over_under_5_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="5.5"),
-            "btts": odds_market_extractor.extract_btts_odds,
-            "double_chance": odds_market_extractor.extract_double_chance_odds,
-            "draw_no_bet": odds_market_extractor.extract_draw_no_bet_odds,
+            "btts": odds_market_extractor.extract_odds(market_name="Both Teams to Score", period="FullTime", odds_labels=["btts_yes", "btts_no"]),
+            "double_chance": odds_market_extractor.extract_odds(market_name="Double Chance", period="FullTime", odds_labels=["1X", "12", "X2"]),
+            "dnb": odds_market_extractor.extract_odds(market_name="Draw No Bet", period="FullTime", odds_labels=["dnb_team1", "dnb_team2"]),
         }
 
         for market in markets:

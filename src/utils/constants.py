@@ -16,7 +16,7 @@ SUPPORTED_MARKETS = [
     "over_under_5_5", # Over/Under 5.5 goals
     "btts",           # Both Teams to Score
     "double_chance",  # Double chance odds
-    "draw_no_bet"     # DNB odds
+    "dnb"             # Draw No Bet odds
 ]
 
 FOOTBALL_LEAGUES_URLS_MAPPING = {
