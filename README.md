@@ -2,6 +2,23 @@
 
 OddsHarvester is an application designed to scrape and process sports betting odds and match data from **oddsportal.com** website. 
 
+
+## **📖 Table of Contents**
+
+1. [✨ Features](#-features)
+2. [🚀 Roadmap](#-roadmap)
+3. [🛠️ Local Installation](#-local-installation)
+4. [⚡ Usage](#-usage)
+    - [🔧 CLI Commands](#cli-commands)
+    - [🐳 Running Inside a Docker Container](#-running-inside-a-docker-container)
+    - [☁️ Cloud Deployment](#-cloud-deployment)
+5. [⚙️ Configuration](#-configuration)
+6. [🤝 Contributing](#-contributing)
+7. [📜 License](#-license)
+8. [💬 Feedback](#-feedback)
+9. [❗ Disclaimer](#-disclaimer)
+
+
 ## **✨ Features**
 
 - **📅 Scrape Upcoming Matches**: Fetch odds and event details for upcoming sports matches.  
@@ -16,16 +33,13 @@ OddsHarvester is an application designed to scrape and process sports betting od
 
 Here’s a list of upcoming features and improvements planned for **OddsHarvester**:
 
-- **Expanded Football Markets**  
-  Add support for additional football betting markets, such as: Half-Time/Full-Time, Draw No Bet, European Handicap.
-
 - **Support for More Sports**  
   Extend the application's functionality to include more sports by updating the `SUPPORTED_SPORTS` list.
 
 - **Scrape the Evolution of Odds Over Time**  
   Enable analysis of how odds change over time (historical data only).
 
-  - **Increase code coverage**  
+- **Increase code coverage**  
   Add more unit tests to cover the core components of the app.
 
 💡 Suggestions for new features or improvements are always welcome! Feel free to open an issue or contribute directly to the repository.
@@ -42,23 +56,9 @@ OddsHarvester currently supports **football** as the only sport for scraping, wi
   - Over/Under 4.5 goals  
 - **BTTS**: Both Teams to Score  
 - **Double Chance**: Double chance odds  
+- **Draw No Bet**: Draw no Bet odds  
 
 These markets are defined in the `SUPPORTED_MARKETS` section of the `constants.py` file.
-
-
-## **📖 Table of Contents**
-
-1. [🎯 Features](#-features)
-2. [🛠️ Local Installation](#-local-installation)
-3. [⚡ Usage](#-usage)
-    - [🔧 CLI Commands](#cli-commands)
-    - [🐳 Running Inside a Docker Container](#-running-inside-a-docker-container)
-    - [☁️ Cloud Deployment](#-cloud-deployment)
-4. [⚙️ Configuration](#-configuration)
-5. [🤝 Contributing](#-contributing)
-6. [📜 License](#-license)
-7. [💬 Feedback](#-feedback)
-8. [❗ Disclaimer](#-disclaimer)
 
 
 ## **🛠️ Local Installation**

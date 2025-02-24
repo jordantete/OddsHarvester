@@ -330,3 +330,74 @@ class OddsPortalMarketExtractor:
         except Exception as e:
             self.logger.error(f"Error scraping BTTS odds: {e}")
             return []
+        
+    async def extract_draw_no_bet_odds(
+        self,
+        period: str = "FullTime"
+    ) -> list:
+        """
+        Extract Draw No Bet (DNB) odds for the specified period (e.g., FullTime, 1stHalf).
+
+        Args:
+            period (str): The match period for which to scrape DNB odds.
+
+        Returns:
+            list[dict]: A list of dictionaries containing bookmaker odds for DNB outcomes.
+        """
+        self.logger.info(f"Scraping DNB odds for period: {period}")
+
+        if not await self.browser_helper.navigate_to_market_tab(page=self.page, market_tab_name='Draw No Bet', timeout=self.DEFAULT_TIMEOUT):
+            self.logger.error("Failed to find or click DNB tab.")
+            return []
+        
+        try:
+            await self.page.wait_for_timeout(self.SCROLL_PAUSE_TIME)
+            html_content = await self.page.content()
+            soup = BeautifulSoup(html_content, "lxml")
+
+            bookmaker_rows = soup.find_all("div", class_=re.compile(r"border-black-borders.*flex.*h-9.*border-b.*border-l.*border-r.*text-xs"))
+
+            if not bookmaker_rows:
+                self.logger.error("No bookmaker rows found for DNB odds.")
+                return []
+
+            dnb_odds_data = []
+
+            for row in bookmaker_rows:
+                try:
+                    bookmaker_name_element = row.find("p", class_="height-content")
+                    bookmaker_name = bookmaker_name_element.text.strip() if bookmaker_name_element else "Unknown"
+                    odds_containers = row.find_all("div", class_=re.compile(r"border-black-borders.*relative.*flex.*min-w-\[60px\].*flex-col.*items-center.*justify-center.*gap-1"))
+
+                    if len(odds_containers) < 2:
+                        self.logger.warning(f"Insufficient DNB odds data for bookmaker: {bookmaker_name}. Skipping...")
+                        continue
+
+                    # Extract DNB odds from <a> tags first, fallback to <p> tags if not present
+                    dnb_team1_element = odds_containers[0].find("a", class_="min-mt:!flex") or odds_containers[0].find("p", class_="height-content")
+                    dnb_team2_element = odds_containers[1].find("a", class_="min-mt:!flex") or odds_containers[1].find("p", class_="height-content")
+
+                    dnb_team1 = dnb_team1_element.text.strip() if dnb_team1_element else None
+                    dnb_team2 = dnb_team2_element.text.strip() if dnb_team2_element else None
+
+                    if not dnb_team1 or not dnb_team2:
+                        self.logger.warning(f"Missing DNB odds for bookmaker: {bookmaker_name}. Skipping...")
+                        continue
+
+                    dnb_odds_data.append({
+                        "bookmaker_name": bookmaker_name,
+                        "dnb_team1": dnb_team1,
+                        "dnb_team2": dnb_team2,
+                        "period": period
+                    })
+
+                except Exception as row_error:
+                    self.logger.error(f"Error processing row: {row_error}")
+                    continue
+
+            self.logger.info(f"Successfully extracted DNB odds for {len(dnb_odds_data)} bookmaker(s).")
+            return dnb_odds_data
+        
+        except Exception as e:
+            self.logger.error(f"Error scraping DNB odds: {e}")
+            return []
