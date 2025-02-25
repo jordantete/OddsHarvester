@@ -22,45 +22,35 @@ OddsHarvester is an application designed to scrape and process sports betting od
 ## **✨ Features**
 
 - **📅 Scrape Upcoming Matches**: Fetch odds and event details for upcoming sports matches.  
-- **📊 Scrape Historical Odds**: Retrieve historical odds and results for analytical purposes.  
+- **📊 Scrape Historical Odds**: Retrieve historical odds and match results for analytical purposes.  
 - **🔍 Advanced Parsing**: Extract structured data, including match dates, team names, scores, and venue details.  
-- **💾 Flexible Storage**: Save data locally as JSON or CSV, or send it to a remote S3 bucket.
-- **🐳 Docker Compatibility**: Detect and run seamlessly inside Docker containers.  
-- **🕵️ Proxy Support**: Route web requests through SOCKS/HTTP proxies for anonymity and geolocation.
+- **💾 Flexible Storage**: Store scraped data in JSON or CSV locally, or upload it directly to a remote S3 bucket.
+- **🐳 Docker Compatibility**: Designed to work seamlessly inside Docker containers with minimal setup. 
+- **🕵️ Proxy Support**: Route web requests through SOCKS/HTTP proxies for enhanced anonymity, geolocation bypass, and anti-blocking measures.
 
 
 ## **🚀 Roadmap**
 
-Here’s a list of upcoming features and improvements planned for **OddsHarvester**:
+Here’s what’s coming next in **OddsHarvester**:
 
-- **Support for More Sports**  
-  Extend the application's functionality to include more sports by updating the `SUPPORTED_SPORTS` list.
+- **🏆 Multi-Sport Expansion**: Add support for more sports beyond football and tennis (e.g., basketball, baseball).  
+- **📈 Odds Movement Tracking**: Analyze how odds evolve over time to detect market trends.  
+- **✅ Increase Code Coverage**: Improve test coverage and reliability.  
 
-- **Scrape the Evolution of Odds Over Time**  
-  Enable analysis of how odds change over time (historical data only).
-
-- **Increase code coverage**  
-  Add more unit tests to cover the core components of the app.
-
-💡 Suggestions for new features or improvements are always welcome! Feel free to open an issue or contribute directly to the repository.
+💡 **Have ideas?** Open an issue or contribute directly to the repository! 🚀  
 
 ### **Current Support**
 
-OddsHarvester currently supports **football** as the only sport for scraping, with the following betting markets available:
+OddsHarvester currently supports multiple sports for scraping, with their respective betting markets and leagues managed in dedicated configuration files.
 
-- **1x2**: Full-time 1X2 odds  
-- **Over/Under Goals**:  
-  - Over/Under 0.5 goals  
-  - Over/Under 1.5 goals  
-  - Over/Under 2.5 goals  
-  - Over/Under 3.5 goals  
-  - Over/Under 4.5 goals  
-- Over/Under 5.5 goals  
-- **BTTS**: Both Teams to Score  
-- **Double Chance**: Double chance odds  
-- **Draw No Bet**: Draw no Bet odds  
+- **Supported Sports**  
+  The list of available sports is maintained in the `Sport` enum inside the [`sport_market_constants.py`](src/utils/sport_market_constants.py) file.
 
-These markets are defined in the `SUPPORTED_MARKETS` section of the `constants.py` file.
+- **Betting Markets**  
+  Each sport has its own set of supported betting markets, defined as Enums in the [`sport_market_constants.py`](src/utils/sport_market_constants.py) file.
+
+- **Leagues & Competitions**  
+  The available leagues for each sport are mapped in the [`sport_league_constants.py`](src/utils/sport_league_constants.py) file.
 
 
 ## **🛠️ Local Installation**
@@ -246,7 +236,7 @@ To tailor the serverless deployment for your needs:
 
 ### Constants
 
-OddsHarvester uses a `constants.py` file to define important parameters for browser configuration and scraping behavior. Users can customize these parameters directly in the file to suit their needs. Key configurable constants include:
+OddsHarvester uses a [`constants.py`](src/utils/constants.py) file to define important parameters for browser configuration and scraping behavior. Users can customize these parameters directly in the file to suit their needs. Key configurable constants include:
 
 - **`BROWSER_USER_AGENT`**: Define the user agent string used by the browser to simulate specific devices or browsers.
 - **`BROWSER_LOCALE_TIMEZONE`**: Set the locale for the browser (e.g., `"en-US"`).
