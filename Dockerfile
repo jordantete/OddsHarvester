@@ -23,7 +23,7 @@ FROM public.ecr.aws/lambda/python:3.12 AS aws-lambda
 COPY --from=base /var/task /var/task
 
 # Set Lambda runtime handler
-CMD ["main.lambda_handler"]
+CMD ["lambda_handler"]
 
 # Stage 3: Local development/testing
 FROM base AS local-dev

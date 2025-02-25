@@ -1,6 +1,5 @@
 import csv, logging, os, json
 from typing import List, Dict, Union, Optional
-from utils.utils import ensure_directory_exists
 from storage.storage_format import StorageFormat
 
 class LocalDataStorage:
@@ -58,7 +57,7 @@ class LocalDataStorage:
         if not target_file_path.endswith(f".{format_to_use}"):
             target_file_path = f"{target_file_path}.{format_to_use}"
 
-        ensure_directory_exists(target_file_path)
+        self._ensure_directory_exists(target_file_path)
 
         if format_to_use == StorageFormat.CSV.value:
             self._save_as_csv(data, target_file_path)
@@ -117,3 +116,9 @@ class LocalDataStorage:
         except Exception as e:
             self.logger.error(f"Error saving data to {file_path}: {str(e)}", exc_info=True)
             raise
+    
+    def _ensure_directory_exists(self, file_path: str):
+        """Ensures the directory for the given file path exists. If it doesn't exist, creates it."""
+        directory = os.path.dirname(file_path)
+        if directory and not os.path.exists(directory):
+            os.makedirs(directory)

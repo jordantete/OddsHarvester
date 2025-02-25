@@ -6,7 +6,9 @@ from playwright.async_api import async_playwright, Page, TimeoutError, Error
 from core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from core.url_builder import URLBuilder
 from core.browser_helper import BrowserHelper
-from utils.utils import is_running_in_docker, setup_proxy_config
+from core.sport_market_registry import MarketRegistry
+from utils.utils import is_running_in_docker
+from utils.setup_proxy import setup_proxy_config
 from utils.command_enum import CommandEnum
 from utils.constants import (
     ODDS_FORMAT, ODDSPORTAL_BASE_URL, PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER, 
@@ -210,11 +212,9 @@ class OddsPortalScrapper:
             return await self._extract_match_odds(match_links=unique_links, markets=markets)
 
         except TimeoutError as te:
-            self.logger.error(f"Timeout occurred while navigating to {base_url}: {te}")
             raise TimeoutError(f"Failed to navigate to {base_url}: {te}") from te
 
         except Exception as e:
-            self.logger.error(f"Unexpected error during historical odds scraping: {e}", exc_info=True)
             raise RuntimeError(f"Failed to scrape historical odds: {e}") from e
 
     async def _scrape_upcoming_matches(
@@ -249,16 +249,14 @@ class OddsPortalScrapper:
                 return []
 
             self.logger.info(f"Found {len(links)} match links for upcoming matches.")
-            match_odds = await self._extract_match_odds(match_links=links, markets=markets)
+            match_odds = await self._extract_match_odds(sport=sport, match_links=links, markets=markets)
             self.logger.info(f"Scraped odds for {len(match_odds)} matches.")
             return match_odds
 
         except TimeoutError as te:
-            self.logger.error(f"Timeout occurred while navigating to {base_url}: {te}")
             raise TimeoutError(f"Failed to navigate to {base_url}: {te}") from te
 
         except Exception as e:
-            self.logger.error(f"Unexpected error during upcoming odds scraping: {e}", exc_info=True)
             raise RuntimeError(f"Failed to scrape upcoming matches: {e}") from e
 
     async def _set_odds_format(
@@ -310,6 +308,7 @@ class OddsPortalScrapper:
 
     async def _extract_match_odds(
         self, 
+        sport: str,
         match_links: List[str],
         markets: Optional[List[str]] = None
     ) -> List[Dict[str, Any]]:
@@ -317,6 +316,7 @@ class OddsPortalScrapper:
         Extract odds for a list of match links concurrently.
 
         Args:
+            sport (str): The sport to scrape odds for.
             match_links (List[str]): A list of match links to scrape odds for.
             markets (Optional[List[str]]: The list of markets to scrape.
 
@@ -333,7 +333,7 @@ class OddsPortalScrapper:
                 
                 try:
                     tab = await self.context.new_page()
-                    data = await self._scrape_match_data(page=tab, match_link=link, markets=markets)
+                    data = await self._scrape_match_data(page=tab, sport=sport, match_link=link, markets=markets)
                     self.logger.info(f"Successfully scraped match link: {link}")
                     return data
                 
@@ -359,6 +359,7 @@ class OddsPortalScrapper:
     async def _scrape_match_data(
         self, 
         page: Page,
+        sport: str,
         match_link: str, 
         markets: Optional[List[str]] = None
     ) -> Optional[Dict[str, Any]]:
@@ -367,6 +368,7 @@ class OddsPortalScrapper:
 
         Args:
             page (Page): A Playwright Page instance for this task.
+            sport (str): The sport to scrape odds for.
             match_link (str): The link to the match page.
             markets (Optional[List[str]]): A list of markets to scrape (e.g., ['1x2', 'over_under_2_5']).
 
@@ -386,7 +388,7 @@ class OddsPortalScrapper:
 
             if markets:
                 self.logger.info(f"Scraping markets: {markets}")
-                market_data = await self._scrape_markets(page, markets)
+                market_data = await self._scrape_markets(page=page, sport=sport, markets=markets)
                 match_details.update(market_data)
 
             return match_details
@@ -426,9 +428,8 @@ class OddsPortalScrapper:
 
             event_body = json_data.get("eventBody", {})
             event_data = json_data.get("eventData", {})
-            self.logger.debug("Debug - JSON Data:", json.dumps(json_data, indent=2))
-
             unix_timestamp = event_body.get("startDate")
+
             match_date = (
                 datetime.fromtimestamp(unix_timestamp, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
                 if unix_timestamp
@@ -455,14 +456,18 @@ class OddsPortalScrapper:
     async def _scrape_markets(
         self, 
         page: Page, 
-        markets: List[str]
+        sport: str,
+        markets: List[str],
+        period: str = "FullTime"
     ) -> Dict[str, Any]:
         """
         Scrape market data for the given match.
 
         Args:
             page (Page): A Playwright Page instance for this task.
+            sport (str): The sport to scrape odds for.
             markets (List[str]): A list of markets to scrape (e.g., ['1x2', 'over_under_2_5']).
+            period (str): The match period (e.g., "FullTime").
 
         Returns:
             Dict[str, Any]: A dictionary containing market data.
@@ -470,26 +475,15 @@ class OddsPortalScrapper:
         market_data = {}
         odds_market_extractor = OddsPortalMarketExtractor(page=page, browser_helper=self.browser_helper)
 
-        market_methods = {
-            "1x2": odds_market_extractor.extract_odds(market_name="1X2", period="FullTime", odds_labels=["1", "X", "2"]),
-            "over_under_0_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="0.5"),
-            "over_under_1_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="1.5"),
-            "over_under_2_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="2.5"),
-            "over_under_3_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="3.5"),
-            "over_under_4_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="4.5"),
-            "over_under_5_5": lambda: odds_market_extractor.extract_over_under_odds(over_under_market="5.5"),
-            "btts": odds_market_extractor.extract_odds(market_name="Both Teams to Score", period="FullTime", odds_labels=["btts_yes", "btts_no"]),
-            "double_chance": odds_market_extractor.extract_odds(market_name="Double Chance", period="FullTime", odds_labels=["1X", "12", "X2"]),
-            "dnb": odds_market_extractor.extract_odds(market_name="Draw No Bet", period="FullTime", odds_labels=["dnb_team1", "dnb_team2"]),
-        }
+        market_methods = MarketRegistry.get_market_mapping(sport)
 
         for market in markets:
             try:
                 if market in market_methods:
-                    self.logger.info(f"Scraping market: {market}")
-                    market_data[f"{market}_market"] = await market_methods[market]()
+                    self.logger.info(f"Scraping market: {market} (Period: {period})")
+                    market_data[f"{market}_market"] = await market_methods[market](odds_market_extractor, period)
                 else:
-                    self.logger.warning(f"Market '{market}' is not supported.")
+                    self.logger.warning(f"Market '{market}' is not supported for sport '{sport}'.")
 
             except Exception as e:
                 self.logger.error(f"Error scraping market '{market}': {e}")

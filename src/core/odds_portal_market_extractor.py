@@ -28,65 +28,87 @@ class OddsPortalMarketExtractor:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.page = page
         self.browser_helper = browser_helper
-
-    async def extract_over_under_odds(
+        
+    async def extract_market_odds(
         self, 
-        over_under_market: str, 
-        period: str = "FullTime"
+        main_market: str, 
+        specific_market: str = None, 
+        period: str = "FullTime",
+        odds_labels: list = None
     ) -> list:
         """
-        Extract Over/Under odds for the specified type and period.
+        Extracts odds for a given main market and optional specific sub-market.
 
         Args:
-            over_under_type (str): The Over/Under market (e.g., "1.5", "2.5").
-            period (str): The match period to scrape odds for.
+            main_market (str): The main market name (e.g., "Over/Under", "European Handicap").
+            specific_market (str, optional): The specific market within the main market (e.g., "Over/Under 2.5", "EH +1").
+            period (str): The match period (e.g., "FullTime").
+            odds_labels (list): Labels corresponding to odds values in the extracted data.
 
         Returns:
             list[dict]: A list of dictionaries containing bookmaker odds.
         """
-        self.logger.info(f"Scraping Over/Under odds for type {over_under_market}, period {period}")
-        try: 
-            if not await self.browser_helper.navigate_to_market_tab(page=self.page, market_tab_name='Over/Under', timeout=self.DEFAULT_TIMEOUT):
-                self.logger.error("Failed to find or click Over/Under tab.")
+        self.logger.info(f"Scraping odds for market: {main_market}, specific: {specific_market}, period: {period}")
+
+        try:
+            # Navigate to the main market tab
+            if not await self.browser_helper.navigate_to_market_tab(page=self.page, market_tab_name=main_market, timeout=self.DEFAULT_TIMEOUT):
+                self.logger.error(f"Failed to find or click {main_market} tab")
                 return []
-            
-            if not await self.browser_helper.scroll_until_visible_and_click_parent(
-                page=self.page,
-                selector='div.flex.w-full.items-center.justify-start.pl-3.font-bold p',
-                text=f"Over/Under +{over_under_market}"
-            ):
-                self.logger.error(f"Over/Under {over_under_market} not found or couldn't be selected.")
-                return []
-            
+
+            # If a specific sub-market needs to be selected (e.g., Over/Under 2.5)
+            if specific_market:
+                if not await self.browser_helper.scroll_until_visible_and_click_parent(
+                    page=self.page,
+                    selector='div.flex.w-full.items-center.justify-start.pl-3.font-bold p',
+                    text=specific_market
+                ):
+                    self.logger.error(f"Failed to find or select {specific_market} within {main_market}")
+                    return []
+
             await self.page.wait_for_timeout(self.SCROLL_PAUSE_TIME)
             html_content = await self.page.content()
-            return await self._parse_over_under_odds(html_content=html_content, period=period)
-        
+            odds_data = await self._parse_market_odds(html_content=html_content, period=period, odds_labels=odds_labels)
+
+            # Close the sub-market after scraping to avoid duplicates
+            if specific_market:
+                self.logger.info(f"Closing sub-market: {specific_market}")
+                if not await self.browser_helper.scroll_until_visible_and_click_parent(
+                    page=self.page,
+                    selector='div.flex.w-full.items-center.justify-start.pl-3.font-bold p',
+                    text=specific_market
+                ):
+                    self.logger.warning(f"Failed to close {specific_market}, might affect next scraping.")
+
+            return odds_data
+
         except Exception as e:
-            self.logger.error(f"Error during Over/Under odds extraction: {e}")
+            self.logger.error(f"Error extracting odds for {main_market} {specific_market}: {e}")
             return []
     
-    async def _parse_over_under_odds(
+    async def _parse_market_odds(
         self, 
-        html_content: str,
-        period: str = "FullTime"
+        html_content: str, 
+        period: str, 
+        odds_labels: list
     ) -> list:
         """
-        Parses Over/Under odds data from the page's HTML content.
+        Parses odds for a given market type in a generic way.
 
         Args:
             html_content (str): The HTML content of the page.
-            period (str): The match period to scrape odds for.
+            period (str): The match period (e.g., "FullTime").
+            odds_labels (list): A list of labels defining the expected odds columns (e.g., ["odds_over", "odds_under"]).
 
         Returns:
-            list[dict]: A list of dictionaries containing bookmaker odds data.
+            list[dict]: A list of dictionaries containing bookmaker odds.
         """
-        self.logger.info("Parsing Over/Under odds from HTML content.")
+        self.logger.info("Parsing odds from HTML content.")
         soup = BeautifulSoup(html_content, "lxml")
         bookmaker_blocks = soup.find_all("div", class_=re.compile(r"^border-black-borders flex h-9"))
 
         if not bookmaker_blocks:
-            self.logger.warning("No bookmaker blocks found in Over/Under odds.")
+            self.logger.warning("No bookmaker blocks found.")
             return []
 
         odds_data = []
@@ -95,98 +117,23 @@ class OddsPortalMarketExtractor:
                 img_tag = block.find("img", class_="bookmaker-logo")
                 bookmaker_name = img_tag["title"] if img_tag and "title" in img_tag.attrs else "Unknown"
                 odds_blocks = block.find_all("div", class_=re.compile(r"flex-center.*flex-col.*font-bold"))
-                
-                if len(odds_blocks) < 2:
+
+                if len(odds_blocks) < len(odds_labels):
                     self.logger.warning(f"Incomplete odds data for bookmaker: {bookmaker_name}. Skipping...")
                     continue
 
-                odds_over = odds_blocks[0].get_text(strip=True)
-                odds_under = odds_blocks[1].get_text(strip=True)
-                odds_over = re.sub(r"(\d+\.\d+)\1", r"\1", odds_over)
-                odds_under = re.sub(r"(\d+\.\d+)\1", r"\1", odds_under)
-                
-                odds_data.append({
-                    "bookmaker_name": bookmaker_name, 
-                    "odds_over": odds_over, 
-                    "odds_under": odds_under,
-                    "period": period
-                })
+                extracted_odds = {label: odds_blocks[i].get_text(strip=True) for i, label in enumerate(odds_labels)}
 
-            except:
-                self.logger.error(f"Error parsing Over/Under odds for block: {e}")
+                for key, value in extracted_odds.items():
+                    extracted_odds[key] = re.sub(r"(\d+\.\d+)\1", r"\1", value)
+
+                extracted_odds["bookmaker_name"] = bookmaker_name
+                extracted_odds["period"] = period
+                odds_data.append(extracted_odds)
+
+            except Exception as e:
+                self.logger.error(f"Error parsing odds: {e}")
                 continue
 
-        self.logger.info(f"Successfully parsed Over/Under odds: {odds_data}")
+        self.logger.info(f"Successfully parsed odds for {len(odds_data)} bookmakers.")
         return odds_data
-        
-    async def extract_odds(
-        self, 
-        market_name: str, 
-        period: str = "FullTime", 
-        odds_labels: list = []
-    ) -> list:
-        """
-        Generic method to extract odds for a specified market.
-
-        Args:
-            market_name (str): The market tab name to navigate to.
-            period (str): The match period for which to scrape odds.
-            odds_labels (list): The labels for the odds being scraped (e.g., ['1X', '12', 'X2']).
-
-        Returns:
-            list[dict]: A list of dictionaries containing bookmaker odds for the specified market.
-        """
-        self.logger.info(f"Scraping {market_name} odds for period: {period}")
-
-        # Navigate to the correct market tab
-        if not await self.browser_helper.navigate_to_market_tab(page=self.page, market_tab_name=market_name, timeout=self.DEFAULT_TIMEOUT):
-            self.logger.error(f"Failed to find or click {market_name} tab.")
-            return []
-        
-        try:
-            await self.page.wait_for_timeout(self.SCROLL_PAUSE_TIME)
-            html_content = await self.page.content()
-            soup = BeautifulSoup(html_content, "lxml")
-
-            bookmaker_rows = soup.find_all("div", class_=re.compile(r"border-black-borders.*flex.*h-9.*border-b.*border-l.*border-r.*text-xs"))
-
-            if not bookmaker_rows:
-                self.logger.error(f"No bookmaker rows found for {market_name} odds.")
-                return []
-
-            odds_data = []
-
-            for row in bookmaker_rows:
-                try:
-                    bookmaker_name_element = row.find("p", class_="height-content")
-                    bookmaker_name = bookmaker_name_element.text.strip() if bookmaker_name_element else "Unknown"
-                    odds_containers = row.find_all("div", class_=re.compile(r"border-black-borders.*relative.*flex.*min-w-\[60px\].*flex-col.*items-center.*justify-center.*gap-1"))
-
-                    if len(odds_containers) < len(odds_labels):
-                        self.logger.warning(f"Insufficient {market_name} odds data for bookmaker: {bookmaker_name}. Skipping...")
-                        continue
-
-                    odds_info = {"bookmaker_name": bookmaker_name, "period": period}
-                    
-                    for idx, label in enumerate(odds_labels):
-                        odds_element = odds_containers[idx].find("a", class_="min-mt:!flex") or odds_containers[idx].find("p", class_="height-content")
-                        odds_value = odds_element.text.strip() if odds_element else None
-                        
-                        if not odds_value:
-                            self.logger.warning(f"Missing odds value for {label} in bookmaker row {bookmaker_name}. Skipping...")
-                            continue
-                        
-                        odds_info[label] = odds_value
-                    
-                    odds_data.append(odds_info)
-                
-                except Exception as row_error:
-                    self.logger.error(f"Error processing row for {market_name}: {row_error}")
-                    continue
-
-            self.logger.info(f"Successfully extracted {market_name} odds for {len(odds_data)} bookmaker(s).")
-            return odds_data
-        
-        except Exception as e:
-            self.logger.error(f"Error scraping {market_name} odds: {e}")
-            return []
