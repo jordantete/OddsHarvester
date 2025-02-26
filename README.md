@@ -33,9 +33,8 @@ OddsHarvester is an application designed to scrape and process sports betting od
 
 Here’s what’s coming next in **OddsHarvester**:
 
-- **🏆 Multi-Sport Expansion**: Add support for more sports beyond football and tennis (e.g., basketball, baseball).  
-- **📈 Odds Movement Tracking**: Analyze how odds evolve over time to detect market trends.  
-- **✅ Increase Code Coverage**: Improve test coverage and reliability.  
+- **Multi-Sport Expansion**: Add support for more sports beyond football and tennis (e.g., basketball, baseball).  
+- **Odds Movement Tracking**: Analyze how odds evolve over time to detect market trends.  
 
 💡 **Have ideas?** Open an issue or contribute directly to the repository! 🚀  
 
