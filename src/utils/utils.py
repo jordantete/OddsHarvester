@@ -1,7 +1,7 @@
 import os
 from enum import Enum
 from typing import Dict, List, Type
-from utils.sport_market_constants import Sport, FootballMarket, FootballOverUnderMarket, FootballEuropeanHandicapMarket, TennisMarket
+from .sport_market_constants import Sport, FootballMarket, FootballOverUnderMarket, FootballEuropeanHandicapMarket, TennisMarket
 
 SPORT_MARKETS_MAPPING: Dict[Sport, List[Type[Enum]]] = {
     Sport.FOOTBALL: [FootballMarket, FootballOverUnderMarket, FootballEuropeanHandicapMarket],

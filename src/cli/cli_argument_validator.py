@@ -1,14 +1,13 @@
 import argparse, re
 from datetime import datetime
 from typing import List, Optional
-from utils.command_enum import CommandEnum
-from utils.constants import DATE_FORMAT_REGEX
-from utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
-from utils.utils import get_supported_markets
-from utils.sport_market_constants import Sport
-from storage.storage_type import StorageType
-from storage.storage_format import StorageFormat
-
+from src.utils.command_enum import CommandEnum
+from src.utils.constants import DATE_FORMAT_REGEX
+from src.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
+from src.utils.utils import get_supported_markets
+from src.utils.sport_market_constants import Sport
+from src.storage.storage_type import StorageType
+from src.storage.storage_format import StorageFormat
 
 class CLIArgumentValidator:
     def validate_args(self, args: argparse.Namespace):
@@ -45,17 +44,29 @@ class CLIArgumentValidator:
         if command not in CommandEnum.__members__.values():
             raise ValueError(f"Invalid command '{command}'. Supported commands are: {', '.join(e.value for e in CommandEnum)}.")
     
-    def _validate_sport(self, sport: Optional[str]) -> List[str]:
+    def _validate_sport(self, sport: str) -> List[str]:
         """Validates the sport argument."""
-        if sport and sport not in [s.value for s in Sport]:
-            return [f"Invalid sport: '{sport}'. Supported sports are: {', '.join(s.value for s in Sport)}."]
-        return []
+        errors = []
+
+        if sport not in [s.value for s in Sport]:
+            error_message = f"Invalid sport: '{sport}'. Supported sports are: {', '.join(s.value for s in Sport)}."
+            if error_message not in errors:
+                errors.append(error_message)
+
+        return errors
 
     def _validate_markets(self, sport: Sport, markets: List[str]) -> List[str]:
         """Validates markets against the selected sport."""
         errors = []
-        supported_markets = get_supported_markets(sport)
         
+        if isinstance(sport, str):
+            try:
+                sport = Sport(sport.lower())
+            except ValueError:
+                return [f"Invalid sport: '{sport}'. Supported sports are: {', '.join(s.value for s in Sport)}."]
+
+        supported_markets = get_supported_markets(sport)
+
         for market in markets:
             if market not in supported_markets:
                 errors.append(f"Invalid market: {market}. Supported markets for {sport.value}: {', '.join(supported_markets)}.")
@@ -68,6 +79,12 @@ class CLIArgumentValidator:
         
         if not league:
             return errors
+        
+        if isinstance(sport, str):
+            try:
+                sport = Sport(sport.lower())
+            except ValueError:
+                return [f"Invalid sport: '{sport}'. Supported sports are: {', '.join(s.value for s in Sport)}."]
         
         if sport not in SPORTS_LEAGUES_URLS_MAPPING:
             return [f"Unsupported sport: '{sport.value}'. Supported sports are: {', '.join(s.value for s in SPORTS_LEAGUES_URLS_MAPPING.keys())}."]
@@ -82,18 +99,21 @@ class CLIArgumentValidator:
         return errors
 
     def _validate_date(self, command: str, date: Optional[str]) -> List[str]:
-        """Validates the date argument for scrape-upcoming."""
+        """Validates the date argument."""
         errors = []
-        if command == "scrape-upcoming" and date:
-            if not re.match(DATE_FORMAT_REGEX, date):
-                errors.append(f"Invalid date format: '{date}'. Date must be in the format YYYY-MM-DD.")
-            else:
-                try:
-                    date_obj = datetime.strptime(date, "%Y%m%d").date()
-                    if date_obj < datetime.now().date():
-                        errors.append(f"Date '{date}' must be today or in the future.")
-                except ValueError:
-                    errors.append(f"Invalid date: '{date}'. Could not parse the date.")
+
+        if not date:
+            return errors
+
+        try:
+            parsed_date = datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            return [f"Invalid date format: '{date}'. Date must be in the format YYYY-MM-DD."]
+
+        # Ensure the date is today or in the future
+        if parsed_date.date() < datetime.now().date():
+            errors.append(f"Date '{date}' must be today or in the future.")
+
         return errors
 
     def _validate_storage(self, storage: str) -> List[str]:

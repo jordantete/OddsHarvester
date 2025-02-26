@@ -1,4 +1,4 @@
-import boto3, json, logging, os
+import boto3, json, logging
 from typing import List, Dict, Any
 
 class RemoteDataStorage:

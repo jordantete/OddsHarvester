@@ -1,4 +1,4 @@
-from utils.sport_market_constants import Sport
+from .sport_market_constants import Sport
 
 SPORTS_LEAGUES_URLS_MAPPING = {
     Sport.FOOTBALL: {

@@ -1,8 +1,8 @@
 import re
 from typing import Optional
-from utils.constants import ODDSPORTAL_BASE_URL
-from utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
-from utils.sport_market_constants import Sport
+from src.utils.constants import ODDSPORTAL_BASE_URL
+from src.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
+from src.utils.sport_market_constants import Sport
 
 class URLBuilder:
     """

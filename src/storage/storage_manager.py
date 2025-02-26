@@ -1,6 +1,6 @@
 import logging
-from storage.storage_type import StorageType
-from storage.storage_format import StorageFormat
+from .storage_type import StorageType
+from .storage_format import StorageFormat
 
 logger = logging.getLogger("StorageManager")
 

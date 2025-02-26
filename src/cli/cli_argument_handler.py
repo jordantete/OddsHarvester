@@ -1,8 +1,10 @@
-from cli.cli_argument_parser import CLIArgumentParser
-from cli.cli_argument_validator import CLIArgumentValidator
+import logging
+from .cli_argument_parser import CLIArgumentParser
+from .cli_argument_validator import CLIArgumentValidator
 
 class CLIArgumentHandler:
     def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.parser = CLIArgumentParser().get_parser()
         self.validator = CLIArgumentValidator()
 
@@ -11,10 +13,16 @@ class CLIArgumentHandler:
         args = self.parser.parse_args()
 
         if not args.command:
+            self.logger.error("No CLI args Command provided")
             self.parser.print_help()
             exit(1)
 
-        self.validator.validate_args(args)
+        try:
+            self.validator.validate_args(args)
+        except ValueError as e:
+            self.logger.error(f"CLI args validation failed: {e}")
+            self.parser.print_help()
+            exit(1)
 
         return {
             "command": args.command,

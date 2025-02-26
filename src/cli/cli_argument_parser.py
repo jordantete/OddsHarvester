@@ -1,8 +1,8 @@
 import argparse
-from cli.cli_help_message_generator import CLIHelpMessageGenerator
-from utils.sport_market_constants import Sport
-from storage.storage_type import StorageType
-from storage.storage_format import StorageFormat
+from .cli_help_message_generator import CLIHelpMessageGenerator
+from src.utils.sport_market_constants import Sport
+from src.storage.storage_type import StorageType
+from src.storage.storage_format import StorageFormat
 
 class CLIArgumentParser:
     def __init__(self):

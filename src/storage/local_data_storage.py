@@ -1,6 +1,6 @@
 import csv, logging, os, json
 from typing import List, Dict, Union, Optional
-from storage.storage_format import StorageFormat
+from .storage_format import StorageFormat
 
 class LocalDataStorage:
     """

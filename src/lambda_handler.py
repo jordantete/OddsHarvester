@@ -9,7 +9,7 @@ def lambda_handler(event: Dict[str, Any], context: Any):
     next_day = datetime.now(paris_tz) + timedelta(days=1)
     formatted_date = next_day.strftime('%Y%m%d')
     
-    ## TODO: Parse event to retrieve scraping taks' params
+    ## TODO: Parse event to retrieve scraping taks' params - handle exceptions
     return asyncio.run(
         run_scraper(
             command="scrape_upcoming",
