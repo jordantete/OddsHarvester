@@ -11,9 +11,13 @@ dependencies = [
     "boto3>=1.36.0",
     "lxml>=5.3.0",
     "playwright>=1.49.1",
-    "pytest>=8.3.4",
-    "pytest-mock>=3.14.0",
-    "pytz>=2024.2",
+    "pytz>=2024.2"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+    "pytest-cov==6.0.0"
 ]
 
 [project.urls]
