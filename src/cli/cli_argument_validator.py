@@ -2,7 +2,6 @@ import argparse, re
 from datetime import datetime
 from typing import List, Optional
 from src.utils.command_enum import CommandEnum
-from src.utils.constants import DATE_FORMAT_REGEX
 from src.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from src.utils.utils import get_supported_markets
 from src.utils.sport_market_constants import Sport
@@ -27,6 +26,9 @@ class CLIArgumentValidator:
 
         if hasattr(args, 'league'):
             errors.extend(self._validate_league(sport=args.sport, league=args.league))
+        
+        if hasattr(args, "season"):
+            errors.extend(self._validate_season(command=args.command, season=args.season))
         
         if hasattr(args, 'date'):
             errors.extend(self._validate_date(command=args.command, date=args.date))
@@ -98,17 +100,48 @@ class CLIArgumentValidator:
             )
         return errors
 
-    def _validate_date(self, command: str, date: Optional[str]) -> List[str]:
-        """Validates the date argument."""
+    def _validate_season(self, command: str, season: Optional[str]) -> List[str]:
+        """Validates the season argument (only for scrape_historic command)."""
         errors = []
 
-        if not date:
+        if command != "scrape_historic":
+            return errors  # Season validation is only for the historic command
+
+        if not season:
+            errors.append("The season argument is required for the 'scrape_historic' command.")
             return errors
 
+        # Match format YYYY-YYYY (e.g., 2023-2024)
+        season_pattern = re.compile(r"^\d{4}-\d{4}$")
+        if not season_pattern.match(season):
+            errors.append(f"Invalid season format: '{season}'. Expected format: YYYY-YYYY (e.g., 2023-2024).")
+            return errors
+
+        # Validate that the second year is exactly one year after the first year
+        start_year, end_year = map(int, season.split("-"))
+        if end_year != start_year + 1:
+            errors.append(f"Invalid season range: '{season}'. The second year must be exactly one year after the first year.")
+
+        return errors
+
+    def _validate_date(self, command: str, date: Optional[str]) -> List[str]:
+        """Validates the date argument for the `scrape_upcoming` command."""
+        errors = []
+
+        # Date should only be required for scrape_upcoming
+        if command != "scrape_upcoming":
+            if date:
+                errors.append(f"Date should not be provided for the '{command}' command.")
+            return errors
+
+        if not date:
+            return [f"Missing required argument: 'date' is mandatory for '{command}' command."]
+
+        # Ensure date format is YYYYMMDD
         try:
-            parsed_date = datetime.strptime(date, "%Y-%m-%d")
+            parsed_date = datetime.strptime(date, "%Y%m%d")
         except ValueError:
-            return [f"Invalid date format: '{date}'. Date must be in the format YYYY-MM-DD."]
+            return [f"Invalid date format: '{date}'. Expected format is YYYYMMDD (e.g., 20250227)."]
 
         # Ensure the date is today or in the future
         if parsed_date.date() < datetime.now().date():

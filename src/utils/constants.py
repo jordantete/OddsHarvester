@@ -1,8 +1,7 @@
 ODDSPORTAL_BASE_URL = "https://www.oddsportal.com"
 ODDS_FORMAT = "Decimal Odds"
-DATE_FORMAT_REGEX = r"^\d{4}\d{2}\d{2}$"  # YYYYMMDD
 
-SCRAPE_CONCURRENCY_TASKS = 2
+SCRAPE_CONCURRENCY_TASKS = 3
 BROWSER_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
 BROWSER_LOCALE_TIMEZONE = "fr-BE"
 BROWSER_TIMEZONE_ID = "Europe/Brussels"

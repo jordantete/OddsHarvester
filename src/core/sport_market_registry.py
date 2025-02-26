@@ -40,7 +40,7 @@ class SportMarketRegistrar:
     @classmethod
     def register_football_markets(cls):
         """Registers all football betting markets."""
-        MarketRegistry.register(Sport.FOOTBALL, {
+        SportMarketRegistry.register(Sport.FOOTBALL, {
             "1x2": cls.create_market_lambda("1X2", odds_labels=["1", "X", "2"]),
             "btts": cls.create_market_lambda("Both Teams to Score", odds_labels=["btts_yes", "btts_no"]),
             "double_chance": cls.create_market_lambda("Double Chance", odds_labels=["1X", "12", "X2"]),
@@ -49,7 +49,7 @@ class SportMarketRegistrar:
 
         # Register Over/Under Markets
         for over_under in FootballOverUnderMarket:
-            MarketRegistry.register(Sport.FOOTBALL, {
+            SportMarketRegistry.register(Sport.FOOTBALL, {
                 over_under.value: cls.create_market_lambda(
                     main_market="Over/Under",
                     specific_market=f"Over/Under +{over_under.value.replace('over_under_', '').replace('_', '.')}",
@@ -59,7 +59,7 @@ class SportMarketRegistrar:
 
         # Register European Handicap Markets
         for handicap in FootballEuropeanHandicapMarket:
-            MarketRegistry.register(Sport.FOOTBALL, {
+            SportMarketRegistry.register(Sport.FOOTBALL, {
                 handicap.value: cls.create_market_lambda(
                     main_market="European Handicap",
                     specific_market=f"European Handicap {handicap.value.split('_')[-1]}",
@@ -70,13 +70,13 @@ class SportMarketRegistrar:
     @classmethod
     def register_tennis_markets(cls):
         """Registers all tennis betting markets."""
-        MarketRegistry.register(Sport.TENNIS, {
+        SportMarketRegistry.register(Sport.TENNIS, {
             "match_winner": cls.create_market_lambda("Home Away", odds_labels=["player_1", "player_2"]),
         })
 
         # Register Over/Under Sets Markets
         for over_under in TennisOverUnderSetsMarket:
-            MarketRegistry.register(Sport.TENNIS, {
+            SportMarketRegistry.register(Sport.TENNIS, {
                 over_under.value: cls.create_market_lambda(
                     main_market="Over/Under Sets",
                     specific_market=f"Over/Under +{over_under.value.split('_')[-1].replace('_', '.')}",
@@ -86,7 +86,7 @@ class SportMarketRegistrar:
 
         # Register Over/Under Games Markets
         for over_under in TennisOverUnderGamesMarket:
-            MarketRegistry.register(Sport.TENNIS, {
+            SportMarketRegistry.register(Sport.TENNIS, {
                 over_under.value: cls.create_market_lambda(
                     main_market="Over/Under Games",
                     specific_market=f"Over/Under +{over_under.value.split('_')[-1].replace('_', '.')}",
@@ -96,7 +96,7 @@ class SportMarketRegistrar:
 
         # Register Asian Handicap Games Markets
         for handicap in TennisAsianHandicapGamesMarket:
-            MarketRegistry.register(Sport.TENNIS, {
+            SportMarketRegistry.register(Sport.TENNIS, {
                 handicap.value: cls.create_market_lambda(
                     main_market="Asian Handicap Games",
                     specific_market=f"Asian Handicap +{handicap.value.split('_')[-1].replace('_', '.')}",
@@ -106,7 +106,7 @@ class SportMarketRegistrar:
 
         # Register Correct Score Markets
         for correct_score in TennisCorrectScoreMarket:
-            MarketRegistry.register(Sport.TENNIS, {
+            SportMarketRegistry.register(Sport.TENNIS, {
                 correct_score.value: cls.create_market_lambda(
                     main_market="Correct Score",
                     specific_market=f"Correct Score {correct_score.value.split('_')[-1]}",

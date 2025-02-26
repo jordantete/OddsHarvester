@@ -59,9 +59,9 @@ class OddsPortalScraper(BaseScraper):
             await current_page.goto(base_url)
             await self._prepare_page_for_scraping(page=current_page)
 
-            pages_to_scrape = await self._get_pagination_info(current_page, max_pages)
-            all_links = await self._collect_match_links(base_url, pages_to_scrape)
-            return await self.extract_match_odds(sport, all_links, markets)  
+            pages_to_scrape = await self._get_pagination_info(page=current_page, max_pages=max_pages)
+            all_links = await self._collect_match_links(base_url=base_url, pages_to_scrape=pages_to_scrape)
+            return await self.extract_match_odds(sport=sport, match_links=all_links, markets=markets)  
 
         except Exception as e:
             self.logger.error(f"Failed to scrape historic matches: {e}")
@@ -96,8 +96,7 @@ class OddsPortalScraper(BaseScraper):
 
             await current_page.goto(url)
             await self._prepare_page_for_scraping(page=current_page)
-            # match_links = await self.extract_match_links(page=current_page)
-            match_links = ["/football/spain/laliga/sevilla-mallorca-dKNfEvpf"]
+            match_links = await self.extract_match_links(page=current_page)
 
             if not match_links:
                 self.logger.warning("No match links found for upcoming matches.")
@@ -117,7 +116,7 @@ class OddsPortalScraper(BaseScraper):
             page: Playwright page instance.
         """
         await self.set_odds_format(page=page)
-        await self.browser_helper.dismiss_cookie_banner(page)
+        await self.browser_helper.dismiss_cookie_banner(page=page)
     
     async def _get_pagination_info(
         self, 
@@ -171,7 +170,7 @@ class OddsPortalScraper(BaseScraper):
                 await tab.goto(page_url, timeout=10000, wait_until="domcontentloaded")
                 await tab.wait_for_timeout(random.randint(2000, 4000))
 
-                links = await self.extract_match_links(tab)
+                links = await self.extract_match_links(page=tab)
                 all_links.extend(links)
                 self.logger.info(f"Extracted {len(links)} links from page {page_number}.")
 
