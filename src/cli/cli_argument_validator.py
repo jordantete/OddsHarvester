@@ -35,6 +35,9 @@ class CLIArgumentValidator:
         
         if hasattr(args, 'file_path') or hasattr(args, 'format'):
             errors.extend(self._validate_file_args(args=args))
+            
+        if hasattr(args, 'max_pages'):
+            errors.extend(self._validate_max_pages(command=args.command, max_pages=args.max_pages))
 
         errors.extend(self._validate_storage(storage=args.storage))
 
@@ -184,5 +187,22 @@ class CLIArgumentValidator:
 
         if args.file_path and args.format and not args.file_path.endswith(f".{args.format}"):
             errors.append(f"File path '{args.file_path}' must end with '.{args.format}'.")
+
+        return errors
+
+    def _validate_max_pages(
+        self,
+        command: str, 
+        max_pages: Optional[int]
+    ) -> List[str]:
+        """Validates the max_pages argument (only for scrape_historic)."""
+        errors = []
+        
+        if command != "scrape_historic":
+            return errors  # max_pages is only valid for scrape_historic
+        
+        if max_pages is not None:
+            if not isinstance(max_pages, int) or max_pages <= 0:
+                errors.append(f"Invalid max-pages value: '{max_pages}'. It must be a positive integer.")
 
         return errors

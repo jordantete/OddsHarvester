@@ -33,6 +33,7 @@ class CLIArgumentHandler:
             "storage_type": args.storage,
             "storage_format": getattr(args, "format", None),
             "file_path": getattr(args, "file_path", None),
+            "max_pages": getattr(args, "max_pages", None),
             "headless": args.headless,
             "markets": args.markets
         }

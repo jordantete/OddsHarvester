@@ -15,10 +15,11 @@ async def run_scraper(
     league: str | None = None,
     season: str | None = None,
     markets: list | None = None,
+    max_pages: int | None = None,
     headless: bool = True
 ) -> dict:
     """Runs the scraping process and handles execution."""
-    logger.info(f"Starting scraper with parameters: command={command} sport={sport}, date={date}, league={league}, season={season}, markets={markets} headless={headless}")
+    logger.info(f"Starting scraper with parameters: command={command} sport={sport}, date={date}, league={league}, season={season}, markets={markets}, max_pages={max_pages}, headless={headless}")
     
     SportMarketRegistrar.register_all_markets()
     playwright_manager = PlaywrightManager()
@@ -38,8 +39,8 @@ async def run_scraper(
             if not sport or not league or not season:
                 raise ValueError("Both 'sport', 'league' and 'season' must be provided for historic scraping.")
             
-            logger.info(f"Scraping historical odds for sport={sport} league={league}, season={season}, markets={markets}")
-            return await scraper.scrape_historic(sport=sport, league=league, season=season, markets=markets, max_pages=None)
+            logger.info(f"Scraping historical odds for sport={sport} league={league}, season={season}, markets={markets}, max_pages={max_pages}")
+            return await scraper.scrape_historic(sport=sport, league=league, season=season, markets=markets, max_pages=max_pages)
 
         elif command == CommandEnum.UPCOMING_MATCHES:
             if not date:

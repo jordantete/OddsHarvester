@@ -20,6 +20,7 @@ def main():
             league=args["league"],
             season=args["season"],
             markets=args["markets"],
+            max_pages=args["max_pages"],
             headless=args["headless"]
         ))
 
