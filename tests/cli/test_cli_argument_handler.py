@@ -15,7 +15,10 @@ def test_parse_and_validate_args_valid(cli_handler):
         "--storage", "local",
         "--format", "json",
         "--headless",
-        "--markets", "1x2", "btts"
+        "--markets", "1x2", "btts",
+        "--browser-user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/123.0.0.0 Safari/537.36",
+        "--browser-locale-timezone", "fr-BE",
+        "--browser-timezone-id", "Europe/Brussels"
     ]
 
     with patch("sys.argv", ["cli_tool.py"] + mock_args), \
@@ -34,7 +37,10 @@ def test_parse_and_validate_args_valid(cli_handler):
             season=None,
             file_path=None,
             max_pages=None,
-            proxies=None
+            proxies=None,
+            browser_user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/123.0.0.0 Safari/537.36",
+            browser_locale_timezone="fr-BE",
+            browser_timezone_id="Europe/Brussels"
         )
 
         parsed_args = cli_handler.parse_and_validate_args()
@@ -51,7 +57,10 @@ def test_parse_and_validate_args_valid(cli_handler):
             "headless": True,
             "markets": ["1x2", "btts"],
             "max_pages": None,
-            "proxies": None
+            "proxies": None,
+            "browser_user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/123.0.0.0 Safari/537.36",
+            "browser_locale_timezone": "fr-BE",
+            "browser_timezone_id": "Europe/Brussels"
         }
 
         mock_validate_args.assert_called_once_with(mock_parse_args.return_value)

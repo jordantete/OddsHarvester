@@ -18,7 +18,11 @@ def mock_args():
         format="json",
         file_path="data.json",
         headless=True,
-        markets=["1x2", "btts"]
+        markets=["1x2", "btts"],
+        proxies=None,
+        browser_user_agent=None,  # Optional
+        browser_locale_timezone=None,  # Optional
+        browser_timezone_id=None  # Optional
     )
 
 def test_validate_args_valid(validator, mock_args):

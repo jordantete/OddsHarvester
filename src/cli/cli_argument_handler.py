@@ -36,5 +36,8 @@ class CLIArgumentHandler:
             "max_pages": getattr(args, "max_pages", None),
             "proxies": getattr(args, "proxies", None),
             "headless": args.headless,
-            "markets": args.markets
+            "markets": args.markets,
+            "browser_user_agent": getattr(args, "browser_user_agent", None),
+            "browser_locale_timezone": getattr(args, "browser_locale_timezone", None),
+            "browser_timezone_id": getattr(args, "browser_timezone_id", None)
         }

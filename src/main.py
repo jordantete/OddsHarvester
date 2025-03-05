@@ -22,6 +22,9 @@ def main():
             markets=args["markets"],
             max_pages=args["max_pages"],
             proxies=args["proxies"],
+            browser_user_agent=args["browser_user_agent"],
+            browser_locale_timezone=args["browser_locale_timezone"],
+            browser_timezone_id=args["browser_timezone_id"],
             headless=args["headless"]
         ))
 

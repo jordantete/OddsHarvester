@@ -19,6 +19,9 @@ class PlaywrightManager:
     async def initialize(
         self, 
         headless: bool, 
+        user_agent: str | None = None,
+        locale: str | None = None,
+        timezone_id: str | None = None,
         proxy: Optional[Dict[str, str]] = None
     ):       
         """
@@ -41,9 +44,9 @@ class PlaywrightManager:
             )
 
             self.context = await self.browser.new_context(
-                locale="BROWSER_LOCALE_TIMEZONE",
-                timezone_id="BROWSER_TIMEZONE_ID",
-                user_agent="BROWSER_USER_AGENT"
+                locale=locale,
+                timezone_id=timezone_id,
+                user_agent=user_agent
             )
 
             self.page = await self.context.new_page()

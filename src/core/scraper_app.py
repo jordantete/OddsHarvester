@@ -18,12 +18,16 @@ async def run_scraper(
     markets: list | None = None,
     max_pages: int | None = None,
     proxies: list | None = None,
+    browser_user_agent: str | None = None,
+    browser_locale_timezone: str | None = None,
+    browser_timezone_id: str | None = None,
     headless: bool = True
 ) -> dict:
     """Runs the scraping process and handles execution."""
     logger.info(f"""
         Starting scraper with parameters: command={command} sport={sport}, date={date}, league={league}, season={season}, 
-        markets={markets}, max_pages={max_pages}, proxies={proxies}, headless={headless}"""
+        markets={markets}, max_pages={max_pages}, proxies={proxies}, browser_user_agent={browser_user_agent},
+        browser_locale_timezone={browser_locale_timezone}, browser_timezone_id={browser_timezone_id}, headless={headless}"""
     )
     
     proxy_manager = ProxyManager(cli_proxies=proxies)
@@ -40,7 +44,13 @@ async def run_scraper(
 
     try:
         proxy_config = proxy_manager.get_current_proxy()
-        await scraper.start_playwright(headless=headless, proxy=proxy_config)
+        await scraper.start_playwright(
+            headless=headless, 
+            browser_user_agent=browser_user_agent,
+            browser_locale_timezone=browser_locale_timezone,
+            browser_timezone_id=browser_timezone_id,
+            proxy=proxy_config
+        )
 
         if command == CommandEnum.HISTORIC:
             if not sport or not league or not season:

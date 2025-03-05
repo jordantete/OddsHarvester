@@ -43,7 +43,12 @@ class CLIArgumentValidator:
         
         if hasattr(args, 'proxies'):
             errors.extend(self._validate_proxies(args.proxies))
-
+        
+        errors.extend(self._validate_browser_settings(
+            user_agent=args.browser_user_agent,
+            locale_timezone=args.browser_locale_timezone,
+            timezone_id=args.browser_timezone_id
+        ))
         errors.extend(self._validate_storage(storage=args.storage))
 
         if errors:
@@ -214,11 +219,34 @@ class CLIArgumentValidator:
 
     def _validate_proxies(
         self, 
-        proxies: List[str]
+        proxies: Optional[List[str]]
     ) -> List[str]:
         """Validates proxy format."""
         errors = []
+        if not proxies:
+            return errors
+
         for proxy in proxies:
             if not self.PROXY_PATTERN.match(proxy):
                 errors.append(f"Invalid proxy format: '{proxy}'. Expected format: 'http://proxy:port user pass'.")
+        return errors
+
+    def _validate_browser_settings(
+        self, 
+        user_agent: Optional[str], 
+        locale_timezone: Optional[str], 
+        timezone_id: Optional[str]
+    ) -> List[str]:
+        """Validates the browser-related CLI arguments."""
+        errors = []
+
+        if user_agent and not isinstance(user_agent, str):
+            errors.append("Invalid browser user agent format.")
+
+        if locale_timezone and not isinstance(locale_timezone, str):
+            errors.append("Invalid browser locale timezone format.")
+
+        if timezone_id and not isinstance(timezone_id, str):
+            errors.append("Invalid browser timezone ID format.")
+
         return errors
