@@ -138,7 +138,7 @@ class BrowserHelper:
         page,
         selector,
         text=None,
-        timeout=60,
+        timeout=10,
         scroll_pause_time=2
     ):
         """

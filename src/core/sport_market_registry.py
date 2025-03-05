@@ -71,45 +71,51 @@ class SportMarketRegistrar:
     def register_tennis_markets(cls):
         """Registers all tennis betting markets."""
         SportMarketRegistry.register(Sport.TENNIS, {
-            "match_winner": cls.create_market_lambda("Home Away", odds_labels=["player_1", "player_2"]),
+            "match_winner": cls.create_market_lambda("Home/Away", odds_labels=["player_1", "player_2"]),
         })
 
         # Register Over/Under Sets Markets
         for over_under in TennisOverUnderSetsMarket:
+            numeric_part = over_under.value.replace("over_under_sets_", "").replace("_", ".")
             SportMarketRegistry.register(Sport.TENNIS, {
                 over_under.value: cls.create_market_lambda(
-                    main_market="Over/Under Sets",
-                    specific_market=f"Over/Under +{over_under.value.split('_')[-1].replace('_', '.')}",
+                    main_market="Over/Under",
+                    specific_market=f"Over/Under +{numeric_part} Sets",
                     odds_labels=["odds_over", "odds_under"]
                 )
             })
 
         # Register Over/Under Games Markets
         for over_under in TennisOverUnderGamesMarket:
+            numeric_part = over_under.value.replace("over_under_games_", "").replace("_", ".")
             SportMarketRegistry.register(Sport.TENNIS, {
                 over_under.value: cls.create_market_lambda(
-                    main_market="Over/Under Games",
-                    specific_market=f"Over/Under +{over_under.value.split('_')[-1].replace('_', '.')}",
+                    main_market="Over/Under",
+                    specific_market=f"Over/Under +{numeric_part} Games",
                     odds_labels=["odds_over", "odds_under"]
                 )
             })
 
         # Register Asian Handicap Games Markets
         for handicap in TennisAsianHandicapGamesMarket:
+            numeric_part = handicap.value.replace("asian_handicap_games_", "").replace("_games", "").replace("_", ".")
+            specific_market = f"Asian Handicap {numeric_part} Games"
             SportMarketRegistry.register(Sport.TENNIS, {
                 handicap.value: cls.create_market_lambda(
-                    main_market="Asian Handicap Games",
-                    specific_market=f"Asian Handicap +{handicap.value.split('_')[-1].replace('_', '.')}",
+                    main_market="Asian Handicap",
+                    specific_market=specific_market,
                     odds_labels=["handicap_player_1", "handicap_player_2"]
                 )
             })
 
         # Register Correct Score Markets
         for correct_score in TennisCorrectScoreMarket:
+            numeric_part = correct_score.value.replace("correct_score_", "").replace("_", ":")
+            specific_market = f"{numeric_part}"
             SportMarketRegistry.register(Sport.TENNIS, {
                 correct_score.value: cls.create_market_lambda(
                     main_market="Correct Score",
-                    specific_market=f"Correct Score {correct_score.value.split('_')[-1]}",
+                    specific_market=specific_market,
                     odds_labels=["correct_score"]
                 )
             })

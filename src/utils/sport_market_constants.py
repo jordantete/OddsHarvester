@@ -34,10 +34,10 @@ class FootballEuropeanHandicapMarket(Enum):
     HANDICAP_MINUS_3 = "european_handicap_-3"
     HANDICAP_MINUS_2 = "european_handicap_-2"
     HANDICAP_MINUS_1 = "european_handicap_-1"
-    HANDICAP_PLUS_1 = "european_handicap_1"
-    HANDICAP_PLUS_2 = "european_handicap_2"
-    HANDICAP_PLUS_3 = "european_handicap_3"
-    HANDICAP_PLUS_4 = "european_handicap_4"
+    HANDICAP_PLUS_1 = "european_handicap_+1"
+    HANDICAP_PLUS_2 = "european_handicap_+2"
+    HANDICAP_PLUS_3 = "european_handicap_+3"
+    HANDICAP_PLUS_4 = "european_handicap_+4"
 
 class TennisMarket(Enum):
     """Tennis-specific markets."""
@@ -58,16 +58,20 @@ class TennisOverUnderGamesMarket(Enum):
     OVER_UNDER_22_5 = "over_under_games_22_5"
     OVER_UNDER_23_5 = "over_under_games_23_5"
     OVER_UNDER_24_5 = "over_under_games_24_5"
+    OVER_UNDER_25_5 = "over_under_games_25_5"
 
 class TennisAsianHandicapGamesMarket(Enum):
     """Asian Handicap markets in games (+2.5 to +8.5)."""
-    HANDICAP_PLUS_2_5 = "asian_handicap_games_2_5"
-    HANDICAP_PLUS_3_5 = "asian_handicap_games_3_5"
-    HANDICAP_PLUS_4_5 = "asian_handicap_games_4_5"
-    HANDICAP_PLUS_5_5 = "asian_handicap_games_5_5"
-    HANDICAP_PLUS_6_5 = "asian_handicap_games_6_5"
-    HANDICAP_PLUS_7_5 = "asian_handicap_games_7_5"
-    HANDICAP_PLUS_8_5 = "asian_handicap_games_8_5"
+    HANDICAP_PLUS_2_5 = "asian_handicap_games_+2_5_games"
+    HANDICAP_PLUS_3_5 = "asian_handicap_games_+3_5_games"
+    HANDICAP_PLUS_4_5 = "asian_handicap_games_+4_5_games"
+    HANDICAP_PLUS_5_5 = "asian_handicap_games_+5_5_games"
+    HANDICAP_PLUS_6_5 = "asian_handicap_games_+6_5_games"
+    HANDICAP_PLUS_7_5 = "asian_handicap_games_+7_5_games"
+    HANDICAP_PLUS_8_5 = "asian_handicap_games_+8_5_games"
+    HANDICAP_MINUS_2_5 = "asian_handicap_games_-2_5_games"
+    HANDICAP_MINUS_3_5 = "asian_handicap_games_-3_5_games"
+    HANDICAP_MINUS_4_5 = "asian_handicap_games_-4_5_games"
 
 class TennisCorrectScoreMarket(Enum):
     """Correct Score markets in tennis (best of 3 sets)."""
