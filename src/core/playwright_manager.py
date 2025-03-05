@@ -1,9 +1,8 @@
 import logging
 from typing import Optional, Dict
 from playwright.async_api import async_playwright
-from utils.constants import PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER, BROWSER_USER_AGENT, BROWSER_LOCALE_TIMEZONE, BROWSER_TIMEZONE_ID
+from utils.constants import PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER
 from utils.utils import is_running_in_docker
-from utils.setup_proxy import setup_proxy_config
 
 class PlaywrightManager:
     """
@@ -34,16 +33,17 @@ class PlaywrightManager:
             self.playwright = await async_playwright().start()
 
             browser_args = PLAYWRIGHT_BROWSER_ARGS_DOCKER if is_running_in_docker() else PLAYWRIGHT_BROWSER_ARGS
-            proxy_config = setup_proxy_config(proxy=proxy)
 
             self.browser = await self.playwright.chromium.launch(
-                headless=headless, args=browser_args, proxy=proxy_config
+                headless=headless,
+                args=browser_args, 
+                proxy=proxy
             )
 
             self.context = await self.browser.new_context(
-                locale=BROWSER_LOCALE_TIMEZONE,
-                timezone_id=BROWSER_TIMEZONE_ID,
-                user_agent=BROWSER_USER_AGENT
+                locale="BROWSER_LOCALE_TIMEZONE",
+                timezone_id="BROWSER_TIMEZONE_ID",
+                user_agent="BROWSER_USER_AGENT"
             )
 
             self.page = await self.context.new_page()

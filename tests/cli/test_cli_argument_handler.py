@@ -8,9 +8,9 @@ def cli_handler():
 
 def test_parse_and_validate_args_valid(cli_handler):
     mock_args = [
-        "scrape", 
-        "--sport", "football", 
-        "--date", "2024-02-25", 
+        "scrape",
+        "--sport", "football",
+        "--date", "2024-02-25",
         "--league", "premier-league",
         "--storage", "local",
         "--format", "json",
@@ -31,8 +31,10 @@ def test_parse_and_validate_args_valid(cli_handler):
             format="json",
             headless=True,
             markets=["1x2", "btts"],
-            season=None,         # Explicitly set to None
-            file_path=None       # Explicitly set to None
+            season=None,
+            file_path=None,
+            max_pages=None,
+            proxies=None
         )
 
         parsed_args = cli_handler.parse_and_validate_args()
@@ -47,7 +49,9 @@ def test_parse_and_validate_args_valid(cli_handler):
             "storage_format": "json",
             "file_path": None,
             "headless": True,
-            "markets": ["1x2", "btts"]
+            "markets": ["1x2", "btts"],
+            "max_pages": None,
+            "proxies": None
         }
 
         mock_validate_args.assert_called_once_with(mock_parse_args.return_value)

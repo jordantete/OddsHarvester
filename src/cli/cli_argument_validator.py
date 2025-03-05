@@ -9,6 +9,8 @@ from src.storage.storage_type import StorageType
 from src.storage.storage_format import StorageFormat
 
 class CLIArgumentValidator:
+    PROXY_PATTERN = re.compile(r"^http(s)?://[\w.-]+:\d+\s+\S+\s+\S+$")
+
     def validate_args(self, args: argparse.Namespace):
         """Validates parsed CLI arguments."""
         self._validate_command(command=args.command)
@@ -38,6 +40,9 @@ class CLIArgumentValidator:
             
         if hasattr(args, 'max_pages'):
             errors.extend(self._validate_max_pages(command=args.command, max_pages=args.max_pages))
+        
+        if hasattr(args, 'proxies'):
+            errors.extend(self._validate_proxies(args.proxies))
 
         errors.extend(self._validate_storage(storage=args.storage))
 
@@ -205,4 +210,15 @@ class CLIArgumentValidator:
             if not isinstance(max_pages, int) or max_pages <= 0:
                 errors.append(f"Invalid max-pages value: '{max_pages}'. It must be a positive integer.")
 
+        return errors
+
+    def _validate_proxies(
+        self, 
+        proxies: List[str]
+    ) -> List[str]:
+        """Validates proxy format."""
+        errors = []
+        for proxy in proxies:
+            if not self.PROXY_PATTERN.match(proxy):
+                errors.append(f"Invalid proxy format: '{proxy}'. Expected format: 'http://proxy:port user pass'.")
         return errors

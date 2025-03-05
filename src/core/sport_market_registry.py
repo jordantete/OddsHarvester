@@ -1,7 +1,6 @@
 from utils.sport_market_constants import (
-    Sport, FootballOverUnderMarket, FootballEuropeanHandicapMarket, 
-    TennisOverUnderSetsMarket, TennisOverUnderGamesMarket, 
-    TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket
+    Sport, FootballOverUnderMarket, FootballEuropeanHandicapMarket, TennisOverUnderSetsMarket, 
+    TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket
 )
 
 class SportMarketRegistry:

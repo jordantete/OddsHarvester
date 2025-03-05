@@ -5,6 +5,7 @@ from .odds_portal_market_extractor import OddsPortalMarketExtractor
 from .odds_portal_scraper import OddsPortalScraper
 from .sport_market_registry import SportMarketRegistrar
 from utils.command_enum import CommandEnum
+from utils.proxy_manager import ProxyManager
 
 logger = logging.getLogger("ScraperApp")
 
@@ -16,11 +17,16 @@ async def run_scraper(
     season: str | None = None,
     markets: list | None = None,
     max_pages: int | None = None,
+    proxies: list | None = None,
     headless: bool = True
 ) -> dict:
     """Runs the scraping process and handles execution."""
-    logger.info(f"Starting scraper with parameters: command={command} sport={sport}, date={date}, league={league}, season={season}, markets={markets}, max_pages={max_pages}, headless={headless}")
+    logger.info(f"""
+        Starting scraper with parameters: command={command} sport={sport}, date={date}, league={league}, season={season}, 
+        markets={markets}, max_pages={max_pages}, proxies={proxies}, headless={headless}"""
+    )
     
+    proxy_manager = ProxyManager(cli_proxies=proxies)
     SportMarketRegistrar.register_all_markets()
     playwright_manager = PlaywrightManager()
     browser_helper = BrowserHelper()
@@ -33,7 +39,8 @@ async def run_scraper(
     )
 
     try:
-        await scraper.start_playwright(headless=headless, proxy=None)
+        proxy_config = proxy_manager.get_current_proxy()
+        await scraper.start_playwright(headless=headless, proxy=proxy_config)
 
         if command == CommandEnum.HISTORIC:
             if not sport or not league or not season:

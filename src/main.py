@@ -21,6 +21,7 @@ def main():
             season=args["season"],
             markets=args["markets"],
             max_pages=args["max_pages"],
+            proxies=args["proxies"],
             headless=args["headless"]
         ))
 

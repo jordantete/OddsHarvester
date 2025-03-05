@@ -62,6 +62,11 @@ class CLIArgumentParser:
             choices=[f.value for f in StorageFormat],
             help="Storage format."
         )
+        parser.add_argument(
+            "--proxies",
+            nargs="+",
+            help="List of proxies in 'server user pass' format (format: 'http://proxy.com:8080 user pass'). Multiple proxies supported for rotation.",
+        )
         parser.add_argument("--headless", action="store_true", help="Run in headless mode.")
         parser.add_argument("--save_logs", action="store_true", help="Save logs for debugging.")
 

@@ -13,7 +13,7 @@ def mock_args():
         command="scrape_upcoming",
         sport="football",
         league="england-premier-league",
-        date=(datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d"),  # Future date
+        date=(datetime.now() + timedelta(days=1)).strftime("%Y%m%d"),  # Corrected format (YYYYMMDD)
         storage="local",
         format="json",
         file_path="data.json",
@@ -51,11 +51,13 @@ def test_validate_league_invalid(validator, mock_args):
 
 def test_validate_date_invalid_format(validator, mock_args):
     mock_args.date = "25-02-2025"
-    with pytest.raises(ValueError, match="Invalid date format: '25-02-2025'. Date must be in the format YYYY-MM-DD."):
+
+    with pytest.raises(ValueError, match="Invalid date format: '25-02-2025'. Expected format is YYYYMMDD \\(e.g., 20250227\\)."):
         validator.validate_args(mock_args)
 
 def test_validate_date_past_date(validator, mock_args):
-    mock_args.date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")  # Yesterday
+    mock_args.date = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
+
     with pytest.raises(ValueError, match="Date .* must be today or in the future."):
         validator.validate_args(mock_args)
 
