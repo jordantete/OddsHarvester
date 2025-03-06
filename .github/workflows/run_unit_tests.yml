@@ -25,8 +25,11 @@ jobs:
         with:
           python-version-file: "pyproject.toml"
       
-      - name: Install the project
+      - name: Install dependencies
         run: uv sync --all-extras --dev
+
+      - name: Install Playwright Chromium Browser
+        run: playwright install chromium
 
       - name: Run Tests with Pytest
         run: uv run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term

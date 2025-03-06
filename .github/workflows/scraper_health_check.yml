@@ -22,8 +22,11 @@ jobs:
         with:
           python-version-file: "pyproject.toml"
       
-      - name: Install the project
+      - name: Install dependencies
         run: uv sync --all-extras --dev
+
+      - name: Install Playwright Chromium Browser
+        run: playwright install chromium
 
       - name: Run scraper layout tests
         run: uv run pytest tests/test_website_layout.py --headless
