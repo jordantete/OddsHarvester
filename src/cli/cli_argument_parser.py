@@ -69,19 +69,19 @@ class CLIArgumentParser:
             help="List of proxies in 'server user pass' format (format: 'http://proxy.com:8080 user pass'). Multiple proxies supported for rotation.",
         )
         parser.add_argument(
-            "--browser-user-agent",
+            "--browser_user_agent",
             type=str,
             default=None,
             help="Set the browser user agent for Playwright (default: Chrome latest)."
         )
         parser.add_argument(
-            "--browser-locale-timezone",
+            "--browser_locale_timezone",
             type=str,
             default=None,
             help="Set the locale timezone for the browser (default: fr-BE)."
         )
         parser.add_argument(
-            "--browser-timezone-id",
+            "--browser_timezone_id",
             type=str,
             default=None,
             help="Set the browser timezone ID (default: Europe/Brussels)."

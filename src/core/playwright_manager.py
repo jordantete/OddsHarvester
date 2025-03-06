@@ -1,4 +1,4 @@
-import logging
+import logging, random
 from typing import Optional, Dict
 from playwright.async_api import async_playwright
 from utils.constants import PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER
@@ -46,7 +46,8 @@ class PlaywrightManager:
             self.context = await self.browser.new_context(
                 locale=locale,
                 timezone_id=timezone_id,
-                user_agent=user_agent
+                user_agent=user_agent,
+                viewport={"width": random.randint(1366, 1920), "height": random.randint(768, 1080)}
             )
 
             self.page = await self.context.new_page()

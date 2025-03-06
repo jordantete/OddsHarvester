@@ -28,7 +28,7 @@ class OddsPortalScraper(BaseScraper):
             headless=headless, 
             user_agent=browser_user_agent,
             locale=browser_locale_timezone,
-            browser_timezone_id=browser_timezone_id,
+            timezone_id=browser_timezone_id,
             proxy=proxy
         )
 
