@@ -31,16 +31,6 @@ OddsHarvester is an application designed to scrape and process sports betting od
 - **🐳 Docker Compatibility**: Designed to work seamlessly inside Docker containers with minimal setup. 
 - **🕵️ Proxy Support**: Route web requests through SOCKS/HTTP proxies for enhanced anonymity, geolocation bypass, and anti-blocking measures.
 
-
-## **🚀 Roadmap**
-
-Here’s what’s coming next in **OddsHarvester**:
-
-- **Multi-Sport Expansion**: Add support for more sports beyond football and tennis (e.g., basketball, baseball).  
-- **Odds Movement Tracking**: Analyze how odds evolve over time to detect market trends.  
-
-💡 **Have ideas?** Open an issue or contribute directly to the repository! 🚀  
-
 ### **Current Support**
 
 OddsHarvester currently supports multiple sports for scraping, with their respective betting markets and leagues managed in dedicated configuration files.
@@ -53,6 +43,16 @@ OddsHarvester currently supports multiple sports for scraping, with their respec
 
 - **Leagues & Competitions**  
   The available leagues for each sport are mapped in the [`sport_league_constants.py`](src/utils/sport_league_constants.py) file.
+
+
+## **🚀 Roadmap**
+
+Here’s what’s coming next in **OddsHarvester**:
+
+- **Multi-Sport Expansion**: Add support for more sports beyond football and tennis (e.g., basketball, baseball).  
+- **Odds Movement Tracking**: Analyze how odds evolve over time to detect market trends.  
+
+💡 **Have ideas?** Open an issue or contribute directly to the repository! 🚀  
 
 
 ## **🛠️ Local Installation**
@@ -115,19 +115,40 @@ Retrieve odds and event details for upcoming sports matches.
 
 **Options**:
 
-| 🏷️ Option       | 📝 Description                                                 | 🔐 Required  | 🔧 Default  |
-|----------------|-----------------------------------------------------------------|--------------|-------------|
-| `--sport`     | Specify the sport to scrape (e.g., `football`).                  | ✅           | None        |
-| `--date`      | Date for matches in `YYYY-MM-DD` format.                         | ✅           | None        |
-| `--markets`   | Comma-separated betting markets (e.g., `1x2,btts`).              | ❌           | `1x2`       |
-| `--storage`   | Save data locally or to a remote S3 bucket (`local` or `remote`).| ❌           | `local`     |
-| `--headless`  | Run the browser in headless mode (`True` or `False`).            | ❌           | `False`     |
-| `--save_logs` | Save logs for debugging purposes (`True` or `False`).            | ❌           | `False`     |
+| 🏷️ Option                | 📝 Description                                                         | 🔐 Required  | 🔧 Default  |
+|-------------------------|-----------------------------------------------------------------|--------------|-------------|
+| `--sport`              | Specify the sport to scrape (e.g., `football`).                | ✅           | None        |
+| `--date`               | Date for matches in `YYYYMMDD` format (e.g., `20250227`).      | ✅           | None        |
+| `--league`             | Specify the league to scrape (e.g., `england-premier-league`). | ❌           | None        |
+| `--markets`            | Comma-separated betting markets (e.g., `1x2,btts`).            | ❌           | `1x2`       |
+| `--storage`            | Save data locally or to a remote S3 bucket (`local` or `remote`). | ❌       | `local`     |
+| `--file_path`          | File path to save data locally (e.g., `output.json`).          | ❌           | `scraped_data.json` |
+| `--format`             | Format for saving local data (`json` or `csv`).                | ❌           | `json`      |
+| `--headless`           | Run the browser in headless mode (`True` or `False`).          | ❌           | `False`     |
+| `--save_logs`          | Save logs for debugging purposes (`True` or `False`).          | ❌           | `False`     |
+| `--proxies`            | List of proxies in `"server user pass"` format. Multiple proxies supported. | ❌ | None |
+| `--browser_user_agent` | Custom user agent string for browser requests.                 | ❌           | None        |
+| `--browser_locale_timezone` | Browser locale timezone (e.g., `fr-BE`).                  | ❌           | None        |
+| `--browser_timezone_id` | Browser timezone ID (e.g., `Europe/Brussels`).                | ❌           | None        |
 
-**Example**:
-Retrieve upcoming football matches for January 1, 2025, and save results locally:
+**⚠️ Important Note:**  
+- If both `--league` and `--date` are provided, the scraper **will only consider the league**, and **all upcoming matches for that league will be scraped**, regardless of the `--date` argument.  
+- **For best results, ensure the proxy’s region matches the `BROWSER_LOCALE_TIMEZONE` and `BROWSER_TIMEZONE_ID` settings.**  
+  This helps avoid detection issues, prevents mismatches in website localization, and ensures the correct odds data is scraped.
+
+#### **Example Usage:**
+
+- **Retrieve upcoming football matches for January 1, 2025, and save results locally:**
 
 `python main.py scrape_upcoming –sport football –date 2025-01-01`
+
+- **Scrapes English Premier League matches with odds for 1x2 and Both Teams to Score (BTTS):**
+
+`python main.py scrape_upcoming --sport football --league england-premier-league --markets 1x2,btts --storage local`
+
+- **Scrapes football matches using a rotating proxy setup:**
+
+`python main.py scrape_upcoming --sport football --date 20250227 --proxies "http://proxy1.com:8080 user1 pass1" "http://proxy2.com:8080 user2 pass2"`
 
 
 #### **2. Scrape Historical Odds**
@@ -135,17 +156,33 @@ Retrieve historical odds and results for analytical purposes.
 
 **Options**:
 
-| 🏷️ Option       | 📝 Description                                                 | 🔐 Required  | 🔧 Default  |
-|----------------|-----------------------------------------------------------------|--------------|-------------|
-| `--league`    | Target league (e.g., `premier-league`).                          | ✅           | None        |
-| `--season`    | Target season in `YYYY-YYYY` format (e.g., `2022-2023`).         | ✅           | None        |
-| `--markets`   | Comma-separated betting markets (e.g., `1x2`).                   | ❌           | `1x2`       |
-| `--storage`   | Save data locally or to a remote S3 bucket (`local` or `remote`).| ❌           | `local`     |
+| 🏷️ Option                | 📝 Description                                                         | 🔐 Required  | 🔧 Default  |
+|-------------------------|-----------------------------------------------------------------|--------------|-------------|
+| `--sport`              | Specify the sport to scrape (e.g., `football`).                | ✅           | None        |
+| `--league`             | Specify the league to scrape (e.g., `england-premier-league`). |  ✅           | None        |
+| `--season`             | Target season in `YYYY-YYYY` format (e.g., `2022-2023`).        | ✅           | None        |
+| `--markets`            | Comma-separated betting markets (e.g., `1x2,btts`).            | ❌           | `1x2`       |
+| `--storage`            | Save data locally or to a remote S3 bucket (`local` or `remote`). | ❌       | `local`     |
+| `--file_path`          | File path to save data locally (e.g., `output.json`).          | ❌           | `scraped_data.json` |
+| `--format`             | Format for saving local data (`json` or `csv`).                | ❌           | `json`      |
+| `--max_pages`          | Maximum number of pages to scrape.                             | ❌           | None        |
+| `--headless`           | Run the browser in headless mode (`True` or `False`).          | ❌           | `False`     |
+| `--save_logs`          | Save logs for debugging purposes (`True` or `False`).          | ❌           | `False`     |
+| `--proxies`            | List of proxies in `"server user pass"` format. Multiple proxies supported. | ❌ | None |
+| `--browser_user_agent` | Custom user agent string for browser requests.                 | ❌           | None        |
+| `--browser_locale_timezone` | Browser locale timezone (e.g., `fr-BE`).                  | ❌           | None        |
+| `--browser_timezone_id` | Browser timezone ID (e.g., `Europe/Brussels`).                | ❌           | None        |
 
-**Example**:
-Retrieve historical odds for the Premier League's 2022-2023 season:
+
+#### **Example Usage:**
+
+- **Retrieve historical odds for the Premier League's 2022-2023 season:**
 
 `python main.py scrape_historic –league premier-league –season 2022-2023`
+
+- **Scrapes only 3 pages of historical odds data:**
+
+`python main.py scrape_historic --sport football --league england-premier-league --season 2022-2023 --max_pages 3`
 
 
 ### **🐳 Running Inside a Docker Container**
@@ -240,31 +277,8 @@ To tailor the serverless deployment for your needs:
 
 OddsHarvester uses a [`constants.py`](src/utils/constants.py) file to define important parameters for browser configuration and scraping behavior. Users can customize these parameters directly in the file to suit their needs. Key configurable constants include:
 
-- **`BROWSER_USER_AGENT`**: Define the user agent string used by the browser to simulate specific devices or browsers.
-- **`BROWSER_LOCALE_TIMEZONE`**: Set the locale for the browser (e.g., `"en-US"`).
-- **`BROWSER_TIMEZONE_ID`**: Specify the browser's timezone (e.g., `"Europe/Paris"`).
 - **`ODDS_FORMAT`**: Configure the desired odds format (e.g., `Decimal Odds`, `Fractional Odds`).
 - **`SCRAPE_CONCURRENCY_TASKS`**: Adjust the number of concurrent tasks the scraper can handle. Controls how many pages or tasks are processed simultaneously. Increasing this value can speed up scraping but may increase the risk of being blocked by the target website. Use cautiously based on your network and system capabilities.
-
-To modify these values, locate the `constants.py` file in the `utils` folder and edit the parameters as needed.
-
-### Proxy Configuration
-
-OddsPortal uses geo-targeting to serve different content based on your location. To access specific region-restricted data, using a proxy server is highly recommended. For best results:
-- Ensure the proxy’s region matches the `BROWSER_LOCALE_TIMEZONE` and `BROWSER_TIMEZONE_ID` settings.
-
-To configure a proxy, update the `initialize_and_start_playwright` method in the `main.py` file. Pass your proxy details as a dictionary to the `proxy` parameter. Example configuration:
-
-```python
-await scraper.initialize_and_start_playwright(
-    is_webdriver_headless=True,
-    proxy={
-        "server": "http://proxy-server:8080",
-        "username": "proxy_user",
-        "password": "proxy_password"
-    }
-)
-```
 
 
 ## **🤝 Contributing**
