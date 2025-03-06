@@ -1,0 +1,29 @@
+name: Scraper Health Check
+
+on:
+  schedule:
+    - cron: "0 11 * * 1"  # Runs every Monday at 11:00 UTC
+  workflow_dispatch:  # Allows manual execution
+
+jobs:
+  test_scraper:
+    name: Run Scraper Health Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "pyproject.toml"
+      
+      - name: Install the project
+        run: uv sync --all-extras --dev
+
+      - name: Run scraper layout tests
+        run: uv run pytest tests/test_website_layout.py --headless
