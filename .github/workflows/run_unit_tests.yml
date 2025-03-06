@@ -29,7 +29,7 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Install Playwright Chromium Browser
-        run: playwright install chromium
+        run: uv run playwright install chromium
 
       - name: Run Tests with Pytest
         run: uv run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
