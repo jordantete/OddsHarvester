@@ -194,8 +194,7 @@ Retrieve historical odds and results for analytical purposes.
 
 To display all available CLI commands and options, run:
 
-uv run python main.py --help
-```
+`uv run python main.py --help`
 
 ### **🐳 Running Inside a Docker Container**
 
