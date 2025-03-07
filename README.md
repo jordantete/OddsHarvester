@@ -130,11 +130,15 @@ Retrieve odds and event details for upcoming sports matches.
 | `--browser_user_agent` | Custom user agent string for browser requests.                 | ❌           | None        |
 | `--browser_locale_timezone` | Browser locale timezone (e.g., `fr-BE`).                  | ❌           | None        |
 | `--browser_timezone_id` | Browser timezone ID (e.g., `Europe/Brussels`).                | ❌           | None        |
+| `--match_links`        | List of specific match links to scrape (overrides other filters). | ❌ | None |
 
-**⚠️ Important Note:**  
-- If both `--league` and `--date` are provided, the scraper **will only consider the league**, and **all upcoming matches for that league will be scraped**, regardless of the `--date` argument.  
+
+#### **📌 Important Notes:**
+- If both `--league` and `--date` are provided, the scraper **will only consider the league**, meaning **all upcoming matches for that league will be scraped**, regardless of the `--date` argument.  
+- **If `--match_links` is provided, it overrides `--sport`, `--date`, and `--league`, and only the specified match links will be scraped.**  
+- **All match links must belong to the same sport** when using `--match_links`.  
 - **For best results, ensure the proxy’s region matches the `BROWSER_LOCALE_TIMEZONE` and `BROWSER_TIMEZONE_ID` settings.**  
-  This helps avoid detection issues, prevents mismatches in website localization, and ensures the correct odds data is scraped.
+
 
 #### **Example Usage:**
 
@@ -172,6 +176,7 @@ Retrieve historical odds and results for analytical purposes.
 | `--browser_user_agent` | Custom user agent string for browser requests.                 | ❌           | None        |
 | `--browser_locale_timezone` | Browser locale timezone (e.g., `fr-BE`).                  | ❌           | None        |
 | `--browser_timezone_id` | Browser timezone ID (e.g., `Europe/Brussels`).                | ❌           | None        |
+| `--match_links`        | List of specific match links to scrape (overrides other filters). | ❌ | None |
 
 
 #### **Example Usage:**
@@ -184,6 +189,13 @@ Retrieve historical odds and results for analytical purposes.
 
 `python main.py scrape_historic --sport football --league england-premier-league --season 2022-2023 --max_pages 3`
 
+
+#### **📌 Running the Help Command:**
+
+To display all available CLI commands and options, run:
+
+uv run python main.py --help
+```
 
 ### **🐳 Running Inside a Docker Container**
 

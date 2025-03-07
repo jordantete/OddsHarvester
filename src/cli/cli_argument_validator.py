@@ -19,6 +19,9 @@ class CLIArgumentValidator:
             args.markets = [market.strip() for market in args.markets.split(",")]
 
         errors = []
+        
+        if hasattr(args, 'match_links'):
+            errors.extend(self._validate_match_links(match_links=args.match_links, sport=args.sport))
 
         if hasattr(args, 'sport'):
             errors.extend(self._validate_sport(sport=args.sport))
@@ -58,6 +61,25 @@ class CLIArgumentValidator:
         """Validates the command argument."""
         if command not in CommandEnum.__members__.values():
             raise ValueError(f"Invalid command '{command}'. Supported commands are: {', '.join(e.value for e in CommandEnum)}.")
+    
+    def _validate_match_links(
+        self, 
+        match_links: Optional[List[str]],
+        sport: Optional[str]
+    ) -> List[str]:
+        """Validates the format of match links."""
+        errors = []
+        url_pattern = re.compile(r"https?://www\.oddsportal\.com/.+")
+
+        if match_links:
+            if not sport:
+                errors.append("The '--sport' argument is required when using '--match_links'.")
+    
+            for link in match_links:
+                if not url_pattern.match(link):
+                    errors.append(f"Invalid match link format: {link}")
+
+        return errors
     
     def _validate_sport(self, sport: str) -> List[str]:
         """Validates the sport argument."""

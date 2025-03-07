@@ -3,6 +3,7 @@ from typing import Optional, List, Dict, Any
 from .url_builder import URLBuilder
 from .base_scraper import BaseScraper
 from playwright.async_api import Page
+from utils.constants import ODDSPORTAL_BASE_URL
 
 class OddsPortalScraper(BaseScraper):
     """
@@ -103,7 +104,7 @@ class OddsPortalScraper(BaseScraper):
             url = URLBuilder.get_upcoming_matches_url(sport=sport, date=date, league=league)
             self.logger.info(f"Fetching upcoming odds from {url}")
 
-            await current_page.goto(url)
+            await current_page.goto(url, timeout=10000, wait_until="domcontentloaded")
             await self._prepare_page_for_scraping(page=current_page)
             match_links = await self.extract_match_links(page=current_page)
 
@@ -117,6 +118,41 @@ class OddsPortalScraper(BaseScraper):
             self.logger.error(f"Failed to scrape upcoming matches: {e}")
             return []
     
+    async def scrape_matches(
+        self,
+        match_links: List[str],
+        sport: str,
+        markets: List[str] | None = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Scrapes match odds from a list of specific match URLs.
+
+        Args:
+            match_links (List[str]): List of URLs of matches to scrape.
+            sport (str): The sport to scrape.
+            markets (List[str] | None): List of betting markets to scrape. Defaults to None.
+
+        Returns:
+            List[Dict[str, Any]]: A list containing odds and match details.
+        """
+        current_page = self.playwright_manager.page
+        if not current_page:
+            raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
+        
+        try:
+            await current_page.goto(ODDSPORTAL_BASE_URL, timeout=10000, wait_until="domcontentloaded")
+            await self._prepare_page_for_scraping(page=current_page)
+            return await self.extract_match_odds(
+                sport=sport, 
+                match_links=match_links, 
+                markets=markets,
+                concurrent_scraping_task=len(match_links)
+            )
+
+        except Exception as e:
+            self.logger.error(f"Failed to scrape match links: {e}")
+            return []
+
     async def _prepare_page_for_scraping(self, page: Page):
         """
         Prepares the Playwright page for scraping by setting odds format and dismissing banners.

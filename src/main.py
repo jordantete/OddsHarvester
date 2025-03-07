@@ -15,6 +15,7 @@ def main():
 
         scraped_data = asyncio.run(run_scraper(
             command=args["command"],
+            match_links=args["match_links"],
             sport=args["sport"],
             date=args["date"],
             league=args["league"],

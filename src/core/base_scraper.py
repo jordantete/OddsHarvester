@@ -98,7 +98,7 @@ class BaseScraper:
             self.logger.info(f"Found {len(event_rows)} event rows.")
 
             match_links = {
-                link['href']
+                f"{ODDSPORTAL_BASE_URL}{link['href']}"
                 for row in event_rows
                 for link in row.find_all('a', href=True)
                 if len(link['href'].strip('/').split('/')) > 3
@@ -115,7 +115,8 @@ class BaseScraper:
         self, 
         sport: str,
         match_links: List[str],
-        markets: Optional[List[str]] = None
+        markets: Optional[List[str]] = None,
+        concurrent_scraping_task: int = SCRAPE_CONCURRENCY_TASKS
     ) -> List[Dict[str, Any]]:
         """
         Extract odds for a list of match links concurrently.
@@ -129,7 +130,7 @@ class BaseScraper:
             List[Dict[str, Any]]: A list of dictionaries containing scraped odds data.
         """
         self.logger.info(f"Starting to scrape odds for {len(match_links)} match links...")
-        semaphore = asyncio.Semaphore(SCRAPE_CONCURRENCY_TASKS)
+        semaphore = asyncio.Semaphore(concurrent_scraping_task)
         failed_links = []
 
         async def scrape_with_semaphore(link):
@@ -180,15 +181,14 @@ class BaseScraper:
         Returns:
             Optional[Dict[str, Any]]: A dictionary containing scraped data, or None if scraping fails.
         """
-        full_match_url = f"{ODDSPORTAL_BASE_URL}{match_link}"
-        self.logger.info(f"Scraping match URL: {full_match_url}")
+        self.logger.info(f"Scraping match: {match_link}")
 
         try:
-            await page.goto(full_match_url, timeout=5000, wait_until="domcontentloaded")
+            await page.goto(match_link, timeout=5000, wait_until="domcontentloaded")
             match_details = await self._extract_match_details_event_header(page)
 
             if not match_details:
-                self.logger.warning(f"No match details found for {full_match_url}")
+                self.logger.warning(f"No match details found for {match_link}")
                 return None
 
             if markets:

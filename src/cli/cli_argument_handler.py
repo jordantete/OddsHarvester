@@ -26,6 +26,7 @@ class CLIArgumentHandler:
 
         return {
             "command": args.command,
+            "match_links": getattr(args, "match_links", None),
             "sport": getattr(args, "sport", None),
             "date": getattr(args, "date", None),
             "league": getattr(args, "league", None),

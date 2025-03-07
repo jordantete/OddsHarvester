@@ -11,6 +11,7 @@ logger = logging.getLogger("ScraperApp")
 
 async def run_scraper(
     command: CommandEnum,
+    match_links: list | None = None,
     sport: str | None = None,
     date: str | None = None,
     league: str | None = None,
@@ -25,8 +26,8 @@ async def run_scraper(
 ) -> dict:
     """Runs the scraping process and handles execution."""
     logger.info(f"""
-        Starting scraper with parameters: command={command} sport={sport}, date={date}, league={league}, season={season}, 
-        markets={markets}, max_pages={max_pages}, proxies={proxies}, browser_user_agent={browser_user_agent},
+        Starting scraper with parameters: command={command}, match_links={match_links}, sport={sport}, date={date}, league={league},
+        season={season}, markets={markets}, max_pages={max_pages}, proxies={proxies}, browser_user_agent={browser_user_agent},
         browser_locale_timezone={browser_locale_timezone}, browser_timezone_id={browser_timezone_id}, headless={headless}"""
     )
     
@@ -51,6 +52,10 @@ async def run_scraper(
             browser_timezone_id=browser_timezone_id,
             proxy=proxy_config
         )
+        
+        if match_links and sport:
+            logger.info(f"Scraping specific matches: {match_links} for sport: {sport}")
+            return await scraper.scrape_matches(match_links=match_links, sport=sport, markets=markets)
 
         if command == CommandEnum.HISTORIC:
             if not sport or not league or not season:
