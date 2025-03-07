@@ -9,8 +9,6 @@ from src.storage.storage_type import StorageType
 from src.storage.storage_format import StorageFormat
 
 class CLIArgumentValidator:
-    PROXY_PATTERN = re.compile(r"^http(s)?://[\w.-]+:\d+\s+\S+\s+\S+$")
-
     def validate_args(self, args: argparse.Namespace):
         """Validates parsed CLI arguments."""
         self._validate_command(command=args.command)
@@ -247,10 +245,13 @@ class CLIArgumentValidator:
         errors = []
         if not proxies:
             return errors
+    
+        PROXY_PATTERN = re.compile(r"^http(s)?://[\w.-]+:\d+(?:\s+\S+\s+\S+)?$")
 
         for proxy in proxies:
-            if not self.PROXY_PATTERN.match(proxy):
-                errors.append(f"Invalid proxy format: '{proxy}'. Expected format: 'http://proxy:port user pass'.")
+            if not PROXY_PATTERN.match(proxy):
+                errors.append(f"Invalid proxy format: '{proxy}'. Expected format: 'http://proxy:port [user pass]' (authentication is optional).")
+
         return errors
 
     def _validate_browser_settings(
