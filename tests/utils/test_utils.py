@@ -2,8 +2,8 @@ import pytest
 from unittest.mock import patch
 from src.utils.utils import get_supported_markets, is_running_in_docker
 from src.utils.sport_market_constants import (
-    Sport, FootballMarket, FootballOverUnderMarket, FootballEuropeanHandicapMarket, TennisMarket,
-    TennisOverUnderSetsMarket, TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket
+    Sport, FootballMarket, FootballOverUnderMarket, FootballEuropeanHandicapMarket, FootballAsianHandicapMarket,
+    TennisMarket, TennisOverUnderSetsMarket, TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket
 )
 
 EXPECTED_MARKETS = {
@@ -11,6 +11,7 @@ EXPECTED_MARKETS = {
         *[market.value for market in FootballMarket],
         *[market.value for market in FootballOverUnderMarket],
         *[market.value for market in FootballEuropeanHandicapMarket],
+        *[market.value for market in FootballAsianHandicapMarket],
     ],
     Sport.TENNIS: [
         *[market.value for market in TennisMarket],

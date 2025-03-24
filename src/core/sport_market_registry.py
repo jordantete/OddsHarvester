@@ -1,6 +1,6 @@
 from utils.sport_market_constants import (
-    Sport, FootballOverUnderMarket, FootballEuropeanHandicapMarket, TennisOverUnderSetsMarket, 
-    TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket
+    Sport, FootballOverUnderMarket, FootballEuropeanHandicapMarket, FootballAsianHandicapMarket,
+    TennisOverUnderSetsMarket, TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket
 )
 
 class SportMarketRegistry:
@@ -63,6 +63,18 @@ class SportMarketRegistrar:
                     main_market="European Handicap",
                     specific_market=f"European Handicap {handicap.value.split('_')[-1]}",
                     odds_labels=["team1_handicap", "draw_handicap", "team2_handicap"]
+                )
+            })
+        
+        # Register Asian Handicap Markets
+        for handicap in FootballAsianHandicapMarket:
+            raw_handicap = handicap.value.replace("asian_handicap_", "")
+            formatted_handicap = raw_handicap.replace("_", ".")
+            SportMarketRegistry.register(Sport.FOOTBALL, {
+                handicap.value: cls.create_market_lambda(
+                    main_market="Asian Handicap",
+                    specific_market=f"Asian Handicap {formatted_handicap}",
+                    odds_labels=["team1_handicap", "team2_handicap"]
                 )
             })
 
