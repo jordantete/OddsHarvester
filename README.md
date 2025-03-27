@@ -118,7 +118,7 @@ Retrieve odds and event details for upcoming sports matches.
 | 🏷️ Option                | 📝 Description                                                         | 🔐 Required  | 🔧 Default  |
 |-------------------------|-----------------------------------------------------------------|--------------|-------------|
 | `--sport`              | Specify the sport to scrape (e.g., `football`).                | ✅           | None        |
-| `--date`               | Date for matches in `YYYYMMDD` format (e.g., `20250227`).      | ✅           | None        |
+| `--date`               | Date for matches in `YYYYMMDD` format (e.g., `20250227`).      | ❌          | None        |
 | `--league`             | Specify the league to scrape (e.g., `england-premier-league`). | ❌           | None        |
 | `--markets`            | Comma-separated betting markets (e.g., `1x2,btts`).            | ❌           | `1x2`       |
 | `--storage`            | Save data locally or to a remote S3 bucket (`local` or `remote`). | ❌       | `local`     |

@@ -22,7 +22,8 @@ def mock_args():
         proxies=None,
         browser_user_agent=None,  # Optional
         browser_locale_timezone=None,  # Optional
-        browser_timezone_id=None  # Optional
+        browser_timezone_id=None,  # Optional
+        match_links=None  # Optional
     )
 
 def test_validate_args_valid(validator, mock_args):
@@ -55,13 +56,15 @@ def test_validate_league_invalid(validator, mock_args):
 
 def test_validate_date_invalid_format(validator, mock_args):
     mock_args.date = "25-02-2025"
+    mock_args.match_links = None
 
     with pytest.raises(ValueError, match="Invalid date format: '25-02-2025'. Expected format is YYYYMMDD \\(e.g., 20250227\\)."):
         validator.validate_args(mock_args)
 
 def test_validate_date_past_date(validator, mock_args):
     mock_args.date = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
-
+    mock_args.match_links = None
+    
     with pytest.raises(ValueError, match="Date .* must be today or in the future."):
         validator.validate_args(mock_args)
 

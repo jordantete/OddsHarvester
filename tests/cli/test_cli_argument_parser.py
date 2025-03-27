@@ -71,10 +71,6 @@ def test_invalid_sport(parser):
     with pytest.raises(SystemExit):  # argparse raises SystemExit on invalid args
         parser.parse_args(["scrape_upcoming", "--sport", "invalid_sport", "--date", "20250225"])
 
-def test_missing_date(parser):
-    with pytest.raises(SystemExit):
-        parser.parse_args(["scrape_upcoming"])
-
 def test_missing_season(parser):
     with pytest.raises(SystemExit):
         parser.parse_args(["scrape_historic"])
