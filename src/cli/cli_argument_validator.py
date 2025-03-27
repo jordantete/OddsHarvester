@@ -34,7 +34,7 @@ class CLIArgumentValidator:
             errors.extend(self._validate_season(command=args.command, season=args.season))
         
         if hasattr(args, 'date'):
-            errors.extend(self._validate_date(command=args.command, date=args.date))
+            errors.extend(self._validate_date(command=args.command, date=args.date, match_links=args.match_links))
         
         if hasattr(args, 'file_path') or hasattr(args, 'format'):
             errors.extend(self._validate_file_args(args=args))
@@ -157,9 +157,18 @@ class CLIArgumentValidator:
 
         return errors
 
-    def _validate_date(self, command: str, date: Optional[str]) -> List[str]:
+    def _validate_date(
+        self, 
+        command: str, 
+        date: Optional[str],
+        match_links: Optional[List[str]]
+    ) -> List[str]:
         """Validates the date argument for the `scrape_upcoming` command."""
         errors = []
+
+        # Date not required when match_links is provided
+        if match_links:
+            return errors
 
         # Date should only be required for scrape_upcoming
         if command != "scrape_upcoming":
@@ -241,16 +250,19 @@ class CLIArgumentValidator:
         self, 
         proxies: Optional[List[str]]
     ) -> List[str]:
-        """Validates proxy format."""
+        """Validates proxy format (supports http, https, socks5 with optional auth)."""
         errors = []
         if not proxies:
             return errors
     
-        PROXY_PATTERN = re.compile(r"^http(s)?://[\w.-]+:\d+(?:\s+\S+\s+\S+)?$")
+        PROXY_PATTERN = re.compile(r"^(?P<scheme>https?|socks5|socks4)://(?P<host>[\w\.-]+):(?P<port>\d+)(?:\s+(?P<user>\S+)\s+(?P<pass>\S+))?$")
 
         for proxy in proxies:
             if not PROXY_PATTERN.match(proxy):
-                errors.append(f"Invalid proxy format: '{proxy}'. Expected format: 'http://proxy:port [user pass]' (authentication is optional).")
+                errors.append(
+                    f"Invalid proxy format: '{proxy}'. Expected format: "
+                    f"'http[s]://host:port [user pass]' or 'socks5://host:port [user pass]'."
+                )
 
         return errors
 

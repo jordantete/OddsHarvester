@@ -32,6 +32,7 @@ class ProxyManager:
             List[Dict[str, str]]: List of structured proxy configurations.
         """
         parsed_proxies = []
+        valid_schemes = ("http", "https", "socks4", "socks5")
 
         if not cli_proxies:
             self.logger.info("No proxies provided, running without proxy.")
@@ -39,19 +40,20 @@ class ProxyManager:
 
         for proxy_entry in cli_proxies:
             try:
-                parts = proxy_entry.split()
-                if len(parts) == 1 and proxy_entry.startswith("http"):
-                    server, username, password = parts[0], None, None
-                elif len(parts) == 3 and parts[0].startswith("http"):
-                    server, username, password = parts
-                else:
-                    raise ValueError(f"Invalid proxy format: {proxy_entry}")
+                parts = proxy_entry.strip().split()
+                server = parts[0]
+                
+                if not any(server.startswith(scheme + "://") for scheme in valid_schemes):
+                    raise ValueError(f"Invalid proxy scheme in: {server}")
 
                 proxy_config = {"server": server}
-                if username and password:
-                    proxy_config["username"] = username
-                    proxy_config["password"] = password
 
+                if len(parts) == 3:
+                    proxy_config["username"] = parts[1]
+                    proxy_config["password"] = parts[2]
+                elif len(parts) != 1:
+                    raise ValueError(f"Invalid proxy format: {proxy_entry}")
+                
                 parsed_proxies.append(proxy_config)
 
             except Exception as e:

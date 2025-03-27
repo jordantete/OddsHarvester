@@ -16,7 +16,7 @@ class BrowserHelper:
         self, 
         page: Page, 
         selector: str = "#onetrust-accept-btn-handler", 
-        timeout: int = 3000
+        timeout: int = 10000
     ):
         """
         Dismiss the cookie banner if it appears on the page.

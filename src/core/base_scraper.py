@@ -242,6 +242,7 @@ class BaseScraper:
             )
 
             return {
+                "scraped_date": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"),
                 "match_date": match_date,
                 "home_team": event_data.get("home"),
                 "away_team": event_data.get("away"),

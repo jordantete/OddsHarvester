@@ -218,7 +218,6 @@ OddsHarvester is compatible with Docker, allowing you to run the application sea
 
 **Tips**:
 - **Volume Mapping**: Use volume mapping to store logs or output data on the host machine.  
-- **Proxy Configuration**: Ensure your `constants.py` file is configured correctly if you’re using proxies or targeting specific regions.  
 - **Container Reusability**: Assign a unique container name to avoid conflicts when running multiple instances.
 
 

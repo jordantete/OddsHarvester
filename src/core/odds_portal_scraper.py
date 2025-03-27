@@ -140,7 +140,7 @@ class OddsPortalScraper(BaseScraper):
             raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
         
         try:
-            await current_page.goto(ODDSPORTAL_BASE_URL, timeout=10000, wait_until="domcontentloaded")
+            await current_page.goto(ODDSPORTAL_BASE_URL, timeout=20000, wait_until="domcontentloaded")
             await self._prepare_page_for_scraping(page=current_page)
             return await self.extract_match_odds(
                 sport=sport, 
