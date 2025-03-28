@@ -22,7 +22,6 @@ class LocalDataStorage:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.default_file_path = default_file_path
         self.default_storage_format = default_storage_format
-        self.logger.info(f"Initialized LocalDataStorage with default file path: {self.default_file_path} and format: {self.default_storage_format}")
     
     def save_data(
         self, 

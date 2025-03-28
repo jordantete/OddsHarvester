@@ -1,4 +1,4 @@
-import logging
+import logging, asyncio
 from .playwright_manager import PlaywrightManager
 from .browser_helper import BrowserHelper
 from .odds_portal_market_extractor import OddsPortalMarketExtractor
@@ -8,6 +8,25 @@ from utils.command_enum import CommandEnum
 from utils.proxy_manager import ProxyManager
 
 logger = logging.getLogger("ScraperApp")
+MAX_RETRIES = 3
+RETRY_DELAY_SECONDS = 20
+TRANSIENT_ERRORS = (
+    "ERR_CONNECTION_RESET",
+    "ERR_CONNECTION_TIMED_OUT",
+    "ERR_NAME_NOT_RESOLVED",
+    "ERR_PROXY_CONNECTION_FAILED",
+    "ERR_SOCKS_CONNECTION_FAILED",
+    "ERR_CERT_AUTHORITY_INVALID",
+    "ERR_TUNNEL_CONNECTION_FAILED",
+    "ERR_NETWORK_CHANGED",
+    "Timeout",  # generic timeout from Playwright
+    "net::ERR_FAILED",
+    "net::ERR_CONNECTION_ABORTED",
+    "net::ERR_INTERNET_DISCONNECTED",
+    "Navigation timeout",
+    "TimeoutError",
+    "Target closed",
+)
 
 async def run_scraper(
     command: CommandEnum,
@@ -55,21 +74,21 @@ async def run_scraper(
         
         if match_links and sport:
             logger.info(f"Scraping specific matches: {match_links} for sport: {sport}")
-            return await scraper.scrape_matches(match_links=match_links, sport=sport, markets=markets)
+            return await retry_scrape(scraper.scrape_matches, match_links=match_links, sport=sport, markets=markets)
 
         if command == CommandEnum.HISTORIC:
             if not sport or not league or not season:
                 raise ValueError("Both 'sport', 'league' and 'season' must be provided for historic scraping.")
             
             logger.info(f"Scraping historical odds for sport={sport} league={league}, season={season}, markets={markets}, max_pages={max_pages}")
-            return await scraper.scrape_historic(sport=sport, league=league, season=season, markets=markets, max_pages=max_pages)
-
+            return await retry_scrape(scraper.scrape_historic, sport=sport, league=league, season=season, markets=markets, max_pages=max_pages)
+        
         elif command == CommandEnum.UPCOMING_MATCHES:
             if not date:
                 raise ValueError("A valid 'date' must be provided for upcoming matches scraping.")
                 
             logger.info(f"Scraping upcoming matches for sport={sport}, date={date}, league={league}, markets={markets}")
-            return await scraper.scrape_upcoming(sport=sport, date=date, league=league, markets=markets)
+            return await retry_scrape(scraper.scrape_upcoming, sport=sport, date=date, league=league, markets=markets)
         
         else:
             raise ValueError(f"Unknown command: {command}. Supported commands are 'upcoming-matches' and 'historic'.")
@@ -80,3 +99,17 @@ async def run_scraper(
 
     finally:
         await scraper.stop_playwright()
+
+async def retry_scrape(scrape_func, *args, **kwargs):
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            return await scrape_func(*args, **kwargs)
+        except Exception as e:
+            if any(keyword in str(e) for keyword in TRANSIENT_ERRORS):
+                logger.warning(f"[Attempt {attempt}] Transient error detected: {e}. Retrying in {RETRY_DELAY_SECONDS}s...")
+                await asyncio.sleep(RETRY_DELAY_SECONDS)
+            else:
+                logger.error(f"Non-retryable error encountered: {e}")
+                raise
+    logger.error("Max retries exceeded.")
+    return None

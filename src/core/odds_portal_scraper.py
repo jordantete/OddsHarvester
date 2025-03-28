@@ -62,20 +62,15 @@ class OddsPortalScraper(BaseScraper):
         if not current_page:
             raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
         
-        try:
-            base_url = URLBuilder.get_historic_matches_url(sport=sport, league=league, season=season)
-            self.logger.info(f"Fetching historical odds from URL: {base_url}")
+        base_url = URLBuilder.get_historic_matches_url(sport=sport, league=league, season=season)
+        self.logger.info(f"Fetching historical odds from URL: {base_url}")
 
-            await current_page.goto(base_url)
-            await self._prepare_page_for_scraping(page=current_page)
+        await current_page.goto(base_url)
+        await self._prepare_page_for_scraping(page=current_page)
 
-            pages_to_scrape = await self._get_pagination_info(page=current_page, max_pages=max_pages)
-            all_links = await self._collect_match_links(base_url=base_url, pages_to_scrape=pages_to_scrape)
-            return await self.extract_match_odds(sport=sport, match_links=all_links, markets=markets)  
-
-        except Exception as e:
-            self.logger.error(f"Failed to scrape historic matches: {e}")
-            return []
+        pages_to_scrape = await self._get_pagination_info(page=current_page, max_pages=max_pages)
+        all_links = await self._collect_match_links(base_url=base_url, pages_to_scrape=pages_to_scrape)
+        return await self.extract_match_odds(sport=sport, match_links=all_links, markets=markets)  
 
     async def scrape_upcoming(
         self, 
@@ -100,23 +95,18 @@ class OddsPortalScraper(BaseScraper):
         if not current_page:
             raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
 
-        try:
-            url = URLBuilder.get_upcoming_matches_url(sport=sport, date=date, league=league)
-            self.logger.info(f"Fetching upcoming odds from {url}")
+        url = URLBuilder.get_upcoming_matches_url(sport=sport, date=date, league=league)
+        self.logger.info(f"Fetching upcoming odds from {url}")
 
-            await current_page.goto(url, timeout=10000, wait_until="domcontentloaded")
-            await self._prepare_page_for_scraping(page=current_page)
-            match_links = await self.extract_match_links(page=current_page)
+        await current_page.goto(url, timeout=10000, wait_until="domcontentloaded")
+        await self._prepare_page_for_scraping(page=current_page)
+        match_links = await self.extract_match_links(page=current_page)
 
-            if not match_links:
-                self.logger.warning("No match links found for upcoming matches.")
-                return []
-
-            return await self.extract_match_odds(sport=sport, match_links=match_links, markets=markets)
-
-        except Exception as e:
-            self.logger.error(f"Failed to scrape upcoming matches: {e}")
+        if not match_links:
+            self.logger.warning("No match links found for upcoming matches.")
             return []
+
+        return await self.extract_match_odds(sport=sport, match_links=match_links, markets=markets)
     
     async def scrape_matches(
         self,
@@ -139,19 +129,14 @@ class OddsPortalScraper(BaseScraper):
         if not current_page:
             raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
         
-        try:
-            await current_page.goto(ODDSPORTAL_BASE_URL, timeout=20000, wait_until="domcontentloaded")
-            await self._prepare_page_for_scraping(page=current_page)
-            return await self.extract_match_odds(
-                sport=sport, 
-                match_links=match_links, 
-                markets=markets,
-                concurrent_scraping_task=len(match_links)
-            )
-
-        except Exception as e:
-            self.logger.error(f"Failed to scrape match links: {e}")
-            return []
+        await current_page.goto(ODDSPORTAL_BASE_URL, timeout=20000, wait_until="domcontentloaded")
+        await self._prepare_page_for_scraping(page=current_page)
+        return await self.extract_match_odds(
+            sport=sport, 
+            match_links=match_links, 
+            markets=markets,
+            concurrent_scraping_task=len(match_links)
+        )
 
     async def _prepare_page_for_scraping(self, page: Page):
         """
