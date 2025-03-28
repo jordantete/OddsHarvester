@@ -9,17 +9,16 @@ OddsHarvester is an application designed to scrape and process sports betting od
 ## **📖 Table of Contents**
 
 1. [✨ Features](#-features)
-2. [🚀 Roadmap](#-roadmap)
-3. [🛠️ Local Installation](#-local-installation)
-4. [⚡ Usage](#-usage)
+2. [🛠️ Local Installation](#-local-installation)
+3. [⚡ Usage](#-usage)
     - [🔧 CLI Commands](#cli-commands)
     - [🐳 Running Inside a Docker Container](#-running-inside-a-docker-container)
     - [☁️ Cloud Deployment](#-cloud-deployment)
-5. [⚙️ Configuration](#-configuration)
-6. [🤝 Contributing](#-contributing)
-7. [📜 License](#-license)
-8. [💬 Feedback](#-feedback)
-9. [❗ Disclaimer](#-disclaimer)
+4. [⚙️ Configuration](#-configuration)
+5. [🤝 Contributing](#-contributing)
+6. [📜 License](#-license)
+7. [💬 Feedback](#-feedback)
+8. [❗ Disclaimer](#-disclaimer)
 
 
 ## **✨ Features**
@@ -31,28 +30,29 @@ OddsHarvester is an application designed to scrape and process sports betting od
 - **🐳 Docker Compatibility**: Designed to work seamlessly inside Docker containers with minimal setup. 
 - **🕵️ Proxy Support**: Route web requests through SOCKS/HTTP proxies for enhanced anonymity, geolocation bypass, and anti-blocking measures.
 
-### **Current Support**
+### 📚 Current Support
 
-OddsHarvester currently supports multiple sports for scraping, with their respective betting markets and leagues managed in dedicated configuration files.
+OddsHarvester supports a growing number of sports and their associated betting markets. All configurations are managed via dedicated enum and mapping files in the codebase.
 
-- **Supported Sports**  
-  The list of available sports is maintained in the `Sport` enum inside the [`sport_market_constants.py`](src/utils/sport_market_constants.py) file.
+#### ✅ Supported Sports & Markets
 
-- **Betting Markets**  
-  Each sport has its own set of supported betting markets, defined as Enums in the [`sport_market_constants.py`](src/utils/sport_market_constants.py) file.
+| 🏅 Sport      | 🛒 Supported Markets                                              |
+|--------------|-------------------------------------------------------------------|
+| ⚽ Football   | `1x2`, `btts`, `double_chance`, `draw_no_bet`, `over/under`, `european_handicap`, `asian_handicap` |
+| 🎾 Tennis     | `match_winner`, `total_sets_over/under`, `total_games_over/under`, `asian_handicap`, `exact_score`       |
+| 🏀 Basketball | `1x2`, `moneyline`, `asian_handicap`, `over/under`                             |
 
-- **Leagues & Competitions**  
-  The available leagues for each sport are mapped in the [`sport_league_constants.py`](src/utils/sport_league_constants.py) file.
+> ⚙️ **Note**: Each sport and its markets are declared in enums inside `sport_market_constants.py`.
 
+#### 🗺️ Leagues & Competitions
 
-## **🚀 Roadmap**
+Leagues and tournaments are mapped per sport in:  
+[`sport_league_constants.py`](src/utils/sport_league_constants.py)
 
-Here’s what’s coming next in **OddsHarvester**:
-
-- **Multi-Sport Expansion**: Add support for more sports beyond football and tennis (e.g., basketball, baseball).  
-- **Odds Movement Tracking**: Analyze how odds evolve over time to detect market trends.  
-
-💡 **Have ideas?** Open an issue or contribute directly to the repository! 🚀  
+You’ll find support for:
+- 🏆 **Top Football leagues** (Premier League, La Liga, Serie A, etc.)
+- 🎾 **Major Tennis tournaments** (ATP, WTA, Grand Slams, etc.)
+- 🏀 **Global Basketball leagues** (NBA, EuroLeague, ACB, etc.)
 
 
 ## **🛠️ Local Installation**
