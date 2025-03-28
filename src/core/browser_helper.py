@@ -48,7 +48,7 @@ class BrowserHelper:
         self, 
         page: Page, 
         market_tab_name: str, 
-        timeout=5000
+        timeout=10000
     ):
         """
         Navigate to a specific market tab by its name.
@@ -75,7 +75,7 @@ class BrowserHelper:
             self, 
             page: Page,
             timeout=30, 
-            scroll_pause_time=2,
+            scroll_pause_time=3,
             max_scroll_attempts=5,
             content_check_selector: str = None
         ):
@@ -90,7 +90,7 @@ class BrowserHelper:
         Args:
             page (Page): The Playwright page instance to interact with.
             timeout (int): The maximum time (in seconds) to attempt scrolling (default: 30).
-            scroll_pause_time (int): The time (in seconds) to pause between scrolls (default: 2).
+            scroll_pause_time (int): The time (in seconds) to pause between scrolls (default: 3).
             max_scroll_attempts (int): The maximum number of attempts to detect new content (default: 5).
             content_check_selector (str): Optional CSS selector to check for new content after scrolling.
 
@@ -138,8 +138,8 @@ class BrowserHelper:
         page,
         selector,
         text=None,
-        timeout=10,
-        scroll_pause_time=2
+        timeout=20,
+        scroll_pause_time=3
     ):
         """
         Scrolls the page until an element matching the selector and text is visible, then clicks its parent element.
@@ -148,8 +148,8 @@ class BrowserHelper:
             page (Page): The Playwright page instance.
             selector (str): The CSS selector of the element.
             text (str): Optional. The text content to match.
-            timeout (int): Timeout in seconds (default: 60).
-            scroll_pause_time (int): Pause time in seconds between scrolls (default: 2).
+            timeout (int): Timeout in seconds (default: 20).
+            scroll_pause_time (int): Pause time in seconds between scrolls (default: 3).
 
         Returns:
             bool: True if the parent element was clicked successfully, False otherwise.

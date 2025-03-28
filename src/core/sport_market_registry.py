@@ -1,6 +1,7 @@
 from utils.sport_market_constants import (
     Sport, FootballOverUnderMarket, FootballEuropeanHandicapMarket, FootballAsianHandicapMarket,
-    TennisOverUnderSetsMarket, TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket
+    TennisOverUnderSetsMarket, TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket,
+    BasketballMarket, BasketballOverUnderMarket, BasketballAsianHandicapMarket
 )
 
 class SportMarketRegistry:
@@ -130,9 +131,41 @@ class SportMarketRegistrar:
                     odds_labels=["correct_score"]
                 )
             })
+    
+    @classmethod
+    def register_basketball_markets(cls):
+        """Registers all basketball betting markets."""
+        SportMarketRegistry.register(Sport.BASKETBALL, {
+            "1x2": cls.create_market_lambda("1X2", odds_labels=["1", "X", "2"]),
+            "home_away": cls.create_market_lambda("Home/Away", odds_labels=["1", "2"]),
+        })
+
+        # Register Over/Under Games Markets
+        for over_under in BasketballOverUnderMarket:
+            numeric_part = over_under.value.replace("over_under_games_", "").replace("_", ".")
+            SportMarketRegistry.register(Sport.BASKETBALL, {
+                over_under.value: cls.create_market_lambda(
+                    main_market="Over/Under",
+                    specific_market=f"Over/Under +{numeric_part}",
+                    odds_labels=["odds_over", "odds_under"]
+                )
+            })
+
+        # Register Asian Handicap Markets
+        for handicap in BasketballAsianHandicapMarket:
+            numeric_part = handicap.value.replace("asian_handicap_games_", "").replace("_games", "").replace("_", ".")
+            specific_market = f"Asian Handicap {numeric_part}"
+            SportMarketRegistry.register(Sport.BASKETBALL, {
+                handicap.value: cls.create_market_lambda(
+                    main_market="Asian Handicap",
+                    specific_market=specific_market,
+                    odds_labels=["handicap_team_1", "handicap_team_2"]
+                )
+            })
 
     @classmethod
     def register_all_markets(cls):
         """Registers all sports markets."""
         cls.register_football_markets()
         cls.register_tennis_markets()
+        cls.register_basketball_markets()
