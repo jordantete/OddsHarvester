@@ -296,7 +296,7 @@ OddsHarvester uses a [`constants.py`](src/utils/constants.py) file to define imp
 Contributions are welcome! If you have ideas, improvements, or bug fixes, feel free to submit an issue or a pull request. Please ensure that your contributions follow the project’s coding standards and include clear descriptions for any changes.
 
 
-## License
+## **📜 License**
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE.txt) file for more details.
 
