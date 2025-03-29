@@ -53,8 +53,8 @@ def test_get_league_url(sport, league, expected_url):
 
 def test_get_league_url_invalid_sport():
     """Test get_league_url raises ValueError for unsupported sport."""
-    with pytest.raises(ValueError, match="'basketball' is not a valid Sport"):
-        URLBuilder.get_league_url("basketball", "nba")
+    with pytest.raises(ValueError, match="'handball' is not a valid Sport"):
+        URLBuilder.get_league_url("handball", "champions-league")
 
 def test_get_league_url_invalid_league():
     with pytest.raises(ValueError, match="Invalid league 'random-league' for sport 'football'. Available: england-premier-league, la-liga"):

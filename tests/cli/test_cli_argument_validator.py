@@ -39,7 +39,7 @@ def test_validate_command_invalid(validator, mock_args):
 
 def test_validate_sport_invalid(validator, mock_args):
     mock_args.sport = "invalid_sport"
-    expected_error = "Invalid sport: 'invalid_sport'. Supported sports are: football, tennis."
+    expected_error = "Invalid sport: 'invalid_sport'. Supported sports are: football, tennis, basketball."
 
     with pytest.raises(ValueError, match=re.escape(expected_error)):
         validator.validate_args(mock_args)

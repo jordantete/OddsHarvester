@@ -36,7 +36,7 @@ def test_get_supported_markets_enum(sport_enum, expected):
 def test_get_supported_markets_string(sport_str, expected):
     assert get_supported_markets(sport_str) == expected
 
-@pytest.mark.parametrize("invalid_sport", ["invalid_sport", "basketball", 123, None])
+@pytest.mark.parametrize("invalid_sport", ["invalid_sport", "handball", 123, None])
 def test_get_supported_markets_invalid_sport(invalid_sport):
     with pytest.raises(ValueError, match="Invalid sport name:|Unsupported sport:"):
         get_supported_markets(invalid_sport)
