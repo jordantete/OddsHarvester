@@ -20,10 +20,12 @@ def mock_args():
         headless=True,
         markets=["1x2", "btts"],
         proxies=None,
-        browser_user_agent=None,  # Optional
-        browser_locale_timezone=None,  # Optional
-        browser_timezone_id=None,  # Optional
-        match_links=None  # Optional
+        browser_user_agent=None,
+        browser_locale_timezone=None,
+        browser_timezone_id=None,
+        match_links=None,
+        scrape_odds_history=False,
+        target_bookmaker=None
     )
 
 def test_validate_args_valid(validator, mock_args):

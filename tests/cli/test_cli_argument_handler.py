@@ -41,7 +41,9 @@ def test_parse_and_validate_args_valid(cli_handler):
             browser_user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/123.0.0.0 Safari/537.36",
             browser_locale_timezone="fr-BE",
             browser_timezone_id="Europe/Brussels",
-            match_links=None
+            match_links=None,
+            scrape_odds_history=False,
+            target_bookmaker=None
         )
 
         parsed_args = cli_handler.parse_and_validate_args()
@@ -62,7 +64,9 @@ def test_parse_and_validate_args_valid(cli_handler):
             "browser_user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/123.0.0.0 Safari/537.36",
             "browser_locale_timezone": "fr-BE",
             "browser_timezone_id": "Europe/Brussels",
-            "match_links": None
+            "match_links": None,
+            "scrape_odds_history": False,
+            "target_bookmaker": None
         }
 
         mock_validate_args.assert_called_once_with(mock_parse_args.return_value)
