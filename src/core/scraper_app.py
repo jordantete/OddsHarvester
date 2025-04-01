@@ -41,13 +41,16 @@ async def run_scraper(
     browser_user_agent: str | None = None,
     browser_locale_timezone: str | None = None,
     browser_timezone_id: str | None = None,
+    target_bookmaker: str | None = None,
+    scrape_odds_history: bool = False,
     headless: bool = True
 ) -> dict:
     """Runs the scraping process and handles execution."""
     logger.info(f"""
         Starting scraper with parameters: command={command}, match_links={match_links}, sport={sport}, date={date}, league={league},
         season={season}, markets={markets}, max_pages={max_pages}, proxies={proxies}, browser_user_agent={browser_user_agent},
-        browser_locale_timezone={browser_locale_timezone}, browser_timezone_id={browser_timezone_id}, headless={headless}"""
+        browser_locale_timezone={browser_locale_timezone}, browser_timezone_id={browser_timezone_id},
+        scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}, headless={headless}"""
     )
     
     proxy_manager = ProxyManager(cli_proxies=proxies)
@@ -73,22 +76,55 @@ async def run_scraper(
         )
         
         if match_links and sport:
-            logger.info(f"Scraping specific matches: {match_links} for sport: {sport}")
-            return await retry_scrape(scraper.scrape_matches, match_links=match_links, sport=sport, markets=markets)
+            logger.info(f"""
+                Scraping specific matches: {match_links} for sport: {sport}, markets={markets}, 
+                scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}
+            """)
+            return await retry_scrape(
+                scraper.scrape_matches, 
+                match_links=match_links, 
+                sport=sport, 
+                markets=markets, 
+                scrape_odds_history=scrape_odds_history, 
+                target_bookmaker=target_bookmaker
+            )
 
         if command == CommandEnum.HISTORIC:
             if not sport or not league or not season:
                 raise ValueError("Both 'sport', 'league' and 'season' must be provided for historic scraping.")
             
-            logger.info(f"Scraping historical odds for sport={sport} league={league}, season={season}, markets={markets}, max_pages={max_pages}")
-            return await retry_scrape(scraper.scrape_historic, sport=sport, league=league, season=season, markets=markets, max_pages=max_pages)
+            logger.info(f"""
+                Scraping historical odds for sport={sport} league={league}, season={season}, markets={markets}, 
+                scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}, max_pages={max_pages}
+            """)
+            return await retry_scrape(
+                scraper.scrape_historic, 
+                sport=sport, 
+                league=league, 
+                season=season, 
+                markets=markets, 
+                scrape_odds_history=scrape_odds_history,
+                target_bookmaker=target_bookmaker,
+                max_pages=max_pages
+            )
         
         elif command == CommandEnum.UPCOMING_MATCHES:
             if not date:
                 raise ValueError("A valid 'date' must be provided for upcoming matches scraping.")
                 
-            logger.info(f"Scraping upcoming matches for sport={sport}, date={date}, league={league}, markets={markets}")
-            return await retry_scrape(scraper.scrape_upcoming, sport=sport, date=date, league=league, markets=markets)
+            logger.info(f"""
+                Scraping upcoming matches for sport={sport}, date={date}, league={league}, markets={markets}, 
+                scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}
+            """)
+            return await retry_scrape(
+                scraper.scrape_upcoming, 
+                sport=sport, 
+                date=date, 
+                league=league, 
+                markets=markets,
+                scrape_odds_history=scrape_odds_history,
+                target_bookmaker=target_bookmaker
+            )
         
         else:
             raise ValueError(f"Unknown command: {command}. Supported commands are 'upcoming-matches' and 'historic'.")

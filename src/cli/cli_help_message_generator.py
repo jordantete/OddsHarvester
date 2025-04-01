@@ -16,7 +16,9 @@ class CLIHelpMessageGenerator:
             "   --browser_user_agent        🔍 Custom user agent string for browser requests (optional).\n"
             "   --browser_locale_timezone   🌍 Browser locale timezone (e.g., fr-BE) (optional).\n"
             "   --browser_timezone_id       ⏰ Browser timezone ID (e.g., Europe/Brussels) (optional).\n"
-            "   --match_links               🔗 Scrape specific match pages (comma-separated links, overrides other filters).\n\n"
+            "   --match_links               🔗 Scrape specific match pages (comma-separated links, overrides other filters).\n"
+            "   --target_bookmaker           🎯 Filter scraping for a specific bookmaker (e.g., Betclic.fr).\n"
+            "   --scrape_odds_history        📈 Include odds movement history by hovering modals (default: False).\n\n"
 
             "🔹 **scrape_historic** - Scrape historical odds and match results.\n"
             "   --sport                     🏆 The sport to scrape (default: football).\n"
@@ -33,7 +35,9 @@ class CLIHelpMessageGenerator:
             "   --browser_user_agent        🔍 Custom user agent string for browser requests (optional).\n"
             "   --browser_locale_timezone   🌍 Browser locale timezone (e.g., fr-BE) (optional).\n"
             "   --browser_timezone_id       ⏰ Browser timezone ID (e.g., Europe/Brussels) (optional).\n"
-            "   --match_links               🔗 Scrape specific match pages (comma-separated links, overrides other filters).\n\n"
+            "   --match_links               🔗 Scrape specific match pages (comma-separated links, overrides other filters).\n"
+            "   --target_bookmaker           🎯 Filter scraping for a specific bookmaker (e.g., Betclic.fr).\n"
+            "   --scrape_odds_history        📈 Include odds movement history by hovering modals (default: False).\n\n"
 
             "📌 **Examples:**\n"
             "✅ **Scrape upcoming football matches for a specific date:**\n"

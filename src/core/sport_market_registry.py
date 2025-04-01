@@ -1,7 +1,7 @@
 from utils.sport_market_constants import (
     Sport, FootballOverUnderMarket, FootballEuropeanHandicapMarket, FootballAsianHandicapMarket,
     TennisOverUnderSetsMarket, TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket,
-    BasketballMarket, BasketballOverUnderMarket, BasketballAsianHandicapMarket
+    BasketballOverUnderMarket, BasketballAsianHandicapMarket
 )
 
 class SportMarketRegistry:
@@ -29,12 +29,14 @@ class SportMarketRegistrar:
         """
         Creates a lambda function for market extraction.
         """
-        return lambda extractor, page, period="FullTime": extractor.extract_market_odds(
+        return lambda extractor, page, period="FullTime", scrape_odds_history=False, target_bookmaker=None: extractor.extract_market_odds(
             page=page, 
             main_market=main_market, 
             specific_market=specific_market, 
             period=period, 
-            odds_labels=odds_labels
+            odds_labels=odds_labels,
+            scrape_odds_history=scrape_odds_history,
+            target_bookmaker=target_bookmaker
         )
 
     @classmethod

@@ -95,6 +95,17 @@ class CLIArgumentParser:
         )
         parser.add_argument("--headless", action="store_true", help="🕶️ Run browser in headless mode.")
         parser.add_argument("--save_logs", action="store_true", help="📜 Save logs for debugging.")
+        parser.add_argument(
+            "--target_bookmaker",
+            type=str,
+            default=None,
+            help="🎯 Specify a bookmaker name to only scrape data from that bookmaker."
+        )
+        parser.add_argument(
+            "--scrape_odds_history",
+            action="store_true",
+            help="📈 Include to scrape historical odds movement (hover-over modal)."
+        )
 
     def get_parser(self) -> argparse.ArgumentParser:
         return self.parser

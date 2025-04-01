@@ -43,6 +43,8 @@ class OddsPortalScraper(BaseScraper):
         league: str, 
         season: str, 
         markets: Optional[List[str]] = None,
+        scrape_odds_history: bool = False,
+        target_bookmaker: str | None = None,
         max_pages: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """
@@ -53,6 +55,8 @@ class OddsPortalScraper(BaseScraper):
             league (str): The league to scrape.
             season (str): The season to scrape.
             markets (Optional[List[str]]): List of markets.
+            scrape_odds_history (bool): Whether to scrape and attach odds history.
+            target_bookmaker (str): If set, only scrape odds for this bookmaker.
             max_pages (Optional[int]): Maximum number of pages to scrape (default is None for all pages).
 
         Returns:
@@ -70,14 +74,22 @@ class OddsPortalScraper(BaseScraper):
 
         pages_to_scrape = await self._get_pagination_info(page=current_page, max_pages=max_pages)
         all_links = await self._collect_match_links(base_url=base_url, pages_to_scrape=pages_to_scrape)
-        return await self.extract_match_odds(sport=sport, match_links=all_links, markets=markets)  
+        return await self.extract_match_odds(
+            sport=sport, 
+            match_links=all_links, 
+            markets=markets, 
+            scrape_odds_history=scrape_odds_history, 
+            target_bookmaker=target_bookmaker
+        )
 
     async def scrape_upcoming(
         self, 
         sport: str, 
         date: str, 
         league: Optional[str] = None,
-        markets: Optional[List[str]] = None
+        markets: Optional[List[str]] = None,
+        scrape_odds_history: bool = False,
+        target_bookmaker: str | None = None
     ) -> List[Dict[str, Any]]:
         """
         Scrapes upcoming match odds.
@@ -87,6 +99,8 @@ class OddsPortalScraper(BaseScraper):
             date (str): The date to scrape.
             league (Optional[str]): The league to scrape.
             markets (Optional[List[str]]): List of markets.
+            scrape_odds_history (bool): Whether to scrape and attach odds history.
+            target_bookmaker (str): If set, only scrape odds for this bookmaker.
 
         Returns:
             List[Dict[str, Any]]: A List of dictionaries containing upcoming match odds data.
@@ -106,13 +120,21 @@ class OddsPortalScraper(BaseScraper):
             self.logger.warning("No match links found for upcoming matches.")
             return []
 
-        return await self.extract_match_odds(sport=sport, match_links=match_links, markets=markets)
+        return await self.extract_match_odds(
+            sport=sport, 
+            match_links=match_links, 
+            markets=markets, 
+            scrape_odds_history=scrape_odds_history, 
+            target_bookmaker=target_bookmaker
+        )
     
     async def scrape_matches(
         self,
         match_links: List[str],
         sport: str,
-        markets: List[str] | None = None
+        markets: List[str] | None = None,
+        scrape_odds_history: bool = False,
+        target_bookmaker: str | None = None
     ) -> List[Dict[str, Any]]:
         """
         Scrapes match odds from a list of specific match URLs.
@@ -121,6 +143,8 @@ class OddsPortalScraper(BaseScraper):
             match_links (List[str]): List of URLs of matches to scrape.
             sport (str): The sport to scrape.
             markets (List[str] | None): List of betting markets to scrape. Defaults to None.
+            scrape_odds_history (bool): Whether to scrape and attach odds history.
+            target_bookmaker (str): If set, only scrape odds for this bookmaker.
 
         Returns:
             List[Dict[str, Any]]: A list containing odds and match details.
@@ -135,6 +159,8 @@ class OddsPortalScraper(BaseScraper):
             sport=sport, 
             match_links=match_links, 
             markets=markets,
+            scrape_odds_history=scrape_odds_history, 
+            target_bookmaker=target_bookmaker,
             concurrent_scraping_task=len(match_links)
         )
 

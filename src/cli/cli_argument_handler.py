@@ -40,5 +40,7 @@ class CLIArgumentHandler:
             "markets": args.markets,
             "browser_user_agent": getattr(args, "browser_user_agent", None),
             "browser_locale_timezone": getattr(args, "browser_locale_timezone", None),
-            "browser_timezone_id": getattr(args, "browser_timezone_id", None)
+            "browser_timezone_id": getattr(args, "browser_timezone_id", None),
+            "target_bookmaker": getattr(args, "target_bookmaker", None),
+            "scrape_odds_history": getattr(args, "scrape_odds_history", False)
         }

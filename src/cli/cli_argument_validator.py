@@ -45,6 +45,14 @@ class CLIArgumentValidator:
         if hasattr(args, 'proxies'):
             errors.extend(self._validate_proxies(args.proxies))
         
+        if hasattr(args, 'target_bookmaker'):
+            if args.target_bookmaker and not isinstance(args.target_bookmaker, str):
+                errors.append("Target bookmaker must be a string if specified.")
+
+        if hasattr(args, 'scrape_odds_history'):
+            if not isinstance(args.scrape_odds_history, bool):
+                errors.append("'--scrape-odds-history' must be a boolean flag.")
+        
         errors.extend(self._validate_browser_settings(
             user_agent=args.browser_user_agent,
             locale_timezone=args.browser_locale_timezone,

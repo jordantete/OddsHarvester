@@ -1,5 +1,5 @@
 import asyncio, logging, sys
-from cli.cli_argument_handler import CLIArgumentHandler
+from cli import CLIArgumentHandler
 from utils.setup_logging import setup_logger
 from core.scraper_app import run_scraper
 from storage.storage_manager import store_data
@@ -26,6 +26,8 @@ def main():
             browser_user_agent=args["browser_user_agent"],
             browser_locale_timezone=args["browser_locale_timezone"],
             browser_timezone_id=args["browser_timezone_id"],
+            target_bookmaker=args["target_bookmaker"],
+            scrape_odds_history=args["scrape_odds_history"],
             headless=args["headless"]
         ))
 

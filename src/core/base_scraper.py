@@ -57,16 +57,17 @@ class BaseScraper:
                 return
 
             await dropdown_button.click()
-            await page.wait_for_timeout(1000)
+            await page.wait_for_timeout(3000)
             format_option_selector = "div.group > div.dropdown-content > ul > li > a"
             format_options = await page.query_selector_all(format_option_selector)
 
             for option in format_options:
                 option_text = await option.inner_text()
 
-                if option_text == odds_format:
+                if odds_format.lower() in option_text.lower():
                     self.logger.info(f"Selecting odds format: {option_text}")
                     await option.click()
+                    await page.wait_for_timeout(3000)
                     self.logger.info(f"Odds format changed to '{odds_format}'.")
                     return
             
@@ -116,6 +117,8 @@ class BaseScraper:
         sport: str,
         match_links: List[str],
         markets: Optional[List[str]] = None,
+        scrape_odds_history: bool = False,
+        target_bookmaker: str | None = None,
         concurrent_scraping_task: int = SCRAPE_CONCURRENCY_TASKS
     ) -> List[Dict[str, Any]]:
         """
@@ -125,6 +128,9 @@ class BaseScraper:
             sport (str): The sport to scrape odds for.
             match_links (List[str]): A list of match links to scrape odds for.
             markets (Optional[List[str]]: The list of markets to scrape.
+            scrape_odds_history (bool): Whether to scrape and attach odds history.
+            target_bookmaker (str): If set, only scrape odds for this bookmaker.
+            concurrent_scraping_task (int): Controls how many pages are processed simultaneously.
 
         Returns:
             List[Dict[str, Any]]: A list of dictionaries containing scraped odds data.
@@ -139,7 +145,14 @@ class BaseScraper:
                 
                 try:
                     tab = await self.playwright_manager.context.new_page()
-                    data = await self._scrape_match_data(page=tab, sport=sport, match_link=link, markets=markets)
+                    data = await self._scrape_match_data(
+                        page=tab, 
+                        sport=sport, 
+                        match_link=link, 
+                        markets=markets,
+                        scrape_odds_history=scrape_odds_history,
+                        target_bookmaker=target_bookmaker
+                    )
                     self.logger.info(f"Successfully scraped match link: {link}")
                     return data
                 
@@ -167,7 +180,9 @@ class BaseScraper:
         page: Page,
         sport: str,
         match_link: str, 
-        markets: Optional[List[str]] = None
+        markets: Optional[List[str]] = None,
+        scrape_odds_history: bool = False,
+        target_bookmaker: str | None = None
     ) -> Optional[Dict[str, Any]]:
         """
         Scrape data for a specific match based on the desired markets.
@@ -177,6 +192,8 @@ class BaseScraper:
             sport (str): The sport to scrape odds for.
             match_link (str): The link to the match page.
             markets (Optional[List[str]]): A list of markets to scrape (e.g., ['1x2', 'over_under_2_5']).
+            scrape_odds_history (bool): Whether to scrape and attach odds history.
+            target_bookmaker (str): If set, only scrape odds for this bookmaker.
 
         Returns:
             Optional[Dict[str, Any]]: A dictionary containing scraped data, or None if scraping fails.
@@ -193,7 +210,14 @@ class BaseScraper:
 
             if markets:
                 self.logger.info(f"Scraping markets: {markets}")
-                market_data = await self.market_extractor.scrape_markets(page=page, sport=sport, markets=markets)
+                market_data = await self.market_extractor.scrape_markets(
+                    page=page, 
+                    sport=sport, 
+                    markets=markets,
+                    period="FullTime",
+                    scrape_odds_history=scrape_odds_history,
+                    target_bookmaker=target_bookmaker
+                )
                 match_details.update(market_data)
 
             return match_details
