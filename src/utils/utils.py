@@ -4,13 +4,15 @@ from typing import Dict, List, Type
 from .sport_market_constants import (
     Sport, FootballMarket, FootballOverUnderMarket, FootballEuropeanHandicapMarket, FootballAsianHandicapMarket,
     TennisMarket, TennisOverUnderSetsMarket, TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket,
-    BasketballMarket, BasketballAsianHandicapMarket, BasketballOverUnderMarket
+    BasketballMarket, BasketballAsianHandicapMarket, BasketballOverUnderMarket,
+    RugbyLeagueMarket
 )
 
 SPORT_MARKETS_MAPPING: Dict[Sport, List[Type[Enum]]] = {
     Sport.FOOTBALL: [FootballMarket, FootballOverUnderMarket, FootballEuropeanHandicapMarket, FootballAsianHandicapMarket],
     Sport.TENNIS: [TennisMarket, TennisOverUnderSetsMarket, TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket],
     Sport.BASKETBALL: [BasketballMarket, BasketballAsianHandicapMarket, BasketballOverUnderMarket],
+    Sport.RUGBY_LEAGUE: [RugbyLeagueMarket],
 }
 
 def get_supported_markets(sport: Sport) -> List[str]:

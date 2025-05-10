@@ -45,7 +45,7 @@ class BaseScraper:
         try:
             self.logger.info(f"Setting odds format: {odds_format}")
             button_selector = "div.group > button.gap-2"
-            await page.wait_for_selector(button_selector, state="attached", timeout=5000)
+            await page.wait_for_selector(button_selector, state="attached", timeout=8000)
             dropdown_button = await page.query_selector(button_selector)
 
             # Check if the desired format is already selected
@@ -57,7 +57,7 @@ class BaseScraper:
                 return
 
             await dropdown_button.click()
-            await page.wait_for_timeout(3000)
+            await page.wait_for_timeout(5000)
             format_option_selector = "div.group > div.dropdown-content > ul > li > a"
             format_options = await page.query_selector_all(format_option_selector)
 
@@ -67,7 +67,7 @@ class BaseScraper:
                 if odds_format.lower() in option_text.lower():
                     self.logger.info(f"Selecting odds format: {option_text}")
                     await option.click()
-                    await page.wait_for_timeout(3000)
+                    await page.wait_for_timeout(5000)
                     self.logger.info(f"Odds format changed to '{odds_format}'.")
                     return
             

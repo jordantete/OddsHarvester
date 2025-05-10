@@ -116,7 +116,7 @@ class CLIArgumentValidator:
 
         return errors
 
-    def _validate_league(self, sport: Sport, league: Optional[str]) -> List[str]:
+    def _validate_league(self, sport: str, league: Optional[str]) -> List[str]:
         """Validates the league argument based on the sport."""
         errors = []
         
@@ -125,18 +125,18 @@ class CLIArgumentValidator:
         
         if isinstance(sport, str):
             try:
-                sport = Sport(sport.lower())
+                sport_enum = Sport(sport.lower())
             except ValueError:
                 return [f"Invalid sport: '{sport}'. Supported sports are: {', '.join(s.value for s in Sport)}."]
         
-        if sport not in SPORTS_LEAGUES_URLS_MAPPING:
-            return [f"Unsupported sport: '{sport.value}'. Supported sports are: {', '.join(s.value for s in SPORTS_LEAGUES_URLS_MAPPING.keys())}."]
+        if sport_enum not in SPORTS_LEAGUES_URLS_MAPPING:
+            return [f"Unsupported sport: '{sport_enum.value}'. Supported sports are: {', '.join(s.value for s in SPORTS_LEAGUES_URLS_MAPPING.keys())}."]
         
-        sport_league_mapping = SPORTS_LEAGUES_URLS_MAPPING[sport]
+        sport_league_mapping = SPORTS_LEAGUES_URLS_MAPPING[sport_enum]
         
         if league not in sport_league_mapping:
             errors.append(
-                f"Invalid league: '{league}' for sport '{sport.value}'. "
+                f"Invalid league: '{league}' for sport '{sport_enum.value}'. "
                 f"Supported leagues: {', '.join(sport_league_mapping.keys())}."
             )
         return errors
