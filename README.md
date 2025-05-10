@@ -36,11 +36,12 @@ OddsHarvester supports a growing number of sports and their associated betting m
 
 #### ✅ Supported Sports & Markets
 
-| 🏅 Sport      | 🛒 Supported Markets                                              |
-|--------------|-------------------------------------------------------------------|
-| ⚽ Football   | `1x2`, `btts`, `double_chance`, `draw_no_bet`, `over/under`, `european_handicap`, `asian_handicap` |
-| 🎾 Tennis     | `match_winner`, `total_sets_over/under`, `total_games_over/under`, `asian_handicap`, `exact_score`       |
-| 🏀 Basketball | `1x2`, `moneyline`, `asian_handicap`, `over/under`                             |
+| 🏅 Sport        | 🛒 Supported Markets                                              |
+|----------------|-------------------------------------------------------------------|
+| ⚽ Football     | `1x2`, `btts`, `double_chance`, `draw_no_bet`, `over/under`, `european_handicap`, `asian_handicap` |
+| 🎾 Tennis      | `match_winner`, `total_sets_over/under`, `total_games_over/under`, `asian_handicap`, `exact_score`       |
+| 🏀 Basketball  | `1x2`, `moneyline`, `asian_handicap`, `over/under`                             |
+| 🏉 Rugby League| `1x2`, `home_away`, `over/under`, `handicap`                                   |
 
 > ⚙️ **Note**: Each sport and its markets are declared in enums inside `sport_market_constants.py`.
 
@@ -49,10 +50,11 @@ OddsHarvester supports a growing number of sports and their associated betting m
 Leagues and tournaments are mapped per sport in:  
 [`sport_league_constants.py`](src/utils/sport_league_constants.py)
 
-You’ll find support for:
+You'll find support for:
 - 🏆 **Top Football leagues** (Premier League, La Liga, Serie A, etc.)
 - 🎾 **Major Tennis tournaments** (ATP, WTA, Grand Slams, etc.)
 - 🏀 **Global Basketball leagues** (NBA, EuroLeague, ACB, etc.)
+- 🏉 **Major Rugby League competitions** (NRL, Super League, etc.)
 
 
 ## **🛠️ Local Installation**
@@ -137,7 +139,7 @@ Retrieve odds and event details for upcoming sports matches.
 - If both `--league` and `--date` are provided, the scraper **will only consider the league**, meaning **all upcoming matches for that league will be scraped**, regardless of the `--date` argument.  
 - **If `--match_links` is provided, it overrides `--sport`, `--date`, and `--league`, and only the specified match links will be scraped.**  
 - **All match links must belong to the same sport** when using `--match_links`.  
-- **For best results, ensure the proxy’s region matches the `BROWSER_LOCALE_TIMEZONE` and `BROWSER_TIMEZONE_ID` settings.**  
+- **For best results, ensure the proxy's region matches the `BROWSER_LOCALE_TIMEZONE` and `BROWSER_TIMEZONE_ID` settings.**  
 
 
 #### **Example Usage:**
@@ -227,12 +229,12 @@ OddsHarvester can also be deployed on a cloud provider using the **Serverless Fr
 
 **Why Use a Docker Image?**
 
-1.	AWS Lambda’s Deployment Size Limit:
+1.	AWS Lambda's Deployment Size Limit:
    AWS Lambda has a hard limit of 50MB for direct deployment packages, which includes code, dependencies, and assets. Playwright and its browser dependencies far exceed this limit.
 
-2.	Playwright’s Incompatibility with Lambda Layers:
+2.	Playwright's Incompatibility with Lambda Layers:
    Playwright cannot be installed as an AWS Lambda layer because:
-      •	Its browser dependencies require system libraries that are unavailable in Lambda’s standard runtime environment.
+      •	Its browser dependencies require system libraries that are unavailable in Lambda's standard runtime environment.
       •	Packaging these libraries within Lambda layers would exceed the layer size limit.
 
 3.	Solution:
@@ -293,7 +295,7 @@ OddsHarvester uses a [`constants.py`](src/utils/constants.py) file to define imp
 
 ## **🤝 Contributing**
 
-Contributions are welcome! If you have ideas, improvements, or bug fixes, feel free to submit an issue or a pull request. Please ensure that your contributions follow the project’s coding standards and include clear descriptions for any changes.
+Contributions are welcome! If you have ideas, improvements, or bug fixes, feel free to submit an issue or a pull request. Please ensure that your contributions follow the project's coding standards and include clear descriptions for any changes.
 
 
 ## **📜 License**
@@ -303,7 +305,7 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE.txt
 
 ## **💬 Feedback**
 
-Have any questions or feedback? Feel free to reach out via the issues tab on GitHub. We’d love to hear from you!
+Have any questions or feedback? Feel free to reach out via the issues tab on GitHub. We'd love to hear from you!
 
 ## **❗ Disclaimer**
 

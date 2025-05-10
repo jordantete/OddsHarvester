@@ -5,6 +5,7 @@ class Sport(Enum):
     FOOTBALL = "football"
     TENNIS = "tennis"
     BASKETBALL = "basketball"
+    RUGBY_LEAGUE = "rugby-league"
 
 class FootballMarket(Enum):
     """Football-specific markets."""
@@ -210,3 +211,23 @@ class BasketballAsianHandicapMarket(Enum):
     HANDICAP_PLUS_23_5 = "asian_handicap_games_+23_5_games"
     HANDICAP_PLUS_24_5 = "asian_handicap_games_+24_5_games"
     HANDICAP_PLUS_25_5 = "asian_handicap_games_+25_5_games"
+
+# Markets Rugby League
+class RugbyLeagueMarket(Enum):
+    """Rugby League-specific markets."""
+    ONE_X_TWO = "1x2"
+    HOME_AWAY = "home_away"
+    OVER_UNDER_32_5 = "over_under_32_5"
+    OVER_UNDER_36_5 = "over_under_36_5"
+    OVER_UNDER_40_5 = "over_under_40_5"
+    OVER_UNDER_44_5 = "over_under_44_5"
+    OVER_UNDER_48_5 = "over_under_48_5"
+    OVER_UNDER_52_5 = "over_under_52_5"
+    HANDICAP_MINUS_4_5 = "handicap_-4_5"
+    HANDICAP_PLUS_4_5 = "handicap_+4_5"
+    HANDICAP_MINUS_8_5 = "handicap_-8_5"
+    HANDICAP_PLUS_8_5 = "handicap_+8_5"
+    HANDICAP_MINUS_12_5 = "handicap_-12_5"
+    HANDICAP_PLUS_12_5 = "handicap_+12_5"
+    HANDICAP_MINUS_16_5 = "handicap_-16_5"
+    HANDICAP_PLUS_16_5 = "handicap_+16_5"

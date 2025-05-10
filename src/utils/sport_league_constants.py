@@ -119,4 +119,11 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "a-division-slovakia": "https://www.oddsportal.com/basketball/slovakia/extraliga/",
         "basketball-league-estonia": "https://www.oddsportal.com/basketball/estonia/kml/"
     },
+    Sport.RUGBY_LEAGUE: {
+        "england-super-league": "https://www.oddsportal.com/rugby-league/england/super-league/",
+        "australia-nrl": "https://www.oddsportal.com/rugby-league/australia/nrl/",
+        "australia-state-of-origin": "https://www.oddsportal.com/rugby-league/australia/state-of-origin/",
+        "france-nrl": "https://www.oddsportal.com/rugby-league/france/elite-1/",
+        "world-cup": "https://www.oddsportal.com/rugby-league/world/world-cup/"
+    },
 }
