@@ -46,6 +46,7 @@ class CLIArgumentParser:
             "--sport",
             type=str,
             choices=["football", "tennis", "basketball", "rugby-league"],
+            default="football",
             help="Specify the sport to scrape (e.g., football, tennis, basketball, rugby-league)."
         )
         parser.add_argument("--league", type=str, help="Specific league (e.g., premier-league).")

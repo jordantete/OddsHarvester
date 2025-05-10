@@ -39,12 +39,13 @@ def test_validate_command_invalid(validator, mock_args):
     with pytest.raises(ValueError, match="Invalid command 'invalid_command'. Supported commands are: scrape_upcoming, scrape_historic."):
         validator.validate_args(mock_args)
 
-def test_validate_sport_invalid(validator, mock_args):
-    mock_args.sport = "invalid_sport"
-    expected_error = "Invalid sport: 'invalid_sport'. Supported sports are: football, tennis, basketball."
-
-    with pytest.raises(ValueError, match=re.escape(expected_error)):
-        validator.validate_args(mock_args)
+@pytest.mark.parametrize("invalid_sport", ["invalid_sport", "handball", 123, None])
+def test_validate_sport_invalid(invalid_sport):
+    validator = CLIArgumentValidator()
+    import argparse
+    args = argparse.Namespace(sport=invalid_sport)
+    with pytest.raises(ValueError, match=r"Invalid sport: '.*'\. Supported sports are: football, tennis, basketball, rugby-league\."):
+        validator._validate_sport(invalid_sport)
 
 def test_validate_markets_invalid(validator, mock_args):
     mock_args.markets = ["invalid_market"]

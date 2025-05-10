@@ -3,7 +3,8 @@ from unittest.mock import patch
 from src.utils.utils import get_supported_markets, is_running_in_docker
 from src.utils.sport_market_constants import (
     Sport, FootballMarket, FootballOverUnderMarket, FootballEuropeanHandicapMarket, FootballAsianHandicapMarket,
-    TennisMarket, TennisOverUnderSetsMarket, TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket
+    TennisMarket, TennisOverUnderSetsMarket, TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket,
+    RugbyLeagueMarket
 )
 
 EXPECTED_MARKETS = {
@@ -20,11 +21,15 @@ EXPECTED_MARKETS = {
         *[market.value for market in TennisAsianHandicapGamesMarket],
         *[market.value for market in TennisCorrectScoreMarket],
     ],
+    Sport.RUGBY_LEAGUE: [
+        *[market.value for market in RugbyLeagueMarket],
+    ],
 }
 
 @pytest.mark.parametrize("sport_enum, expected", [
     (Sport.FOOTBALL, EXPECTED_MARKETS[Sport.FOOTBALL]),
     (Sport.TENNIS, EXPECTED_MARKETS[Sport.TENNIS]),
+    (Sport.RUGBY_LEAGUE, EXPECTED_MARKETS[Sport.RUGBY_LEAGUE]),
 ])
 def test_get_supported_markets_enum(sport_enum, expected):
     assert get_supported_markets(sport_enum) == expected
@@ -32,6 +37,7 @@ def test_get_supported_markets_enum(sport_enum, expected):
 @pytest.mark.parametrize("sport_str, expected", [
     ("football", EXPECTED_MARKETS[Sport.FOOTBALL]),
     ("tennis", EXPECTED_MARKETS[Sport.TENNIS]),
+    ("rugby-league", EXPECTED_MARKETS[Sport.RUGBY_LEAGUE]),
 ])
 def test_get_supported_markets_string(sport_str, expected):
     assert get_supported_markets(sport_str) == expected
