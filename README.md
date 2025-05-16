@@ -43,7 +43,7 @@ OddsHarvester supports a growing number of sports and their associated betting m
 | 🏀 Basketball  | `1x2`, `moneyline`, `asian_handicap`, `over/under`                             |
 | 🏉 Rugby League| `1x2`, `home_away`, `double_chance`, `draw_no_bet`, `over/under`, `handicap`                                   |
 | 🏉 Rugby Union | `1x2`, `home_away`, `double_chance`, `draw_no_bet`, `over/under`, `handicap`                                   |
-| 🏒 Ice Hockey  | `1x2`, `home_away`, `double_chance`, `draw_no_bet`, `btts`, `over/under` (1.5 to 11.5)                      |
+| 🏒 Ice Hockey  | `1x2`, `home_away`, `double_chance`, `draw_no_bet`, `btts`, `over/under`                    |
 
 > ⚙️ **Note**: Each sport and its markets are declared in enums inside `sport_market_constants.py`.
 
