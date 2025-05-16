@@ -2,8 +2,8 @@ import re, logging
 from typing import Dict, Any, List
 from playwright.async_api import Page
 from bs4 import BeautifulSoup
-from .browser_helper import BrowserHelper
-from .sport_market_registry import SportMarketRegistry
+from src.core.browser_helper import BrowserHelper
+from src.core.sport_market_registry import SportMarketRegistry
 from datetime import datetime, timezone
 
 class OddsPortalMarketExtractor:

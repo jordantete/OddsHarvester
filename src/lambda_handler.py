@@ -1,7 +1,7 @@
 import asyncio, pytz
 from typing import Any, Dict
 from datetime import datetime, timedelta
-from core.scraper_app import run_scraper
+from src.core.scraper_app import run_scraper
 
 def lambda_handler(event: Dict[str, Any], context: Any):
     """AWS Lambda handler for triggering the scraper."""

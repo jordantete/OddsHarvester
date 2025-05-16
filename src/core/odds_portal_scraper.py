@@ -1,9 +1,9 @@
 import random
 from typing import Optional, List, Dict, Any
-from .url_builder import URLBuilder
-from .base_scraper import BaseScraper
+from src.core.url_builder import URLBuilder
+from src.core.base_scraper import BaseScraper
 from playwright.async_api import Page
-from utils.constants import ODDSPORTAL_BASE_URL
+from src.utils.constants import ODDSPORTAL_BASE_URL
 
 class OddsPortalScraper(BaseScraper):
     """

@@ -1,6 +1,6 @@
 import logging
-from .cli_argument_parser import CLIArgumentParser
-from .cli_argument_validator import CLIArgumentValidator
+from src.cli.cli_argument_parser import CLIArgumentParser
+from src.cli.cli_argument_validator import CLIArgumentValidator
 
 class CLIArgumentHandler:
     def __init__(self):

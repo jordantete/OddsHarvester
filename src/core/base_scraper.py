@@ -3,10 +3,10 @@ from typing import List, Dict, Optional, Any
 from datetime import datetime, timezone
 from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError, Error
-from .playwright_manager import PlaywrightManager
-from .browser_helper import BrowserHelper
-from .odds_portal_market_extractor import OddsPortalMarketExtractor
-from utils.constants import ODDSPORTAL_BASE_URL, ODDS_FORMAT, SCRAPE_CONCURRENCY_TASKS
+from src.core.playwright_manager import PlaywrightManager
+from src.core.browser_helper import BrowserHelper
+from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
+from src.utils.constants import ODDSPORTAL_BASE_URL, ODDS_FORMAT, SCRAPE_CONCURRENCY_TASKS
 
 class BaseScraper:
     """

@@ -1,11 +1,13 @@
 import argparse
-from .cli_help_message_generator import CLIHelpMessageGenerator
-from src.utils.sport_market_constants import Sport
+from src.cli.cli_help_message_generator import CLIHelpMessageGenerator
 from src.storage.storage_type import StorageType
 from src.storage.storage_format import StorageFormat
 
 class CLIArgumentParser:
+    """Handles parsing of command-line arguments."""
+
     def __init__(self):
+        """Initialize the argument parser."""
         self.parser = argparse.ArgumentParser(
             description="OddsHarvester CLI for scraping betting odds data.",
             epilog=CLIHelpMessageGenerator().generate(),
@@ -13,7 +15,12 @@ class CLIArgumentParser:
         )
         self._initialize_subparsers()
 
+    def parse_args(self, args=None):
+        """Parse command line arguments."""
+        return self.parser.parse_args(args)
+
     def _initialize_subparsers(self):
+        """Add subparsers for different commands."""
         subparsers = self.parser.add_subparsers(
             title="Commands", 
             dest="command",
@@ -45,9 +52,8 @@ class CLIArgumentParser:
         parser.add_argument(
             "--sport",
             type=str,
-            choices=["football", "tennis", "basketball", "rugby-league"],
-            default="football",
-            help="Specify the sport to scrape (e.g., football, tennis, basketball, rugby-league)."
+            choices=["football", "tennis", "basketball", "rugby-league", "rugby-union"],
+            help="Specify the sport to scrape (e.g., football, tennis, basketball, rugby-league, rugby-union)."
         )
         parser.add_argument("--league", type=str, help="Specific league (e.g., premier-league).")
         parser.add_argument(

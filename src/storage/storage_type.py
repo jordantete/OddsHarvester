@@ -1,6 +1,6 @@
 from enum import Enum
-from .local_data_storage import LocalDataStorage
-from .remote_data_storage import RemoteDataStorage
+from src.storage.local_data_storage import LocalDataStorage
+from src.storage.remote_data_storage import RemoteDataStorage
 
 class StorageType(Enum):
     LOCAL = "local"

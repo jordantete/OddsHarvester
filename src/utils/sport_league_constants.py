@@ -126,4 +126,16 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "france-nrl": "https://www.oddsportal.com/rugby-league/france/elite-1/",
         "world-cup": "https://www.oddsportal.com/rugby-league/world/world-cup/"
     },
+    Sport.RUGBY_UNION: {
+        "six-nations": "https://www.oddsportal.com/rugby-union/world/six-nations/",
+        "rugby-championship": "https://www.oddsportal.com/rugby-union/world/the-rugby-championship/",
+        "world-cup": "https://www.oddsportal.com/rugby-union/world/world-cup/",
+        "england-premiership": "https://www.oddsportal.com/rugby-union/england/premiership/",
+        "france-top-14": "https://www.oddsportal.com/rugby-union/france/top-14/",
+        "france-pro-d2": "https://www.oddsportal.com/rugby-union/france/pro-d2/",
+        "super-rugby": "https://www.oddsportal.com/rugby-union/world/super-rugby/",
+        "united-rugby-championship": "https://www.oddsportal.com/rugby-union/world/united-rugby-championship/",
+        "currie-cup": "https://www.oddsportal.com/rugby-union/south-africa/currie-cup/",
+        "npc-cup": "https://www.oddsportal.com/rugby-union/new-zealand/bunnings-npc/"
+    },
 }

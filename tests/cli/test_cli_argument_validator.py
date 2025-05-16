@@ -1,7 +1,8 @@
-import pytest, re
+import pytest
 from unittest.mock import MagicMock
 from datetime import datetime, timedelta
 from src.cli.cli_argument_validator import CLIArgumentValidator
+from src.utils.sport_market_constants import Sport
 
 @pytest.fixture
 def validator():
@@ -41,11 +42,26 @@ def test_validate_command_invalid(validator, mock_args):
 
 @pytest.mark.parametrize("invalid_sport", ["invalid_sport", "handball", 123, None])
 def test_validate_sport_invalid(invalid_sport):
+    """Test validation of invalid sports."""
     validator = CLIArgumentValidator()
-    import argparse
-    args = argparse.Namespace(sport=invalid_sport)
-    with pytest.raises(ValueError, match=r"Invalid sport: '.*'\. Supported sports are: football, tennis, basketball, rugby-league\."):
-        validator._validate_sport(invalid_sport)
+    
+    with pytest.raises(ValueError) as exc_info:
+        validator._validate_sport(sport=invalid_sport)
+    
+    expected_sports = ', '.join(s.value for s in Sport)
+    if isinstance(invalid_sport, str):
+        assert f"Invalid sport: '{invalid_sport}'. Supported sports are: {expected_sports}." in str(exc_info.value)
+    else:
+        assert f"Invalid sport: {invalid_sport}. Expected one of {[s.value for s in Sport]}." in str(exc_info.value)
+
+def test_validate_sport_valid():
+    """Test validation of valid sports."""
+    validator = CLIArgumentValidator()
+    valid_sports = [s.value for s in Sport]
+    
+    for sport in valid_sports:
+        errors = validator._validate_sport(sport=sport)
+        assert not errors, f"Validation failed for valid sport: {sport}"
 
 def test_validate_markets_invalid(validator, mock_args):
     mock_args.markets = ["invalid_market"]
@@ -86,3 +102,32 @@ def test_validate_file_format_mismatch(validator, mock_args):
     mock_args.format = "csv"
     with pytest.raises(ValueError, match="Mismatch between file format 'csv' and file path extension 'json'."):
         validator.validate_args(mock_args)
+
+def test_validate_markets_rugby_union():
+    """Test validation of Rugby Union markets."""
+    validator = CLIArgumentValidator()
+    
+    # Test valid markets
+    valid_markets = ["1x2", "home_away", "over_under_43_5", "handicap_-13_5"]
+    errors = validator._validate_markets(sport=Sport.RUGBY_UNION, markets=valid_markets)
+    assert not errors, "Validation failed for valid Rugby Union markets"
+    
+    # Test invalid markets
+    invalid_markets = ["invalid_market", "btts"]  # BTTS n'existe pas en Rugby Union
+    errors = validator._validate_markets(sport=Sport.RUGBY_UNION, markets=invalid_markets)
+    assert len(errors) == 2, "Validation should fail for invalid Rugby Union markets"
+
+def test_validate_league_rugby_union():
+    """Test validation of Rugby Union leagues."""
+    validator = CLIArgumentValidator()
+    
+    # Test valid leagues
+    valid_leagues = ["six-nations", "france-top-14", "world-cup"]
+    for league in valid_leagues:
+        errors = validator._validate_league(sport=Sport.RUGBY_UNION, league=league)
+        assert not errors, f"Validation failed for valid Rugby Union league: {league}"
+    
+    # Test invalid league
+    errors = validator._validate_league(sport=Sport.RUGBY_UNION, league="invalid-league")
+    assert len(errors) == 1, "Validation should fail for invalid Rugby Union league"
+    assert "Invalid league: 'invalid-league' for sport 'rugby-union'" in errors[0]

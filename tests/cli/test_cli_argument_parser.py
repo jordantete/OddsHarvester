@@ -56,16 +56,27 @@ def test_parse_scrape_historic(parser):
     assert args.file_path == "historical.csv"
     assert args.headless is True
 
-def test_parser_defaults(parser):
-    args = parser.parse_args(["scrape_upcoming", "--date", "20250225"])
-    assert args.sport == "football"  # Default sport
+def test_parser_defaults():
+    """Test that the parser sets correct default values."""
+    parser = CLIArgumentParser()
+    args = parser.parse_args(['scrape_upcoming'])
+    
+    assert args.command == 'scrape_upcoming'
+    assert args.sport is None  # Changed from 'football' to None since we want explicit sport selection
     assert args.league is None
     assert args.markets is None
-    assert args.storage == "local"  # Default storage
-    assert args.format is None
+    assert args.storage == 'local'
     assert args.file_path is None
+    assert args.format is None
+    assert args.proxies is None
+    assert args.browser_user_agent is None
+    assert args.browser_locale_timezone is None
+    assert args.browser_timezone_id is None
     assert args.headless is False
     assert args.save_logs is False
+    assert args.target_bookmaker is None
+    assert args.scrape_odds_history is False
+    assert args.date is None
 
 def test_invalid_sport(parser):
     with pytest.raises(SystemExit):  # argparse raises SystemExit on invalid args

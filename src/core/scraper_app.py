@@ -1,11 +1,11 @@
 import logging, asyncio
-from .playwright_manager import PlaywrightManager
-from .browser_helper import BrowserHelper
-from .odds_portal_market_extractor import OddsPortalMarketExtractor
-from .odds_portal_scraper import OddsPortalScraper
-from .sport_market_registry import SportMarketRegistrar
-from utils.command_enum import CommandEnum
-from utils.proxy_manager import ProxyManager
+from src.core.playwright_manager import PlaywrightManager
+from src.core.browser_helper import BrowserHelper
+from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
+from src.core.odds_portal_scraper import OddsPortalScraper
+from src.core.sport_market_registry import SportMarketRegistrar
+from src.utils.command_enum import CommandEnum
+from src.utils.proxy_manager import ProxyManager
 
 logger = logging.getLogger("ScraperApp")
 MAX_RETRIES = 3

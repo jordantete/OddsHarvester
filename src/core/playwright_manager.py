@@ -1,8 +1,8 @@
 import logging, random
 from typing import Optional, Dict
 from playwright.async_api import async_playwright
-from utils.constants import PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER
-from utils.utils import is_running_in_docker
+from src.utils.constants import PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER
+from src.utils.utils import is_running_in_docker
 
 class PlaywrightManager:
     """

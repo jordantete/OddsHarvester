@@ -1,8 +1,8 @@
 import asyncio, logging, sys
-from cli import CLIArgumentHandler
-from utils.setup_logging import setup_logger
-from core.scraper_app import run_scraper
-from storage.storage_manager import store_data
+from src.cli.cli_argument_handler import CLIArgumentHandler
+from src.utils.setup_logging import setup_logger
+from src.core.scraper_app import run_scraper
+from src.storage.storage_manager import store_data
 
 def main():
     """Main entry point for CLI usage."""    

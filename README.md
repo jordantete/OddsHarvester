@@ -41,7 +41,8 @@ OddsHarvester supports a growing number of sports and their associated betting m
 | ⚽ Football     | `1x2`, `btts`, `double_chance`, `draw_no_bet`, `over/under`, `european_handicap`, `asian_handicap` |
 | 🎾 Tennis      | `match_winner`, `total_sets_over/under`, `total_games_over/under`, `asian_handicap`, `exact_score`       |
 | 🏀 Basketball  | `1x2`, `moneyline`, `asian_handicap`, `over/under`                             |
-| 🏉 Rugby League| `1x2`, `home_away`, `over/under`, `handicap`                                   |
+| 🏉 Rugby League| `1x2`, `home_away`, `double_chance`, `draw_no_bet`, `over/under`, `handicap`                                   |
+| 🏉 Rugby Union | `1x2`, `home_away`, `double_chance`, `draw_no_bet`, `over/under`, `handicap`                                   |
 
 > ⚙️ **Note**: Each sport and its markets are declared in enums inside `sport_market_constants.py`.
 
@@ -55,6 +56,7 @@ You'll find support for:
 - 🎾 **Major Tennis tournaments** (ATP, WTA, Grand Slams, etc.)
 - 🏀 **Global Basketball leagues** (NBA, EuroLeague, ACB, etc.)
 - 🏉 **Major Rugby League competitions** (NRL, Super League, etc.)
+- 🏉 **Major Rugby Union competitions** (Six Nations, Rugby Championship, Top 14, etc.)
 
 
 ## **🛠️ Local Installation**
