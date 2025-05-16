@@ -2,7 +2,8 @@ from src.utils.sport_market_constants import (
     Sport, FootballOverUnderMarket, FootballEuropeanHandicapMarket, FootballAsianHandicapMarket,
     TennisOverUnderSetsMarket, TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket,
     BasketballOverUnderMarket, BasketballAsianHandicapMarket,
-    RugbyLeagueMarket, RugbyUnionMarket
+    RugbyLeagueMarket, RugbyUnionMarket, IceHockeyMarket,
+    RugbyOverUnderMarket, RugbyHandicapMarket, IceHockeyOverUnderMarket
 )
 
 class SportMarketRegistry:
@@ -177,14 +178,7 @@ class SportMarketRegistrar:
         })
 
         # Over/Under Markets
-        for over_under in [
-            RugbyLeagueMarket.OVER_UNDER_32_5,
-            RugbyLeagueMarket.OVER_UNDER_36_5,
-            RugbyLeagueMarket.OVER_UNDER_40_5,
-            RugbyLeagueMarket.OVER_UNDER_44_5,
-            RugbyLeagueMarket.OVER_UNDER_48_5,
-            RugbyLeagueMarket.OVER_UNDER_52_5,
-        ]:
+        for over_under in RugbyOverUnderMarket:
             numeric_part = over_under.value.replace("over_under_", "").replace("_", ".")
             SportMarketRegistry.register(Sport.RUGBY_LEAGUE, {
                 over_under.value: cls.create_market_lambda(
@@ -195,16 +189,7 @@ class SportMarketRegistrar:
             })
 
         # Handicap Markets
-        for handicap in [
-            RugbyLeagueMarket.HANDICAP_MINUS_4_5,
-            RugbyLeagueMarket.HANDICAP_PLUS_4_5,
-            RugbyLeagueMarket.HANDICAP_MINUS_8_5,
-            RugbyLeagueMarket.HANDICAP_PLUS_8_5,
-            RugbyLeagueMarket.HANDICAP_MINUS_12_5,
-            RugbyLeagueMarket.HANDICAP_PLUS_12_5,
-            RugbyLeagueMarket.HANDICAP_MINUS_16_5,
-            RugbyLeagueMarket.HANDICAP_PLUS_16_5,
-        ]:
+        for handicap in RugbyHandicapMarket:
             numeric_part = handicap.value.replace("handicap_", "").replace("_", ".")
             SportMarketRegistry.register(Sport.RUGBY_LEAGUE, {
                 handicap.value: cls.create_market_lambda(
@@ -225,14 +210,7 @@ class SportMarketRegistrar:
         })
 
         # Over/Under Markets
-        for over_under in [
-            RugbyUnionMarket.OVER_UNDER_35_5,
-            RugbyUnionMarket.OVER_UNDER_39_5,
-            RugbyUnionMarket.OVER_UNDER_43_5,
-            RugbyUnionMarket.OVER_UNDER_47_5,
-            RugbyUnionMarket.OVER_UNDER_51_5,
-            RugbyUnionMarket.OVER_UNDER_55_5,
-        ]:
+        for over_under in RugbyOverUnderMarket:
             numeric_part = over_under.value.replace("over_under_", "").replace("_", ".")
             SportMarketRegistry.register(Sport.RUGBY_UNION, {
                 over_under.value: cls.create_market_lambda(
@@ -243,22 +221,35 @@ class SportMarketRegistrar:
             })
 
         # Handicap Markets
-        for handicap in [
-            RugbyUnionMarket.HANDICAP_MINUS_5_5,
-            RugbyUnionMarket.HANDICAP_PLUS_5_5,
-            RugbyUnionMarket.HANDICAP_MINUS_9_5,
-            RugbyUnionMarket.HANDICAP_PLUS_9_5,
-            RugbyUnionMarket.HANDICAP_MINUS_13_5,
-            RugbyUnionMarket.HANDICAP_PLUS_13_5,
-            RugbyUnionMarket.HANDICAP_MINUS_17_5,
-            RugbyUnionMarket.HANDICAP_PLUS_17_5,
-        ]:
+        for handicap in RugbyHandicapMarket:
             numeric_part = handicap.value.replace("handicap_", "").replace("_", ".")
             SportMarketRegistry.register(Sport.RUGBY_UNION, {
                 handicap.value: cls.create_market_lambda(
                     main_market="Handicap",
                     specific_market=f"Handicap {numeric_part}",
                     odds_labels=["handicap_team_1", "handicap_team_2"]
+                )
+            })
+
+    @classmethod
+    def register_ice_hockey_markets(cls):
+        """Registers all ice hockey betting markets."""
+        SportMarketRegistry.register(Sport.ICE_HOCKEY, {
+            "1x2": cls.create_market_lambda("1X2", odds_labels=["1", "X", "2"]),
+            "home_away": cls.create_market_lambda("Home/Away", odds_labels=["1", "2"]),
+            "dnb": cls.create_market_lambda("Draw No Bet", odds_labels=["dnb_team1", "dnb_team2"]),
+            "btts": cls.create_market_lambda("Both Teams to Score", odds_labels=["btts_yes", "btts_no"]),
+            "double_chance": cls.create_market_lambda("Double Chance", odds_labels=["1X", "12", "X2"]),
+        })
+
+        # Over/Under Markets
+        for over_under in IceHockeyOverUnderMarket:
+            numeric_part = over_under.value.replace("over_under_", "").replace("_", ".")
+            SportMarketRegistry.register(Sport.ICE_HOCKEY, {
+                over_under.value: cls.create_market_lambda(
+                    main_market="Over/Under",
+                    specific_market=f"Over/Under +{numeric_part}",
+                    odds_labels=["odds_over", "odds_under"]
                 )
             })
 
@@ -270,3 +261,4 @@ class SportMarketRegistrar:
         cls.register_basketball_markets()
         cls.register_rugby_league_markets()
         cls.register_rugby_union_markets()
+        cls.register_ice_hockey_markets()

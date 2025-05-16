@@ -138,4 +138,22 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "currie-cup": "https://www.oddsportal.com/rugby-union/south-africa/currie-cup/",
         "npc-cup": "https://www.oddsportal.com/rugby-union/new-zealand/bunnings-npc/"
     },
+    Sport.ICE_HOCKEY: {
+        "nhl": "https://www.oddsportal.com/hockey/usa/nhl/",
+        "khl": "https://www.oddsportal.com/hockey/russia/khl/",
+        "shl": "https://www.oddsportal.com/hockey/sweden/shl/",
+        "liiga": "https://www.oddsportal.com/hockey/finland/liiga/",
+        "czech-extraliga": "https://www.oddsportal.com/hockey/czech-republic/extraliga/",
+        "del": "https://www.oddsportal.com/hockey/germany/del/",
+        "alps-hockey-league": "https://www.oddsportal.com/hockey/europe/alps-hockey-league/",
+        "austria-ice-hockey-league": "https://www.oddsportal.com/hockey/austria/ice-hockey-league/",
+        "belarus-extraliga": "https://www.oddsportal.com/hockey/belarus/extraliga/",
+        "slovakia-extraliga": "https://www.oddsportal.com/hockey/slovakia/extraliga/",
+        "switzerland-national-league": "https://www.oddsportal.com/hockey/switzerland/national-league/",
+        "norway-eliteserien": "https://www.oddsportal.com/hockey/norway/eliteserien/",
+        "poland-polska-hokej-liga": "https://www.oddsportal.com/hockey/poland/polska-hokej-liga/",
+        "denmark-metal-ligaen": "https://www.oddsportal.com/hockey/denmark/metal-ligaen/",
+        "france-ligue-magnus": "https://www.oddsportal.com/hockey/france/ligue-magnus/",
+        "world-championship": "https://www.oddsportal.com/hockey/world/world-championship/",
+    }
 }
