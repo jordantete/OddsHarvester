@@ -152,15 +152,15 @@ Retrieve odds and event details for upcoming sports matches.
 
 - **Retrieve upcoming football matches for January 1, 2025, and save results locally:**
 
-`python main.py scrape_upcoming –sport football –date 2025-01-01`
+`uv run src/main.py scrape_upcoming –sport football --markets 1x2 –date 2025-01-01`
 
 - **Scrapes English Premier League matches with odds for 1x2 and Both Teams to Score (BTTS):**
 
-`python main.py scrape_upcoming --sport football --league england-premier-league --markets 1x2,btts --storage local`
+`uv run src/main.py scrape_upcoming --sport football --league england-premier-league --markets 1x2,btts --storage local`
 
 - **Scrapes football matches using a rotating proxy setup:**
 
-`python main.py scrape_upcoming --sport football --date 20250227 --proxies "http://proxy1.com:8080 user1 pass1" "http://proxy2.com:8080 user2 pass2"`
+`uv run src/main.py scrape_upcoming --sport football --date 20250227 --markets 1x2 --proxies "http://proxy1.com:8080 user1 pass1" "http://proxy2.com:8080 user2 pass2"`
 
 
 #### **2. Scrape Historical Odds**
@@ -172,7 +172,7 @@ Retrieve historical odds and results for analytical purposes.
 |-------------------------|-----------------------------------------------------------------|--------------|-------------|
 | `--sport`              | Specify the sport to scrape (e.g., `football`, `ice-hockey`).    | ✅           | None        |
 | `--league`             | Specify the league to scrape (e.g., `england-premier-league`). | ✅           | None        |
-| `--season`             | Target season in `YYYY-YYYY` format (e.g., `2022-2023`).        | ✅           | None        |
+| `--season`             | Target season in `YYYY` or `YYYY-YYYY` format (e.g., `2022` or `2022-2023`).        | ✅           | None        |
 | `--markets`            | Comma-separated betting markets (e.g., `1x2,btts`).            | ❌           | None       |
 | `--storage`            | Save data locally or to a remote S3 bucket (`local` or `remote`). | ❌       | `local`     |
 | `--file_path`          | File path to save data locally (e.g., `output.json`).          | ❌           | None |
@@ -193,11 +193,15 @@ Retrieve historical odds and results for analytical purposes.
 
 - **Retrieve historical odds for the Premier League's 2022-2023 season:**
 
-`python main.py scrape_historic –league premier-league –season 2022-2023`
+`uv run src/main.py scrape_historic –league premier-league –season 2022-2023 --markets 1x2`
+
+- **Retrieve historical odds for the MLS 2022 season:**
+
+`uv run src/main.py scrape_historic --sport football --league usa-mls --season 2022 --markets 1x2`
 
 - **Scrapes only 3 pages of historical odds data:**
 
-`python main.py scrape_historic --sport football --league england-premier-league --season 2022-2023 --max_pages 3`
+`uv run src/main.py  scrape_historic --sport football --league england-premier-league --season 2022-2023 --markets 1x2 --max_pages 3`
 
 
 #### **📌 Running the Help Command:**

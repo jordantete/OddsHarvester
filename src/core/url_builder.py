@@ -21,7 +21,7 @@ class URLBuilder:
         Args:
             sport (str): The sport for which the URL is required (e.g., "football", "tennis").
             league (str): The league for which the URL is required (e.g., "premier-league").
-            season (Optional[str]): The season for which the URL is required in 'YYYY-YYYY' format 
+            season (Optional[str]): The season for which the URL is required in 'YYYY-YYYY' or 'YYYY' format 
                 (e.g., "2023-2024"). If not provided, the URL for the current season is returned.
 
         Returns:
@@ -35,10 +35,11 @@ class URLBuilder:
         if not season:
             return base_url
 
-        if not re.match(r"^\d{4}-\d{4}$", season):
-            raise ValueError(f"Invalid season format: {season}. Expected format: 'YYYY-YYYY'.")
-
-        return f"{base_url}-{season}/results/"
+        # Accepte YYYY ou YYYY-YYYY
+        if re.match(r"^\d{4}$", season) or re.match(r"^\d{4}-\d{4}$", season):
+            return f"{base_url}-{season}/results/"
+        else:
+            raise ValueError(f"Invalid season format: {season}. Expected format: 'YYYY' or 'YYYY-YYYY'.")
 
     @staticmethod
     def get_upcoming_matches_url(
