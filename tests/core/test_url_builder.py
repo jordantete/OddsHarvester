@@ -26,7 +26,7 @@ def test_get_historic_matches_url(sport, league, season, expected_url):
     assert URLBuilder.get_historic_matches_url(sport, league, season) == expected_url
 
 def test_get_historic_matches_url_invalid_season():
-    with pytest.raises(ValueError, match="Invalid season format: 20-2024. Expected format: 'YYYY-YYYY'."):
+    with pytest.raises(ValueError, match="Invalid season format: 20-2024. Expected format: 'YYYY' or 'YYYY-YYYY'."):
         URLBuilder.get_historic_matches_url("football", "england-premier-league", "20-2024")
 
 @pytest.mark.parametrize(
