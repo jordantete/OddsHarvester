@@ -28,14 +28,13 @@ class URLBuilder:
             str: The constructed URL for the league and season.
 
         Raises:
-            ValueError: If the season is provided but does not follow the expected 'YYYY-YYYY' format.
+            ValueError: If the season is provided but does not follow the expected 'YYYY' or 'YYYY-YYYY' format.
         """
         base_url = URLBuilder.get_league_url(sport, league)
 
         if not season:
             return base_url
 
-        # Accepte YYYY ou YYYY-YYYY
         if re.match(r"^\d{4}$", season) or re.match(r"^\d{4}-\d{4}$", season):
             return f"{base_url}-{season}/results/"
         else:

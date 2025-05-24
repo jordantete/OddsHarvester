@@ -46,3 +46,6 @@ conda_packages.txt
 # Ignore Lambda Layer Artifacts
 lambda_layer.zip
 python/
+
+# Cursor
+*.cursor
