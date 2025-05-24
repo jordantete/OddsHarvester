@@ -172,7 +172,7 @@ Retrieve historical odds and results for analytical purposes.
 |-------------------------|-----------------------------------------------------------------|--------------|-------------|
 | `--sport`              | Specify the sport to scrape (e.g., `football`, `ice-hockey`).    | ✅           | None        |
 | `--league`             | Specify the league to scrape (e.g., `england-premier-league`). | ✅           | None        |
-| `--season`             | Target season in `YYYY` or `YYYY-YYYY` format (e.g., `2022` or `2022-2023`).        | ✅           | None        |
+| `--season`             | Target season in `YYYY`, `YYYY-YYYY` format (e.g., `2022` or `2022-2023`), or `current` for the current season. | ✅           | None        |
 | `--markets`            | Comma-separated betting markets (e.g., `1x2,btts`).            | ❌           | None       |
 | `--storage`            | Save data locally or to a remote S3 bucket (`local` or `remote`). | ❌       | `local`     |
 | `--file_path`          | File path to save data locally (e.g., `output.json`).          | ❌           | None |
@@ -194,6 +194,10 @@ Retrieve historical odds and results for analytical purposes.
 - **Retrieve historical odds for the Premier League's 2022-2023 season:**
 
 `uv run src/main.py scrape_historic –league premier-league –season 2022-2023 --markets 1x2`
+
+- **Retrieve historical odds for the current season of Premier League:**
+
+`uv run src/main.py scrape_historic --sport football --league england-premier-league --season current --markets 1x2`
 
 - **Retrieve historical odds for the MLS 2022 season:**
 

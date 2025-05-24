@@ -15,18 +15,22 @@ SPORTS_LEAGUES_URLS_MAPPING[Sport.TENNIS] = {
 @pytest.mark.parametrize(
     "sport, league, season, expected_url",
     [
-        # Valid cases
+        # Valid cases with specific seasons
         ("football", "england-premier-league", "2023-2024", f"{ODDSPORTAL_BASE_URL}/football/england/premier-league-2023-2024/results/"),
         ("tennis", "atp-tour", "2024-2025", f"{ODDSPORTAL_BASE_URL}/tennis/atp-tour-2024-2025/results/"),
-        # Without season, should return base league URL
-        ("football", "england-premier-league", None, f"{ODDSPORTAL_BASE_URL}/football/england/premier-league"),
+        # Current season cases
+        ("football", "england-premier-league", "current", f"{ODDSPORTAL_BASE_URL}/football/england/premier-league/results/"),
+        ("football", "england-premier-league", "", f"{ODDSPORTAL_BASE_URL}/football/england/premier-league/results/"),
+        ("football", "england-premier-league", None, f"{ODDSPORTAL_BASE_URL}/football/england/premier-league/results/"),
+        # Single year format
+        ("tennis", "atp-tour", "2024", f"{ODDSPORTAL_BASE_URL}/tennis/atp-tour-2024/results/"),
     ]
 )
 def test_get_historic_matches_url(sport, league, season, expected_url):
     assert URLBuilder.get_historic_matches_url(sport, league, season) == expected_url
 
 def test_get_historic_matches_url_invalid_season():
-    with pytest.raises(ValueError, match="Invalid season format: 20-2024. Expected format: 'YYYY' or 'YYYY-YYYY'."):
+    with pytest.raises(ValueError, match="Invalid season format: 20-2024. Expected format: 'YYYY', 'YYYY-YYYY', or 'current'."):
         URLBuilder.get_historic_matches_url("football", "england-premier-league", "20-2024")
 
 @pytest.mark.parametrize(
