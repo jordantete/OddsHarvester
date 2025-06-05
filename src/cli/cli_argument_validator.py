@@ -162,23 +162,22 @@ class CLIArgumentValidator:
             errors.append("The season argument is required for the 'scrape_historic' command.")
             return errors
 
-        # Check for "current" season
-        if season.lower() == "current" or season.strip() == "":
-            return errors
-
-        # Accepte YYYY ou YYYY-YYYY
         single_year_pattern = re.compile(r"^\d{4}$")
         range_pattern = re.compile(r"^\d{4}-\d{4}$")
+
         if single_year_pattern.match(season):
+            # Valid single year (e.g., 2024), no further checks needed
             return errors
-        elif range_pattern.match(season):
+
+        if range_pattern.match(season):
+            # Validate that the second year is exactly one after the first
             start_year, end_year = map(int, season.split("-"))
             if end_year != start_year + 1:
                 errors.append(f"Invalid season range: '{season}'. The second year must be exactly one year after the first year.")
-            return errors
         else:
-            errors.append(f"Invalid season format: '{season}'. Expected format: YYYY (e.g., 2022), YYYY-YYYY (e.g., 2022-2023), or 'current'.")
-            return errors
+            errors.append(f"Invalid season format: '{season}'. Expected format: YYYY or YYYY-YYYY (e.g., 2024 or 2024-2025).")
+
+        return errors
 
     def _validate_date(
         self, 

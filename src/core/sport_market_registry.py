@@ -3,7 +3,7 @@ from src.utils.sport_market_constants import (
     TennisOverUnderSetsMarket, TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket,
     BasketballOverUnderMarket, BasketballAsianHandicapMarket,
     RugbyLeagueMarket, RugbyUnionMarket, IceHockeyMarket,
-    RugbyOverUnderMarket, RugbyHandicapMarket, IceHockeyOverUnderMarket
+    RugbyOverUnderMarket, RugbyHandicapMarket, IceHockeyOverUnderMarket, BaseballMarket, BaseballOverUnderMarket
 )
 
 class SportMarketRegistry:
@@ -254,6 +254,25 @@ class SportMarketRegistrar:
             })
 
     @classmethod
+    def register_baseball_markets(cls):
+        """Registers all baseball betting markets."""
+        SportMarketRegistry.register(Sport.BASEBALL, {
+            "1x2": cls.create_market_lambda("1X2", odds_labels=["1", "X", "2"]),
+            "home_away": cls.create_market_lambda("Home/Away", odds_labels=["1", "2"]),
+        })
+
+        # Over/Under Markets
+        for over_under in BaseballOverUnderMarket:
+            numeric_part = over_under.value.replace("over_under_", "").replace("_", ".")
+            SportMarketRegistry.register(Sport.BASEBALL, {
+                over_under.value: cls.create_market_lambda(
+                    main_market="Over/Under",
+                    specific_market=f"Over/Under +{numeric_part}",
+                    odds_labels=["odds_over", "odds_under"]
+                )
+            })
+
+    @classmethod
     def register_all_markets(cls):
         """Registers all sports markets."""
         cls.register_football_markets()
@@ -262,3 +281,4 @@ class SportMarketRegistrar:
         cls.register_rugby_league_markets()
         cls.register_rugby_union_markets()
         cls.register_ice_hockey_markets()
+        cls.register_baseball_markets()
