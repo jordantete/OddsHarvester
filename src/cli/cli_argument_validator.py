@@ -151,30 +151,6 @@ class CLIArgumentValidator:
 
         return errors
 
-    # def _validate_season(self, command: str, season: Optional[str]) -> List[str]:
-    #     """Validates the season argument (only for scrape_historic command)."""
-    #     errors = []
-
-    #     if command != "scrape_historic":
-    #         return errors  # Season validation is only for the historic command
-
-    #     if not season:
-    #         errors.append("The season argument is required for the 'scrape_historic' command.")
-    #         return errors
-
-    #     # Match format YYYY-YYYY (e.g., 2023-2024)
-    #     season_pattern = re.compile(r"^\d{4}-\d{4}$")
-    #     if not season_pattern.match(season):
-    #         errors.append(f"Invalid season format: '{season}'. Expected format: YYYY-YYYY (e.g., 2023-2024).")
-    #         return errors
-
-    #     # Validate that the second year is exactly one year after the first year
-    #     start_year, end_year = map(int, season.split("-"))
-    #     if end_year != start_year + 1:
-    #         errors.append(f"Invalid season range: '{season}'. The second year must be exactly one year after the first year.")
-
-    #     return errors
-
     def _validate_season(self, command: str, season: Optional[str]) -> List[str]:
         """Validates the season argument (only for scrape_historic command)."""
         errors = []
