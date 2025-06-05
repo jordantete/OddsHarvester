@@ -12,39 +12,47 @@ class URLBuilder:
     @staticmethod
     def get_historic_matches_url(
         sport: str,
-        league: str, 
+        league: str,
         season: Optional[str] = None
     ) -> str:
         """
         Constructs the URL for historical matches of a specific sport league and season.
 
         Args:
-            sport (str): The sport for which the URL is required (e.g., "football", "tennis").
-            league (str): The league for which the URL is required (e.g., "premier-league").
-            season (Optional[str]): The season for which the URL is required:
-                - 'YYYY-YYYY' format (e.g., "2023-2024")
-                - 'YYYY' format (e.g., "2023")
-                - 'current' for the current season
-                - None or empty string for the current season
-                If not provided, the URL for the current season is returned.
+            sport (str): The sport for which the URL is required (e.g., "football", "tennis", "baseball").
+            league (str): The league for which the URL is required (e.g., "premier-league", "mlb").
+            season (Optional[str]): The season for which the URL is required. Accepts either:
+                - a single year (e.g., "2024")
+                - a range in 'YYYY-YYYY' format (e.g., "2023-2024")
 
         Returns:
             str: The constructed URL for the league and season.
 
         Raises:
-            ValueError: If the season is provided but does not follow any expected format.
+            ValueError: If the season is provided but does not follow the expected format(s).
         """
-        base_url = URLBuilder.get_league_url(sport, league)
+        base_url = URLBuilder.get_league_url(sport, league).rstrip("/")
+        #base_url = URLBuilder.get_league_url(sport, league)
 
-        # Handle current season cases
-        if not season or season.lower() == "current" or season.strip() == "":
-            return f"{base_url}/results/"
+        if not season:
+            return base_url
 
-        # Handle past seasons
-        if re.match(r"^\d{4}$", season) or re.match(r"^\d{4}-\d{4}$", season):
+        if re.match(r"^\d{4}$", season):
             return f"{base_url}-{season}/results/"
-        else:
-            raise ValueError(f"Invalid season format: {season}. Expected format: 'YYYY', 'YYYY-YYYY', or 'current'.")
+
+        if re.match(r"^\d{4}-\d{4}$", season):
+            start_year, end_year = map(int, season.split("-"))
+            if end_year != start_year + 1:
+                raise ValueError(f"Invalid season range: {season}. The second year must be exactly one year after the first.")
+
+            # Special handling for MLB league
+            if league.lower() == "mlb":
+                return f"{base_url}-{start_year}/results/"
+
+            return f"{base_url}-{season}/results/"
+
+        raise ValueError(f"Invalid season format: {season}. Expected format: 'YYYY' or 'YYYY-YYYY'.")
+
 
     @staticmethod
     def get_upcoming_matches_url(
