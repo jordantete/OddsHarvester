@@ -2,7 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://github.com/jordantete/OddsHarvester/actions/workflows/run_unit_tests.yml/badge.svg)](https://github.com/jordantete/OddsHarvester/actions)
-[![codecov](https://codecov.io/gh/jordantete/OddsHarvester/branch/main/graph/badge.svg)](https://codecov.io/gh/jordantete/OddsHarvester)
+[![codecov](https://codecov.io/github/jordantete/OddsHarvester/graph/badge.svg?token=DOZRQAXAK7)](https://codecov.io/github/jordantete/OddsHarvester)
+
 
 OddsHarvester is an application designed to scrape and process sports betting odds and match data from **oddsportal.com** website. 
 

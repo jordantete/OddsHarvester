@@ -1,4 +1,3 @@
-import pytest
 from src.utils.sport_market_constants import (
     Sport, FootballMarket, BaseballMarket, BaseballOverUnderMarket,
     FootballOverUnderMarket, FootballEuropeanHandicapMarket, FootballAsianHandicapMarket,
