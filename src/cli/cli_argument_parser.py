@@ -38,7 +38,7 @@ class CLIArgumentParser:
     def _add_historic_parser(self, subparsers):
         parser = subparsers.add_parser("scrape_historic", help="Scrape historical odds for a specific league and/or season.")
         self._add_common_arguments(parser)
-        parser.add_argument("--season", type=str, required=True, help="📅 Season to scrape (format: YYYY-YYYY, e.g., 2022-2023).")
+        parser.add_argument("--season", type=str, required=True, help="📅 Season to scrape (format: YYYY, YYYY-YYYY, e.g., 2023 or 2022-2023).")
         parser.add_argument("--max_pages", type=int, help="📑 Maximum number of pages to scrape (optional).")
 
     def _add_common_arguments(self, parser):

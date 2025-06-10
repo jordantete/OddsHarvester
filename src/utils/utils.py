@@ -1,6 +1,7 @@
 import os
+import logging
 from enum import Enum
-from typing import Dict, List, Type
+from typing import Dict, List, Type, Union, Any
 from src.utils.sport_market_constants import (
     Sport, FootballMarket, FootballOverUnderMarket, FootballEuropeanHandicapMarket, FootballAsianHandicapMarket,
     TennisMarket, TennisOverUnderSetsMarket, TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket,
@@ -8,6 +9,8 @@ from src.utils.sport_market_constants import (
     RugbyLeagueMarket, RugbyUnionMarket, IceHockeyMarket,
     RugbyOverUnderMarket, RugbyHandicapMarket, IceHockeyOverUnderMarket, BaseballOverUnderMarket, BaseballMarket
 )
+
+logger = logging.getLogger(__name__)
 
 SPORT_MARKETS_MAPPING: Dict[Sport, List[Type[Enum]]] = {
     Sport.FOOTBALL: [FootballMarket, FootballOverUnderMarket, FootballEuropeanHandicapMarket, FootballAsianHandicapMarket],
@@ -19,16 +22,31 @@ SPORT_MARKETS_MAPPING: Dict[Sport, List[Type[Enum]]] = {
     Sport.BASEBALL: [BaseballMarket, BaseballOverUnderMarket],
 }
 
-def get_supported_markets(sport: Sport) -> List[str]:
-    """Retrieve the list of supported markets for a given sport."""
+def get_supported_markets(sport: Union[Sport, str]) -> List[str]:
+    """
+    Retrieve the list of supported markets for a given sport.
+    
+    Args:
+        sport (Union[Sport, str]): The sport to get markets for. Can be a Sport enum or a string.
+        
+    Returns:
+        List[str]: A list of market names supported for the given sport.
+        
+    Raises:
+        ValueError: If the sport is not supported or the input is invalid.
+    """
     if isinstance(sport, str):
         try:
             sport = Sport(sport.lower())
         except ValueError:
-            raise ValueError(f"Invalid sport name: {sport}. Expected one of {[s.value for s in Sport]}.")
+            valid_sports = [s.value for s in Sport]
+            raise ValueError(f"Invalid sport name: {sport}. Expected one of {valid_sports}.")
+    
+    if not isinstance(sport, Sport):
+        raise ValueError(f"Unsupported sport: {sport}")
         
     if sport not in SPORT_MARKETS_MAPPING:
-        raise ValueError(f"Unsupported sport: {sport}")
+        raise ValueError(f"Sport {sport.name} is not configured in the market mapping")
 
     market_list = []
     for market_enum in SPORT_MARKETS_MAPPING[sport]:
@@ -37,5 +55,14 @@ def get_supported_markets(sport: Sport) -> List[str]:
     return market_list
 
 def is_running_in_docker() -> bool:
-    """Detect if the app is running inside a Docker container."""
-    return os.path.exists('/.dockerenv')
+    """
+    Detect if the app is running inside a Docker container.
+    
+    Returns:
+        bool: True if running in Docker, False otherwise.
+    """
+    try:
+        return os.path.exists('/.dockerenv')
+    except (PermissionError, OSError) as e:
+        logger.warning(f"Error checking Docker environment: {str(e)}")
+        return False

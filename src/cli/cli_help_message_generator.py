@@ -23,7 +23,7 @@ class CLIHelpMessageGenerator:
             "🔹 **scrape_historic** - Scrape historical odds and match results.\n"
             "   --sport                     🏆 The sport to scrape (default: football).\n"
             "   --league                    ⚽ The league to scrape (e.g., england-premier-league).\n"
-            "   --season                    📅 Season to scrape (format: YYYY-YYYY, e.g., 2022-2023).\n"
+            "   --season                    📅 Season to scrape (format: YYYY, YYYY-YYYY, e.g., 2023 or 2022-2023).\n"
             "   --markets                   💰 Betting markets to scrape (comma-separated, e.g., 1x2, btts).\n"
             "   --storage                   💾 Storage type (local or remote; default: local).\n"
             "   --file_path                 📂 File path for saving data locally (default: scraped_data.json).\n"

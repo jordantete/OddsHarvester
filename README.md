@@ -44,6 +44,7 @@ OddsHarvester supports a growing number of sports and their associated betting m
 | 🏉 Rugby League| `1x2`, `home_away`, `double_chance`, `draw_no_bet`, `over/under`, `handicap`                                   |
 | 🏉 Rugby Union | `1x2`, `home_away`, `double_chance`, `draw_no_bet`, `over/under`, `handicap`                                   |
 | 🏒 Ice Hockey  | `1x2`, `home_away`, `double_chance`, `draw_no_bet`, `btts`, `over/under`                    |
+| ⚾ Baseball    | `moneyline`, `over/under`                    |
 
 > ⚙️ **Note**: Each sport and its markets are declared in enums inside `sport_market_constants.py`.
 
@@ -59,6 +60,7 @@ You'll find support for:
 - 🏉 **Major Rugby League competitions** (NRL, Super League, etc.)
 - 🏉 **Major Rugby Union competitions** (Six Nations, Rugby Championship, Top 14, etc.)
 - 🏒 **Major Ice Hockey leagues** (NHL, KHL, SHL, Liiga, etc.)
+- ⚾ **Major Baseball leagues** (MLB, NPB, KBO, etc.)
 
 
 ## **🛠️ Local Installation**
@@ -85,13 +87,13 @@ You'll find support for:
    If you prefer to set up manually, follow these steps:
 
    - **Create a virtual environment**: Use Python's `venv` module to create an isolated environment (or `virtualenv`) for the project. Activate it depending on your operating system:
-      - `pvython3 -m venv .venv`
+      - `python3 -m venv .venv`
 
      - On Unix/MacOS:
-       `source venv/bin/activate`
+       `source .venv/bin/activate`
 
      - On Windows:  
-       `venv\Scripts\activate`
+       `.venv\Scripts\activate`
 
    - **Install dependencies with pip**: Use pip with the `--use-pep517` flag to install directly from the `pyproject.toml` file: 
        `pip install . --use-pep517`.
@@ -123,7 +125,7 @@ Retrieve odds and event details for upcoming sports matches.
 
 | 🏷️ Option                | 📝 Description                                                         | 🔐 Required  | 🔧 Default  |
 |-------------------------|-----------------------------------------------------------------|--------------|-------------|
-| `--sport`              | Specify the sport to scrape (e.g., `football`, `ice-hockey`).    | ✅           | None        |
+| `--sport`              | Specify the sport to scrape (e.g., `football`, `ice-hockey`, `baseball`).    | ✅           | None        |
 | `--date`               | Date for matches in `YYYYMMDD` format (e.g., `20250227`).      | ✅ (unless `--match_links` or `--league` provided) | None        |
 | `--league`             | Specify the league to scrape (e.g., `england-premier-league`). | ❌           | None        |
 | `--markets`            | Comma-separated betting markets (e.g., `1x2,btts`).            | ❌           | None       |
@@ -152,15 +154,15 @@ Retrieve odds and event details for upcoming sports matches.
 
 - **Retrieve upcoming football matches for January 1, 2025, and save results locally:**
 
-`uv run src/main.py scrape_upcoming –sport football --markets 1x2 –date 2025-01-01`
+`uv run src/main.py scrape_upcoming --sport football --markets 1x2 --date 2025-01-01`
 
 - **Scrapes English Premier League matches with odds for 1x2 and Both Teams to Score (BTTS):**
 
 `uv run src/main.py scrape_upcoming --sport football --league england-premier-league --markets 1x2,btts --storage local`
 
-- **Scrapes football matches using a rotating proxy setup:**
+- **Scrapes baseball matches using a rotating proxy setup:**
 
-`uv run src/main.py scrape_upcoming --sport football --date 20250227 --markets 1x2 --proxies "http://proxy1.com:8080 user1 pass1" "http://proxy2.com:8080 user2 pass2"`
+`uv run src/main.py scrape_upcoming --sport baseball --date 20250227 --markets moneyline --proxies "http://proxy1.com:8080 user1 pass1" "http://proxy2.com:8080 user2 pass2"`
 
 
 #### **2. Scrape Historical Odds**
@@ -170,7 +172,7 @@ Retrieve historical odds and results for analytical purposes.
 
 | 🏷️ Option                | 📝 Description                                                         | 🔐 Required  | 🔧 Default  |
 |-------------------------|-----------------------------------------------------------------|--------------|-------------|
-| `--sport`              | Specify the sport to scrape (e.g., `football`, `ice-hockey`).    | ✅           | None        |
+| `--sport`              | Specify the sport to scrape (e.g., `football`, `ice-hockey`, `baseball`).    | ✅           | None        |
 | `--league`             | Specify the league to scrape (e.g., `england-premier-league`). | ✅           | None        |
 | `--season`             | Target season in `YYYY`, `YYYY-YYYY` format (e.g., `2022` or `2022-2023`), or `current` for the current season. | ✅           | None        |
 | `--markets`            | Comma-separated betting markets (e.g., `1x2,btts`).            | ❌           | None       |
@@ -193,26 +195,26 @@ Retrieve historical odds and results for analytical purposes.
 
 - **Retrieve historical odds for the Premier League's 2022-2023 season:**
 
-`uv run src/main.py scrape_historic –league premier-league –season 2022-2023 --markets 1x2`
+`uv run src/main.py scrape_historic --sport football --league england-premier-league --season 2022-2023 --markets 1x2`
 
 - **Retrieve historical odds for the current season of Premier League:**
 
 `uv run src/main.py scrape_historic --sport football --league england-premier-league --season current --markets 1x2`
 
-- **Retrieve historical odds for the MLS 2022 season:**
+- **Retrieve historical MLB 2022 season data:**
 
-`uv run src/main.py scrape_historic --sport football --league usa-mls --season 2022 --markets 1x2`
+`uv run src/main.py scrape_historic --sport baseball --league usa-mlb --season 2022 --markets moneyline`
 
 - **Scrapes only 3 pages of historical odds data:**
 
-`uv run src/main.py  scrape_historic --sport football --league england-premier-league --season 2022-2023 --markets 1x2 --max_pages 3`
+`uv run src/main.py scrape_historic --sport football --league england-premier-league --season 2022-2023 --markets 1x2 --max_pages 3`
 
 
 #### **📌 Running the Help Command:**
 
 To display all available CLI commands and options, run:
 
-`uv run python main.py --help`
+`uv run src/main.py --help`
 
 ### **🐳 Running Inside a Docker Container**
 

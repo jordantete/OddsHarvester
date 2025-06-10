@@ -24,6 +24,7 @@ class URLBuilder:
             season (Optional[str]): The season for which the URL is required. Accepts either:
                 - a single year (e.g., "2024")
                 - a range in 'YYYY-YYYY' format (e.g., "2023-2024")
+                - None or empty string for the current season
 
         Returns:
             str: The constructed URL for the league and season.
@@ -32,10 +33,9 @@ class URLBuilder:
             ValueError: If the season is provided but does not follow the expected format(s).
         """
         base_url = URLBuilder.get_league_url(sport, league).rstrip("/")
-        #base_url = URLBuilder.get_league_url(sport, league)
 
         if not season:
-            return base_url
+            return f"{base_url}/results/"
 
         if re.match(r"^\d{4}$", season):
             return f"{base_url}-{season}/results/"
@@ -45,13 +45,13 @@ class URLBuilder:
             if end_year != start_year + 1:
                 raise ValueError(f"Invalid season range: {season}. The second year must be exactly one year after the first.")
 
-            # Special handling for MLB league
-            if league.lower() == "mlb":
+            # Special handling for baseball leagues
+            if sport.lower() == "baseball":
                 return f"{base_url}-{start_year}/results/"
 
             return f"{base_url}-{season}/results/"
 
-        raise ValueError(f"Invalid season format: {season}. Expected format: 'YYYY' or 'YYYY-YYYY'.")
+        raise ValueError(f"Invalid season format: {season}. Expected format: 'YYYY' or 'YYYY-YYYY'")
 
 
     @staticmethod
