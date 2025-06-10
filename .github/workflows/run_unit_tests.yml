@@ -33,3 +33,11 @@ jobs:
 
       - name: Run Tests with Pytest
         run: uv run pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          fail_ci_if_error: true
+          files: ./coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
