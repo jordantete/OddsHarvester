@@ -8,6 +8,7 @@ class Sport(Enum):
     RUGBY_LEAGUE = "rugby-league"
     RUGBY_UNION = "rugby-union"
     ICE_HOCKEY = "ice-hockey"
+    BASEBALL = "baseball"
 
 class FootballMarket(Enum):
     """Football-specific markets."""
@@ -15,6 +16,24 @@ class FootballMarket(Enum):
     BTTS = "btts"
     DOUBLE_CHANCE = "double_chance"
     DNB = "dnb"
+
+class BaseballMarket(Enum):
+    """Football-specific markets."""
+    ONE_X_TWO = "1x2"
+    HOME_AWAY = "home_away"
+
+class BaseballOverUnderMarket(Enum):
+    OVER_UNDER_6_5 = "over_under_6_5"
+    OVER_UNDER_7_0 = "over_under_7_0"
+    OVER_UNDER_7_5 = "over_under_7_5"
+    OVER_UNDER_8_0 = "over_under_8_0"
+    OVER_UNDER_8_5 = "over_under_8_5"
+    OVER_UNDER_9_0 = "over_under_9_0"
+    OVER_UNDER_9_5 = "over_under_9_5"
+    OVER_UNDER_10_0 = "over_under_10_0"
+    OVER_UNDER_10_5 = "over_under_10_5"
+    OVER_UNDER_11_0 = "over_under_11_0"
+    OVER_UNDER_11_5 = "over_under_11_5"
 
 class FootballOverUnderMarket(Enum):
     """Over/Under market values (from 0.5 to 6.5) for football."""

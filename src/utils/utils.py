@@ -6,7 +6,7 @@ from src.utils.sport_market_constants import (
     TennisMarket, TennisOverUnderSetsMarket, TennisOverUnderGamesMarket, TennisAsianHandicapGamesMarket, TennisCorrectScoreMarket,
     BasketballMarket, BasketballAsianHandicapMarket, BasketballOverUnderMarket,
     RugbyLeagueMarket, RugbyUnionMarket, IceHockeyMarket,
-    RugbyOverUnderMarket, RugbyHandicapMarket, IceHockeyOverUnderMarket
+    RugbyOverUnderMarket, RugbyHandicapMarket, IceHockeyOverUnderMarket, BaseballOverUnderMarket, BaseballMarket
 )
 
 SPORT_MARKETS_MAPPING: Dict[Sport, List[Type[Enum]]] = {
@@ -16,6 +16,7 @@ SPORT_MARKETS_MAPPING: Dict[Sport, List[Type[Enum]]] = {
     Sport.RUGBY_LEAGUE: [RugbyLeagueMarket, RugbyOverUnderMarket, RugbyHandicapMarket],
     Sport.RUGBY_UNION: [RugbyUnionMarket, RugbyOverUnderMarket, RugbyHandicapMarket],
     Sport.ICE_HOCKEY: [IceHockeyMarket, IceHockeyOverUnderMarket],
+    Sport.BASEBALL: [BaseballMarket, BaseballOverUnderMarket],
 }
 
 def get_supported_markets(sport: Sport) -> List[str]:

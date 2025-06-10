@@ -23,7 +23,7 @@ class CLIHelpMessageGenerator:
             "🔹 **scrape_historic** - Scrape historical odds and match results.\n"
             "   --sport                     🏆 The sport to scrape (default: football).\n"
             "   --league                    ⚽ The league to scrape (e.g., england-premier-league).\n"
-            "   --season                    📅 Season to scrape (format: YYYY or YYYY-YYYY, e.g., 2022 or 2022-2023).\n"
+            "   --season                    📅 Season to scrape (format: YYYY-YYYY, e.g., 2022-2023).\n"
             "   --markets                   💰 Betting markets to scrape (comma-separated, e.g., 1x2, btts).\n"
             "   --storage                   💾 Storage type (local or remote; default: local).\n"
             "   --file_path                 📂 File path for saving data locally (default: scraped_data.json).\n"
@@ -50,5 +50,5 @@ class CLIHelpMessageGenerator:
             "   `python main.py scrape_upcoming --match_links 'https://www.oddsportal.com/football/england/premier-league/leicester-brentford-xQ77QTN0/#1X2;2'`\n\n"
             "💡 **Note:**\n"
             "- If both **date** and **league** are provided for `scrape_upcoming`, the scraper will ignore the date and scrape all upcoming matches for that league.\n"
-            "- Ensure the proxy's **region matches** the `BROWSER_LOCALE_TIMEZONE` and `BROWSER_TIMEZONE_ID` settings for best results.\n"
+            "- Ensure the proxy’s **region matches** the `BROWSER_LOCALE_TIMEZONE` and `BROWSER_TIMEZONE_ID` settings for best results.\n"
         )
