@@ -131,3 +131,139 @@ def test_validate_league_rugby_union():
     errors = validator._validate_league(sport=Sport.RUGBY_UNION, league="invalid-league")
     assert len(errors) == 1, "Validation should fail for invalid Rugby Union league"
     assert "Invalid league: 'invalid-league' for sport 'rugby-union'" in errors[0]
+
+# Tests pour _validate_season
+@pytest.mark.parametrize("command, season, expected_errors", [
+    ("scrape_historic", "2023-2024", []),  # Valid format YYYY-YYYY
+    ("scrape_historic", "2023", []),  # Valid format YYYY
+    ("scrape_historic", "2022-2024", ["Invalid season range: '2022-2024'. The second year must be exactly one year after the first year."]),  # Invalid range
+    ("scrape_historic", "202X", ["Invalid season format: '202X'. Expected format: YYYY or YYYY-YYYY (e.g., 2024 or 2024-2025)."]),  # Invalid format
+    ("scrape_historic", None, ["The season argument is required for the 'scrape_historic' command."]),  # Missing season
+    ("scrape_upcoming", "2023-2024", []),  # Different command, no validation
+])
+def test_validate_season(validator, command, season, expected_errors):
+    """Test validation of the season parameter."""
+    errors = validator._validate_season(command=command, season=season)
+    assert errors == expected_errors
+
+# Test pour _validate_date avec match_links fourni
+def test_validate_date_with_match_links(validator):
+    """Test that date is not required when match_links is provided."""
+    errors = validator._validate_date(command="scrape_upcoming", date=None, match_links=["https://www.oddsportal.com/match/123456"])
+    assert not errors, "Validation should succeed when match_links is provided, even without date"
+
+# Test pour _validate_date pour une commande autre que scrape_upcoming
+def test_validate_date_wrong_command(validator):
+    """Test date validation for a command other than scrape_upcoming."""
+    errors = validator._validate_date(command="scrape_historic", date="20250101", match_links=None)
+    assert len(errors) == 1
+    assert "Date should not be provided for the 'scrape_historic' command." in errors[0]
+
+# Tests pour _validate_proxies
+@pytest.mark.parametrize("proxies, expected_errors", [
+    (None, []),  # Pas de proxy spécifié
+    ([], []),  # Liste vide
+    (["http://proxy.com:8080 user pass"], []),  # Format valide avec auth
+    (["socks5://proxy.com:1080"], []),  # Format valide sans auth
+    (["invalid_proxy_format"], ["Invalid proxy format: 'invalid_proxy_format'. Expected format: 'http[s]://host:port [user pass]' or 'socks5://host:port [user pass]'."]),  # Format invalide
+    (["http://proxy.com:8080", "invalid_proxy"], ["Invalid proxy format: 'invalid_proxy'. Expected format: 'http[s]://host:port [user pass]' or 'socks5://host:port [user pass]'."]),  # Un valide, un invalide
+])
+def test_validate_proxies(validator, proxies, expected_errors):
+    """Test validation of proxy settings."""
+    errors = validator._validate_proxies(proxies=proxies)
+    assert errors == expected_errors
+
+# Tests pour _validate_browser_settings
+@pytest.mark.parametrize("user_agent, locale_timezone, timezone_id, expected_errors", [
+    ("Mozilla/5.0", "fr-FR", "Europe/Paris", []),  # Tous valides
+    (None, None, None, []),  # Tous None
+    (123, "fr-FR", "Europe/Paris", ["Invalid browser user agent format."]),  # user_agent invalide
+    ("Mozilla/5.0", 123, "Europe/Paris", ["Invalid browser locale timezone format."]),  # locale_timezone invalide
+    ("Mozilla/5.0", "fr-FR", 123, ["Invalid browser timezone ID format."]),  # timezone_id invalide
+    (123, 456, 789, ["Invalid browser user agent format.", "Invalid browser locale timezone format.", "Invalid browser timezone ID format."]),  # Tous invalides
+])
+def test_validate_browser_settings(validator, user_agent, locale_timezone, timezone_id, expected_errors):
+    """Test validation of browser settings."""
+    errors = validator._validate_browser_settings(user_agent=user_agent, locale_timezone=locale_timezone, timezone_id=timezone_id)
+    assert errors == expected_errors
+
+# Tests pour _validate_match_links
+@pytest.mark.parametrize("match_links, sport, expected_errors", [
+    (None, "football", []),  # Pas de match_links
+    ([], "football", []),  # Liste vide
+    (["https://www.oddsportal.com/football/match/123456"], "football", []),  # Format valide
+    (["https://www.oddsportal.com/football/match/123456"], None, ["The '--sport' argument is required when using '--match_links'."]),  # Sport manquant
+    (["invalid_url_format"], "football", ["Invalid match link format: invalid_url_format"]),  # Format URL invalide
+])
+def test_validate_match_links(validator, match_links, sport, expected_errors):
+    """Test validation of match links."""
+    errors = validator._validate_match_links(match_links=match_links, sport=sport)
+    assert errors == expected_errors
+
+# Tests pour _validate_max_pages
+@pytest.mark.parametrize("command, max_pages, expected_errors", [
+    ("scrape_historic", 5, []),  # Valide
+    ("scrape_historic", 1, []),  # Valide (minimum)
+    ("scrape_historic", None, []),  # Valide (non spécifié)
+    ("scrape_historic", 0, ["Invalid max-pages value: '0'. It must be a positive integer."]),  # Invalide (zéro)
+    ("scrape_historic", -1, ["Invalid max-pages value: '-1'. It must be a positive integer."]),  # Invalide (négatif)
+    ("scrape_historic", "5", ["Invalid max-pages value: '5'. It must be a positive integer."]),  # Invalide (pas un entier)
+    ("scrape_upcoming", 5, []),  # Autre commande, pas de validation
+])
+def test_validate_max_pages(validator, command, max_pages, expected_errors):
+    """Test validation of max_pages parameter."""
+    errors = validator._validate_max_pages(command=command, max_pages=max_pages)
+    assert errors == expected_errors
+
+# Test pour _validate_file_args avec chemin de fichier sans extension
+def test_validate_file_args_no_extension(validator):
+    """Test validation with file path having no extension."""
+    args = MagicMock(file_path="data_file", format=None)
+    errors = validator._validate_file_args(args=args)
+    assert len(errors) == 1
+    assert "File path 'data_file' must include a valid file extension" in errors[0]
+
+# Test pour _validate_file_args avec format valide mais sans chemin de fichier
+def test_validate_file_args_format_only(validator):
+    """Test validation with format specified but no file path."""
+    args = MagicMock(file_path=None, format="json")
+    errors = validator._validate_file_args(args=args)
+    assert not errors, "La validation devrait réussir avec format spécifié mais sans chemin de fichier"
+
+# Test pour vérifier que les arguments match_links sont validés correctement
+def test_validate_args_with_match_links(validator, mock_args):
+    """Test validation d'arguments avec match_links."""
+    # Configurer un scénario avec match_links
+    mock_args.match_links = ["https://www.oddsportal.com/football/match/123456"]
+    mock_args.sport = "football"
+    mock_args.date = None  # La date n'est pas requise quand match_links est fourni
+    
+    # Cette validation devrait réussir
+    try:
+        validator.validate_args(mock_args)
+    except ValueError as e:
+        pytest.fail(f"Unexpected ValueError: {e}")
+
+# Test pour le target_bookmaker
+def test_validate_target_bookmaker(validator, mock_args):
+    """Test validation du target_bookmaker."""
+    # Valide
+    mock_args.target_bookmaker = "Bookmaker1"
+    validator.validate_args(mock_args)
+    
+    # Invalide
+    mock_args.target_bookmaker = 123  # Non-string
+    with pytest.raises(ValueError, match="Target bookmaker must be a string if specified."):
+        validator.validate_args(mock_args)
+
+# Test pour scrape_odds_history
+def test_validate_scrape_odds_history(validator, mock_args):
+    """Test validation du flag scrape_odds_history."""
+    # Valide
+    mock_args.scrape_odds_history = True
+    validator.validate_args(mock_args)
+    
+    # Invalide
+    mock_args.scrape_odds_history = "yes"  # Non-boolean
+    with pytest.raises(ValueError, match="'--scrape-odds-history' must be a boolean flag."):
+        validator.validate_args(mock_args)
