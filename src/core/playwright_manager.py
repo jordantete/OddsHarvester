@@ -1,8 +1,11 @@
-import logging, random
-from typing import Optional, Dict
+import logging
+import random
+
 from playwright.async_api import async_playwright
+
 from src.utils.constants import PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER
 from src.utils.utils import is_running_in_docker
+
 
 class PlaywrightManager:
     """
@@ -17,13 +20,13 @@ class PlaywrightManager:
         self.page = None
 
     async def initialize(
-        self, 
-        headless: bool, 
+        self,
+        headless: bool,
         user_agent: str | None = None,
         locale: str | None = None,
         timezone_id: str | None = None,
-        proxy: Optional[Dict[str, str]] = None
-    ):       
+        proxy: dict[str, str] | None = None,
+    ):
         """
         Initialize and start Playwright with a browser and page.
 
@@ -37,24 +40,20 @@ class PlaywrightManager:
 
             browser_args = PLAYWRIGHT_BROWSER_ARGS_DOCKER if is_running_in_docker() else PLAYWRIGHT_BROWSER_ARGS
 
-            self.browser = await self.playwright.chromium.launch(
-                headless=headless,
-                args=browser_args, 
-                proxy=proxy
-            )
+            self.browser = await self.playwright.chromium.launch(headless=headless, args=browser_args, proxy=proxy)
 
             self.context = await self.browser.new_context(
                 locale=locale,
                 timezone_id=timezone_id,
                 user_agent=user_agent,
-                viewport={"width": random.randint(1366, 1920), "height": random.randint(768, 1080)}
+                viewport={"width": random.randint(1366, 1920), "height": random.randint(768, 1080)},
             )
 
             self.page = await self.context.new_page()
             self.logger.info("Playwright initialized successfully.")
 
         except Exception as e:
-            self.logger.error(f"Failed to initialize Playwright: {str(e)}")
+            self.logger.error(f"Failed to initialize Playwright: {e!s}")
             raise
 
     async def cleanup(self):

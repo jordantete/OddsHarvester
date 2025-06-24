@@ -1,29 +1,32 @@
 {
-	"name": "OddsHarvester",
-	"build": {
-		"context": "..",
-		"dockerfile": "../Dockerfile"
-	},
-	"runArgs": [
-        "--net", "host",
-        "-e", "DISPLAY",
-        "-v", "/tmp/.X11-unix:/tmp/.X11-unix"
-    ],
-	"customizations": {
-		"vscode": {
-			"settings": {
-				"terminal.integrated.shell.linux": "/bin/bash",
-				"python.pythonPath": "/var/task/src/main.py",
-				"python.defaultInterpreterPath": "/usr/bin/python3"
-			},
-			"extensions": [
-				"ms-python.python",
-				"ms-python.debugpy",
-				"ms-playwright.playwright",
-				"ms-azuretools.vscode-docker",
-				"oderwat.indent-rainbow",
-				"esbenp.prettier-vscode"
-			]
-		}
-	}
+  "name": "OddsHarvester",
+  "build": {
+    "context": "..",
+    "dockerfile": "../Dockerfile"
+  },
+  "runArgs": [
+    "--net",
+    "host",
+    "-e",
+    "DISPLAY",
+    "-v",
+    "/tmp/.X11-unix:/tmp/.X11-unix"
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash",
+        "python.pythonPath": "/var/task/src/main.py",
+        "python.defaultInterpreterPath": "/usr/bin/python3"
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.debugpy",
+        "ms-playwright.playwright",
+        "ms-azuretools.vscode-docker",
+        "oderwat.indent-rainbow",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
 }

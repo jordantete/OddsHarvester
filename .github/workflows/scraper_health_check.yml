@@ -2,8 +2,8 @@ name: Scraper Health Check
 
 on:
   schedule:
-    - cron: "0 11 * * 1"  # Runs every Monday at 11:00 UTC
-  workflow_dispatch:  # Allows manual execution
+    - cron: "0 11 * * 1" # Runs every Monday at 11:00 UTC
+  workflow_dispatch: # Allows manual execution
 
 jobs:
   test_scraper:
@@ -16,12 +16,12 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
-      
+
       - name: "Set up Python"
         uses: actions/setup-python@v5
         with:
           python-version-file: "pyproject.toml"
-      
+
       - name: Install dependencies
         run: uv sync --all-extras --dev
 

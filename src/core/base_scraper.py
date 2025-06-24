@@ -1,12 +1,18 @@
-import logging, re, json, asyncio
-from typing import List, Dict, Optional, Any
-from datetime import datetime, timezone
+import asyncio
+from datetime import UTC, datetime
+import json
+import logging
+import re
+from typing import Any
+
 from bs4 import BeautifulSoup
-from playwright.async_api import Page, TimeoutError, Error
-from src.core.playwright_manager import PlaywrightManager
+from playwright.async_api import Error, Page, TimeoutError
+
 from src.core.browser_helper import BrowserHelper
 from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
-from src.utils.constants import ODDSPORTAL_BASE_URL, ODDS_FORMAT, SCRAPE_CONCURRENCY_TASKS
+from src.core.playwright_manager import PlaywrightManager
+from src.utils.constants import ODDS_FORMAT, ODDSPORTAL_BASE_URL, SCRAPE_CONCURRENCY_TASKS
+
 
 class BaseScraper:
     """
@@ -14,10 +20,10 @@ class BaseScraper:
     """
 
     def __init__(
-        self, 
+        self,
         playwright_manager: PlaywrightManager,
-        browser_helper: BrowserHelper, 
-        market_extractor: OddsPortalMarketExtractor
+        browser_helper: BrowserHelper,
+        market_extractor: OddsPortalMarketExtractor,
     ):
         """
         Args:
@@ -30,11 +36,7 @@ class BaseScraper:
         self.browser_helper = browser_helper
         self.market_extractor = market_extractor
 
-    async def set_odds_format(
-        self, 
-        page: Page, 
-        odds_format: str = ODDS_FORMAT
-    ):
+    async def set_odds_format(self, page: Page, odds_format: str = ODDS_FORMAT):
         """
         Sets the odds format on the page.
 
@@ -70,7 +72,7 @@ class BaseScraper:
                     await page.wait_for_timeout(10000)
                     self.logger.info(f"Odds format changed to '{odds_format}'.")
                     return
-            
+
             self.logger.warning(f"Desired odds format '{odds_format}' not found in dropdown options.")
 
         except TimeoutError:
@@ -78,11 +80,8 @@ class BaseScraper:
 
         except Exception as e:
             self.logger.error(f"Error while setting odds format: {e}", exc_info=True)
-    
-    async def extract_match_links(
-        self, 
-        page: Page
-    ) -> List[str]:
+
+    async def extract_match_links(self, page: Page) -> list[str]:
         """
         Extract and parse match links from the current page.
 
@@ -94,15 +93,15 @@ class BaseScraper:
         """
         try:
             html_content = await page.content()
-            soup = BeautifulSoup(html_content, 'lxml')
+            soup = BeautifulSoup(html_content, "lxml")
             event_rows = soup.find_all(class_=re.compile("^eventRow"))
             self.logger.info(f"Found {len(event_rows)} event rows.")
 
             match_links = {
                 f"{ODDSPORTAL_BASE_URL}{link['href']}"
                 for row in event_rows
-                for link in row.find_all('a', href=True)
-                if len(link['href'].strip('/').split('/')) > 3
+                for link in row.find_all("a", href=True)
+                if len(link["href"].strip("/").split("/")) > 3
             }
 
             self.logger.info(f"Extracted {len(match_links)} unique match links.")
@@ -113,14 +112,14 @@ class BaseScraper:
             return []
 
     async def extract_match_odds(
-        self, 
+        self,
         sport: str,
-        match_links: List[str],
-        markets: Optional[List[str]] = None,
+        match_links: list[str],
+        markets: list[str] | None = None,
         scrape_odds_history: bool = False,
         target_bookmaker: str | None = None,
-        concurrent_scraping_task: int = SCRAPE_CONCURRENCY_TASKS
-    ) -> List[Dict[str, Any]]:
+        concurrent_scraping_task: int = SCRAPE_CONCURRENCY_TASKS,
+    ) -> list[dict[str, Any]]:
         """
         Extract odds for a list of match links concurrently.
 
@@ -142,25 +141,25 @@ class BaseScraper:
         async def scrape_with_semaphore(link):
             async with semaphore:
                 tab = None
-                
+
                 try:
                     tab = await self.playwright_manager.context.new_page()
                     data = await self._scrape_match_data(
-                        page=tab, 
-                        sport=sport, 
-                        match_link=link, 
+                        page=tab,
+                        sport=sport,
+                        match_link=link,
                         markets=markets,
                         scrape_odds_history=scrape_odds_history,
-                        target_bookmaker=target_bookmaker
+                        target_bookmaker=target_bookmaker,
                     )
                     self.logger.info(f"Successfully scraped match link: {link}")
                     return data
-                
+
                 except Exception as e:
                     self.logger.error(f"Error scraping link {link}: {e}")
                     failed_links.append(link)
                     return None
-                
+
                 finally:
                     if tab:
                         await tab.close()
@@ -176,14 +175,14 @@ class BaseScraper:
         return odds_data
 
     async def _scrape_match_data(
-        self, 
+        self,
         page: Page,
         sport: str,
-        match_link: str, 
-        markets: Optional[List[str]] = None,
+        match_link: str,
+        markets: list[str] | None = None,
         scrape_odds_history: bool = False,
-        target_bookmaker: str | None = None
-    ) -> Optional[Dict[str, Any]]:
+        target_bookmaker: str | None = None,
+    ) -> dict[str, Any] | None:
         """
         Scrape data for a specific match based on the desired markets.
 
@@ -211,12 +210,12 @@ class BaseScraper:
             if markets:
                 self.logger.info(f"Scraping markets: {markets}")
                 market_data = await self.market_extractor.scrape_markets(
-                    page=page, 
-                    sport=sport, 
+                    page=page,
+                    sport=sport,
                     markets=markets,
                     period="FullTime",
                     scrape_odds_history=scrape_odds_history,
-                    target_bookmaker=target_bookmaker
+                    target_bookmaker=target_bookmaker,
                 )
                 match_details.update(market_data)
 
@@ -226,10 +225,7 @@ class BaseScraper:
             self.logger.error(f"Error scraping match data from {match_link}: {e}")
             return None
 
-    async def _extract_match_details_event_header(    
-        self, 
-        page: Page
-    ) -> Optional[Dict[str, Any]]:
+    async def _extract_match_details_event_header(self, page: Page) -> dict[str, Any] | None:
         """
         Extract match details such as date, teams, and scores from the react event header.
 
@@ -241,15 +237,15 @@ class BaseScraper:
         """
         try:
             html_content = await page.content()
-            soup = BeautifulSoup(html_content, 'html.parser')
-            script_tag = soup.find('div', id='react-event-header')
+            soup = BeautifulSoup(html_content, "html.parser")
+            script_tag = soup.find("div", id="react-event-header")
 
             if not script_tag:
                 self.logger.error("Error: Couldn't find the JSON-LD script tag.")
                 return None
-        
+
             try:
-                json_data = json.loads(script_tag.get('data'))
+                json_data = json.loads(script_tag.get("data"))
 
             except (TypeError, json.JSONDecodeError):
                 self.logger.error("Error: Failed to parse JSON data.")
@@ -260,13 +256,13 @@ class BaseScraper:
             unix_timestamp = event_body.get("startDate")
 
             match_date = (
-                datetime.fromtimestamp(unix_timestamp, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
+                datetime.fromtimestamp(unix_timestamp, tz=UTC).strftime("%Y-%m-%d %H:%M:%S %Z")
                 if unix_timestamp
                 else None
             )
 
             return {
-                "scraped_date": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"),
+                "scraped_date": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S %Z"),
                 "match_date": match_date,
                 "home_team": event_data.get("home"),
                 "away_team": event_data.get("away"),
@@ -278,7 +274,7 @@ class BaseScraper:
                 "venue_town": event_body.get("venueTown"),
                 "venue_country": event_body.get("venueCountry"),
             }
-        
+
         except Exception as e:
             self.logger.error(f"Error extracting match details while parsing React event Header: {e}")
             return None

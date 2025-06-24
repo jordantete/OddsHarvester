@@ -1,9 +1,12 @@
 import random
-from typing import Optional, List, Dict, Any
-from src.core.url_builder import URLBuilder
-from src.core.base_scraper import BaseScraper
+from typing import Any
+
 from playwright.async_api import Page
+
+from src.core.base_scraper import BaseScraper
+from src.core.url_builder import URLBuilder
 from src.utils.constants import ODDSPORTAL_BASE_URL
+
 
 class OddsPortalScraper(BaseScraper):
     """
@@ -11,12 +14,12 @@ class OddsPortalScraper(BaseScraper):
     """
 
     async def start_playwright(
-        self, 
-        headless: bool = True, 
+        self,
+        headless: bool = True,
         browser_user_agent: str | None = None,
         browser_locale_timezone: str | None = None,
         browser_timezone_id: str | None = None,
-        proxy: Optional[Dict[str, str]] = None
+        proxy: dict[str, str] | None = None,
     ):
         """
         Initializes Playwright using PlaywrightManager.
@@ -26,11 +29,11 @@ class OddsPortalScraper(BaseScraper):
             proxy (Optional[Dict[str, str]]): Proxy configuration if needed.
         """
         await self.playwright_manager.initialize(
-            headless=headless, 
+            headless=headless,
             user_agent=browser_user_agent,
             locale=browser_locale_timezone,
             timezone_id=browser_timezone_id,
-            proxy=proxy
+            proxy=proxy,
         )
 
     async def stop_playwright(self):
@@ -38,15 +41,15 @@ class OddsPortalScraper(BaseScraper):
         await self.playwright_manager.cleanup()
 
     async def scrape_historic(
-        self, 
+        self,
         sport: str,
-        league: str, 
-        season: str, 
-        markets: Optional[List[str]] = None,
+        league: str,
+        season: str,
+        markets: list[str] | None = None,
         scrape_odds_history: bool = False,
         target_bookmaker: str | None = None,
-        max_pages: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+        max_pages: int | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Scrapes historical odds data.
 
@@ -65,7 +68,7 @@ class OddsPortalScraper(BaseScraper):
         current_page = self.playwright_manager.page
         if not current_page:
             raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
-        
+
         base_url = URLBuilder.get_historic_matches_url(sport=sport, league=league, season=season)
         self.logger.info(f"Fetching historical odds from URL: {base_url}")
 
@@ -75,22 +78,22 @@ class OddsPortalScraper(BaseScraper):
         pages_to_scrape = await self._get_pagination_info(page=current_page, max_pages=max_pages)
         all_links = await self._collect_match_links(base_url=base_url, pages_to_scrape=pages_to_scrape)
         return await self.extract_match_odds(
-            sport=sport, 
-            match_links=all_links, 
-            markets=markets, 
-            scrape_odds_history=scrape_odds_history, 
-            target_bookmaker=target_bookmaker
+            sport=sport,
+            match_links=all_links,
+            markets=markets,
+            scrape_odds_history=scrape_odds_history,
+            target_bookmaker=target_bookmaker,
         )
 
     async def scrape_upcoming(
-        self, 
-        sport: str, 
-        date: str, 
-        league: Optional[str] = None,
-        markets: Optional[List[str]] = None,
+        self,
+        sport: str,
+        date: str,
+        league: str | None = None,
+        markets: list[str] | None = None,
         scrape_odds_history: bool = False,
-        target_bookmaker: str | None = None
-    ) -> List[Dict[str, Any]]:
+        target_bookmaker: str | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Scrapes upcoming match odds.
 
@@ -121,21 +124,21 @@ class OddsPortalScraper(BaseScraper):
             return []
 
         return await self.extract_match_odds(
-            sport=sport, 
-            match_links=match_links, 
-            markets=markets, 
-            scrape_odds_history=scrape_odds_history, 
-            target_bookmaker=target_bookmaker
+            sport=sport,
+            match_links=match_links,
+            markets=markets,
+            scrape_odds_history=scrape_odds_history,
+            target_bookmaker=target_bookmaker,
         )
-    
+
     async def scrape_matches(
         self,
-        match_links: List[str],
+        match_links: list[str],
         sport: str,
-        markets: List[str] | None = None,
+        markets: list[str] | None = None,
         scrape_odds_history: bool = False,
-        target_bookmaker: str | None = None
-    ) -> List[Dict[str, Any]]:
+        target_bookmaker: str | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Scrapes match odds from a list of specific match URLs.
 
@@ -152,16 +155,16 @@ class OddsPortalScraper(BaseScraper):
         current_page = self.playwright_manager.page
         if not current_page:
             raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
-        
+
         await current_page.goto(ODDSPORTAL_BASE_URL, timeout=20000, wait_until="domcontentloaded")
         await self._prepare_page_for_scraping(page=current_page)
         return await self.extract_match_odds(
-            sport=sport, 
-            match_links=match_links, 
+            sport=sport,
+            match_links=match_links,
             markets=markets,
-            scrape_odds_history=scrape_odds_history, 
+            scrape_odds_history=scrape_odds_history,
             target_bookmaker=target_bookmaker,
-            concurrent_scraping_task=len(match_links)
+            concurrent_scraping_task=len(match_links),
         )
 
     async def _prepare_page_for_scraping(self, page: Page):
@@ -173,12 +176,8 @@ class OddsPortalScraper(BaseScraper):
         """
         await self.set_odds_format(page=page)
         await self.browser_helper.dismiss_cookie_banner(page=page)
-    
-    async def _get_pagination_info(
-        self, 
-        page: Page, 
-        max_pages: Optional[int]
-    ) -> List[int]:
+
+    async def _get_pagination_info(self, page: Page, max_pages: int | None) -> list[int]:
         """
         Extracts pagination details from the page.
 
@@ -200,11 +199,7 @@ class OddsPortalScraper(BaseScraper):
         self.logger.info(f"Pages to scrape: {pages_to_scrape}")
         return pages_to_scrape
 
-    async def _collect_match_links(
-        self, 
-        base_url: str, 
-        pages_to_scrape: List[int]
-    ) -> List[str]:
+    async def _collect_match_links(self, base_url: str, pages_to_scrape: list[int]) -> list[str]:
         """
         Collects match links from multiple pages.
 
@@ -234,7 +229,7 @@ class OddsPortalScraper(BaseScraper):
                 self.logger.error(f"Error processing page {page_number}: {e}")
 
             finally:
-                if 'tab' in locals() and tab:
+                if "tab" in locals() and tab:
                     await tab.close()
 
         unique_links = list(set(all_links))

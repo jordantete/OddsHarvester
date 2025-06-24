@@ -19,7 +19,6 @@ class CLIHelpMessageGenerator:
             "   --match_links               🔗 Scrape specific match pages (comma-separated links, overrides other filters).\n"
             "   --target_bookmaker           🎯 Filter scraping for a specific bookmaker (e.g., Betclic.fr).\n"
             "   --scrape_odds_history        📈 Include odds movement history by hovering modals (default: False).\n\n"
-
             "🔹 **scrape_historic** - Scrape historical odds and match results.\n"
             "   --sport                     🏆 The sport to scrape (default: football).\n"
             "   --league                    ⚽ The league to scrape (e.g., england-premier-league).\n"
@@ -38,7 +37,6 @@ class CLIHelpMessageGenerator:
             "   --match_links               🔗 Scrape specific match pages (comma-separated links, overrides other filters).\n"
             "   --target_bookmaker           🎯 Filter scraping for a specific bookmaker (e.g., Betclic.fr).\n"
             "   --scrape_odds_history        📈 Include odds movement history by hovering modals (default: False).\n\n"
-
             "📌 **Examples:**\n"
             "✅ **Scrape upcoming football matches for a specific date:**\n"
             "   `python main.py scrape_upcoming --sport football --date 20250101 --markets 1x2,btts,dnb --storage local --file_path output.json`\n\n"

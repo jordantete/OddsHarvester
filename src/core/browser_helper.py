@@ -1,5 +1,8 @@
-import time, logging
+import logging
+import time
+
 from playwright.async_api import Page
+
 
 class BrowserHelper:
     """
@@ -11,12 +14,9 @@ class BrowserHelper:
         Initialize the BrowserHelper class.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
-    
+
     async def dismiss_cookie_banner(
-        self, 
-        page: Page, 
-        selector: str = "#onetrust-accept-btn-handler", 
-        timeout: int = 10000
+        self, page: Page, selector: str = "#onetrust-accept-btn-handler", timeout: int = 10000
     ):
         """
         Dismiss the cookie banner if it appears on the page.
@@ -35,21 +35,16 @@ class BrowserHelper:
             self.logger.info("Cookie banner found. Dismissing it.")
             await page.click(selector)
             return True
-        
+
         except TimeoutError:
             self.logger.info("No cookie banner detected.")
             return False
-        
+
         except Exception as e:
             self.logger.error(f"Error while dismissing cookie banner: {e}")
             return False
-    
-    async def navigate_to_market_tab(
-        self, 
-        page: Page, 
-        market_tab_name: str, 
-        timeout=10000
-    ):
+
+    async def navigate_to_market_tab(self, page: Page, market_tab_name: str, timeout=10000):
         """
         Navigate to a specific market tab by its name.
 
@@ -61,24 +56,26 @@ class BrowserHelper:
         Returns:
             bool: True if the market tab was successfully selected, False otherwise.
         """
-        markets_tab_selector = 'ul.visible-links.bg-black-main.odds-tabs > li'
+        markets_tab_selector = "ul.visible-links.bg-black-main.odds-tabs > li"
         self.logger.info(f"Attempting to navigate to market tab: {market_tab_name}")
 
-        if not await self._wait_and_click(page=page, selector=markets_tab_selector, text=market_tab_name, timeout=timeout):
+        if not await self._wait_and_click(
+            page=page, selector=markets_tab_selector, text=market_tab_name, timeout=timeout
+        ):
             self.logger.error(f"Failed to find or click the {market_tab_name} tab.")
             return False
 
         self.logger.info(f"Successfully navigated to {market_tab_name} tab.")
         return True
-    
+
     async def scroll_until_loaded(
-            self, 
-            page: Page,
-            timeout=30, 
-            scroll_pause_time=3,
-            max_scroll_attempts=5,
-            content_check_selector: str = None
-        ):
+        self,
+        page: Page,
+        timeout=30,
+        scroll_pause_time=3,
+        max_scroll_attempts=5,
+        content_check_selector: str | None = None,
+    ):
         """
         Scrolls down the page until no new content is loaded or a timeout is reached.
 
@@ -132,14 +129,9 @@ class BrowserHelper:
 
         self.logger.info("Reached scrolling timeout without detecting new content.")
         return False
-    
+
     async def scroll_until_visible_and_click_parent(
-        self,
-        page,
-        selector,
-        text=None,
-        timeout=20,
-        scroll_pause_time=3
+        self, page, selector, text: str | None = None, timeout=20, scroll_pause_time=3
     ):
         """
         Scrolls the page until an element matching the selector and text is visible, then clicks its parent element.
@@ -182,15 +174,12 @@ class BrowserHelper:
             await page.evaluate("window.scrollBy(0, 500);")
             await page.wait_for_timeout(scroll_pause_time * 1000)
 
-        self.logger.warning(f"Failed to find and click parent of element matching selector '{selector}' with text '{text}' within timeout.")
+        self.logger.warning(
+            f"Failed to find and click parent of element matching selector '{selector}' with text '{text}' within timeout."
+        )
         return False
 
-    async def click_by_inner_text(
-        self, 
-        page: Page,
-        selector: str, 
-        text: str
-    ) -> bool:
+    async def click_by_inner_text(self, page: Page, selector: str, text: str) -> bool:
         """
         Attempts to click an element based on its inner text content.
 
@@ -210,7 +199,7 @@ class BrowserHelper:
             Exception: Logs the error and returns False if an issue occurs during execution.
         """
         try:
-            cleaned_text = ''.join(text.split())
+            cleaned_text = "".join(text.split())
             elements = await page.query_selector_all(f'xpath=//{selector}[contains(text(), "{cleaned_text}")]')
 
             if not elements:
@@ -218,24 +207,18 @@ class BrowserHelper:
                 return False
 
             for element in elements:
-                if ''.join(await element.text_content().split()) == cleaned_text:
+                if "".join(await element.text_content().split()) == cleaned_text:
                     await element.click()
                     return True
 
         except Exception as e:
             self.logger.error(f"Error clicking element with text '{text}': {e}")
             return False
-        
+
         self.logger.info(f"Element with text '{text}' not found.")
         return False
-    
-    async def _wait_and_click(
-        self, 
-        page: Page,
-        selector: str, 
-        text: str = None,
-        timeout: float = 5000
-    ):
+
+    async def _wait_and_click(self, page: Page, selector: str, text: str | None = None, timeout: float = 5000):
         """
         Waits for a selector and optionally clicks an element based on its text.
 
@@ -262,13 +245,8 @@ class BrowserHelper:
         except Exception as e:
             self.logger.error(f"Error waiting for or clicking selector '{selector}': {e}")
             return False
-    
-    async def _click_by_text(
-        self, 
-        page: Page,
-        selector: str, 
-        text: str
-    ) -> bool:
+
+    async def _click_by_text(self, page: Page, selector: str, text: str) -> bool:
         """
         Attempts to click an element based on its text content.
 
@@ -296,10 +274,10 @@ class BrowserHelper:
                 if element_text and text in element_text:
                     await element.click()
                     return True
-                
+
             self.logger.info(f"Element with text '{text}' not found.")
             return False
-        
+
         except Exception as e:
             self.logger.error(f"Error clicking element with text '{text}': {e}")
             return False

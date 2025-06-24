@@ -1,6 +1,8 @@
 import logging
+
 from src.cli.cli_argument_parser import CLIArgumentParser
 from src.cli.cli_argument_validator import CLIArgumentValidator
+
 
 class CLIArgumentHandler:
     def __init__(self):
@@ -42,5 +44,5 @@ class CLIArgumentHandler:
             "browser_locale_timezone": getattr(args, "browser_locale_timezone", None),
             "browser_timezone_id": getattr(args, "browser_timezone_id", None),
             "target_bookmaker": getattr(args, "target_bookmaker", None),
-            "scrape_odds_history": getattr(args, "scrape_odds_history", False)
+            "scrape_odds_history": getattr(args, "scrape_odds_history", False),
         }

@@ -1,10 +1,14 @@
-import re, logging
-from typing import Dict, Any, List
-from playwright.async_api import Page
+from datetime import UTC, datetime
+import logging
+import re
+from typing import Any
+
 from bs4 import BeautifulSoup
+from playwright.async_api import Page
+
 from src.core.browser_helper import BrowserHelper
 from src.core.sport_market_registry import SportMarketRegistry
-from datetime import datetime, timezone
+
 
 class OddsPortalMarketExtractor:
     """
@@ -13,6 +17,7 @@ class OddsPortalMarketExtractor:
     This class provides methods to scrape various betting markets (e.g., 1X2, Over/Under, BTTS, ..)
     for specific match periods and bookmaker odds.
     """
+
     DEFAULT_TIMEOUT = 5000
     SCROLL_PAUSE_TIME = 2000
 
@@ -25,16 +30,16 @@ class OddsPortalMarketExtractor:
         """
         self.logger = logging.getLogger(self.__class__.__name__)
         self.browser_helper = browser_helper
-    
+
     async def scrape_markets(
-        self, 
-        page: Page, 
+        self,
+        page: Page,
         sport: str,
-        markets: List[str],
+        markets: list[str],
         period: str = "FullTime",
         scrape_odds_history: bool = False,
-        target_bookmaker: str | None = None
-    ) -> Dict[str, Any]:
+        target_bookmaker: str | None = None,
+    ) -> dict[str, Any]:
         """
         Extract market data for a given match.
 
@@ -56,7 +61,9 @@ class OddsPortalMarketExtractor:
             try:
                 if market in market_methods:
                     self.logger.info(f"Scraping market: {market} (Period: {period})")
-                    market_data[f"{market}_market"] = await market_methods[market](self, page, period, scrape_odds_history, target_bookmaker)
+                    market_data[f"{market}_market"] = await market_methods[market](
+                        self, page, period, scrape_odds_history, target_bookmaker
+                    )
                 else:
                     self.logger.warning(f"Market '{market}' is not supported for sport '{sport}'.")
 
@@ -70,11 +77,11 @@ class OddsPortalMarketExtractor:
         self,
         page: Page,
         main_market: str,
-        specific_market: str = None,
+        specific_market: str | None = None,
         period: str = "FullTime",
-        odds_labels: list = None,
+        odds_labels: list | None = None,
         scrape_odds_history: bool = False,
-        target_bookmaker: str | None = None
+        target_bookmaker: str | None = None,
     ) -> list:
         """
         Extracts odds for a given main market and optional specific sub-market.
@@ -95,23 +102,26 @@ class OddsPortalMarketExtractor:
 
         try:
             # Navigate to the main market tab
-            if not await self.browser_helper.navigate_to_market_tab(page=page, market_tab_name=main_market, timeout=self.DEFAULT_TIMEOUT):
+            if not await self.browser_helper.navigate_to_market_tab(
+                page=page, market_tab_name=main_market, timeout=self.DEFAULT_TIMEOUT
+            ):
                 self.logger.error(f"Failed to find or click {main_market} tab")
                 return []
 
             # If a specific sub-market needs to be selected (e.g., Over/Under 2.5)
-            if specific_market:
-                if not await self.browser_helper.scroll_until_visible_and_click_parent(
-                    page=page,
-                    selector='div.flex.w-full.items-center.justify-start.pl-3.font-bold p',
-                    text=specific_market
-                ):
-                    self.logger.error(f"Failed to find or select {specific_market} within {main_market}")
-                    return []
+            if specific_market and not await self.browser_helper.scroll_until_visible_and_click_parent(
+                page=page,
+                selector="div.flex.w-full.items-center.justify-start.pl-3.font-bold p",
+                text=specific_market,
+            ):
+                self.logger.error(f"Failed to find or select {specific_market} within {main_market}")
+                return []
 
             await page.wait_for_timeout(self.SCROLL_PAUSE_TIME)
             html_content = await page.content()
-            odds_data = await self._parse_market_odds(html_content=html_content, period=period, odds_labels=odds_labels, target_bookmaker=target_bookmaker)
+            odds_data = await self._parse_market_odds(
+                html_content=html_content, period=period, odds_labels=odds_labels, target_bookmaker=target_bookmaker
+            )
 
             if scrape_odds_history:
                 self.logger.info("Fetching odds history for all parsed bookmakers.")
@@ -119,19 +129,18 @@ class OddsPortalMarketExtractor:
                 for odds_entry in odds_data:
                     bookmaker_name = odds_entry.get("bookmaker_name")
 
-                    if not bookmaker_name or (target_bookmaker and bookmaker_name.lower() != target_bookmaker.lower()):                    
+                    if not bookmaker_name or (target_bookmaker and bookmaker_name.lower() != target_bookmaker.lower()):
                         continue
-                    
+
                     modals = await self._extract_odds_history_for_bookmaker(page, bookmaker_name)
 
                     if modals:
                         all_histories = []
                         for modal_html in modals:
                             parsed_history = self._parse_odds_history_modal(modal_html)
-                            
                             if parsed_history:
                                 all_histories.append(parsed_history)
-                        
+
                         odds_entry["odds_history_data"] = all_histories
 
             # Close the sub-market after scraping to avoid duplicates
@@ -139,8 +148,8 @@ class OddsPortalMarketExtractor:
                 self.logger.info(f"Closing sub-market: {specific_market}")
                 if not await self.browser_helper.scroll_until_visible_and_click_parent(
                     page=page,
-                    selector='div.flex.w-full.items-center.justify-start.pl-3.font-bold p',
-                    text=specific_market
+                    selector="div.flex.w-full.items-center.justify-start.pl-3.font-bold p",
+                    text=specific_market,
                 ):
                     self.logger.warning(f"Failed to close {specific_market}, might affect next scraping.")
 
@@ -149,13 +158,9 @@ class OddsPortalMarketExtractor:
         except Exception as e:
             self.logger.error(f"Error extracting odds for {main_market} {specific_market}: {e}")
             return []
-    
+
     async def _parse_market_odds(
-        self, 
-        html_content: str, 
-        period: str, 
-        odds_labels: list,
-        target_bookmaker: str | None = None
+        self, html_content: str, period: str, odds_labels: list, target_bookmaker: str | None = None
     ) -> list:
         """
         Parses odds for a given market type in a generic way.
@@ -181,10 +186,10 @@ class OddsPortalMarketExtractor:
             try:
                 img_tag = block.find("img", class_="bookmaker-logo")
                 bookmaker_name = img_tag["title"] if img_tag and "title" in img_tag.attrs else "Unknown"
-    
+
                 if not bookmaker_name or (target_bookmaker and bookmaker_name.lower() != target_bookmaker.lower()):
                     continue
-                
+
                 odds_blocks = block.find_all("div", class_=re.compile(r"flex-center.*flex-col.*font-bold"))
 
                 if len(odds_blocks) < len(odds_labels):
@@ -207,11 +212,7 @@ class OddsPortalMarketExtractor:
         self.logger.info(f"Successfully parsed odds for {len(odds_data)} bookmakers.")
         return odds_data
 
-    async def _extract_odds_history_for_bookmaker(
-        self, 
-        page: Page, 
-        bookmaker_name: str
-    ) -> List[str]:
+    async def _extract_odds_history_for_bookmaker(self, page: Page, bookmaker_name: str) -> list[str]:
         """
         Hover on odds for a specific bookmaker to trigger and capture the odds history modal.
 
@@ -246,16 +247,22 @@ class OddsPortalMarketExtractor:
                                 await odds.hover()
                                 await page.wait_for_timeout(2000)
 
-                                odds_movement_element = await page.wait_for_selector("h3:text('Odds movement')", timeout=3000)
-                                modal_wrapper = await odds_movement_element.evaluate_handle("node => node.parentElement")
+                                odds_movement_element = await page.wait_for_selector(
+                                    "h3:text('Odds movement')", timeout=3000
+                                )
+                                modal_wrapper = await odds_movement_element.evaluate_handle(
+                                    "node => node.parentElement"
+                                )
                                 modal_element = modal_wrapper.as_element()
 
                                 if modal_element:
                                     html = await modal_element.inner_html()
                                     modals_data.append(html)
                                 else:
-                                    self.logger.warning(f"Unable to retrieve odds' evolution modal: modal_element is None")
-                
+                                    self.logger.warning(
+                                        "Unable to retrieve odds' evolution modal: modal_element is None"
+                                    )
+
                 except Exception as e:
                     self.logger.warning(f"Failed to process a bookmaker row: {e}")
         except Exception as e:
@@ -281,19 +288,16 @@ class OddsPortalMarketExtractor:
             timestamps = soup.select("div.flex.flex-col.gap-1 > div.flex.gap-3 > div.font-normal")
             odds_values = soup.select("div.flex.flex-col.gap-1 + div.flex.flex-col.gap-1 > div.font-bold")
 
-            for ts, odd in zip(timestamps, odds_values):
+            for ts, odd in zip(timestamps, odds_values, strict=False):
                 time_text = ts.get_text(strip=True)
                 try:
                     dt = datetime.strptime(time_text, "%d %b, %H:%M")
-                    formatted_time = dt.replace(year=datetime.now(timezone.utc).year).isoformat()
+                    formatted_time = dt.replace(year=datetime.now(UTC).year).isoformat()
                 except ValueError:
                     self.logger.warning(f"Failed to parse datetime: {time_text}")
                     continue
 
-                odds_history.append({
-                    "timestamp": formatted_time,
-                    "odds": float(odd.get_text(strip=True))
-                })
+                odds_history.append({"timestamp": formatted_time, "odds": float(odd.get_text(strip=True))})
 
             # Parse opening odds
             opening_odds_block = soup.select_one("div.mt-2.gap-1")
@@ -305,16 +309,13 @@ class OddsPortalMarketExtractor:
                 try:
                     dt = datetime.strptime(opening_ts_div.get_text(strip=True), "%d %b, %H:%M")
                     opening_odds = {
-                        "timestamp": dt.replace(year=datetime.now(timezone.utc).year).isoformat(),
-                        "odds": float(opening_val_div.get_text(strip=True))
+                        "timestamp": dt.replace(year=datetime.now(UTC).year).isoformat(),
+                        "odds": float(opening_val_div.get_text(strip=True)),
                     }
                 except ValueError:
                     self.logger.warning("Failed to parse opening odds timestamp.")
 
-            return {
-                "odds_history": odds_history,
-                "opening_odds": opening_odds
-            }
+            return {"odds_history": odds_history, "opening_odds": opening_odds}
 
         except Exception as e:
             self.logger.error(f"Failed to parse odds history modal: {e}")

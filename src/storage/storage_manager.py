@@ -1,15 +1,12 @@
 import logging
-from src.storage.storage_type import StorageType
+
 from src.storage.storage_format import StorageFormat
+from src.storage.storage_type import StorageType
 
 logger = logging.getLogger("StorageManager")
 
-def store_data(
-    storage_type: StorageType, 
-    data: list, 
-    storage_format: StorageFormat, 
-    file_path: str
-):
+
+def store_data(storage_type: StorageType, data: list, storage_format: StorageFormat, file_path: str):
     """Handles storing data in the chosen storage type."""
     try:
         storage_enum = StorageType(storage_type)
@@ -24,5 +21,5 @@ def store_data(
         return True
 
     except Exception as e:
-        logger.error(f"Error during data storage: {str(e)}")
+        logger.error(f"Error during data storage: {e!s}")
         return False

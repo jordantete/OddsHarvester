@@ -1,8 +1,10 @@
-import logging, os
+import logging
 from logging.handlers import RotatingFileHandler
+import os
 
 DEFAULT_LOG_DIR = "logs"
 DEFAULT_LOG_FILE_NAME = "app.log"
+
 
 def setup_logger(
     log_level: int = logging.INFO,
@@ -10,7 +12,7 @@ def setup_logger(
     log_file: str = DEFAULT_LOG_FILE_NAME,
     log_dir: str = DEFAULT_LOG_DIR,
     max_file_size: int = 5 * 1024 * 1024,  # 5 MB
-    backup_count: int = 5
+    backup_count: int = 5,
 ):
     """
     Sets up logging for both console and optionally file output.
@@ -23,7 +25,7 @@ def setup_logger(
         max_file_size (int): Maximum size of a single log file in bytes.
         backup_count (int): Number of backup log files to retain.
     """
-    log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    log_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(log_formatter)
     handlers = [console_handler]

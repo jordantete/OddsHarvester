@@ -1,5 +1,9 @@
-import boto3, json, logging
-from typing import List, Dict, Any
+import json
+import logging
+from typing import Any
+
+import boto3
+
 
 class RemoteDataStorage:
     S3_BUCKET_NAME = "odds-portal-scrapped-odds-cad8822c179f12cg"
@@ -10,14 +14,12 @@ class RemoteDataStorage:
         Initializes the RemoteDataStorage class with an S3 client and logger.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.s3_client = boto3.client('s3', region_name=self.AWE_REGION)
-        self.logger.info(f"RemoteDataStorage initialized for region: {self.AWE_REGION} and bucket: {self.S3_BUCKET_NAME}")
-    
-    def _save_to_json(
-        self, 
-        data: List[Dict[str, Any]], 
-        file_name: str
-    ) -> None:
+        self.s3_client = boto3.client("s3", region_name=self.AWE_REGION)
+        self.logger.info(
+            f"RemoteDataStorage initialized for region: {self.AWE_REGION} and bucket: {self.S3_BUCKET_NAME}"
+        )
+
+    def _save_to_json(self, data: list[dict[str, Any]], file_name: str) -> None:
         """
         Saves the data to a JSON file locally.
 
@@ -35,11 +37,7 @@ class RemoteDataStorage:
             self.logger.error(f"Failed to save data to JSON: {e}")
             raise
 
-    def _upload_to_s3(
-        self, 
-        file_name: str, 
-        object_name: str = None
-    ) -> None:
+    def _upload_to_s3(self, file_name: str, object_name: str | None = None) -> None:
         """
         Uploads a file to the configured S3 bucket.
 
@@ -58,13 +56,8 @@ class RemoteDataStorage:
         except Exception as e:
             self.logger.error(f"Failed to upload {file_name} to S3: {e}")
             raise
-    
-    def process_and_upload(
-        self, 
-        data: List[Dict[str, Any]], 
-        file_path: str, 
-        object_name: str = None
-    ) -> None:
+
+    def process_and_upload(self, data: list[dict[str, Any]], file_path: str, object_name: str | None = None) -> None:
         """
         Saves data as a JSON file locally and uploads it to S3.
 

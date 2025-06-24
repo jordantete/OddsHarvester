@@ -1,8 +1,9 @@
 import re
-from typing import Optional
+
 from src.utils.constants import ODDSPORTAL_BASE_URL
 from src.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from src.utils.sport_market_constants import Sport
+
 
 class URLBuilder:
     """
@@ -10,11 +11,7 @@ class URLBuilder:
     """
 
     @staticmethod
-    def get_historic_matches_url(
-        sport: str,
-        league: str,
-        season: Optional[str] = None
-    ) -> str:
+    def get_historic_matches_url(sport: str, league: str, season: str | None = None) -> str:
         """
         Constructs the URL for historical matches of a specific sport league and season.
 
@@ -43,7 +40,9 @@ class URLBuilder:
         if re.match(r"^\d{4}-\d{4}$", season):
             start_year, end_year = map(int, season.split("-"))
             if end_year != start_year + 1:
-                raise ValueError(f"Invalid season range: {season}. The second year must be exactly one year after the first.")
+                raise ValueError(
+                    f"Invalid season range: {season}. The second year must be exactly one year after the first."
+                )
 
             # Special handling for baseball leagues
             if sport.lower() == "baseball":
@@ -53,13 +52,8 @@ class URLBuilder:
 
         raise ValueError(f"Invalid season format: {season}. Expected format: 'YYYY' or 'YYYY-YYYY'")
 
-
     @staticmethod
-    def get_upcoming_matches_url(
-        sport: str, 
-        date: str,
-        league: Optional[str] = None
-    ) -> str:
+    def get_upcoming_matches_url(sport: str, date: str, league: str | None = None) -> str:
         """
         Constructs the URL for upcoming matches for a specific sport and date.
         If a league is provided, includes the league in the URL.

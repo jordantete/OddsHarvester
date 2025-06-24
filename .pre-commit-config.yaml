@@ -1,0 +1,47 @@
+repos:
+  # Ruff for linting and formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        name: ruff (linting)
+        args: [--fix]
+      - id: ruff-format
+        name: ruff (formatting)
+
+  # Built-in hooks for basic file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        name: trim trailing whitespace
+      - id: end-of-file-fixer
+        name: fix end of files
+      - id: check-yaml
+        name: check yaml
+      - id: check-json
+        name: check json
+      - id: check-toml
+        name: check toml
+      - id: check-merge-conflict
+        name: check for merge conflicts
+      - id: check-added-large-files
+        name: check for added large files
+        args: ["--maxkb=1000"]
+      - id: debug-statements
+        name: debug statements (Python)
+
+  # Python-specific checks
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+      - id: python-check-blanket-noqa
+        name: check blanket noqa
+      - id: python-check-blanket-type-ignore
+        name: check blanket type ignore
+      - id: python-no-log-warn
+        name: check for deprecated log warn
+      - id: python-use-type-annotations
+        name: check use type annotations
+      - id: text-unicode-replacement-char
+        name: check for unicode replacement chars

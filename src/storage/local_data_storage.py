@@ -1,16 +1,18 @@
-import csv, logging, os, json
-from typing import List, Dict, Union, Optional
+import csv
+import json
+import logging
+import os
+
 from .storage_format import StorageFormat
+
 
 class LocalDataStorage:
     """
     A class to handle the storage of scraped data locally in either JSON or CSV format.
     """
-    
+
     def __init__(
-        self, 
-        default_file_path: str = "scraped_data.csv",
-        default_storage_format: StorageFormat = StorageFormat.CSV
+        self, default_file_path: str = "scraped_data.csv", default_storage_format: StorageFormat = StorageFormat.CSV
     ):
         """
         Initialize LocalDataStorage.
@@ -22,12 +24,9 @@ class LocalDataStorage:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.default_file_path = default_file_path
         self.default_storage_format = default_storage_format
-    
+
     def save_data(
-        self, 
-        data: Union[Dict, List[Dict]], 
-        file_path: Optional[str] = None,
-        storage_format: Optional[StorageFormat] = None
+        self, data: dict | list[dict], file_path: str | None = None, storage_format: StorageFormat | None = None
     ):
         """
         Save scraped data to a local CSV file.
@@ -51,8 +50,10 @@ class LocalDataStorage:
         format_to_use = storage_format.lower() if storage_format else self.default_storage_format.value
 
         if format_to_use not in [f.value for f in StorageFormat]:
-            raise ValueError(f"Invalid storage format. Supported formats are: {', '.join(f.value for f in StorageFormat)}.")
-        
+            raise ValueError(
+                f"Invalid storage format. Supported formats are: {', '.join(f.value for f in StorageFormat)}."
+            )
+
         if not target_file_path.endswith(f".{format_to_use}"):
             target_file_path = f"{target_file_path}.{format_to_use}"
 
@@ -63,13 +64,9 @@ class LocalDataStorage:
         elif format_to_use == StorageFormat.JSON.value:
             self._save_as_json(data, target_file_path)
         else:
-            raise ValueError(f"Unsupported file format.")
+            raise ValueError("Unsupported file format.")
 
-    def _save_as_csv(
-        self, 
-        data: List[Dict], 
-        file_path: str
-    ):
+    def _save_as_csv(self, data: list[dict], file_path: str):
         """Save data in CSV format."""
         try:
             with open(file_path, mode="a", newline="", encoding="utf-8") as file:
@@ -84,22 +81,17 @@ class LocalDataStorage:
             self.logger.info(f"Successfully saved {len(data)} record(s) to {file_path}")
 
         except Exception as e:
-            self.logger.error(f"Error saving data to {file_path}: {str(e)}", exc_info=True)
+            self.logger.error(f"Error saving data to {file_path}: {e!s}", exc_info=True)
             raise
-    
-    def _save_as_json(
-        self, 
-        data: List[Dict], 
-        file_path: str
-    ):
+
+    def _save_as_json(self, data: list[dict], file_path: str):
         """Save data in JSON format."""
         try:
             # Load existing data if the file already exists
             existing_data = []
 
             if os.path.exists(file_path):
-                with open(file_path, "r", encoding="utf-8") as file:
-
+                with open(file_path, encoding="utf-8") as file:
                     try:
                         existing_data = json.load(file)
                     except json.JSONDecodeError:
@@ -113,9 +105,9 @@ class LocalDataStorage:
             self.logger.info(f"Successfully saved {len(data)} record(s) to {file_path}")
 
         except Exception as e:
-            self.logger.error(f"Error saving data to {file_path}: {str(e)}", exc_info=True)
+            self.logger.error(f"Error saving data to {file_path}: {e!s}", exc_info=True)
             raise
-    
+
     def _ensure_directory_exists(self, file_path: str):
         """Ensures the directory for the given file path exists. If it doesn't exist, creates it."""
         directory = os.path.dirname(file_path)

@@ -1,26 +1,32 @@
-import json, csv, pytest
-from unittest.mock import patch, mock_open
+import csv
+import json
+from unittest.mock import mock_open, patch
+
+import pytest
+
 from src.storage.local_data_storage import LocalDataStorage
 from src.storage.storage_format import StorageFormat
+
 
 @pytest.fixture
 def local_data_storage():
     return LocalDataStorage(default_file_path="test_data", default_storage_format=StorageFormat.CSV)
 
+
 @pytest.fixture
 def sample_data():
-    return [
-        {"team": "Team A", "odds": 2.5},
-        {"team": "Team B", "odds": 1.8}
-    ]
+    return [{"team": "Team A", "odds": 2.5}, {"team": "Team B", "odds": 1.8}]
+
 
 def test_initialization(local_data_storage):
     assert local_data_storage.default_file_path == "test_data"
     assert local_data_storage.default_storage_format == StorageFormat.CSV
 
+
 def test_save_data_invalid_format(local_data_storage):
     with pytest.raises(ValueError, match="Data must be a dictionary or a list of dictionaries."):
         local_data_storage.save_data("invalid_data")
+
 
 def test_save_as_csv(local_data_storage, sample_data):
     mock_file = mock_open()
@@ -38,6 +44,7 @@ def test_save_as_csv(local_data_storage, sample_data):
     writer.writerows(sample_data)
     handle.write.assert_called()
 
+
 def test_save_as_json(local_data_storage, sample_data):
     mock_file = mock_open()
 
@@ -51,6 +58,7 @@ def test_save_as_json(local_data_storage, sample_data):
     handle = mock_file()
     json.dump(sample_data, handle, indent=4)
     handle.write.assert_called()
+
 
 def test_save_as_json_existing_data(local_data_storage, sample_data):
     existing_data = [{"team": "Old Team", "odds": 3.0}]
@@ -66,9 +74,11 @@ def test_save_as_json_existing_data(local_data_storage, sample_data):
     json.dump(expected_combined_data, handle, indent=4)
     handle.write.assert_called()
 
+
 def test_save_data_invalid_format_type(local_data_storage, sample_data):
     with pytest.raises(ValueError, match="Invalid storage format. Supported formats are: csv, json."):
         local_data_storage.save_data(sample_data, storage_format="xml")
+
 
 def test_ensure_directory_exists(local_data_storage):
     with patch("os.path.exists", return_value=False), patch("os.makedirs") as mock_makedirs:
@@ -76,15 +86,23 @@ def test_ensure_directory_exists(local_data_storage):
 
     mock_makedirs.assert_called_once_with("data")
 
+
 def test_csv_save_error_handling(local_data_storage, sample_data):
-    with patch("builtins.open", side_effect=OSError("File write error")), patch.object(local_data_storage.logger, "error") as mock_logger:
+    with (
+        patch("builtins.open", side_effect=OSError("File write error")),
+        patch.object(local_data_storage.logger, "error") as mock_logger,
+    ):
         with pytest.raises(OSError, match="File write error"):
             local_data_storage._save_as_csv(sample_data, "test_data.csv")
 
     mock_logger.assert_called()
 
+
 def test_json_save_error_handling(local_data_storage, sample_data):
-    with patch("builtins.open", side_effect=OSError("File write error")), patch.object(local_data_storage.logger, "error") as mock_logger:
+    with (
+        patch("builtins.open", side_effect=OSError("File write error")),
+        patch.object(local_data_storage.logger, "error") as mock_logger,
+    ):
         with pytest.raises(OSError, match="File write error"):
             local_data_storage._save_as_json(sample_data, "test_data.json")
 

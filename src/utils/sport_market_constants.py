@@ -1,7 +1,9 @@
 from enum import Enum
 
+
 class Sport(Enum):
     """Supported sports."""
+
     FOOTBALL = "football"
     TENNIS = "tennis"
     BASKETBALL = "basketball"
@@ -10,17 +12,22 @@ class Sport(Enum):
     ICE_HOCKEY = "ice-hockey"
     BASEBALL = "baseball"
 
+
 class FootballMarket(Enum):
     """Football-specific markets."""
+
     ONE_X_TWO = "1x2"
     BTTS = "btts"
     DOUBLE_CHANCE = "double_chance"
     DNB = "dnb"
 
+
 class BaseballMarket(Enum):
     """Football-specific markets."""
+
     ONE_X_TWO = "1x2"
     HOME_AWAY = "home_away"
+
 
 class BaseballOverUnderMarket(Enum):
     OVER_UNDER_6_5 = "over_under_6_5"
@@ -35,8 +42,10 @@ class BaseballOverUnderMarket(Enum):
     OVER_UNDER_11_0 = "over_under_11_0"
     OVER_UNDER_11_5 = "over_under_11_5"
 
+
 class FootballOverUnderMarket(Enum):
     """Over/Under market values (from 0.5 to 6.5) for football."""
+
     OVER_UNDER_0_5 = "over_under_0_5"
     OVER_UNDER_1 = "over_under_1"
     OVER_UNDER_1_25 = "over_under_1_25"
@@ -65,8 +74,10 @@ class FootballOverUnderMarket(Enum):
     OVER_UNDER_7_5 = "over_under_7_5"
     OVER_UNDER_8_5 = "over_under_8_5"
 
+
 class FootballEuropeanHandicapMarket(Enum):
     """European Handicap market values (-4 to +4) for football."""
+
     HANDICAP_MINUS_4 = "european_handicap_-4"
     HANDICAP_MINUS_3 = "european_handicap_-3"
     HANDICAP_MINUS_2 = "european_handicap_-2"
@@ -76,8 +87,10 @@ class FootballEuropeanHandicapMarket(Enum):
     HANDICAP_PLUS_3 = "european_handicap_+3"
     HANDICAP_PLUS_4 = "european_handicap_+4"
 
+
 class FootballAsianHandicapMarket(Enum):
     """Asian Handicap market values for football (including quarters)."""
+
     HANDICAP_MINUS_4 = "asian_handicap_-4"
     HANDICAP_MINUS_3_75 = "asian_handicap_-3_75"
     HANDICAP_MINUS_3_5 = "asian_handicap_-3_5"
@@ -104,16 +117,22 @@ class FootballAsianHandicapMarket(Enum):
     HANDICAP_PLUS_1_75 = "asian_handicap_+1_75"
     HANDICAP_PLUS_2 = "asian_handicap_+2"
 
+
 class TennisMarket(Enum):
     """Tennis-specific markets."""
+
     MATCH_WINNER = "match_winner"  # Home/Away
+
 
 class TennisOverUnderSetsMarket(Enum):
     """Over/Under sets betting markets."""
+
     OVER_UNDER_2_5 = "over_under_sets_2_5"
+
 
 class TennisOverUnderGamesMarket(Enum):
     """Over/Under total games betting markets (16.5 to 24.5)."""
+
     OVER_UNDER_16_5 = "over_under_games_16_5"
     OVER_UNDER_17_5 = "over_under_games_17_5"
     OVER_UNDER_18_5 = "over_under_games_18_5"
@@ -125,8 +144,10 @@ class TennisOverUnderGamesMarket(Enum):
     OVER_UNDER_24_5 = "over_under_games_24_5"
     OVER_UNDER_25_5 = "over_under_games_25_5"
 
+
 class TennisAsianHandicapGamesMarket(Enum):
     """Asian Handicap markets in games (+2.5 to +8.5)."""
+
     HANDICAP_PLUS_2_5 = "asian_handicap_games_+2_5_games"
     HANDICAP_PLUS_3_5 = "asian_handicap_games_+3_5_games"
     HANDICAP_PLUS_4_5 = "asian_handicap_games_+4_5_games"
@@ -138,20 +159,26 @@ class TennisAsianHandicapGamesMarket(Enum):
     HANDICAP_MINUS_3_5 = "asian_handicap_games_-3_5_games"
     HANDICAP_MINUS_4_5 = "asian_handicap_games_-4_5_games"
 
+
 class TennisCorrectScoreMarket(Enum):
     """Correct Score markets in tennis (best of 3 sets)."""
+
     CORRECT_SCORE_2_0 = "correct_score_2_0"
     CORRECT_SCORE_2_1 = "correct_score_2_1"
     CORRECT_SCORE_0_2 = "correct_score_0_2"
     CORRECT_SCORE_1_2 = "correct_score_1_2"
 
+
 class BasketballMarket(Enum):
     """Basketball-specific markets."""
+
     ONE_X_TWO = "1x2"
     home_away = "home_away"  # Match winner (FT including OT)
 
+
 class BasketballOverUnderMarket(Enum):
     """Over/Under total points betting markets (from 220.5 to 245.5)."""
+
     OVER_UNDER_220_5 = "over_under_games_220_5"
     OVER_UNDER_221_5 = "over_under_games_221_5"
     OVER_UNDER_222_5 = "over_under_games_222_5"
@@ -179,8 +206,10 @@ class BasketballOverUnderMarket(Enum):
     OVER_UNDER_244_5 = "over_under_games_244_5"
     OVER_UNDER_245_5 = "over_under_games_245_5"
 
+
 class BasketballAsianHandicapMarket(Enum):
     """Asian Handicap markets in basketball games (from -25.5 to +25.5 in 1-point steps)."""
+
     HANDICAP_MINUS_25_5 = "asian_handicap_games_-25_5_games"
     HANDICAP_MINUS_24_5 = "asian_handicap_games_-24_5_games"
     HANDICAP_MINUS_23_5 = "asian_handicap_games_-23_5_games"
@@ -233,8 +262,10 @@ class BasketballAsianHandicapMarket(Enum):
     HANDICAP_PLUS_24_5 = "asian_handicap_games_+24_5_games"
     HANDICAP_PLUS_25_5 = "asian_handicap_games_+25_5_games"
 
+
 class RugbyLeagueMarket(Enum):
     """Rugby League-specific markets."""
+
     ONE_X_TWO = "1x2"
     HOME_AWAY = "home_away"
     DNB = "dnb"
@@ -263,8 +294,10 @@ class RugbyLeagueMarket(Enum):
     HANDICAP_MINUS_16_5 = "handicap_-16_5"
     HANDICAP_PLUS_16_5 = "handicap_+16_5"
 
+
 class RugbyUnionMarket(Enum):
     """Rugby Union-specific markets."""
+
     ONE_X_TWO = "1x2"
     HOME_AWAY = "home_away"
     DNB = "dnb"
@@ -288,8 +321,10 @@ class RugbyUnionMarket(Enum):
     HANDICAP_MINUS_17_5 = "handicap_-17_5"
     HANDICAP_PLUS_17_5 = "handicap_+17_5"
 
+
 class IceHockeyMarket(Enum):
     """Ice Hockey-specific markets."""
+
     ONE_X_TWO = "1x2"
     HOME_AWAY = "home_away"
     DNB = "dnb"
@@ -307,8 +342,10 @@ class IceHockeyMarket(Enum):
     OVER_UNDER_10_5 = "over_under_10_5"
     OVER_UNDER_11_5 = "over_under_11_5"
 
+
 class RugbyOverUnderMarket(Enum):
     """Over/Under market values for rugby (from 32.5 to 55.5)."""
+
     OVER_UNDER_32_5 = "over_under_32_5"
     OVER_UNDER_35_5 = "over_under_35_5"
     OVER_UNDER_36_5 = "over_under_36_5"
@@ -328,8 +365,10 @@ class RugbyOverUnderMarket(Enum):
     OVER_UNDER_52_5 = "over_under_52_5"
     OVER_UNDER_55_5 = "over_under_55_5"
 
+
 class RugbyHandicapMarket(Enum):
     """Handicap market values for rugby (from -17.5 to +17.5)."""
+
     HANDICAP_MINUS_17_5 = "handicap_-17_5"
     HANDICAP_MINUS_16_5 = "handicap_-16_5"
     HANDICAP_MINUS_13_5 = "handicap_-13_5"
@@ -351,8 +390,10 @@ class RugbyHandicapMarket(Enum):
     HANDICAP_PLUS_16_5 = "handicap_+16_5"
     HANDICAP_PLUS_17_5 = "handicap_+17_5"
 
+
 class IceHockeyOverUnderMarket(Enum):
     """Over/Under market values for ice hockey (from 1.5 to 11.5)."""
+
     OVER_UNDER_1_5 = "over_under_1_5"
     OVER_UNDER_2_5 = "over_under_2_5"
     OVER_UNDER_3_5 = "over_under_3_5"

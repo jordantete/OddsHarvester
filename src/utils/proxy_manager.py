@@ -1,13 +1,10 @@
 import logging
-from typing import List, Dict, Optional
+
 
 class ProxyManager:
     """Manages proxy selection, usage, and rotation for Playwright."""
 
-    def __init__(
-        self, 
-        cli_proxies: Optional[List[str]] = None
-    ):
+    def __init__(self, cli_proxies: list[str] | None = None):
         """
         Initialize ProxyManager with a list of proxies.
 
@@ -18,10 +15,7 @@ class ProxyManager:
         self.proxies = self._parse_proxies(cli_proxies)
         self.current_proxy_index = 0  # Track current proxy in use
 
-    def _parse_proxies(
-        self, 
-        cli_proxies: Optional[List[str]]
-    ) -> List[Dict[str, str]]:
+    def _parse_proxies(self, cli_proxies: list[str] | None) -> list[dict[str, str]]:
         """
         Parses proxy details from CLI arguments.
 
@@ -42,7 +36,7 @@ class ProxyManager:
             try:
                 parts = proxy_entry.strip().split()
                 server = parts[0]
-                
+
                 if not any(server.startswith(scheme + "://") for scheme in valid_schemes):
                     raise ValueError(f"Invalid proxy scheme in: {server}")
 
@@ -53,7 +47,7 @@ class ProxyManager:
                     proxy_config["password"] = parts[2]
                 elif len(parts) != 1:
                     raise ValueError(f"Invalid proxy format: {proxy_entry}")
-                
+
                 parsed_proxies.append(proxy_config)
 
             except Exception as e:
@@ -64,7 +58,7 @@ class ProxyManager:
 
         return parsed_proxies
 
-    def get_current_proxy(self) -> Optional[Dict[str, str]]:
+    def get_current_proxy(self) -> dict[str, str] | None:
         """
         Returns the current proxy config.
 

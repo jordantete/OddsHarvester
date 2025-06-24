@@ -2,15 +2,15 @@ from .sport_market_constants import Sport
 
 SPORTS_LEAGUES_URLS_MAPPING = {
     Sport.FOOTBALL: {
-        "france-ligue-1": 'https://www.oddsportal.com/football/france/ligue-1',
+        "france-ligue-1": "https://www.oddsportal.com/football/france/ligue-1",
         "france-ligue-2": "https://www.oddsportal.com/football/france/ligue-2/",
-        "germany-bundesliga": 'https://www.oddsportal.com/football/germany/bundesliga',
+        "germany-bundesliga": "https://www.oddsportal.com/football/germany/bundesliga",
         "germany-bundesliga-2": "https://www.oddsportal.com/football/germany/2-bundesliga/",
-        "england-premier-league": 'https://www.oddsportal.com/football/england/premier-league',
-        "england-championship": 'https://www.oddsportal.com/football/england/championship',
-        "spain-laliga": 'https://www.oddsportal.com/football/spain/laliga',
+        "england-premier-league": "https://www.oddsportal.com/football/england/premier-league",
+        "england-championship": "https://www.oddsportal.com/football/england/championship",
+        "spain-laliga": "https://www.oddsportal.com/football/spain/laliga",
         "spain-laliga2": "https://www.oddsportal.com/football/spain/laliga2/",
-        "italy-serie-a": 'https://www.oddsportal.com/football/italy/serie-a',
+        "italy-serie-a": "https://www.oddsportal.com/football/italy/serie-a",
         "italy-serie-b": "https://www.oddsportal.com/football/italy/serie-b/",
         "usa-mls": "https://www.oddsportal.com/football/usa/mls",
         "brazil-serie-a": "https://www.oddsportal.com/football/brazil/serie-a",
@@ -33,13 +33,13 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "scotland-premiership": "https://www.oddsportal.com/football/scotland/premiership/",
         "switzerland-super-league": "https://www.oddsportal.com/football/switzerland/super-league/",
         "turkey-super-lig": "https://www.oddsportal.com/football/turkey/super-lig/",
-        "world-championship-2026": "https://www.oddsportal.com/football/world/world-championship-2026/"
+        "world-championship-2026": "https://www.oddsportal.com/football/world/world-championship-2026/",
     },
     Sport.TENNIS: {
-        "australian-open": "https://www.oddsportal.com/tennis/australia/australian-open/",
-        "french-open": "https://www.oddsportal.com/tennis/france/french-open/",
-        "wimbledon": "https://www.oddsportal.com/tennis/united-kingdom/wimbledon/",
-        "us-open": "https://www.oddsportal.com/tennis/usa/us-open/",
+        "australian-open": "https://www.oddsportal.com/tennis/australia/atp-australian-open/",
+        "french-open": "https://www.oddsportal.com/tennis/france/atp-french-open/",
+        "wimbledon": "https://www.oddsportal.com/tennis/united-kingdom/atp-wimbledon/",
+        "us-open": "https://www.oddsportal.com/tennis/usa/atp-us-open/",
         "atp-indian-wells": "https://www.oddsportal.com/tennis/usa/atp-indian-wells/",
         "atp-miami": "https://www.oddsportal.com/tennis/usa/atp-miami/",
         "atp-monte-carlo": "https://www.oddsportal.com/tennis/monaco/atp-monte-carlo/",
@@ -73,7 +73,7 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "wta-eastbourne": "https://www.oddsportal.com/tennis/uk/wta-eastbourne/",
         "wta-san-jose": "https://www.oddsportal.com/tennis/usa/wta-san-jose/",
         "wta-toronto": "https://www.oddsportal.com/tennis/canada/wta-toronto/",
-        "wta-new-haven": "https://www.oddsportal.com/tennis/usa/wta-new-haven/"
+        "wta-new-haven": "https://www.oddsportal.com/tennis/usa/wta-new-haven/",
     },
     Sport.BASKETBALL: {
         "nba": "https://www.oddsportal.com/basketball/usa/nba/",
@@ -117,14 +117,14 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "basketball-league-croatia": "https://www.oddsportal.com/basketball/croatia/premijer-liga/",
         "a-division-czech": "https://www.oddsportal.com/basketball/czech-republic/knbl/",
         "a-division-slovakia": "https://www.oddsportal.com/basketball/slovakia/extraliga/",
-        "basketball-league-estonia": "https://www.oddsportal.com/basketball/estonia/kml/"
+        "basketball-league-estonia": "https://www.oddsportal.com/basketball/estonia/kml/",
     },
     Sport.RUGBY_LEAGUE: {
         "england-super-league": "https://www.oddsportal.com/rugby-league/england/super-league/",
         "australia-nrl": "https://www.oddsportal.com/rugby-league/australia/nrl/",
         "australia-state-of-origin": "https://www.oddsportal.com/rugby-league/australia/state-of-origin/",
         "france-nrl": "https://www.oddsportal.com/rugby-league/france/elite-1/",
-        "world-cup": "https://www.oddsportal.com/rugby-league/world/world-cup/"
+        "world-cup": "https://www.oddsportal.com/rugby-league/world/world-cup/",
     },
     Sport.RUGBY_UNION: {
         "six-nations": "https://www.oddsportal.com/rugby-union/world/six-nations/",
@@ -136,7 +136,7 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "super-rugby": "https://www.oddsportal.com/rugby-union/world/super-rugby/",
         "united-rugby-championship": "https://www.oddsportal.com/rugby-union/world/united-rugby-championship/",
         "currie-cup": "https://www.oddsportal.com/rugby-union/south-africa/currie-cup/",
-        "npc-cup": "https://www.oddsportal.com/rugby-union/new-zealand/bunnings-npc/"
+        "npc-cup": "https://www.oddsportal.com/rugby-union/new-zealand/bunnings-npc/",
     },
     Sport.ICE_HOCKEY: {
         "nhl": "https://www.oddsportal.com/hockey/usa/nhl/",
@@ -154,9 +154,12 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "poland-polska-hokej-liga": "https://www.oddsportal.com/hockey/poland/polska-hokej-liga/",
         "denmark-metal-ligaen": "https://www.oddsportal.com/hockey/denmark/metal-ligaen/",
         "france-ligue-magnus": "https://www.oddsportal.com/hockey/france/ligue-magnus/",
-        "world-championship": "https://www.oddsportal.com/hockey/world/world-championship/"
+        "world-championship": "https://www.oddsportal.com/hockey/world/world-championship/",
     },
     Sport.BASEBALL: {
-        "mlb": "https://www.oddsportal.com/baseball/usa/mlb/"
+        "mlb": "https://www.oddsportal.com/baseball/usa/mlb/",
+        "pcl": "https://www.oddsportal.com/baseball/usa/pcl/",
+        "australian-baseball-league": "https://www.oddsportal.com/baseball/australia/abl/",
+        "japan-baseball-league": "https://www.oddsportal.com/baseball/japan/npb/",
     },
 }
