@@ -109,8 +109,8 @@ async def run_scraper(
             )
 
         elif command == CommandEnum.UPCOMING_MATCHES:
-            if not date:
-                raise ValueError("A valid 'date' must be provided for upcoming matches scraping.")
+            if not date and not league:
+                raise ValueError("Either 'date' or 'league' must be provided for upcoming matches scraping.")
 
             logger.info(f"""
                 Scraping upcoming matches for sport={sport}, date={date}, league={league}, markets={markets},

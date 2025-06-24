@@ -89,6 +89,7 @@ def test_validate_league_invalid(validator, mock_args):
 def test_validate_date_invalid_format(validator, mock_args):
     mock_args.date = "25-02-2025"
     mock_args.match_links = None
+    mock_args.league = None
 
     with pytest.raises(
         ValueError, match="Invalid date format: '25-02-2025'. Expected format is YYYYMMDD \\(e.g., 20250227\\)."
@@ -99,6 +100,7 @@ def test_validate_date_invalid_format(validator, mock_args):
 def test_validate_date_past_date(validator, mock_args):
     mock_args.date = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
     mock_args.match_links = None
+    mock_args.league = None
 
     with pytest.raises(ValueError, match="Date .* must be today or in the future."):
         validator.validate_args(mock_args)
@@ -191,6 +193,14 @@ def test_validate_date_with_match_links(validator):
         command="scrape_upcoming", date=None, match_links=["https://www.oddsportal.com/match/123456"]
     )
     assert not errors, "Validation should succeed when match_links is provided, even without date"
+
+
+def test_validate_date_with_league(validator):
+    """Test that date is not required when league is provided."""
+    errors = validator._validate_date(
+        command="scrape_upcoming", date=None, match_links=None, league="england-premier-league"
+    )
+    assert not errors, "Validation should succeed when league is provided, even without date"
 
 
 # Test pour _validate_date pour une commande autre que scrape_upcoming

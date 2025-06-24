@@ -36,7 +36,14 @@ class CLIArgumentValidator:
             errors.extend(self._validate_season(command=args.command, season=args.season))
 
         if hasattr(args, "date"):
-            errors.extend(self._validate_date(command=args.command, date=args.date, match_links=args.match_links))
+            errors.extend(
+                self._validate_date(
+                    command=args.command,
+                    date=args.date,
+                    match_links=args.match_links,
+                    league=getattr(args, "league", None),
+                )
+            )
 
         if hasattr(args, "file_path") or hasattr(args, "format"):
             errors.extend(self._validate_file_args(args=args))
@@ -183,12 +190,14 @@ class CLIArgumentValidator:
 
         return errors
 
-    def _validate_date(self, command: str, date: str | None, match_links: list[str] | None) -> list[str]:
+    def _validate_date(
+        self, command: str, date: str | None, match_links: list[str] | None, league: str | None = None
+    ) -> list[str]:
         """Validates the date argument for the `scrape_upcoming` command."""
         errors = []
 
-        # Date not required when match_links is provided
-        if match_links:
+        # Date not required when match_links or league is provided
+        if match_links or league:
             return errors
 
         # Date should only be required for scrape_upcoming
@@ -198,7 +207,9 @@ class CLIArgumentValidator:
             return errors
 
         if not date:
-            return [f"Missing required argument: 'date' is mandatory for '{command}' command."]
+            return [
+                f"Missing required argument: 'date' is mandatory for '{command}' command when no league is specified."
+            ]
 
         # Ensure date format is YYYYMMDD
         try:
