@@ -106,8 +106,7 @@ You'll find support for:
    Ensure all dependencies are installed and Playwright is set up by running the following command:
 
    ```bash
-   cd src
-   python main.py --help
+   uv run python src/main.py --help
    ```
 
 By following these steps, you should have **OddsHarvester** set up and ready to use.
@@ -154,15 +153,15 @@ Retrieve odds and event details for upcoming sports matches.
 
 - **Retrieve upcoming football matches for January 1, 2025, and save results locally:**
 
-`uv run src/main.py scrape_upcoming --sport football --markets 1x2 --date 2025-01-01`
+`uv run python src/main.py scrape_upcoming --sport football --markets 1x2 --date 20250101 --headless`
 
 - **Scrapes English Premier League matches with odds for 1x2 and Both Teams to Score (BTTS):**
 
-`uv run src/main.py scrape_upcoming --sport football --league england-premier-league --markets 1x2,btts --storage local`
+`uv run python src/main.py scrape_upcoming --sport football --league england-premier-league --markets 1x2,btts --storage local --headless`
 
 - **Scrapes baseball matches using a rotating proxy setup:**
 
-`uv run src/main.py scrape_upcoming --sport baseball --date 20250227 --markets moneyline --proxies "http://proxy1.com:8080 user1 pass1" "http://proxy2.com:8080 user2 pass2"`
+`uv run python src/main.py scrape_upcoming --sport baseball --date 20250227 --markets moneyline --proxies "http://proxy1.com:8080 user1 pass1" "http://proxy2.com:8080 user2 pass2" --headless`
 
 #### **2. Scrape Historical Odds**
 
@@ -194,25 +193,25 @@ Retrieve historical odds and results for analytical purposes.
 
 - **Retrieve historical odds for the Premier League's 2022-2023 season:**
 
-`uv run src/main.py scrape_historic --sport football --league england-premier-league --season 2022-2023 --markets 1x2`
+`uv run python src/main.py scrape_historic --sport football --league england-premier-league --season 2022-2023 --markets 1x2 --headless`
 
 - **Retrieve historical odds for the current season of Premier League:**
 
-`uv run src/main.py scrape_historic --sport football --league england-premier-league --season current --markets 1x2`
+`uv run python src/main.py scrape_historic --sport football --league england-premier-league --season current --markets 1x2 --headless`
 
 - **Retrieve historical MLB 2022 season data:**
 
-`uv run src/main.py scrape_historic --sport baseball --league usa-mlb --season 2022 --markets moneyline`
+`uv run python src/main.py scrape_historic --sport baseball --league usa-mlb --season 2022 --markets moneyline --headless`
 
 - **Scrapes only 3 pages of historical odds data:**
 
-`uv run src/main.py scrape_historic --sport football --league england-premier-league --season 2022-2023 --markets 1x2 --max_pages 3`
+`uv run python src/main.py scrape_historic --sport football --league england-premier-league --season 2022-2023 --markets 1x2 --max_pages 3 --headless`
 
 #### **📌 Running the Help Command:**
 
 To display all available CLI commands and options, run:
 
-`uv run src/main.py --help`
+`uv run python src/main.py --help`
 
 ### **🐳 Running Inside a Docker Container**
 
