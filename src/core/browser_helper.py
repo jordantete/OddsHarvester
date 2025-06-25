@@ -94,40 +94,60 @@ class BrowserHelper:
         Returns:
             bool: True if scrolling completed successfully, False otherwise.
         """
-        self.logger.info("Will scroll to the bottom of the page.")
+        self.logger.info("Will scroll to the bottom of the page to load all content.")
         end_time = time.time() + timeout
         last_height = await page.evaluate("document.body.scrollHeight")
-        self.logger.info(f"__scroll_until_loaded last_height: {last_height}")
-        scroll_attempts = 0
+        last_element_count = 0
+        stable_count_attempts = 0
+
+        # Get initial element count if selector is provided
+        if content_check_selector:
+            initial_elements = await page.query_selector_all(content_check_selector)
+            last_element_count = len(initial_elements)
+            self.logger.info(f"Initial element count: {last_element_count}")
+
+        self.logger.info(f"Initial page height: {last_height}")
 
         while time.time() < end_time:
+            # Scroll to bottom
             await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             await page.wait_for_timeout(scroll_pause_time * 1000)
 
             new_height = await page.evaluate("document.body.scrollHeight")
-            self.logger.info(f"__scroll_until_loaded new_height: {new_height}")
+            new_element_count = 0
 
-            # Check if content is loaded using optional selector
+            # Count elements if selector is provided
             if content_check_selector:
                 elements = await page.query_selector_all(content_check_selector)
-                if elements:
-                    self.logger.info(f"Content detected with selector '{content_check_selector}'. Stopping scroll.")
-                    return True
+                new_element_count = len(elements)
+                self.logger.info(f"Current element count: {new_element_count} (height: {new_height})")
 
-            # Check if scroll height has stopped changing
-            if new_height == last_height:
-                scroll_attempts += 1
-                self.logger.debug(f"No new content detected. Scroll attempt {scroll_attempts}/{max_scroll_attempts}.")
+                # Check if element count is stable
+                if new_element_count == last_element_count and new_height == last_height:
+                    stable_count_attempts += 1
+                    self.logger.debug(f"Content stable. Attempt {stable_count_attempts}/{max_scroll_attempts}.")
 
-                if scroll_attempts >= max_scroll_attempts:
-                    self.logger.info("Maximum scroll attempts reached. Stopping scroll.")
-                    return False
+                    if stable_count_attempts >= max_scroll_attempts:
+                        self.logger.info(f"Content stabilized at {new_element_count} elements. Scrolling complete.")
+                        return True
+                else:
+                    stable_count_attempts = 0  # Reset if content changed
+                    last_element_count = new_element_count
             else:
-                scroll_attempts = 0  # Reset attempts if content is detected
+                # Fallback to height-based detection
+                if new_height == last_height:
+                    stable_count_attempts += 1
+                    self.logger.debug(f"Height stable. Attempt {stable_count_attempts}/{max_scroll_attempts}.")
+
+                    if stable_count_attempts >= max_scroll_attempts:
+                        self.logger.info("Page height stabilized. Scrolling complete.")
+                        return True
+                else:
+                    stable_count_attempts = 0
 
             last_height = new_height
 
-        self.logger.info("Reached scrolling timeout without detecting new content.")
+        self.logger.info("Reached scrolling timeout. Stopping scroll.")
         return False
 
     async def scroll_until_visible_and_click_parent(

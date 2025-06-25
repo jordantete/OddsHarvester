@@ -117,6 +117,17 @@ class OddsPortalScraper(BaseScraper):
 
         await current_page.goto(url, timeout=10000, wait_until="domcontentloaded")
         await self._prepare_page_for_scraping(page=current_page)
+
+        # Scroll to load all matches due to lazy loading
+        self.logger.info("Scrolling page to load all upcoming matches...")
+        await self.browser_helper.scroll_until_loaded(
+            page=current_page,
+            timeout=30,
+            scroll_pause_time=2,
+            max_scroll_attempts=3,
+            content_check_selector="div[class*='eventRow']",
+        )
+
         match_links = await self.extract_match_links(page=current_page)
 
         if not match_links:
@@ -220,6 +231,16 @@ class OddsPortalScraper(BaseScraper):
                 self.logger.info(f"Navigating to: {page_url}")
                 await tab.goto(page_url, timeout=10000, wait_until="domcontentloaded")
                 await tab.wait_for_timeout(random.randint(2000, 4000))
+
+                # Scroll to load all matches due to lazy loading
+                self.logger.info(f"Scrolling page {page_number} to load all matches...")
+                await self.browser_helper.scroll_until_loaded(
+                    page=tab,
+                    timeout=30,
+                    scroll_pause_time=2,
+                    max_scroll_attempts=3,
+                    content_check_selector="div[class*='eventRow']",
+                )
 
                 links = await self.extract_match_links(page=tab)
                 all_links.extend(links)
