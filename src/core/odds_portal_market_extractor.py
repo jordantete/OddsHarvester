@@ -175,7 +175,13 @@ class OddsPortalMarketExtractor:
         """
         self.logger.info("Parsing odds from HTML content.")
         soup = BeautifulSoup(html_content, "lxml")
-        bookmaker_blocks = soup.find_all("div", class_=re.compile(r"^border-black-borders flex h-9"))
+
+        # Try broader "border-black-borders" pattern first as it works better
+        bookmaker_blocks = soup.find_all("div", class_=re.compile(r"border-black-borders"))
+
+        if not bookmaker_blocks:
+            # Fallback to original selector for backwards compatibility
+            bookmaker_blocks = soup.find_all("div", class_=re.compile(r"^border-black-borders flex h-9"))
 
         if not bookmaker_blocks:
             self.logger.warning("No bookmaker blocks found.")
