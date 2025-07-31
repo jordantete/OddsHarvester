@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Betfair Arbitrage Tool - Live Dashboard</title>
+    
+    <!-- CSS Dependencies -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/dashboard.css') }}" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-dark bg-dark fixed-top">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-chart-line"></i> Betfair Arbitrage Tool
+            </span>
+            <div class="d-flex align-items-center">
+                <div class="form-check form-switch me-3">
+                    <input class="form-check-input" type="checkbox" id="automationToggle">
+                    <label class="form-check-label text-white" for="automationToggle">
+                        Auto-Betting <span id="automationStatus" class="badge bg-danger">OFF</span>
+                    </label>
+                </div>
+                <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Dashboard -->
+    <div class="container-fluid mt-5 pt-3">
+        <!-- Performance Overview -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Balance</h6>
+                        <h3 class="card-title mb-0" id="balance">£10,000.00</h3>
+                        <small class="text-success"><i class="fas fa-arrow-up"></i> +0.0%</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Today's P/L</h6>
+                        <h3 class="card-title mb-0" id="todayPL">£0.00</h3>
+                        <small class="text-muted">0 bets</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">ROI</h6>
+                        <h3 class="card-title mb-0" id="roi">0.0%</h3>
+                        <small class="text-muted">All time</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Win Rate</h6>
+                        <h3 class="card-title mb-0" id="winRate">0.0%</h3>
+                        <small class="text-muted">0/0 bets</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Activity -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <!-- Active Bets -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-bolt text-warning"></i> Active Bets</h5>
+                        <span class="badge bg-primary" id="activeBetsCount">0</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Market</th>
+                                        <th>Selection</th>
+                                        <th>Type</th>
+                                        <th>Odds</th>
+                                        <th>Stake</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activeBetsTable">
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted">No active bets</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bet Queue -->
+                <div class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-clock text-info"></i> Bet Queue</h5>
+                        <span class="badge bg-info" id="queueCount">0</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Priority</th>
+                                        <th>Opportunity</th>
+                                        <th>Expected Profit</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="betQueueTable">
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">No bets in queue</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <!-- Live Opportunities -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-gem text-success"></i> Live Opportunities</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="opportunitiesList" class="list-group list-group-flush">
+                            <div class="list-group-item text-center text-muted">
+                                Scanning for opportunities...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Feed -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-stream"></i> Activity Feed</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="activityFeed" class="activity-feed">
+                            <div class="feed-item">
+                                <small class="text-muted">Waiting for activity...</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Profit/Loss Chart</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="profitChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Bookmaker Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="bookmakerChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Automation Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="settingsForm">
+                        <div class="mb-3">
+                            <label class="form-label">Max Stake per Bet</label>
+                            <input type="number" class="form-control" id="maxStake" value="100" min="1">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Min Odds</label>
+                            <input type="number" class="form-control" id="minOdds" value="1.5" min="1.01" step="0.01">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Max Odds</label>
+                            <input type="number" class="form-control" id="maxOdds" value="10" min="1.01" step="0.01">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Min Profit %</label>
+                            <input type="number" class="form-control" id="minProfitPercentage" value="0.5" min="0.1" step="0.1">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Max Exposure</label>
+                            <input type="number" class="form-control" id="maxExposure" value="1000" min="100">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Bet Delay (seconds)</label>
+                            <input type="number" class="form-control" id="betDelay" value="2" min="1">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveSettings">Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
