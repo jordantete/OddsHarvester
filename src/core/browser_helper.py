@@ -3,10 +3,18 @@ import time
 
 from playwright.async_api import Page
 
+from src.core.odds_portal_selectors import OddsPortalSelectors
+
 
 class BrowserHelper:
     """
     A helper class for managing common browser interactions using Playwright.
+
+    This class provides high-level methods for:
+    - Cookie banner management
+    - Market navigation (including hidden markets)
+    - Scrolling operations
+    - Element interaction utilities
     """
 
     def __init__(self):
@@ -15,20 +23,25 @@ class BrowserHelper:
         """
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    async def dismiss_cookie_banner(
-        self, page: Page, selector: str = "#onetrust-accept-btn-handler", timeout: int = 10000
-    ):
+    # =============================================================================
+    # COOKIE BANNER MANAGEMENT
+    # =============================================================================
+
+    async def dismiss_cookie_banner(self, page: Page, selector: str | None = None, timeout: int = 10000):
         """
         Dismiss the cookie banner if it appears on the page.
 
         Args:
             page (Page): The Playwright page instance to interact with.
             selector (str): The CSS selector for the cookie banner's accept button.
-            timeout (int): Maximum time to wait for the banner (default: 5000ms).
+            timeout (int): Maximum time to wait for the banner (default: 10000ms).
 
         Returns:
             bool: True if the banner was dismissed, False otherwise.
         """
+        if selector is None:
+            selector = OddsPortalSelectors.COOKIE_BANNER
+
         try:
             self.logger.info("Checking for cookie banner...")
             await page.wait_for_selector(selector, timeout=timeout)
@@ -44,6 +57,10 @@ class BrowserHelper:
             self.logger.error(f"Error while dismissing cookie banner: {e}")
             return False
 
+    # =============================================================================
+    # MARKET NAVIGATION
+    # =============================================================================
+
     async def navigate_to_market_tab(self, page: Page, market_tab_name: str, timeout=10000):
         """
         Navigate to a specific market tab by its name.
@@ -57,21 +74,11 @@ class BrowserHelper:
         Returns:
             bool: True if the market tab was successfully selected, False otherwise.
         """
-        # Try multiple selectors for market tabs to find the correct one
-        tab_selectors = [
-            "ul.visible-links.bg-black-main.odds-tabs > li",
-            "ul.odds-tabs > li",
-            "ul[class*='odds-tabs'] > li",
-            "div[class*='odds-tabs'] li",
-            "li[class*='tab']",
-            "nav li",
-        ]
-
         self.logger.info(f"Attempting to navigate to market tab: {market_tab_name}")
 
         # First attempt: Try to find the market directly in visible tabs
         market_found = False
-        for selector in tab_selectors:
+        for selector in OddsPortalSelectors.MARKET_TAB_SELECTORS:
             if await self._wait_and_click(page=page, selector=selector, text=market_tab_name, timeout=timeout):
                 market_found = True
                 break
@@ -90,6 +97,10 @@ class BrowserHelper:
             f"Failed to find or click the {market_tab_name} tab (searched visible tabs and 'More' dropdown)."
         )
         return False
+
+    # =============================================================================
+    # SCROLLING OPERATIONS
+    # =============================================================================
 
     async def scroll_until_loaded(
         self,
@@ -222,44 +233,9 @@ class BrowserHelper:
         )
         return False
 
-    async def click_by_inner_text(self, page: Page, selector: str, text: str) -> bool:
-        """
-        Attempts to click an element based on its inner text content.
-
-        This method searches for elements matching a specific selector and checks if their
-        inner text matches the provided text. It performs a "cleaned text" comparison to
-        handle potential whitespace or formatting differences.
-
-        Args:
-            page (Page): The Playwright page instance to interact with.
-            selector (str): The selector for the elements to search (e.g., 'div', 'span').
-            text (str): The text content to match.
-
-        Returns:
-            bool: True if the element was successfully clicked, False otherwise.
-
-        Raises:
-            Exception: Logs the error and returns False if an issue occurs during execution.
-        """
-        try:
-            cleaned_text = "".join(text.split())
-            elements = await page.query_selector_all(f'xpath=//{selector}[contains(text(), "{cleaned_text}")]')
-
-            if not elements:
-                self.logger.info(f"Element with text '{text}' not found.")
-                return False
-
-            for element in elements:
-                if "".join(await element.text_content().split()) == cleaned_text:
-                    await element.click()
-                    return True
-
-        except Exception as e:
-            self.logger.error(f"Error clicking element with text '{text}': {e}")
-            return False
-
-        self.logger.info(f"Element with text '{text}' not found.")
-        return False
+    # =============================================================================
+    # PRIVATE HELPER METHODS
+    # =============================================================================
 
     async def _wait_and_click(self, page: Page, selector: str, text: str | None = None, timeout: float = 5000):
         """
@@ -338,19 +314,8 @@ class BrowserHelper:
             bool: True if the market was found and clicked in the "More" dropdown, False otherwise.
         """
         try:
-            more_selectors = [
-                "button.toggle-odds:has-text('More')",
-                "button[class*='toggle-odds']",
-                ".visible-btn-odds:has-text('More')",
-                "li:has-text('More')",
-                "li:has-text('more')",
-                "li[class*='more']",
-                "li button:has-text('More')",
-                "li a:has-text('More')",
-            ]
-
             more_clicked = False
-            for selector in more_selectors:
+            for selector in OddsPortalSelectors.MORE_BUTTON_SELECTORS:
                 try:
                     more_element = await page.query_selector(selector)
                     if more_element:
@@ -370,14 +335,7 @@ class BrowserHelper:
 
             await page.wait_for_timeout(1000)
 
-            dropdown_selectors = [
-                f"li:has-text('{market_tab_name}')",
-                f"a:has-text('{market_tab_name}')",
-                f"button:has-text('{market_tab_name}')",
-                f"div:has-text('{market_tab_name}')",
-                f"span:has-text('{market_tab_name}')",
-            ]
-
+            dropdown_selectors = OddsPortalSelectors.get_dropdown_selectors_for_market(market_tab_name)
             for selector in dropdown_selectors:
                 try:
                     dropdown_element = await page.query_selector(selector)
@@ -394,7 +352,7 @@ class BrowserHelper:
                     continue
 
             self.logger.info("Debugging dropdown content:")
-            dropdown_items = await page.query_selector_all("li, a, button, div, span")
+            dropdown_items = await page.query_selector_all(OddsPortalSelectors.DROPDOWN_DEBUG_ELEMENTS)
             for item in dropdown_items[:10]:  # Limit to first 10 items
                 try:
                     text = await item.text_content()
