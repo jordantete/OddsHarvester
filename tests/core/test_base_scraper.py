@@ -237,6 +237,9 @@ async def test_scrape_match_data(setup_base_scraper_mocks):
         }
     )
 
+    page_mock.wait_for_timeout = AsyncMock()
+    page_mock.wait_for_selector = AsyncMock()
+
     # Call the method under test
     result = await scraper._scrape_match_data(
         page=page_mock,
@@ -249,7 +252,7 @@ async def test_scrape_match_data(setup_base_scraper_mocks):
 
     # Verify interactions
     page_mock.goto.assert_called_once_with(
-        "https://oddsportal.com/football/england/arsenal-chelsea/123456", timeout=5000, wait_until="domcontentloaded"
+        "https://oddsportal.com/football/england/arsenal-chelsea/123456", timeout=15000, wait_until="domcontentloaded"
     )
 
     scraper._extract_match_details_event_header.assert_called_once_with(page_mock)
@@ -280,6 +283,9 @@ async def test_scrape_match_data_no_details(setup_base_scraper_mocks):
 
     # Mock _extract_match_details_event_header returning None
     scraper._extract_match_details_event_header = AsyncMock(return_value=None)
+
+    page_mock.wait_for_timeout = AsyncMock()
+    page_mock.wait_for_selector = AsyncMock()
 
     # Call the method under test
     result = await scraper._scrape_match_data(

@@ -91,7 +91,7 @@ def test_parser_defaults():
     assert args.markets is None
     assert args.storage == "local"
     assert args.file_path is None
-    assert args.format is None
+    assert args.format == "json"
     assert args.proxies is None
     assert args.browser_user_agent is None
     assert args.browser_locale_timezone is None
