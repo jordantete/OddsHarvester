@@ -23,7 +23,7 @@ def main():
                 match_links=args["match_links"],
                 sport=args["sport"],
                 date=args["date"],
-                league=args["league"],
+                leagues=args["leagues"],
                 season=args["season"],
                 markets=args["markets"],
                 max_pages=args["max_pages"],

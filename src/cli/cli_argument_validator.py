@@ -18,6 +18,9 @@ class CLIArgumentValidator:
         if isinstance(args.markets, str):
             args.markets = [market.strip() for market in args.markets.split(",")]
 
+        if isinstance(args.leagues, str):
+            args.leagues = [league.strip() for league in args.leagues.split(",")]
+
         errors = []
 
         if hasattr(args, "match_links"):
@@ -29,8 +32,8 @@ class CLIArgumentValidator:
         if hasattr(args, "markets"):
             errors.extend(self._validate_markets(sport=args.sport, markets=args.markets))
 
-        if hasattr(args, "league"):
-            errors.extend(self._validate_league(sport=args.sport, league=args.league))
+        if hasattr(args, "leagues"):
+            errors.extend(self._validate_leagues(sport=args.sport, leagues=args.leagues))
 
         if hasattr(args, "season"):
             errors.extend(self._validate_season(command=args.command, season=args.season))
@@ -41,7 +44,7 @@ class CLIArgumentValidator:
                     command=args.command,
                     date=args.date,
                     match_links=args.match_links,
-                    league=getattr(args, "league", None),
+                    leagues=getattr(args, "leagues", None),
                 )
             )
 
@@ -136,11 +139,11 @@ class CLIArgumentValidator:
 
         return errors
 
-    def _validate_league(self, sport: str, league: str | None) -> list[str]:
-        """Validates the league argument based on the sport."""
+    def _validate_leagues(self, sport: str, leagues: list[str] | None) -> list[str]:
+        """Validates the leagues argument based on the sport."""
         errors = []
 
-        if not league:
+        if not leagues:
             return errors
 
         try:
@@ -153,8 +156,9 @@ class CLIArgumentValidator:
             return errors
 
         supported_leagues = SPORTS_LEAGUES_URLS_MAPPING[sport_enum]
-        if league not in supported_leagues:
-            errors.append(f"Invalid league: '{league}' for sport '{sport_enum.value}'.")
+        for league in leagues:
+            if league not in supported_leagues:
+                errors.append(f"Invalid league: '{league}' for sport '{sport_enum.value}'.")
 
         return errors
 
@@ -191,13 +195,13 @@ class CLIArgumentValidator:
         return errors
 
     def _validate_date(
-        self, command: str, date: str | None, match_links: list[str] | None, league: str | None = None
+        self, command: str, date: str | None, match_links: list[str] | None, leagues: list[str] | None = None
     ) -> list[str]:
         """Validates the date argument for the `scrape_upcoming` command."""
         errors = []
 
-        # Date not required when match_links or league is provided
-        if match_links or league:
+        # Date not required when match_links or leagues is provided
+        if match_links or leagues:
             return errors
 
         # Date should only be required for scrape_upcoming
@@ -208,7 +212,7 @@ class CLIArgumentValidator:
 
         if not date:
             return [
-                f"Missing required argument: 'date' is mandatory for '{command}' command when no league is specified."
+                f"Missing required argument: 'date' is mandatory for '{command}' command when no leagues are specified."
             ]
 
         # Ensure date format is YYYYMMDD

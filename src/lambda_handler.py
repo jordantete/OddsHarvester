@@ -19,7 +19,7 @@ def lambda_handler(event: dict[str, Any], context: Any):
             command="scrape_upcoming",
             sport="football",
             date=formatted_date,
-            league="premier-league",
+            leagues=["premier-league"],
             storage_type="remote",
             headless=True,
             markets=["1x2"],

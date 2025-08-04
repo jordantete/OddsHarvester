@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 from bs4 import BeautifulSoup
-from playwright.async_api import Error, Page, TimeoutError
+from playwright.async_api import Page, TimeoutError
 
 from src.core.browser_helper import BrowserHelper
 from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
@@ -200,28 +200,42 @@ class BaseScraper:
         self.logger.info(f"Scraping match: {match_link}")
 
         try:
-            await page.goto(match_link, timeout=5000, wait_until="domcontentloaded")
+            # Navigate to the match page with extended timeout
+            await page.goto(match_link, timeout=15000, wait_until="domcontentloaded")
+
+            # Wait a bit for dynamic content to load
+            await page.wait_for_timeout(2000)
+
             match_details = await self._extract_match_details_event_header(page)
 
             if not match_details:
-                self.logger.warning(f"No match details found for {match_link}")
+                self.logger.warning(
+                    f"No match details found for {match_link} - page may be unavailable or structure changed"
+                )
                 return None
 
             if markets:
                 self.logger.info(f"Scraping markets: {markets}")
-                market_data = await self.market_extractor.scrape_markets(
-                    page=page,
-                    sport=sport,
-                    markets=markets,
-                    period="FullTime",
-                    scrape_odds_history=scrape_odds_history,
-                    target_bookmaker=target_bookmaker,
-                )
-                match_details.update(market_data)
+                try:
+                    market_data = await self.market_extractor.scrape_markets(
+                        page=page,
+                        sport=sport,
+                        markets=markets,
+                        period="FullTime",
+                        scrape_odds_history=scrape_odds_history,
+                        target_bookmaker=target_bookmaker,
+                    )
+                    if market_data:
+                        match_details.update(market_data)
+                    else:
+                        self.logger.warning(f"No market data found for {match_link}")
+                except Exception as market_error:
+                    self.logger.error(f"Error scraping markets for {match_link}: {market_error}")
+                    # Continue without market data rather than failing completely
 
             return match_details
 
-        except Error as e:
+        except Exception as e:
             self.logger.error(f"Error scraping match data from {match_link}: {e}")
             return None
 
@@ -233,22 +247,34 @@ class BaseScraper:
             page (Page): A Playwright Page instance for this task.
 
         Returns:
-            Optional[Dict[str, Any]]: A dictionary containing match details, or None if header is is not found.
+            Optional[Dict[str, Any]]: A dictionary containing match details, or None if header is not found.
         """
         try:
+            # Wait for the react event header to be loaded
+            try:
+                await page.wait_for_selector("#react-event-header", timeout=10000)
+            except Exception:
+                # If we can't find the selector, try to get the content anyway
+                self.logger.warning("React event header selector not found, attempting to parse existing content")
+
             html_content = await page.content()
             soup = BeautifulSoup(html_content, "html.parser")
-            script_tag = soup.find("div", id="react-event-header")
+            event_header_div = soup.find("div", id="react-event-header")
 
-            if not script_tag:
-                self.logger.error("Error: Couldn't find the JSON-LD script tag.")
+            if not event_header_div:
+                self.logger.warning("React event header div not found in page content")
+                return None
+
+            # Check if the div has the 'data' attribute
+            data_attribute = event_header_div.get("data")
+            if not data_attribute:
+                self.logger.warning("React event header div found but 'data' attribute is missing")
                 return None
 
             try:
-                json_data = json.loads(script_tag.get("data"))
-
-            except (TypeError, json.JSONDecodeError):
-                self.logger.error("Error: Failed to parse JSON data.")
+                json_data = json.loads(data_attribute)
+            except (TypeError, json.JSONDecodeError) as e:
+                self.logger.error(f"Failed to parse JSON data from react event header: {e}")
                 return None
 
             event_body = json_data.get("eventBody", {})
@@ -276,5 +302,5 @@ class BaseScraper:
             }
 
         except Exception as e:
-            self.logger.error(f"Error extracting match details while parsing React event Header: {e}")
+            self.logger.error(f"Error extracting match details while parsing React event header: {e}")
             return None

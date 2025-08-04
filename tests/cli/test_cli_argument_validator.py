@@ -17,7 +17,7 @@ def mock_args():
     return MagicMock(
         command="scrape_upcoming",
         sport="football",
-        league="england-premier-league",
+        leagues=["england-premier-league"],
         date=(datetime.now() + timedelta(days=1)).strftime("%Y%m%d"),  # Corrected format (YYYYMMDD)
         storage="local",
         format="json",
@@ -81,7 +81,7 @@ def test_validate_markets_invalid(validator, mock_args):
 
 
 def test_validate_league_invalid(validator, mock_args):
-    mock_args.league = "invalid_league"
+    mock_args.leagues = ["invalid_league"]
     with pytest.raises(ValueError, match="Invalid league: 'invalid_league' for sport 'football'."):
         validator.validate_args(mock_args)
 
@@ -89,7 +89,7 @@ def test_validate_league_invalid(validator, mock_args):
 def test_validate_date_invalid_format(validator, mock_args):
     mock_args.date = "25-02-2025"
     mock_args.match_links = None
-    mock_args.league = None
+    mock_args.leagues = None
 
     with pytest.raises(
         ValueError, match="Invalid date format: '25-02-2025'. Expected format is YYYYMMDD \\(e.g., 20250227\\)."
@@ -100,7 +100,7 @@ def test_validate_date_invalid_format(validator, mock_args):
 def test_validate_date_past_date(validator, mock_args):
     mock_args.date = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
     mock_args.match_links = None
-    mock_args.league = None
+    mock_args.leagues = None
 
     with pytest.raises(ValueError, match="Date .* must be today or in the future."):
         validator.validate_args(mock_args)
@@ -144,16 +144,39 @@ def test_validate_league_rugby_union():
     """Test validation of Rugby Union leagues."""
     validator = CLIArgumentValidator()
 
-    # Test valid leagues
+    # Test valid leagues (single league)
     valid_leagues = ["six-nations", "france-top-14", "world-cup"]
     for league in valid_leagues:
-        errors = validator._validate_league(sport=Sport.RUGBY_UNION, league=league)
+        errors = validator._validate_leagues(sport=Sport.RUGBY_UNION, leagues=[league])
         assert not errors, f"Validation failed for valid Rugby Union league: {league}"
 
+    # Test multiple valid leagues
+    errors = validator._validate_leagues(sport=Sport.RUGBY_UNION, leagues=valid_leagues)
+    assert not errors, "Validation should succeed for multiple valid Rugby Union leagues"
+
     # Test invalid league
-    errors = validator._validate_league(sport=Sport.RUGBY_UNION, league="invalid-league")
+    errors = validator._validate_leagues(sport=Sport.RUGBY_UNION, leagues=["invalid-league"])
     assert len(errors) == 1, "Validation should fail for invalid Rugby Union league"
     assert "Invalid league: 'invalid-league' for sport 'rugby-union'" in errors[0]
+
+    # Test mixed valid and invalid leagues
+    mixed_leagues = ["six-nations", "invalid-league", "france-top-14"]
+    errors = validator._validate_leagues(sport=Sport.RUGBY_UNION, leagues=mixed_leagues)
+    assert len(errors) == 1, "Validation should fail for invalid league in mixed list"
+    assert "Invalid league: 'invalid-league' for sport 'rugby-union'" in errors[0]
+
+
+def test_validate_empty_leagues_list():
+    """Test validation with empty leagues list."""
+    validator = CLIArgumentValidator()
+
+    # Empty list should be treated as None
+    errors = validator._validate_leagues(sport=Sport.FOOTBALL, leagues=[])
+    assert not errors, "Empty leagues list should not cause validation errors"
+
+    # None should also not cause errors
+    errors = validator._validate_leagues(sport=Sport.FOOTBALL, leagues=None)
+    assert not errors, "None leagues should not cause validation errors"
 
 
 # Tests pour _validate_season
@@ -195,12 +218,21 @@ def test_validate_date_with_match_links(validator):
     assert not errors, "Validation should succeed when match_links is provided, even without date"
 
 
-def test_validate_date_with_league(validator):
-    """Test that date is not required when league is provided."""
+def test_validate_date_with_leagues(validator):
+    """Test that date is not required when leagues are provided."""
     errors = validator._validate_date(
-        command="scrape_upcoming", date=None, match_links=None, league="england-premier-league"
+        command="scrape_upcoming", date=None, match_links=None, leagues=["england-premier-league"]
     )
-    assert not errors, "Validation should succeed when league is provided, even without date"
+    assert not errors, "Validation should succeed when leagues are provided, even without date"
+
+    # Test with multiple leagues
+    errors = validator._validate_date(
+        command="scrape_upcoming",
+        date=None,
+        match_links=None,
+        leagues=["england-premier-league", "spain-primera-division"],
+    )
+    assert not errors, "Validation should succeed when multiple leagues are provided, even without date"
 
 
 # Test pour _validate_date pour une commande autre que scrape_upcoming

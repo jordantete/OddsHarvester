@@ -7,7 +7,7 @@ from src.core.browser_helper import BrowserHelper
 from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from src.core.odds_portal_scraper import OddsPortalScraper
 from src.core.playwright_manager import PlaywrightManager
-from src.core.scraper_app import TRANSIENT_ERRORS, retry_scrape, run_scraper
+from src.core.scraper_app import TRANSIENT_ERRORS, _scrape_multiple_leagues, retry_scrape, run_scraper
 from src.utils.command_enum import CommandEnum
 
 
@@ -61,7 +61,7 @@ async def test_run_scraper_historic(
     result = await run_scraper(
         command=CommandEnum.HISTORIC,
         sport="football",
-        league="premier-league",
+        leagues=["premier-league"],
         season="2023",
         markets=["1x2", "over_under"],
         max_pages=2,
@@ -120,7 +120,7 @@ async def test_run_scraper_upcoming(
         command=CommandEnum.UPCOMING_MATCHES,
         sport="basketball",
         date="2023-06-01",
-        league="nba",
+        leagues=["nba"],
         markets=["1x2"],
         browser_user_agent="custom-agent",
         browser_locale_timezone="Europe/Paris",
@@ -245,10 +245,145 @@ async def test_run_scraper_error_handling(sport_market_registrar_mock, proxy_man
     proxy_manager_instance.get_current_proxy.return_value = {"server": "test-proxy"}
     proxy_manager_mock.return_value = proxy_manager_instance
 
-    result = await run_scraper(command=CommandEnum.HISTORIC, sport="football", league="premier-league", season="2023")
+    result = await run_scraper(
+        command=CommandEnum.HISTORIC, sport="football", leagues=["premier-league"], season="2023"
+    )
 
     scraper_mock.stop_playwright.assert_called_once()
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_scrape_multiple_leagues_success():
+    """Test _scrape_multiple_leagues with successful scraping."""
+    scraper_mock = MagicMock()
+    scrape_func_mock = AsyncMock()
+
+    # Mock successful scraping for each league
+    scrape_func_mock.side_effect = [
+        [{"match1": "data1"}, {"match2": "data2"}],  # premier-league
+        [{"match3": "data3"}],  # primera-division
+        [{"match4": "data4"}, {"match5": "data5"}, {"match6": "data6"}],  # serie-a
+    ]
+
+    leagues = ["england-premier-league", "spain-primera-division", "italy-serie-a"]
+
+    with patch("src.core.scraper_app.retry_scrape", scrape_func_mock):
+        result = await _scrape_multiple_leagues(
+            scraper=scraper_mock,
+            scrape_func=scrape_func_mock,
+            leagues=leagues,
+            sport="football",
+            season="2023",
+            markets=["1x2"],
+        )
+
+    # Verify all leagues were processed
+    assert scrape_func_mock.call_count == 3
+
+    # Verify the combined results
+    assert len(result) == 6  # 2 + 1 + 3 matches
+    assert result[0] == {"match1": "data1"}
+    assert result[2] == {"match3": "data3"}
+    assert result[5] == {"match6": "data6"}
+
+
+@pytest.mark.asyncio
+async def test_scrape_multiple_leagues_with_failures():
+    """Test _scrape_multiple_leagues with some league failures."""
+    scraper_mock = MagicMock()
+    scrape_func_mock = AsyncMock()
+
+    # Mock mixed success/failure
+    scrape_func_mock.side_effect = [
+        [{"match1": "data1"}],  # premier-league - success
+        Exception("Network error"),  # primera-division - failure
+        [{"match2": "data2"}],  # serie-a - success
+    ]
+
+    leagues = ["england-premier-league", "spain-primera-division", "italy-serie-a"]
+
+    with patch("src.core.scraper_app.retry_scrape", scrape_func_mock):
+        result = await _scrape_multiple_leagues(
+            scraper=scraper_mock,
+            scrape_func=scrape_func_mock,
+            leagues=leagues,
+            sport="football",
+            season="2023",
+        )
+
+    # Verify all leagues were attempted
+    assert scrape_func_mock.call_count == 3
+
+    # Verify only successful results are included
+    assert len(result) == 2  # Only 2 successful matches
+    assert result[0] == {"match1": "data1"}
+    assert result[1] == {"match2": "data2"}
+
+
+@pytest.mark.asyncio
+async def test_scrape_multiple_leagues_empty_results():
+    """Test _scrape_multiple_leagues with empty results from some leagues."""
+    scraper_mock = MagicMock()
+    scrape_func_mock = AsyncMock()
+
+    # Mock mixed results including empty ones
+    scrape_func_mock.side_effect = [
+        [{"match1": "data1"}],  # premier-league - has data
+        [],  # primera-division - empty
+        None,  # serie-a - None result
+    ]
+
+    leagues = ["england-premier-league", "spain-primera-division", "italy-serie-a"]
+
+    with patch("src.core.scraper_app.retry_scrape", scrape_func_mock):
+        result = await _scrape_multiple_leagues(
+            scraper=scraper_mock,
+            scrape_func=scrape_func_mock,
+            leagues=leagues,
+            sport="football",
+        )
+
+    # Verify only non-empty results are included
+    assert len(result) == 1
+    assert result[0] == {"match1": "data1"}
+
+
+@pytest.mark.asyncio
+async def test_run_scraper_multiple_leagues_historic():
+    """Test run_scraper with multiple leagues for historic command."""
+    with (
+        patch("src.core.scraper_app.OddsPortalScraper") as scraper_cls_mock,
+        patch("src.core.scraper_app.OddsPortalMarketExtractor"),
+        patch("src.core.scraper_app.BrowserHelper"),
+        patch("src.core.scraper_app.PlaywrightManager"),
+        patch("src.core.scraper_app.ProxyManager"),
+        patch("src.core.scraper_app.SportMarketRegistrar"),
+        patch("src.core.scraper_app._scrape_multiple_leagues") as multi_scrape_mock,
+    ):
+        scraper_mock = MagicMock()
+        scraper_mock.start_playwright = AsyncMock()
+        scraper_mock.stop_playwright = AsyncMock()
+        scraper_cls_mock.return_value = scraper_mock
+
+        multi_scrape_mock.return_value = [{"combined": "data"}]
+
+        result = await run_scraper(
+            command=CommandEnum.HISTORIC,
+            sport="football",
+            leagues=["england-premier-league", "spain-primera-division"],
+            season="2023",
+            markets=["1x2"],
+        )
+
+        # Verify _scrape_multiple_leagues was called for multiple leagues
+        multi_scrape_mock.assert_called_once()
+        call_args = multi_scrape_mock.call_args
+        assert call_args[1]["leagues"] == ["england-premier-league", "spain-primera-division"]
+        assert call_args[1]["sport"] == "football"
+        assert call_args[1]["season"] == "2023"
+
+        assert result == [{"combined": "data"}]
 
 
 # Separate test cases for validation errors

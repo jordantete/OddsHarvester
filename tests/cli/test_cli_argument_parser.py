@@ -22,7 +22,7 @@ def test_parse_scrape_upcoming(parser):
             "football",
             "--date",
             "20250225",
-            "--league",
+            "--leagues",
             "premier-league",
             "--markets",
             "1x2,btts",
@@ -39,7 +39,7 @@ def test_parse_scrape_upcoming(parser):
     assert args.command == "scrape_upcoming"
     assert args.sport == "football"
     assert args.date == "20250225"
-    assert args.league == "premier-league"
+    assert args.leagues == ["premier-league"]
     assert args.markets == ["1x2", "btts"]
     assert args.storage == "local"
     assert args.format == "json"
@@ -56,7 +56,7 @@ def test_parse_scrape_historic(parser):
             "tennis",
             "--season",
             "2023-2024",
-            "--league",
+            "--leagues",
             "atp-tour",
             "--markets",
             "match_winner,over_under",
@@ -72,7 +72,7 @@ def test_parse_scrape_historic(parser):
     assert args.command == "scrape_historic"
     assert args.sport == "tennis"
     assert args.season == "2023-2024"
-    assert args.league == "atp-tour"
+    assert args.leagues == ["atp-tour"]
     assert args.markets == ["match_winner", "over_under"]
     assert args.storage == "local"
     assert args.format == "csv"
@@ -87,7 +87,7 @@ def test_parser_defaults():
 
     assert args.command == "scrape_upcoming"
     assert args.sport is None  # Changed from 'football' to None since we want explicit sport selection
-    assert args.league is None
+    assert args.leagues is None
     assert args.markets is None
     assert args.storage == "local"
     assert args.file_path is None
@@ -121,3 +121,60 @@ def test_invalid_storage(parser):
 def test_invalid_format(parser):
     with pytest.raises(SystemExit):
         parser.parse_args(["scrape_upcoming", "--date", "20250225", "--format", "invalid_format"])
+
+
+def test_parse_multiple_leagues(parser):
+    """Test parsing multiple leagues separated by commas."""
+    args = parser.parse_args(
+        [
+            "scrape_historic",
+            "--sport",
+            "football",
+            "--season",
+            "2023-2024",
+            "--leagues",
+            "england-premier-league,spain-primera-division,italy-serie-a",
+            "--markets",
+            "1x2,btts",
+        ]
+    )
+    assert args.command == "scrape_historic"
+    assert args.sport == "football"
+    assert args.season == "2023-2024"
+    assert args.leagues == ["england-premier-league", "spain-primera-division", "italy-serie-a"]
+    assert args.markets == ["1x2", "btts"]
+
+
+def test_parse_single_league_as_list(parser):
+    """Test that single league is parsed as a list for consistency."""
+    args = parser.parse_args(
+        [
+            "scrape_upcoming",
+            "--sport",
+            "tennis",
+            "--leagues",
+            "french-open",
+            "--markets",
+            "match_winner",
+        ]
+    )
+    assert args.leagues == ["french-open"]
+
+
+def test_parse_leagues_with_spaces(parser):
+    """Test parsing leagues with spaces around commas."""
+    args = parser.parse_args(
+        [
+            "scrape_historic",
+            "--sport",
+            "football",
+            "--season",
+            "2023",
+            "--leagues",
+            "england-premier-league, spain-primera-division, italy-serie-a",
+            "--markets",
+            "1x2",
+        ]
+    )
+    # Note: Spaces will be handled by the validator, not the parser
+    assert args.leagues == ["england-premier-league", " spain-primera-division", " italy-serie-a"]

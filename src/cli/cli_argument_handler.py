@@ -31,7 +31,7 @@ class CLIArgumentHandler:
             "match_links": getattr(args, "match_links", None),
             "sport": getattr(args, "sport", None),
             "date": getattr(args, "date", None),
-            "league": getattr(args, "league", None),
+            "leagues": getattr(args, "leagues", None),
             "season": getattr(args, "season", None),
             "storage_type": args.storage,
             "storage_format": getattr(args, "format", None),

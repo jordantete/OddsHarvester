@@ -64,7 +64,11 @@ class CLIArgumentParser:
             choices=["football", "tennis", "basketball", "rugby-league", "rugby-union", "ice-hockey", "baseball"],
             help="Specify the sport to scrape (e.g., football, tennis, basketball, rugby-league, rugby-union, ice-hockey).",
         )
-        parser.add_argument("--league", type=str, help="Specific league (e.g., premier-league).")
+        parser.add_argument(
+            "--leagues",
+            type=lambda s: s.split(","),
+            help="🏆 Comma-separated list of leagues to scrape (e.g., premier-league,champions-league).",
+        )
         parser.add_argument(
             "--markets",
             type=lambda s: s.split(","),
@@ -79,7 +83,11 @@ class CLIArgumentParser:
         )
         parser.add_argument("--file_path", type=str, help="File path for saving data.")
         parser.add_argument(
-            "--format", type=str, choices=[f.value for f in StorageFormat], help="📝 Storage format (json or csv)."
+            "--format",
+            type=str,
+            choices=[f.value for f in StorageFormat],
+            default="json",
+            help="📝 Storage format (json or csv, default: json).",
         )
         parser.add_argument(
             "--proxies",

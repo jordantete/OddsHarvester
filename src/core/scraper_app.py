@@ -36,7 +36,7 @@ async def run_scraper(
     match_links: list | None = None,
     sport: str | None = None,
     date: str | None = None,
-    league: str | None = None,
+    leagues: list[str] | None = None,
     season: str | None = None,
     markets: list | None = None,
     max_pages: int | None = None,
@@ -50,7 +50,7 @@ async def run_scraper(
 ) -> dict:
     """Runs the scraping process and handles execution."""
     logger.info(f"""
-        Starting scraper with parameters: command={command}, match_links={match_links}, sport={sport}, date={date}, league={league},
+        Starting scraper with parameters: command={command}, match_links={match_links}, sport={sport}, date={date}, leagues={leagues},
         season={season}, markets={markets}, max_pages={max_pages}, proxies={proxies}, browser_user_agent={browser_user_agent},
         browser_locale_timezone={browser_locale_timezone}, browser_timezone_id={browser_timezone_id},
         scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}, headless={headless}""")
@@ -90,41 +90,83 @@ async def run_scraper(
             )
 
         if command == CommandEnum.HISTORIC:
-            if not sport or not league or not season:
-                raise ValueError("Both 'sport', 'league' and 'season' must be provided for historic scraping.")
+            if not sport or not leagues or not season:
+                raise ValueError("Both 'sport', 'leagues' and 'season' must be provided for historic scraping.")
 
             logger.info(f"""
-                Scraping historical odds for sport={sport} league={league}, season={season}, markets={markets},
+                Scraping historical odds for sport={sport}, leagues={leagues}, season={season}, markets={markets},
                 scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}, max_pages={max_pages}
             """)
-            return await retry_scrape(
-                scraper.scrape_historic,
-                sport=sport,
-                league=league,
-                season=season,
-                markets=markets,
-                scrape_odds_history=scrape_odds_history,
-                target_bookmaker=target_bookmaker,
-                max_pages=max_pages,
-            )
+
+            if len(leagues) == 1:
+                return await retry_scrape(
+                    scraper.scrape_historic,
+                    sport=sport,
+                    league=leagues[0],
+                    season=season,
+                    markets=markets,
+                    scrape_odds_history=scrape_odds_history,
+                    target_bookmaker=target_bookmaker,
+                    max_pages=max_pages,
+                )
+            else:
+                return await _scrape_multiple_leagues(
+                    scraper=scraper,
+                    scrape_func=scraper.scrape_historic,
+                    leagues=leagues,
+                    sport=sport,
+                    season=season,
+                    markets=markets,
+                    scrape_odds_history=scrape_odds_history,
+                    target_bookmaker=target_bookmaker,
+                    max_pages=max_pages,
+                )
 
         elif command == CommandEnum.UPCOMING_MATCHES:
-            if not date and not league:
-                raise ValueError("Either 'date' or 'league' must be provided for upcoming matches scraping.")
+            if not date and not leagues:
+                raise ValueError("Either 'date' or 'leagues' must be provided for upcoming matches scraping.")
 
-            logger.info(f"""
-                Scraping upcoming matches for sport={sport}, date={date}, league={league}, markets={markets},
-                scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}
-            """)
-            return await retry_scrape(
-                scraper.scrape_upcoming,
-                sport=sport,
-                date=date,
-                league=league,
-                markets=markets,
-                scrape_odds_history=scrape_odds_history,
-                target_bookmaker=target_bookmaker,
-            )
+            if leagues:
+                logger.info(f"""
+                    Scraping upcoming matches for sport={sport}, date={date}, leagues={leagues}, markets={markets},
+                    scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}
+                """)
+
+                if len(leagues) == 1:
+                    return await retry_scrape(
+                        scraper.scrape_upcoming,
+                        sport=sport,
+                        date=date,
+                        league=leagues[0],
+                        markets=markets,
+                        scrape_odds_history=scrape_odds_history,
+                        target_bookmaker=target_bookmaker,
+                    )
+                else:
+                    return await _scrape_multiple_leagues(
+                        scraper=scraper,
+                        scrape_func=scraper.scrape_upcoming,
+                        leagues=leagues,
+                        sport=sport,
+                        date=date,
+                        markets=markets,
+                        scrape_odds_history=scrape_odds_history,
+                        target_bookmaker=target_bookmaker,
+                    )
+            else:
+                logger.info(f"""
+                    Scraping upcoming matches for sport={sport}, date={date}, markets={markets},
+                    scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}
+                """)
+                return await retry_scrape(
+                    scraper.scrape_upcoming,
+                    sport=sport,
+                    date=date,
+                    league=None,
+                    markets=markets,
+                    scrape_odds_history=scrape_odds_history,
+                    target_bookmaker=target_bookmaker,
+                )
 
         else:
             raise ValueError(f"Unknown command: {command}. Supported commands are 'upcoming-matches' and 'historic'.")
@@ -135,6 +177,55 @@ async def run_scraper(
 
     finally:
         await scraper.stop_playwright()
+
+
+async def _scrape_multiple_leagues(scraper, scrape_func, leagues: list[str], sport: str, **kwargs) -> list[dict]:
+    """
+    Helper function to handle multi-league scraping with error handling and logging.
+
+    Args:
+        scraper: The scraper instance
+        scrape_func: The function to call for each league (scrape_historic or scrape_upcoming)
+        leagues: List of leagues to scrape
+        sport: The sport being scraped
+        **kwargs: Additional arguments to pass to the scrape function
+
+    Returns:
+        List of combined results from all leagues
+    """
+    all_results = []
+    failed_leagues = []
+
+    logger.info(f"Starting multi-league scraping for {len(leagues)} leagues: {leagues}")
+
+    for i, league in enumerate(leagues, 1):
+        try:
+            logger.info(f"[{i}/{len(leagues)}] Processing league: {league}")
+
+            league_data = await retry_scrape(scrape_func, sport=sport, league=league, **kwargs)
+
+            if league_data:
+                all_results.extend(league_data)
+                logger.info(f"Successfully scraped {len(league_data)} matches from league: {league}")
+            else:
+                logger.warning(f"No data returned for league: {league}")
+
+        except Exception as e:
+            logger.error(f"Failed to scrape league '{league}': {e}")
+            failed_leagues.append(league)
+            continue
+
+    total_matches = len(all_results)
+    successful_leagues = len(leagues) - len(failed_leagues)
+
+    if failed_leagues:
+        logger.warning(f"ailed to scrape {len(failed_leagues)} leagues: {failed_leagues}")
+
+    logger.info(
+        f"Multi-league scraping completed: {successful_leagues}/{len(leagues)} leagues successful, {total_matches} total matches scraped"
+    )
+
+    return all_results
 
 
 async def retry_scrape(scrape_func, *args, **kwargs):

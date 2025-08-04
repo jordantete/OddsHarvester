@@ -123,29 +123,29 @@ Retrieve odds and event details for upcoming sports matches.
 
 **Options**:
 
-| 🏷️ Option                   | 📝 Description                                                              | 🔐 Required                                        | 🔧 Default |
-| --------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- | ---------- |
-| `--sport`                   | Specify the sport to scrape (e.g., `football`, `ice-hockey`, `baseball`).   | ✅                                                 | None       |
-| `--date`                    | Date for matches in `YYYYMMDD` format (e.g., `20250227`).                   | ✅ (unless `--match_links` or `--league` provided) | None       |
-| `--league`                  | Specify the league to scrape (e.g., `england-premier-league`).              | ❌                                                 | None       |
-| `--markets`                 | Comma-separated betting markets (e.g., `1x2,btts`).                         | ❌                                                 | None       |
-| `--storage`                 | Save data locally or to a remote S3 bucket (`local` or `remote`).           | ❌                                                 | `local`    |
-| `--file_path`               | File path to save data locally (e.g., `output.json`).                       | ❌                                                 | None       |
-| `--format`                  | Format for saving local data (`json` or `csv`).                             | ❌                                                 | None       |
-| `--headless`                | Run the browser in headless mode (`True` or `False`).                       | ❌                                                 | `False`    |
-| `--save_logs`               | Save logs for debugging purposes (`True` or `False`).                       | ❌                                                 | `False`    |
-| `--proxies`                 | List of proxies in `"server user pass"` format. Multiple proxies supported. | ❌                                                 | None       |
-| `--browser_user_agent`      | Custom user agent string for browser requests.                              | ❌                                                 | None       |
-| `--browser_locale_timezone` | Browser locale timezone (e.g., `fr-BE`).                                    | ❌                                                 | None       |
-| `--browser_timezone_id`     | Browser timezone ID (e.g., `Europe/Brussels`).                              | ❌                                                 | None       |
-| `--match_links`             | List of specific match links to scrape (overrides other filters).           | ❌                                                 | None       |
-| `--target_bookmaker`        | Filter scraping for a specific bookmaker (e.g., `Betclic.fr`).              | ❌                                                 | None       |
-| `--scrape_odds_history`     | Include odds movement history by hovering modals.                           | ❌                                                 | `False`    |
+| 🏷️ Option                   | 📝 Description                                                                   | 🔐 Required                                         | 🔧 Default |
+| --------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------- | ---------- |
+| `--sport`                   | Specify the sport to scrape (e.g., `football`, `ice-hockey`, `baseball`).        | ✅                                                  | None       |
+| `--date`                    | Date for matches in `YYYYMMDD` format (e.g., `20250227`).                        | ✅ (unless `--match_links` or `--leagues` provided) | None       |
+| `--leagues`                 | Comma-separated leagues to scrape (e.g., `england-premier-league,spain-laliga`). | ❌                                                  | None       |
+| `--markets`                 | Comma-separated betting markets (e.g., `1x2,btts`).                              | ❌                                                  | None       |
+| `--storage`                 | Save data locally or to a remote S3 bucket (`local` or `remote`).                | ❌                                                  | `local`    |
+| `--file_path`               | File path to save data locally (e.g., `output.json`).                            | ❌                                                  | None       |
+| `--format`                  | Format for saving local data (`json` or `csv`).                                  | ❌                                                  | None       |
+| `--headless`                | Run the browser in headless mode (`True` or `False`).                            | ❌                                                  | `False`    |
+| `--save_logs`               | Save logs for debugging purposes (`True` or `False`).                            | ❌                                                  | `False`    |
+| `--proxies`                 | List of proxies in `"server user pass"` format. Multiple proxies supported.      | ❌                                                  | None       |
+| `--browser_user_agent`      | Custom user agent string for browser requests.                                   | ❌                                                  | None       |
+| `--browser_locale_timezone` | Browser locale timezone (e.g., `fr-BE`).                                         | ❌                                                  | None       |
+| `--browser_timezone_id`     | Browser timezone ID (e.g., `Europe/Brussels`).                                   | ❌                                                  | None       |
+| `--match_links`             | List of specific match links to scrape (overrides other filters).                | ❌                                                  | None       |
+| `--target_bookmaker`        | Filter scraping for a specific bookmaker (e.g., `Betclic.fr`).                   | ❌                                                  | None       |
+| `--scrape_odds_history`     | Include odds movement history by hovering modals.                                | ❌                                                  | `False`    |
 
 #### **📌 Important Notes:**
 
-- If both `--league` and `--date` are provided, the scraper **will only consider the league**, meaning **all upcoming matches for that league will be scraped**, regardless of the `--date` argument.
-- **If `--match_links` is provided, it overrides `--sport`, `--date`, and `--league`, and only the specified match links will be scraped.**
+- If both `--leagues` and `--date` are provided, the scraper **will only consider the leagues**, meaning **all upcoming matches for those leagues will be scraped**, regardless of the `--date` argument.
+- **If `--match_links` is provided, it overrides `--sport`, `--date`, and `--leagues`, and only the specified match links will be scraped.**
 - **All match links must belong to the same sport** when using `--match_links`.
 - **For best results, ensure the proxy's region matches the `BROWSER_LOCALE_TIMEZONE` and `BROWSER_TIMEZONE_ID` settings.**
 
@@ -157,7 +157,11 @@ Retrieve odds and event details for upcoming sports matches.
 
 - **Scrapes English Premier League matches with odds for 1x2 and Both Teams to Score (BTTS):**
 
-`uv run python src/main.py scrape_upcoming --sport football --league england-premier-league --markets 1x2,btts --storage local --headless`
+`uv run python src/main.py scrape_upcoming --sport football --leagues england-premier-league --markets 1x2,btts --storage local --headless`
+
+- **Scrapes multiple leagues at once:**
+
+`uv run python src/main.py scrape_upcoming --sport football --leagues england-premier-league,spain-laliga,italy-serie-a --markets 1x2,btts --storage local --headless`
 
 - **Scrapes baseball matches using a rotating proxy setup:**
 
@@ -172,7 +176,7 @@ Retrieve historical odds and results for analytical purposes.
 | 🏷️ Option                   | 📝 Description                                                                                                  | 🔐 Required | 🔧 Default |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------- | ---------- |
 | `--sport`                   | Specify the sport to scrape (e.g., `football`, `ice-hockey`, `baseball`).                                       | ✅          | None       |
-| `--league`                  | Specify the league to scrape (e.g., `england-premier-league`).                                                  | ✅          | None       |
+| `--leagues`                 | Comma-separated leagues to scrape (e.g., `england-premier-league,spain-laliga`).                                | ✅          | None       |
 | `--season`                  | Target season in `YYYY`, `YYYY-YYYY` format (e.g., `2022` or `2022-2023`), or `current` for the current season. | ✅          | None       |
 | `--markets`                 | Comma-separated betting markets (e.g., `1x2,btts`).                                                             | ❌          | None       |
 | `--storage`                 | Save data locally or to a remote S3 bucket (`local` or `remote`).                                               | ❌          | `local`    |
@@ -193,19 +197,23 @@ Retrieve historical odds and results for analytical purposes.
 
 - **Retrieve historical odds for the Premier League's 2022-2023 season:**
 
-`uv run python src/main.py scrape_historic --sport football --league england-premier-league --season 2022-2023 --markets 1x2 --headless`
+`uv run python src/main.py scrape_historic --sport football --leagues england-premier-league --season 2022-2023 --markets 1x2 --headless`
+
+- **Retrieve historical odds for multiple leagues at once:**
+
+`uv run python src/main.py scrape_historic --sport football --leagues england-premier-league,spain-laliga,italy-serie-a --season 2022-2023 --markets 1x2 --headless`
 
 - **Retrieve historical odds for the current season of Premier League:**
 
-`uv run python src/main.py scrape_historic --sport football --league england-premier-league --season current --markets 1x2 --headless`
+`uv run python src/main.py scrape_historic --sport football --leagues england-premier-league --season current --markets 1x2 --headless`
 
 - **Retrieve historical MLB 2022 season data:**
 
-`uv run python src/main.py scrape_historic --sport baseball --league usa-mlb --season 2022 --markets moneyline --headless`
+`uv run python src/main.py scrape_historic --sport baseball --leagues usa-mlb --season 2022 --markets moneyline --headless`
 
 - **Scrapes only 3 pages of historical odds data:**
 
-`uv run python src/main.py scrape_historic --sport football --league england-premier-league --season 2022-2023 --markets 1x2 --max_pages 3 --headless`
+`uv run python src/main.py scrape_historic --sport football --leagues england-premier-league --season 2022-2023 --markets 1x2 --max_pages 3 --headless`
 
 #### **📌 Running the Help Command:**
 
