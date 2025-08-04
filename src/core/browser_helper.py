@@ -47,26 +47,49 @@ class BrowserHelper:
     async def navigate_to_market_tab(self, page: Page, market_tab_name: str, timeout=10000):
         """
         Navigate to a specific market tab by its name.
+        Now supports hidden markets under the "More" dropdown.
 
         Args:
             page: The Playwright page instance.
-            market_tab_name: The name of the market tab to navigate to (e.g., 'Over/Under').
+            market_tab_name: The name of the market tab to navigate to (e.g., 'Over/Under', 'Draw No Bet').
             timeout: Timeout in milliseconds.
 
         Returns:
             bool: True if the market tab was successfully selected, False otherwise.
         """
-        markets_tab_selector = "ul.visible-links.bg-black-main.odds-tabs > li"
+        # Try multiple selectors for market tabs to find the correct one
+        tab_selectors = [
+            "ul.visible-links.bg-black-main.odds-tabs > li",
+            "ul.odds-tabs > li",
+            "ul[class*='odds-tabs'] > li",
+            "div[class*='odds-tabs'] li",
+            "li[class*='tab']",
+            "nav li",
+        ]
+
         self.logger.info(f"Attempting to navigate to market tab: {market_tab_name}")
 
-        if not await self._wait_and_click(
-            page=page, selector=markets_tab_selector, text=market_tab_name, timeout=timeout
-        ):
-            self.logger.error(f"Failed to find or click the {market_tab_name} tab.")
-            return False
+        # First attempt: Try to find the market directly in visible tabs
+        market_found = False
+        for selector in tab_selectors:
+            if await self._wait_and_click(page=page, selector=selector, text=market_tab_name, timeout=timeout):
+                market_found = True
+                break
 
-        self.logger.info(f"Successfully navigated to {market_tab_name} tab.")
-        return True
+        if market_found:
+            self.logger.info(f"Successfully navigated to {market_tab_name} tab (directly visible).")
+            return True
+
+        # Second attempt: Try to find the market in the "More" dropdown
+        self.logger.info(f"Market '{market_tab_name}' not found in visible tabs. Checking 'More' dropdown...")
+        if await self._click_more_if_market_hidden(page, market_tab_name, timeout):
+            self.logger.info(f"Successfully navigated to {market_tab_name} tab (via 'More' dropdown).")
+            return True
+
+        self.logger.error(
+            f"Failed to find or click the {market_tab_name} tab (searched visible tabs and 'More' dropdown)."
+        )
+        return False
 
     async def scroll_until_loaded(
         self,
@@ -300,4 +323,89 @@ class BrowserHelper:
 
         except Exception as e:
             self.logger.error(f"Error clicking element with text '{text}': {e}")
+            return False
+
+    async def _click_more_if_market_hidden(self, page: Page, market_tab_name: str, timeout: int = 10000):
+        """
+        Attempts to find and click a market tab hidden in the "More" dropdown.
+
+        Args:
+            page (Page): The Playwright page instance.
+            market_tab_name (str): The name of the market tab to find.
+            timeout (int): Timeout in milliseconds.
+
+        Returns:
+            bool: True if the market was found and clicked in the "More" dropdown, False otherwise.
+        """
+        try:
+            more_selectors = [
+                "button.toggle-odds:has-text('More')",
+                "button[class*='toggle-odds']",
+                ".visible-btn-odds:has-text('More')",
+                "li:has-text('More')",
+                "li:has-text('more')",
+                "li[class*='more']",
+                "li button:has-text('More')",
+                "li a:has-text('More')",
+            ]
+
+            more_clicked = False
+            for selector in more_selectors:
+                try:
+                    more_element = await page.query_selector(selector)
+                    if more_element:
+                        text = await more_element.text_content()
+                        if text and ("more" in text.lower() or "..." in text):
+                            self.logger.info(f"Clicking 'More' button: '{text.strip()}'")
+                            await more_element.click()
+                            more_clicked = True
+                            break
+                except Exception as e:
+                    self.logger.debug(f"Exception while searching for 'More' button with selector '{selector}': {e}")
+                    continue
+
+            if not more_clicked:
+                self.logger.warning("Could not find or click 'More' button")
+                return False
+
+            await page.wait_for_timeout(1000)
+
+            dropdown_selectors = [
+                f"li:has-text('{market_tab_name}')",
+                f"a:has-text('{market_tab_name}')",
+                f"button:has-text('{market_tab_name}')",
+                f"div:has-text('{market_tab_name}')",
+                f"span:has-text('{market_tab_name}')",
+            ]
+
+            for selector in dropdown_selectors:
+                try:
+                    dropdown_element = await page.query_selector(selector)
+                    if dropdown_element:
+                        text = await dropdown_element.text_content()
+                        if text and market_tab_name.lower() in text.lower():
+                            self.logger.info(f"Found '{market_tab_name}' in dropdown. Clicking...")
+                            await dropdown_element.click()
+                            return True
+                except Exception as e:
+                    self.logger.debug(
+                        f"Exception while searching for market '{market_tab_name}' in dropdown with selector '{selector}': {e}"
+                    )
+                    continue
+
+            self.logger.info("Debugging dropdown content:")
+            dropdown_items = await page.query_selector_all("li, a, button, div, span")
+            for item in dropdown_items[:10]:  # Limit to first 10 items
+                try:
+                    text = await item.text_content()
+                    if text and text.strip():
+                        self.logger.info(f"  Dropdown item: '{text.strip()}'")
+                except Exception as e:
+                    self.logger.debug(f"Exception while logging dropdown item: {e}")
+                    continue
+
+            return False
+
+        except Exception as e:
+            self.logger.error(f"Error in _click_more_if_market_hidden: {e}")
             return False
