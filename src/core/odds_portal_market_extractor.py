@@ -212,7 +212,7 @@ class OddsPortalMarketExtractor:
             list[dict]: A list of dictionaries containing bookmaker odds.
         """
         self.logger.info("Parsing odds from HTML content.")
-        soup = BeautifulSoup(html_content, "lxml")
+        soup = BeautifulSoup(html_content, "html.parser")
 
         # Try broader "border-black-borders" pattern first as it works better
         bookmaker_blocks = soup.find_all("div", class_=re.compile(r"border-black-borders"))
@@ -325,7 +325,7 @@ class OddsPortalMarketExtractor:
             dict: Parsed odds history data, including historical odds and the opening odds.
         """
         self.logger.info("Parsing modal content for odds history.")
-        soup = BeautifulSoup(modal_html, "lxml")
+        soup = BeautifulSoup(modal_html, "html.parser")
 
         try:
             odds_history = []

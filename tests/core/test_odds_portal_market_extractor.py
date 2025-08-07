@@ -211,6 +211,11 @@ class TestOddsPortalMarketExtractor:
         extractor._parse_market_odds = AsyncMock(
             return_value=[{"bookmaker_name": "Bookmaker1", "1": "1.90", "X": "3.50", "2": "4.20", "period": "FullTime"}]
         )
+
+        mock_active_tab = AsyncMock()
+        mock_active_tab.text_content = AsyncMock(return_value="1X2")
+        page_mock.query_selector = AsyncMock(return_value=mock_active_tab)
+
         main_market = "1X2"
         odds_labels = ["1", "X", "2"]
 
@@ -236,6 +241,11 @@ class TestOddsPortalMarketExtractor:
                 {"bookmaker_name": "Bookmaker1", "odds_over": "1.90", "odds_under": "1.90", "period": "FullTime"}
             ]
         )
+
+        mock_active_tab = AsyncMock()
+        mock_active_tab.text_content = AsyncMock(return_value="Over/Under")
+        page_mock.query_selector = AsyncMock(return_value=mock_active_tab)
+
         main_market = "Over/Under"
         specific_market = "Over/Under +2.5"
         odds_labels = ["odds_over", "odds_under"]
@@ -257,6 +267,8 @@ class TestOddsPortalMarketExtractor:
         # Arrange
         browser_helper_mock.navigate_to_market_tab = AsyncMock(return_value=False)
 
+        page_mock.query_selector = AsyncMock(return_value=None)
+
         # Act
         result = await extractor.extract_market_odds(
             page=page_mock, main_market="NonExistentMarket", odds_labels=["1", "X", "2"]
@@ -271,6 +283,10 @@ class TestOddsPortalMarketExtractor:
         # Arrange
         browser_helper_mock.navigate_to_market_tab = AsyncMock(return_value=True)
         browser_helper_mock.scroll_until_visible_and_click_parent = AsyncMock(return_value=False)
+
+        mock_active_tab = AsyncMock()
+        mock_active_tab.text_content = AsyncMock(return_value="Over/Under")
+        page_mock.query_selector = AsyncMock(return_value=mock_active_tab)
 
         # Act
         result = await extractor.extract_market_odds(
@@ -298,6 +314,10 @@ class TestOddsPortalMarketExtractor:
                 "opening_odds": {"timestamp": "2025-06-10T08:00:00", "odds": 1.85},
             }
         )
+
+        mock_active_tab = AsyncMock()
+        mock_active_tab.text_content = AsyncMock(return_value="1X2")
+        page_mock.query_selector = AsyncMock(return_value=mock_active_tab)
 
         # Act
         result = await extractor.extract_market_odds(

@@ -468,8 +468,10 @@ class TestBrowserHelper:
         """Test tab verification with wrong market name."""
         # Mock active element with different market name
         mock_element = AsyncMock()
-        mock_element.text_content.return_value = "1X2"
-        mock_page.query_selector.return_value = mock_element
+        mock_element.text_content = AsyncMock(return_value="1X2")
+        mock_page.query_selector = AsyncMock(return_value=mock_element)
+        # Mock content to return string that doesn't contain the market name
+        mock_page.content = AsyncMock(return_value="some content without the target market")
 
         result = await browser_helper._verify_tab_is_active(mock_page, "Draw No Bet")
         assert result is False
@@ -479,7 +481,7 @@ class TestBrowserHelper:
         """Test tab verification when no active element is found."""
         # Mock no active element found
         mock_page.query_selector.return_value = None
-        mock_page.content.return_value = "<html><body>Some content</body></html>"
+        mock_page.content = AsyncMock(return_value="<html><body>Some content</body></html>")
 
         result = await browser_helper._verify_tab_is_active(mock_page, "Draw No Bet")
         assert result is False
@@ -489,7 +491,7 @@ class TestBrowserHelper:
         """Test tab verification using content fallback."""
         # Mock no active element but market name in content
         mock_page.query_selector.return_value = None
-        mock_page.content.return_value = "<html><body>Draw No Bet content</body></html>"
+        mock_page.content = AsyncMock(return_value="<html><body>Draw No Bet content</body></html>")
 
         result = await browser_helper._verify_tab_is_active(mock_page, "Draw No Bet")
         assert result is True
@@ -498,7 +500,9 @@ class TestBrowserHelper:
     async def test_verify_tab_is_active_exception_handling(self, browser_helper, mock_page):
         """Test tab verification with exception handling."""
         # Mock exception during verification
-        mock_page.query_selector.side_effect = Exception("Test exception")
+        mock_page.query_selector = AsyncMock(side_effect=Exception("Test exception"))
+        # Mock content to return string that doesn't contain the market name
+        mock_page.content = AsyncMock(return_value="some content without the target market")
 
         result = await browser_helper._verify_tab_is_active(mock_page, "Draw No Bet")
         assert result is False
@@ -508,8 +512,10 @@ class TestBrowserHelper:
         """Test tab verification with empty text content."""
         # Mock active element with empty text
         mock_element = AsyncMock()
-        mock_element.text_content.return_value = ""
-        mock_page.query_selector.return_value = mock_element
+        mock_element.text_content = AsyncMock(return_value="")
+        mock_page.query_selector = AsyncMock(return_value=mock_element)
+        # Mock content to return string that doesn't contain the market name
+        mock_page.content = AsyncMock(return_value="some content without the target market")
 
         result = await browser_helper._verify_tab_is_active(mock_page, "Draw No Bet")
         assert result is False
@@ -519,7 +525,7 @@ class TestBrowserHelper:
         """Test tab verification with case insensitive matching."""
         # Mock active element with different case
         mock_element = AsyncMock()
-        mock_element.text_content.return_value = "DRAW NO BET"
+        mock_element.text_content = AsyncMock(return_value="DRAW NO BET")
         mock_page.query_selector.return_value = mock_element
 
         result = await browser_helper._verify_tab_is_active(mock_page, "Draw No Bet")
@@ -530,7 +536,7 @@ class TestBrowserHelper:
         """Test tab verification with partial text match."""
         # Mock active element with partial match
         mock_element = AsyncMock()
-        mock_element.text_content.return_value = "Draw No Bet Market"
+        mock_element.text_content = AsyncMock(return_value="Draw No Bet Market")
         mock_page.query_selector.return_value = mock_element
 
         result = await browser_helper._verify_tab_is_active(mock_page, "Draw No Bet")
@@ -541,7 +547,7 @@ class TestBrowserHelper:
         """Test tab verification when content() fails."""
         # Mock active element not found and content() fails
         mock_page.query_selector.return_value = None
-        mock_page.content.side_effect = Exception("Content failed")
+        mock_page.content = AsyncMock(side_effect=Exception("Content failed"))
 
         result = await browser_helper._verify_tab_is_active(mock_page, "Draw No Bet")
         assert result is False
@@ -615,12 +621,17 @@ class TestBrowserHelper:
     @pytest.mark.asyncio
     async def test_click_more_if_market_hidden_empty_market_name(self, browser_helper, mock_page):
         """Test click more if market hidden with empty market name."""
+        mock_page.query_selector = AsyncMock(return_value=None)
+
         result = await browser_helper._click_more_if_market_hidden(mock_page, "")
         assert result is False
 
     @pytest.mark.asyncio
     async def test_verify_tab_is_active_empty_market_name(self, browser_helper, mock_page):
         """Test verify tab is active with empty market name."""
+        mock_page.query_selector = AsyncMock(return_value=None)
+        mock_page.content = AsyncMock(return_value="some content without empty market name")
+
         result = await browser_helper._verify_tab_is_active(mock_page, "")
         assert result is False
 

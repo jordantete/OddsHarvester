@@ -408,7 +408,7 @@ class BrowserHelper:
 
             # Alternative: check if the market name appears in the current URL or page content
             page_content = await page.content()
-            if market_tab_name.lower() in page_content.lower():
+            if market_tab_name and market_tab_name.lower() in page_content.lower():
                 self.logger.info(f"Market '{market_tab_name}' found in page content")
                 return True
 
