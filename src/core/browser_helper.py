@@ -84,14 +84,22 @@ class BrowserHelper:
                 break
 
         if market_found:
-            self.logger.info(f"Successfully navigated to {market_tab_name} tab (directly visible).")
-            return True
+            # Verify that the tab is actually active
+            if await self._verify_tab_is_active(page, market_tab_name):
+                self.logger.info(f"Successfully navigated to {market_tab_name} tab (directly visible).")
+                return True
+            else:
+                self.logger.warning(f"Tab {market_tab_name} was clicked but is not active.")
 
         # Second attempt: Try to find the market in the "More" dropdown
         self.logger.info(f"Market '{market_tab_name}' not found in visible tabs. Checking 'More' dropdown...")
         if await self._click_more_if_market_hidden(page, market_tab_name, timeout):
-            self.logger.info(f"Successfully navigated to {market_tab_name} tab (via 'More' dropdown).")
-            return True
+            # Verify that the tab is actually active
+            if await self._verify_tab_is_active(page, market_tab_name):
+                self.logger.info(f"Successfully navigated to {market_tab_name} tab (via 'More' dropdown).")
+                return True
+            else:
+                self.logger.warning(f"Tab {market_tab_name} was clicked but is not active.")
 
         self.logger.error(
             f"Failed to find or click the {market_tab_name} tab (searched visible tabs and 'More' dropdown)."
@@ -366,4 +374,47 @@ class BrowserHelper:
 
         except Exception as e:
             self.logger.error(f"Error in _click_more_if_market_hidden: {e}")
+            return False
+
+    async def _verify_tab_is_active(self, page: Page, market_tab_name: str) -> bool:
+        """
+        Verify that a market tab is actually active after clicking.
+
+        Args:
+            page (Page): The Playwright page instance.
+            market_tab_name (str): The name of the market tab to verify.
+
+        Returns:
+            bool: True if the tab is active, False otherwise.
+        """
+        try:
+            # Wait a bit for the tab switch to complete
+            await page.wait_for_timeout(500)
+
+            # Check for active tab indicators
+            active_selectors = ["li.active", "li[class*='active']", ".active", "[class*='active']"]
+
+            for selector in active_selectors:
+                try:
+                    active_element = await page.query_selector(selector)
+                    if active_element:
+                        text = await active_element.text_content()
+                        if text and market_tab_name.lower() in text.lower():
+                            self.logger.info(f"Tab '{market_tab_name}' is confirmed active")
+                            return True
+                except Exception as e:
+                    self.logger.debug(f"Exception checking active selector '{selector}': {e}")
+                    continue
+
+            # Alternative: check if the market name appears in the current URL or page content
+            page_content = await page.content()
+            if market_tab_name.lower() in page_content.lower():
+                self.logger.info(f"Market '{market_tab_name}' found in page content")
+                return True
+
+            self.logger.warning(f"Tab '{market_tab_name}' is not confirmed as active")
+            return False
+
+        except Exception as e:
+            self.logger.error(f"Error verifying tab is active: {e}")
             return False

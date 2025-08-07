@@ -20,6 +20,7 @@ class OddsPortalMarketExtractor:
 
     DEFAULT_TIMEOUT = 5000
     SCROLL_PAUSE_TIME = 2000
+    MARKET_SWITCH_WAIT_TIME = 3000
 
     def __init__(self, browser_helper: BrowserHelper):
         """
@@ -108,6 +109,9 @@ class OddsPortalMarketExtractor:
                 self.logger.error(f"Failed to find or click {main_market} tab")
                 return []
 
+            # Wait for market switch to complete
+            await self._wait_for_market_switch(page, main_market)
+
             # If a specific sub-market needs to be selected (e.g., Over/Under 2.5)
             if specific_market and not await self.browser_helper.scroll_until_visible_and_click_parent(
                 page=page,
@@ -119,6 +123,7 @@ class OddsPortalMarketExtractor:
 
             await page.wait_for_timeout(self.SCROLL_PAUSE_TIME)
             html_content = await page.content()
+
             odds_data = await self._parse_market_odds(
                 html_content=html_content, period=period, odds_labels=odds_labels, target_bookmaker=target_bookmaker
             )
@@ -158,6 +163,39 @@ class OddsPortalMarketExtractor:
         except Exception as e:
             self.logger.error(f"Error extracting odds for {main_market} {specific_market}: {e}")
             return []
+
+    async def _wait_for_market_switch(self, page: Page, market_name: str, max_attempts: int = 3) -> bool:
+        """
+        Wait for the market switch to complete and verify the correct market is active.
+
+        Args:
+            page (Page): The Playwright page instance.
+            market_name (str): The name of the market that should be active.
+            max_attempts (int): Maximum number of verification attempts.
+
+        Returns:
+            bool: True if the market switch is confirmed, False otherwise.
+        """
+        self.logger.info(f"Waiting for market switch to complete for: {market_name}")
+
+        for attempt in range(max_attempts):
+            try:
+                # Wait for the market switch animation to complete
+                await page.wait_for_timeout(self.MARKET_SWITCH_WAIT_TIME)
+
+                # Check if the market tab is active
+                active_tab = await page.query_selector("li.active, li[class*='active'], .active")
+                if active_tab:
+                    tab_text = await active_tab.text_content()
+                    if tab_text and market_name.lower() in tab_text.lower():
+                        self.logger.info(f"Market switch confirmed: {market_name} is active")
+                        return True
+
+            except Exception as e:
+                self.logger.warning(f"Market switch verification attempt {attempt + 1} failed: {e}")
+
+        self.logger.warning(f"Market switch verification failed after {max_attempts} attempts")
+        return False
 
     async def _parse_market_odds(
         self, html_content: str, period: str, odds_labels: list, target_bookmaker: str | None = None
