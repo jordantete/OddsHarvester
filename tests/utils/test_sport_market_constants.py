@@ -16,6 +16,7 @@ from src.utils.sport_market_constants import (
     RugbyUnionMarket,
     Sport,
     TennisAsianHandicapGamesMarket,
+    TennisAsianHandicapSetsMarket,
     TennisMarket,
     TennisOverUnderGamesMarket,
     TennisOverUnderSetsMarket,
@@ -83,13 +84,16 @@ class TestSportEnums:
         market_values = [market.value for market in TennisMarket]
         sets_values = [market.value for market in TennisOverUnderSetsMarket]
         games_values = [market.value for market in TennisOverUnderGamesMarket]
-        handicap_values = [market.value for market in TennisAsianHandicapGamesMarket]
+        handicap_games_values = [market.value for market in TennisAsianHandicapGamesMarket]
+        handicap_sets_values = [market.value for market in TennisAsianHandicapSetsMarket]
 
         # Assert
         assert "match_winner" in market_values
         assert "over_under_sets_2_5" in sets_values
         assert "over_under_games_21_5" in games_values
-        assert "asian_handicap_games_+2_5_games" in handicap_values
+        assert "asian_handicap_+2_5_games" in handicap_games_values
+        assert "asian_handicap_+2_5_sets" in handicap_sets_values
+        assert "asian_handicap_-2_5_sets" in handicap_sets_values
 
     def test_basketball_market_enums(self):
         """Verify basketball markets."""

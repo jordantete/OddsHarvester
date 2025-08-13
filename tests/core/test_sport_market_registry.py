@@ -133,8 +133,11 @@ class TestSportMarketRegistrar:
         # Over/Under Games markets
         assert "over_under_games_22_5" in tennis_markets
 
-        # Asian Handicap Games markets - Use a market that actually exists
-        assert any(key.startswith("asian_handicap_games_") for key in tennis_markets)
+        # Asian Handicap Games markets
+        assert any(key.startswith("asian_handicap_") and key.endswith("_games") for key in tennis_markets)
+
+        # Asian Handicap Sets markets
+        assert any(key.startswith("asian_handicap_") and key.endswith("_sets") for key in tennis_markets)
 
         # Correct Score markets
         assert "correct_score_2_0" in tennis_markets
@@ -152,10 +155,10 @@ class TestSportMarketRegistrar:
         assert "1x2" in basketball_markets
         assert "home_away" in basketball_markets
 
-        # Over/Under markets - Use a market that actually exists
+        # Over/Under markets
         assert any(key.startswith("over_under_games_") for key in basketball_markets)
 
-        # Asian Handicap markets - Use a market that actually exists
+        # Asian Handicap markets
         assert any(key.startswith("asian_handicap_games_") for key in basketball_markets)
 
     def test_register_rugby_league_markets(self):
@@ -192,10 +195,10 @@ class TestSportMarketRegistrar:
         assert "dnb" in rugby_union_markets
         assert "double_chance" in rugby_union_markets
 
-        # Over/Under markets (utilise les mêmes que rugby league)
+        # Over/Under markets
         assert "over_under_43_5" in rugby_union_markets
 
-        # Handicap markets (utilise les mêmes que rugby league)
+        # Handicap markets
         assert "handicap_-13_5" in rugby_union_markets
 
     def test_register_ice_hockey_markets(self):
@@ -253,7 +256,7 @@ class TestSportMarketRegistrar:
         mock_baseball.assert_called_once()
 
     def test_register_all_markets_integration(self):
-        """Test registering all markets in an integration test (without mocks)."""
+        """Test registering all markets in an integration test"""
         # Act
         SportMarketRegistrar.register_all_markets()
 

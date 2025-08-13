@@ -20,12 +20,13 @@ from src.utils.sport_market_constants import (
     RugbyUnionMarket,
     Sport,
     TennisAsianHandicapGamesMarket,
+    TennisAsianHandicapSetsMarket,
     TennisCorrectScoreMarket,
     TennisMarket,
     TennisOverUnderGamesMarket,
     TennisOverUnderSetsMarket,
 )
-from src.utils.utils import get_supported_markets, is_running_in_docker
+from src.utils.utils import clean_html_text, get_supported_markets, is_running_in_docker
 
 EXPECTED_MARKETS = {
     Sport.FOOTBALL: [
@@ -39,6 +40,7 @@ EXPECTED_MARKETS = {
         *[market.value for market in TennisOverUnderSetsMarket],
         *[market.value for market in TennisOverUnderGamesMarket],
         *[market.value for market in TennisAsianHandicapGamesMarket],
+        *[market.value for market in TennisAsianHandicapSetsMarket],
         *[market.value for market in TennisCorrectScoreMarket],
     ],
     Sport.BASKETBALL: [
@@ -150,3 +152,44 @@ def test_is_running_in_docker_permission_error(mock_exists):
     # Should default to False when there's an error checking the file
     assert is_running_in_docker() is False
     mock_exists.assert_called_once_with("/.dockerenv")
+
+
+def test_clean_html_text():
+    # Test with None input
+    assert clean_html_text(None) is None
+
+    # Test with empty string
+    assert clean_html_text("") == ""
+
+    # Test with plain text (no HTML)
+    assert clean_html_text("Simple text") == "Simple text"
+
+    # Test with HTML tags
+    assert clean_html_text("<div>Text content</div>") == "Text content"
+
+    # Test with nested HTML tags
+    assert clean_html_text("<div><p>Nested <strong>content</strong></p></div>") == "Nestedcontent"
+
+    # Test with HTML entities
+    assert clean_html_text("<div>Text &amp; content</div>") == "Text & content"
+
+    # Test with the specific case from the issue
+    html_with_sup = "6:3, 6:4, 1:6, 7:6<div><sup>4</sup></div>"
+    expected_clean = "6:3, 6:4, 1:6, 7:64"
+    assert clean_html_text(html_with_sup) == expected_clean
+
+    # Test with complex HTML structure
+    complex_html = """
+    <div class="score">
+        <span>Set 1: 6-3</span>
+        <span>Set 2: 6-4</span>
+        <span>Set 3: 1-6</span>
+        <span>Set 4: 7-6<sup>4</sup></span>
+    </div>
+    """
+    expected_complex = "Set 1: 6-3Set 2: 6-4Set 3: 1-6Set 4: 7-64"
+    assert clean_html_text(complex_html) == expected_complex
+
+    # Test with non-string input (should convert to string)
+    assert clean_html_text(123) == "123"
+    assert clean_html_text(True) == "True"

@@ -12,6 +12,7 @@ from src.core.browser_helper import BrowserHelper
 from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from src.core.playwright_manager import PlaywrightManager
 from src.utils.constants import ODDS_FORMAT, ODDSPORTAL_BASE_URL, SCRAPE_CONCURRENCY_TASKS
+from src.utils.utils import clean_html_text
 
 
 class BaseScraper:
@@ -295,7 +296,7 @@ class BaseScraper:
                 "league_name": event_data.get("tournamentName"),
                 "home_score": event_body.get("homeResult"),
                 "away_score": event_body.get("awayResult"),
-                "partial_results": event_body.get("partialresult"),
+                "partial_results": clean_html_text(event_body.get("partialresult")),
                 "venue": event_body.get("venue"),
                 "venue_town": event_body.get("venueTown"),
                 "venue_country": event_body.get("venueCountry"),

@@ -12,6 +12,7 @@ from src.utils.sport_market_constants import (
     RugbyOverUnderMarket,
     Sport,
     TennisAsianHandicapGamesMarket,
+    TennisAsianHandicapSetsMarket,
     TennisCorrectScoreMarket,
     TennisOverUnderGamesMarket,
     TennisOverUnderSetsMarket,
@@ -154,7 +155,7 @@ class SportMarketRegistrar:
 
         # Register Asian Handicap Games Markets
         for handicap in TennisAsianHandicapGamesMarket:
-            numeric_part = handicap.value.replace("asian_handicap_games_", "").replace("_games", "").replace("_", ".")
+            numeric_part = handicap.value.replace("asian_handicap_", "").replace("_games", "").replace("_", ".")
             specific_market = f"Asian Handicap {numeric_part} Games"
             SportMarketRegistry.register(
                 Sport.TENNIS,
@@ -162,7 +163,22 @@ class SportMarketRegistrar:
                     handicap.value: cls.create_market_lambda(
                         main_market="Asian Handicap",
                         specific_market=specific_market,
-                        odds_labels=["handicap_player_1", "handicap_player_2"],
+                        odds_labels=["games_handicap_player_1", "games_handicap_player_2"],
+                    )
+                },
+            )
+
+        # Register Asian Handicap Sets Markets
+        for handicap in TennisAsianHandicapSetsMarket:
+            numeric_part = handicap.value.replace("asian_handicap_", "").replace("_sets", "").replace("_", ".")
+            specific_market = f"Asian Handicap {numeric_part} Sets"
+            SportMarketRegistry.register(
+                Sport.TENNIS,
+                {
+                    handicap.value: cls.create_market_lambda(
+                        main_market="Asian Handicap",
+                        specific_market=specific_market,
+                        odds_labels=["sets_handicap_player_1", "sets_handicap_player_2"],
                     )
                 },
             )
