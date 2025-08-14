@@ -145,6 +145,7 @@ async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
         markets=["1x2"],
         scrape_odds_history=True,
         target_bookmaker="bet365",
+        preview_submarkets_only=False,
     )
 
     # Verify the result
@@ -193,6 +194,7 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
         markets=["1x2", "over_under"],
         scrape_odds_history=False,
         target_bookmaker=None,
+        preview_submarkets_only=False,
     )
 
     # Verify the result
@@ -228,6 +230,7 @@ async def test_scrape_matches(setup_scraper_mocks):
         scrape_odds_history=True,
         target_bookmaker="bwin",
         concurrent_scraping_task=2,
+        preview_submarkets_only=False,
     )
 
     # Verify the result

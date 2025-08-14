@@ -45,4 +45,5 @@ class CLIArgumentHandler:
             "browser_timezone_id": getattr(args, "browser_timezone_id", None),
             "target_bookmaker": getattr(args, "target_bookmaker", None),
             "scrape_odds_history": getattr(args, "scrape_odds_history", False),
+            "preview_submarkets_only": getattr(args, "preview_submarkets_only", False),
         }

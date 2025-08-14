@@ -137,6 +137,11 @@ class CLIArgumentParser:
             default=3,
             help="⚡ Number of concurrent tasks for scraping (default: 3).",
         )
+        parser.add_argument(
+            "--preview_submarkets_only",
+            action="store_true",
+            help="👁️ Only scrape average odds from visible submarkets without loading individual bookmaker details (faster, limited data).",
+        )
 
     def get_parser(self) -> argparse.ArgumentParser:
         return self.parser

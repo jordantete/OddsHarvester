@@ -97,6 +97,7 @@ class OddsPortalScraper(BaseScraper):
             markets=markets,
             scrape_odds_history=scrape_odds_history,
             target_bookmaker=target_bookmaker,
+            preview_submarkets_only=self.preview_submarkets_only,
         )
 
     async def scrape_upcoming(
@@ -154,6 +155,7 @@ class OddsPortalScraper(BaseScraper):
             markets=markets,
             scrape_odds_history=scrape_odds_history,
             target_bookmaker=target_bookmaker,
+            preview_submarkets_only=self.preview_submarkets_only,
         )
 
     async def scrape_matches(
@@ -190,6 +192,7 @@ class OddsPortalScraper(BaseScraper):
             scrape_odds_history=scrape_odds_history,
             target_bookmaker=target_bookmaker,
             concurrent_scraping_task=len(match_links),
+            preview_submarkets_only=self.preview_submarkets_only,
         )
 
     async def _prepare_page_for_scraping(self, page: Page):

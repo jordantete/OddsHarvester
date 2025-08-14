@@ -265,6 +265,7 @@ async def test_scrape_match_data(setup_base_scraper_mocks):
         period="FullTime",
         scrape_odds_history=True,
         target_bookmaker="bet365",
+        preview_submarkets_only=False,
     )
 
     # Verify results

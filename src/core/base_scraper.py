@@ -26,17 +26,20 @@ class BaseScraper:
         playwright_manager: PlaywrightManager,
         browser_helper: BrowserHelper,
         market_extractor: OddsPortalMarketExtractor,
+        preview_submarkets_only: bool = False,
     ):
         """
         Args:
             playwright_manager (PlaywrightManager): Handles Playwright lifecycle.
             browser_helper (BrowserHelper): Helper class for browser interactions.
             market_extractor (OddsPortalMarketExtractor): Handles market scraping.
+            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading individual bookmaker details.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
         self.playwright_manager = playwright_manager
         self.browser_helper = browser_helper
         self.market_extractor = market_extractor
+        self.preview_submarkets_only = preview_submarkets_only
 
     async def set_odds_format(self, page: Page, odds_format: OddsFormat = OddsFormat.DECIMAL_ODDS):
         """
@@ -121,6 +124,7 @@ class BaseScraper:
         scrape_odds_history: bool = False,
         target_bookmaker: str | None = None,
         concurrent_scraping_task: int = 3,
+        preview_submarkets_only: bool = False,
     ) -> list[dict[str, Any]]:
         """
         Extract odds for a list of match links concurrently.
@@ -132,6 +136,7 @@ class BaseScraper:
             scrape_odds_history (bool): Whether to scrape and attach odds history.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
             concurrent_scraping_task (int): Controls how many pages are processed simultaneously.
+            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading individual bookmaker details.
 
         Returns:
             List[Dict[str, Any]]: A list of dictionaries containing scraped odds data.
@@ -153,6 +158,7 @@ class BaseScraper:
                         markets=markets,
                         scrape_odds_history=scrape_odds_history,
                         target_bookmaker=target_bookmaker,
+                        preview_submarkets_only=preview_submarkets_only,
                     )
                     self.logger.info(f"Successfully scraped match link: {link}")
                     return data
@@ -184,6 +190,7 @@ class BaseScraper:
         markets: list[str] | None = None,
         scrape_odds_history: bool = False,
         target_bookmaker: str | None = None,
+        preview_submarkets_only: bool = False,
     ) -> dict[str, Any] | None:
         """
         Scrape data for a specific match based on the desired markets.
@@ -195,6 +202,7 @@ class BaseScraper:
             markets (Optional[List[str]]): A list of markets to scrape (e.g., ['1x2', 'over_under_2_5']).
             scrape_odds_history (bool): Whether to scrape and attach odds history.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
+            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading individual bookmaker details.
 
         Returns:
             Optional[Dict[str, Any]]: A dictionary containing scraped data, or None if scraping fails.
@@ -226,6 +234,7 @@ class BaseScraper:
                         period="FullTime",
                         scrape_odds_history=scrape_odds_history,
                         target_bookmaker=target_bookmaker,
+                        preview_submarkets_only=preview_submarkets_only,
                     )
                     if market_data:
                         match_details.update(market_data)
@@ -299,7 +308,9 @@ class BaseScraper:
                 "away_score": event_body.get("awayResult"),
                 "partial_results": clean_html_text(event_body.get("partialresult")),
                 "venue": event_body.get("venue"),
-                "venue_town": event_body.get("venueTown"),
+                "venue_town": event_body.get("venueTown").encode("ascii", "ignore").decode("ascii")
+                if event_body.get("venueTown")
+                else None,
                 "venue_country": event_body.get("venueCountry"),
             }
 

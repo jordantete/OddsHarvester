@@ -50,7 +50,8 @@ class SportMarketRegistrar:
             page,
             period="FullTime",
             scrape_odds_history=False,
-            target_bookmaker=None: extractor.extract_market_odds(
+            target_bookmaker=None,
+            preview_submarkets_only=False: extractor.extract_market_odds(
                 page=page,
                 main_market=main_market,
                 specific_market=specific_market,
@@ -58,6 +59,7 @@ class SportMarketRegistrar:
                 odds_labels=odds_labels,
                 scrape_odds_history=scrape_odds_history,
                 target_bookmaker=target_bookmaker,
+                preview_submarkets_only=preview_submarkets_only,
             )
         )
 

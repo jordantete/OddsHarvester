@@ -40,6 +40,7 @@ class OddsPortalMarketExtractor:
         period: str = "FullTime",
         scrape_odds_history: bool = False,
         target_bookmaker: str | None = None,
+        preview_submarkets_only: bool = False,
     ) -> dict[str, Any]:
         """
         Extract market data for a given match.
@@ -51,6 +52,7 @@ class OddsPortalMarketExtractor:
             period (str): The match period (e.g., "FullTime").
             scrape_odds_history (bool): Whether to extract historic odds evolution.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
+            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading individual bookmaker details.
 
         Returns:
             Dict[str, Any]: A dictionary containing market data.
@@ -58,13 +60,27 @@ class OddsPortalMarketExtractor:
         market_data = {}
         market_methods = SportMarketRegistry.get_market_mapping(sport)
 
+        # Group markets by their main market type for optimization in preview mode
+        market_groups = {}
+
         for market in markets:
             try:
                 if market in market_methods:
-                    self.logger.info(f"Scraping market: {market} (Period: {period})")
-                    market_data[f"{market}_market"] = await market_methods[market](
-                        self, page, period, scrape_odds_history, target_bookmaker
-                    )
+                    # For preview mode, group markets by their main market type
+                    if preview_submarkets_only:
+                        # Get the main market info from the existing market method
+                        main_market_info = self._get_main_market_info(market_methods[market])
+                        if main_market_info:
+                            main_market_name = main_market_info["main_market"]
+                            if main_market_name not in market_groups:
+                                market_groups[main_market_name] = []
+                            market_groups[main_market_name].append(market)
+                    else:
+                        # Normal mode: scrape each market individually
+                        self.logger.info(f"Scraping market: {market} (Period: {period})")
+                        market_data[f"{market}_market"] = await market_methods[market](
+                            self, page, period, scrape_odds_history, target_bookmaker, preview_submarkets_only
+                        )
                 else:
                     self.logger.warning(f"Market '{market}' is not supported for sport '{sport}'.")
 
@@ -72,7 +88,77 @@ class OddsPortalMarketExtractor:
                 self.logger.error(f"Error scraping market '{market}': {e}")
                 market_data[f"{market}_market"] = None
 
+        # Handle grouped markets in preview mode
+        if preview_submarkets_only and market_groups:
+            for main_market_name, grouped_markets in market_groups.items():
+                try:
+                    self.logger.info(
+                        f"Scraping main market: {main_market_name} for submarkets: {grouped_markets} (Period: {period})"
+                    )
+
+                    # Use the first market in the group to get the odds labels
+                    first_market = grouped_markets[0]
+                    if first_market in market_methods:
+                        main_market_info = self._get_main_market_info(market_methods[first_market])
+                        odds_labels = main_market_info["odds_labels"] if main_market_info else None
+
+                        # Scrape the main market once
+                        main_market_data = await self.extract_market_odds(
+                            page=page,
+                            main_market=main_market_name,
+                            specific_market=None,  # No specific market, scrape all submarkets
+                            period=period,
+                            odds_labels=odds_labels,
+                            scrape_odds_history=scrape_odds_history,
+                            target_bookmaker=target_bookmaker,
+                            preview_submarkets_only=preview_submarkets_only,
+                        )
+
+                        # Distribute the results to each specific market
+                        for specific_market in grouped_markets:
+                            market_data[f"{specific_market}_market"] = main_market_data
+
+                except Exception as e:
+                    self.logger.error(f"Error scraping grouped markets for {main_market_name}: {e}")
+                    for specific_market in grouped_markets:
+                        market_data[f"{specific_market}_market"] = None
+
         return market_data
+
+    def _get_main_market_info(self, market_method) -> dict | None:
+        """
+        Extract main market information from a market method lambda.
+
+        Args:
+            market_method: The market method lambda function
+
+        Returns:
+            dict | None: Dictionary with main_market and odds_labels, or None if not found
+        """
+        try:
+            # The market method is a lambda that calls extract_market_odds with specific parameters
+            # We can inspect its closure to get the main_market and odds_labels
+            if hasattr(market_method, "__closure__") and market_method.__closure__:
+                # Extract the main_market and odds_labels from the lambda's closure
+                closure_vars = market_method.__code__.co_freevars
+                closure_values = [cell.cell_contents for cell in market_method.__closure__]
+
+                # Find main_market and odds_labels in the closure
+                main_market = None
+                odds_labels = None
+
+                for var_name, var_value in zip(closure_vars, closure_values, strict=False):
+                    if var_name == "main_market":
+                        main_market = var_value
+                    elif var_name == "odds_labels":
+                        odds_labels = var_value
+
+                if main_market:
+                    return {"main_market": main_market, "odds_labels": odds_labels}
+        except Exception as e:
+            self.logger.debug(f"Could not extract market info from method: {e}")
+
+        return None
 
     async def extract_market_odds(
         self,
@@ -83,6 +169,7 @@ class OddsPortalMarketExtractor:
         odds_labels: list | None = None,
         scrape_odds_history: bool = False,
         target_bookmaker: str | None = None,
+        preview_submarkets_only: bool = False,
     ) -> list:
         """
         Extracts odds for a given main market and optional specific sub-market.
@@ -95,11 +182,14 @@ class OddsPortalMarketExtractor:
             odds_labels (list): Labels corresponding to odds values in the extracted data.
             scrape_odds_history (bool): Whether to scrape and attach odds history.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
+            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading individual bookmaker details.
 
         Returns:
             list[dict]: A list of dictionaries containing bookmaker odds.
         """
-        self.logger.info(f"Scraping odds for market: {main_market}, specific: {specific_market}, period: {period}")
+        self.logger.info(
+            f"Scraping odds for market: {main_market}, specific: {specific_market}, period: {period}, preview_mode: {preview_submarkets_only}"
+        )
 
         try:
             # Navigate to the main market tab
@@ -112,21 +202,50 @@ class OddsPortalMarketExtractor:
             # Wait for market switch to complete
             await self._wait_for_market_switch(page, main_market)
 
-            # If a specific sub-market needs to be selected (e.g., Over/Under 2.5)
-            if specific_market and not await self.browser_helper.scroll_until_visible_and_click_parent(
-                page=page,
-                selector="div.flex.w-full.items-center.justify-start.pl-3.font-bold p",
-                text=specific_market,
-            ):
-                self.logger.error(f"Failed to find or select {specific_market} within {main_market}")
-                return []
+            # Handle different scraping modes
+            if preview_submarkets_only:
+                # For preview mode, always try passive extraction first
+                self.logger.info(f"Using passive mode for {main_market} in preview mode")
+                odds_data = await self._extract_visible_submarkets_passive(
+                    page=page, main_market=main_market, period=period, odds_labels=odds_labels
+                )
 
-            await page.wait_for_timeout(self.SCROLL_PAUSE_TIME)
-            html_content = await page.content()
+                # If no data was extracted passively, fall back to normal scraping
+                if not odds_data:
+                    self.logger.info(f"No data extracted passively for {main_market}, falling back to normal scraping")
+                    if specific_market and not await self.browser_helper.scroll_until_visible_and_click_parent(
+                        page=page,
+                        selector="div.flex.w-full.items-center.justify-start.pl-3.font-bold p",
+                        text=specific_market,
+                    ):
+                        self.logger.error(f"Failed to find or select {specific_market} within {main_market}")
+                        return []
 
-            odds_data = await self._parse_market_odds(
-                html_content=html_content, period=period, odds_labels=odds_labels, target_bookmaker=target_bookmaker
-            )
+                    await page.wait_for_timeout(self.SCROLL_PAUSE_TIME)
+                    html_content = await page.content()
+
+                    odds_data = await self._parse_market_odds(
+                        html_content=html_content,
+                        period=period,
+                        odds_labels=odds_labels,
+                        target_bookmaker=target_bookmaker,
+                    )
+            else:
+                # Active mode: click on specific submarket if provided
+                if specific_market and not await self.browser_helper.scroll_until_visible_and_click_parent(
+                    page=page,
+                    selector="div.flex.w-full.items-center.justify-start.pl-3.font-bold p",
+                    text=specific_market,
+                ):
+                    self.logger.error(f"Failed to find or select {specific_market} within {main_market}")
+                    return []
+
+                await page.wait_for_timeout(self.SCROLL_PAUSE_TIME)
+                html_content = await page.content()
+
+                odds_data = await self._parse_market_odds(
+                    html_content=html_content, period=period, odds_labels=odds_labels, target_bookmaker=target_bookmaker
+                )
 
             if scrape_odds_history:
                 self.logger.info("Fetching odds history for all parsed bookmakers.")
@@ -162,6 +281,213 @@ class OddsPortalMarketExtractor:
 
         except Exception as e:
             self.logger.error(f"Error extracting odds for {main_market} {specific_market}: {e}")
+            return []
+
+    async def _is_preview_compatible_market(self, page, main_market: str) -> bool:
+        """
+        Determines if a market is compatible with preview mode by analyzing the HTML structure.
+
+        This method dynamically analyzes the page to see if there are multiple visible submarkets
+        that can be scraped without clicking.
+
+        Args:
+            page: The Playwright page instance.
+            main_market (str): The main market name (e.g., "Over/Under", "European Handicap").
+
+        Returns:
+            bool: True if the market supports preview mode, False otherwise.
+        """
+        try:
+            # Get current page HTML
+            html_content = await page.content()
+            soup = BeautifulSoup(html_content, "html.parser")
+
+            # Look for submarket containers
+            submarket_containers = soup.find_all("div", class_="border-black-borders")
+
+            if submarket_containers:
+                visible_submarkets_count = len(submarket_containers)
+                self.logger.debug(f"Found {visible_submarkets_count} visible submarkets for {main_market}")
+
+                # Check if any of these submarkets have visible odds
+                submarkets_with_odds = 0
+                for container in submarket_containers[:5]:  # Check first 5 submarkets
+                    odds_containers = container.find_all("p", attrs={"data-testid": "odd-container-default"})
+                    if len(odds_containers) >= 2:  # Need at least 2 odds to be useful
+                        submarkets_with_odds += 1
+
+                self.logger.debug(f"Found {submarkets_with_odds} submarkets with visible odds for {main_market}")
+
+                # If we have multiple visible submarkets with odds, the market is compatible
+                if visible_submarkets_count > 1 and submarkets_with_odds > 0:
+                    self.logger.info(
+                        f"Market {main_market} has {visible_submarkets_count} visible submarkets ({submarkets_with_odds} with odds) - compatible with preview mode"
+                    )
+                    return True
+                else:
+                    self.logger.info(
+                        f"Market {main_market} has {visible_submarkets_count} visible submarkets but only {submarkets_with_odds} with odds - incompatible with preview mode"
+                    )
+                    return False
+            else:
+                self.logger.info(f"Market {main_market} has no visible submarkets - incompatible with preview mode")
+                return False
+
+        except Exception as e:
+            self.logger.error(f"Error analyzing market structure for {main_market}: {e}")
+
+    async def _extract_visible_submarkets_passive(
+        self, page: Page, main_market: str, period: str, odds_labels: list | None = None
+    ) -> list:
+        """
+        Extracts all visible submarkets from the current page without clicking to load more.
+
+        Args:
+            page (Page): The Playwright page instance.
+            main_market (str): The main market name (e.g., "Over/Under", "European Handicap").
+            period (str): The match period (e.g., "FullTime").
+            odds_labels (list, optional): Labels corresponding to odds values. If None, defaults to ["odds_over", "odds_under"].
+
+        Returns:
+            list[dict]: A list of dictionaries containing submarket data with odds.
+        """
+        self.logger.info(f"Extracting visible submarkets for {main_market} in passive mode")
+
+        try:
+            await page.wait_for_timeout(self.SCROLL_PAUSE_TIME)
+            html_content = await page.content()
+            soup = BeautifulSoup(html_content, "html.parser")
+
+            # Find all submarket rows (these contain the handicap names and odds)
+            submarket_rows = soup.find_all("div", class_=re.compile(r"border-black-borders"))
+
+            if not submarket_rows:
+                self.logger.warning("No submarket rows found in passive mode")
+                return []
+
+            submarkets_data = []
+
+            for row in submarket_rows:
+                try:
+                    # Extract submarket name - improved parsing for different market types
+                    submarket_name = None
+
+                    # First, try to find the div with data-testid pattern (for Over/Under markets)
+                    market_key = main_market.lower().replace("/", "-").replace(" ", "-")
+                    data_testid_pattern = f"{market_key}-collapsed-option-box"
+                    submarket_name_element = row.find("div", attrs={"data-testid": re.compile(data_testid_pattern)})
+
+                    if submarket_name_element:
+                        # For markets like Over/Under, look for the clean name in max-sm:!hidden class
+                        clean_name_p = submarket_name_element.find("p", class_="max-sm:!hidden")
+                        if clean_name_p:
+                            submarket_name = clean_name_p.get_text(strip=True)
+                        else:
+                            # Fallback to any <p> in the div
+                            first_p = submarket_name_element.find("p")
+                            if first_p:
+                                submarket_name = first_p.get_text(strip=True)
+
+                    # If not found, try to find any div with the flex classes (for other markets)
+                    if not submarket_name:
+                        flex_div = row.find("div", class_=re.compile(r"flex.*items-center.*justify-start"))
+                        if flex_div:
+                            # Look for the clean name in max-sm:!hidden class first
+                            clean_name_p = flex_div.find("p", class_="max-sm:!hidden")
+                            if clean_name_p:
+                                submarket_name = clean_name_p.get_text(strip=True)
+                            else:
+                                # Fallback to any <p> in the div
+                                first_p = flex_div.find("p")
+                                if first_p:
+                                    submarket_name = first_p.get_text(strip=True)
+
+                    # If still not found, try to find any <p> with font-bold class
+                    if not submarket_name:
+                        bold_p = row.find("p", class_=re.compile(r"font-bold"))
+                        if bold_p:
+                            submarket_name = bold_p.get_text(strip=True)
+
+                    # If still not found, try to find any <p> that looks like a submarket name
+                    if not submarket_name:
+                        all_p_tags = row.find_all("p")
+                        for p_tag in all_p_tags:
+                            text = p_tag.get_text(strip=True)
+                            # Skip percentage values, odds values, and other non-submarket text
+                            if (
+                                text
+                                and not text.endswith("%")
+                                and not text.replace(".", "").isdigit()  # Skip pure numbers like "2.80"
+                                and len(text) > 1
+                                and not text.startswith("data-testid")  # Skip any data attributes
+                                and ":" in text
+                            ):  # Correct Score submarkets contain ":"
+                                submarket_name = text
+                                break
+
+                    if not submarket_name:
+                        continue
+
+                    # Log the extracted submarket name for debugging
+                    self.logger.debug(f"Extracted submarket name: '{submarket_name}'")
+
+                    # Find all odds containers in this row
+                    odds_containers = row.find_all("p", attrs={"data-testid": "odd-container-default"})
+
+                    # Use provided odds_labels or determine based on market type
+                    if odds_labels is None:
+                        # Default to Over/Under labels, but adjust for single-odds markets
+                        if "correct score" in main_market.lower():
+                            odds_labels = ["correct_score"]
+                            min_odds_required = 1
+                        else:
+                            odds_labels = ["odds_over", "odds_under"]
+                            min_odds_required = 2
+                    else:
+                        min_odds_required = len(odds_labels)
+
+                    if len(odds_containers) < min_odds_required:
+                        self.logger.debug(
+                            f"Skipping row with {len(odds_containers)} odds, need at least {min_odds_required} for {main_market}"
+                        )
+                        continue
+
+                    # Extract odds values
+                    odds_values = []
+                    for container in odds_containers:
+                        odds_text = container.get_text(strip=True)
+                        if odds_text:
+                            odds_values.append(odds_text)
+
+                    if len(odds_values) >= min_odds_required:
+                        submarket_data = {
+                            "submarket_name": submarket_name,
+                            "period": period,
+                            "market_type": main_market,
+                            "extraction_mode": "passive",
+                        }
+
+                        # Add odds with appropriate labels
+                        for i, label in enumerate(odds_labels):
+                            if i < len(odds_values):
+                                submarket_data[label] = odds_values[i]
+
+                        # Add any additional odds beyond the expected labels
+                        if len(odds_values) > len(odds_labels):
+                            for i, odds_value in enumerate(odds_values[len(odds_labels) :], start=len(odds_labels)):
+                                submarket_data[f"odds_option_{i + 1}"] = odds_value
+
+                        submarkets_data.append(submarket_data)
+
+                except Exception as e:
+                    self.logger.warning(f"Error processing submarket row: {e}")
+                    continue
+
+            self.logger.info(f"Successfully extracted {len(submarkets_data)} visible submarkets in passive mode")
+            return submarkets_data
+
+        except Exception as e:
+            self.logger.error(f"Error in passive submarket extraction: {e}")
             return []
 
     async def _wait_for_market_switch(self, page: Page, market_name: str, max_attempts: int = 3) -> bool:

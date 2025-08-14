@@ -47,13 +47,14 @@ async def run_scraper(
     target_bookmaker: str | None = None,
     scrape_odds_history: bool = False,
     headless: bool = True,
+    preview_submarkets_only: bool = False,
 ) -> dict:
     """Runs the scraping process and handles execution."""
     logger.info(f"""
         Starting scraper with parameters: command={command}, match_links={match_links}, sport={sport}, date={date}, leagues={leagues},
         season={season}, markets={markets}, max_pages={max_pages}, proxies={proxies}, browser_user_agent={browser_user_agent},
         browser_locale_timezone={browser_locale_timezone}, browser_timezone_id={browser_timezone_id},
-        scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}, headless={headless}""")
+        scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}, headless={headless}, preview_submarkets_only={preview_submarkets_only}""")
 
     proxy_manager = ProxyManager(cli_proxies=proxies)
     SportMarketRegistrar.register_all_markets()
@@ -62,7 +63,10 @@ async def run_scraper(
     market_extractor = OddsPortalMarketExtractor(browser_helper=browser_helper)
 
     scraper = OddsPortalScraper(
-        playwright_manager=playwright_manager, browser_helper=browser_helper, market_extractor=market_extractor
+        playwright_manager=playwright_manager,
+        browser_helper=browser_helper,
+        market_extractor=market_extractor,
+        preview_submarkets_only=preview_submarkets_only,
     )
 
     try:
