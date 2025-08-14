@@ -5,6 +5,7 @@ import re
 from src.storage.storage_format import StorageFormat
 from src.storage.storage_type import StorageType
 from src.utils.command_enum import CommandEnum
+from src.utils.odds_format_enum import OddsFormat
 from src.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from src.utils.sport_market_constants import Sport
 from src.utils.utils import get_supported_markets
@@ -62,6 +63,12 @@ class CLIArgumentValidator:
 
         if hasattr(args, "scrape_odds_history") and not isinstance(args.scrape_odds_history, bool):
             errors.append("'--scrape-odds-history' must be a boolean flag.")
+
+        if hasattr(args, "odds_format"):
+            errors.extend(self._validate_odds_format(odds_format=args.odds_format))
+
+        if hasattr(args, "concurrency_tasks"):
+            errors.extend(self._validate_concurrency_tasks(concurrency_tasks=args.concurrency_tasks))
 
         errors.extend(
             self._validate_browser_settings(
@@ -131,11 +138,12 @@ class CLIArgumentValidator:
 
         supported_markets = get_supported_markets(sport)
 
-        for market in markets:
-            if market not in supported_markets:
-                errors.append(
-                    f"Invalid market: {market}. Supported markets for {sport.value}: {', '.join(supported_markets)}."
-                )
+        if markets:
+            for market in markets:
+                if market not in supported_markets:
+                    errors.append(
+                        f"Invalid market: {market}. Supported markets for {sport.value}: {', '.join(supported_markets)}."
+                    )
 
         return errors
 
@@ -318,4 +326,21 @@ class CLIArgumentValidator:
         if timezone_id and not isinstance(timezone_id, str):
             errors.append("Invalid browser timezone ID format.")
 
+        return errors
+
+    def _validate_odds_format(self, odds_format: str) -> list[str]:
+        """Validates the odds format argument."""
+        errors = []
+        try:
+            OddsFormat(odds_format)
+        except ValueError:
+            supported_formats = ", ".join([f.value for f in OddsFormat])
+            errors.append(f"Invalid odds format: '{odds_format}'. Supported formats are: {supported_formats}.")
+        return errors
+
+    def _validate_concurrency_tasks(self, concurrency_tasks: int) -> list[str]:
+        """Validates the concurrency tasks argument."""
+        errors = []
+        if not isinstance(concurrency_tasks, int) or concurrency_tasks <= 0:
+            errors.append(f"Invalid concurrency tasks value: '{concurrency_tasks}'. It must be a positive integer.")
         return errors

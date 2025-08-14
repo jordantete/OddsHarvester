@@ -11,7 +11,8 @@ from playwright.async_api import Page, TimeoutError
 from src.core.browser_helper import BrowserHelper
 from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from src.core.playwright_manager import PlaywrightManager
-from src.utils.constants import ODDS_FORMAT, ODDSPORTAL_BASE_URL, SCRAPE_CONCURRENCY_TASKS
+from src.utils.constants import ODDSPORTAL_BASE_URL
+from src.utils.odds_format_enum import OddsFormat
 from src.utils.utils import clean_html_text
 
 
@@ -37,16 +38,16 @@ class BaseScraper:
         self.browser_helper = browser_helper
         self.market_extractor = market_extractor
 
-    async def set_odds_format(self, page: Page, odds_format: str = ODDS_FORMAT):
+    async def set_odds_format(self, page: Page, odds_format: OddsFormat = OddsFormat.DECIMAL_ODDS):
         """
         Sets the odds format on the page.
 
         Args:
             page (Page): The Playwright page instance.
-            odds_format (str): The desired odds format.
+            odds_format (OddsFormat): The desired odds format.
         """
         try:
-            self.logger.info(f"Setting odds format: {odds_format}")
+            self.logger.info(f"Setting odds format: {odds_format.value}")
             button_selector = "div.group > button.gap-2"
             await page.wait_for_selector(button_selector, state="attached", timeout=8000)
             dropdown_button = await page.query_selector(button_selector)
@@ -55,8 +56,8 @@ class BaseScraper:
             current_format = await dropdown_button.inner_text()
             self.logger.info(f"Current odds format detected: {current_format}")
 
-            if current_format == odds_format:
-                self.logger.info(f"Odds format is already set to '{odds_format}'. Skipping.")
+            if current_format == odds_format.value:
+                self.logger.info(f"Odds format is already set to '{odds_format.value}'. Skipping.")
                 return
 
             await dropdown_button.click()
@@ -67,14 +68,14 @@ class BaseScraper:
             for option in format_options:
                 option_text = await option.inner_text()
 
-                if odds_format.lower() in option_text.lower():
+                if odds_format.value.lower() in option_text.lower():
                     self.logger.info(f"Selecting odds format: {option_text}")
                     await option.click()
                     await page.wait_for_timeout(10000)
-                    self.logger.info(f"Odds format changed to '{odds_format}'.")
+                    self.logger.info(f"Odds format changed to '{odds_format.value}'.")
                     return
 
-            self.logger.warning(f"Desired odds format '{odds_format}' not found in dropdown options.")
+            self.logger.warning(f"Desired odds format '{odds_format.value}' not found in dropdown options.")
 
         except TimeoutError:
             self.logger.error("Timeout while setting odds format. Dropdown may not have loaded.")
@@ -119,7 +120,7 @@ class BaseScraper:
         markets: list[str] | None = None,
         scrape_odds_history: bool = False,
         target_bookmaker: str | None = None,
-        concurrent_scraping_task: int = SCRAPE_CONCURRENCY_TASKS,
+        concurrent_scraping_task: int = 3,
     ) -> list[dict[str, Any]]:
         """
         Extract odds for a list of match links concurrently.

@@ -1,7 +1,4 @@
 ODDSPORTAL_BASE_URL = "https://www.oddsportal.com"
-ODDS_FORMAT = "Decimal Odds"
-
-SCRAPE_CONCURRENCY_TASKS = 3
 
 PLAYWRIGHT_BROWSER_ARGS = [
     "--disable-background-networking",

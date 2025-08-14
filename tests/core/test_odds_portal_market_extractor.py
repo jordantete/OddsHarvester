@@ -146,7 +146,7 @@ class TestOddsPortalMarketExtractor:
         result = await extractor._parse_market_odds(broken_html, "FullTime", odds_labels)
 
         # Assert
-        assert len(result) == 0  # Devrait gérer l'erreur gracieusement
+        assert len(result) == 0  # Should handle error gracefully
 
     def test_parse_odds_history_modal(self, extractor):
         """Test parsing odds history from a modal HTML."""

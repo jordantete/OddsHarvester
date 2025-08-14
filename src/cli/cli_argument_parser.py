@@ -3,6 +3,7 @@ import argparse
 from src.cli.cli_help_message_generator import CLIHelpMessageGenerator
 from src.storage.storage_format import StorageFormat
 from src.storage.storage_type import StorageType
+from src.utils.odds_format_enum import OddsFormat
 
 
 class CLIArgumentParser:
@@ -122,6 +123,19 @@ class CLIArgumentParser:
             "--scrape_odds_history",
             action="store_true",
             help="📈 Include to scrape historical odds movement (hover-over modal).",
+        )
+        parser.add_argument(
+            "--odds_format",
+            type=str,
+            choices=[f.value for f in OddsFormat],
+            default=OddsFormat.DECIMAL_ODDS.value,
+            help="💰 Odds format to display (default: Decimal Odds).",
+        )
+        parser.add_argument(
+            "--concurrency_tasks",
+            type=int,
+            default=3,
+            help="⚡ Number of concurrent tasks for scraping (default: 3).",
         )
 
     def get_parser(self) -> argparse.ArgumentParser:

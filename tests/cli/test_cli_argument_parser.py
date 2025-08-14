@@ -100,6 +100,8 @@ def test_parser_defaults():
     assert args.save_logs is False
     assert args.target_bookmaker is None
     assert args.scrape_odds_history is False
+    assert args.odds_format == "Decimal Odds"
+    assert args.concurrency_tasks == 3
     assert args.date is None
 
 
@@ -178,3 +180,67 @@ def test_parse_leagues_with_spaces(parser):
     )
     # Note: Spaces will be handled by the validator, not the parser
     assert args.leagues == ["england-premier-league", " spain-primera-division", " italy-serie-a"]
+
+
+def test_parse_odds_format(parser):
+    """Test parsing odds format argument."""
+    args = parser.parse_args(
+        [
+            "scrape_upcoming",
+            "--sport",
+            "football",
+            "--date",
+            "20250225",
+            "--odds_format",
+            "Fractional Odds",
+        ]
+    )
+    assert args.odds_format == "Fractional Odds"
+
+
+def test_parse_concurrency_tasks(parser):
+    """Test parsing concurrency tasks argument."""
+    args = parser.parse_args(
+        [
+            "scrape_upcoming",
+            "--sport",
+            "football",
+            "--date",
+            "20250225",
+            "--concurrency_tasks",
+            "5",
+        ]
+    )
+    assert args.concurrency_tasks == 5
+
+
+def test_invalid_odds_format(parser):
+    """Test that invalid odds format raises SystemExit."""
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "scrape_upcoming",
+                "--sport",
+                "football",
+                "--date",
+                "20250225",
+                "--odds_format",
+                "Invalid Format",
+            ]
+        )
+
+
+def test_invalid_concurrency_tasks(parser):
+    """Test that invalid concurrency tasks raises SystemExit."""
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "scrape_upcoming",
+                "--sport",
+                "football",
+                "--date",
+                "20250225",
+                "--concurrency_tasks",
+                "invalid",
+            ]
+        )

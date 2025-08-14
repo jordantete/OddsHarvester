@@ -9,6 +9,7 @@ from src.core.browser_helper import BrowserHelper
 from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from src.core.playwright_manager import PlaywrightManager
 from src.utils.constants import ODDSPORTAL_BASE_URL
+from src.utils.odds_format_enum import OddsFormat
 
 
 @pytest.fixture
@@ -61,11 +62,11 @@ async def test_set_odds_format(setup_base_scraper_mocks):
 
     # Mock the dropdown button
     dropdown_button_mock = AsyncMock()
-    dropdown_button_mock.inner_text = AsyncMock(return_value="Decimal")
+    dropdown_button_mock.inner_text = AsyncMock(return_value="Decimal Odds")
     page_mock.query_selector.return_value = dropdown_button_mock
 
     # Test when odds format is already set
-    await scraper.set_odds_format(page=page_mock, odds_format="Decimal")
+    await scraper.set_odds_format(page=page_mock, odds_format=OddsFormat.DECIMAL_ODDS)
 
     page_mock.wait_for_selector.assert_called_once()
     page_mock.query_selector.assert_called_once()
@@ -82,14 +83,14 @@ async def test_set_odds_format(setup_base_scraper_mocks):
 
     # Mock format options
     format_option1 = AsyncMock()
-    format_option1.inner_text = AsyncMock(return_value="Decimal")
+    format_option1.inner_text = AsyncMock(return_value="Decimal Odds")
     format_option2 = AsyncMock()
-    format_option2.inner_text = AsyncMock(return_value="Fractional")
+    format_option2.inner_text = AsyncMock(return_value="Fractional Odds")
 
     page_mock.query_selector_all.return_value = [format_option1, format_option2]
 
     # Test selecting a different format
-    await scraper.set_odds_format(page=page_mock, odds_format="Decimal")
+    await scraper.set_odds_format(page=page_mock, odds_format=OddsFormat.DECIMAL_ODDS)
 
     dropdown_button_mock.click.assert_called_once()
     page_mock.query_selector_all.assert_called_once()
