@@ -63,7 +63,10 @@ class CLIArgumentParser:
             "--sport",
             type=str,
             choices=["football", "tennis", "basketball", "rugby-league", "rugby-union", "ice-hockey", "baseball"],
-            help="Specify the sport to scrape (e.g., football, tennis, basketball, rugby-league, rugby-union, ice-hockey).",
+            help=(
+                "Specify the sport to scrape (e.g., football, tennis, basketball, rugby-league, "
+                "rugby-union, ice-hockey)."
+            ),
         )
         parser.add_argument(
             "--leagues",
@@ -140,7 +143,10 @@ class CLIArgumentParser:
         parser.add_argument(
             "--preview_submarkets_only",
             action="store_true",
-            help="👁️ Only scrape average odds from visible submarkets without loading individual bookmaker details (faster, limited data).",
+            help=(
+                "👁️ Only scrape average odds from visible submarkets without loading "
+                "individual bookmaker details (faster, limited data)."
+            ),
         )
 
     def get_parser(self) -> argparse.ArgumentParser:

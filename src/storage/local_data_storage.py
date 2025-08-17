@@ -34,7 +34,8 @@ class LocalDataStorage:
         Args:
             data (Union[Dict, List[Dict]]): The data to save, either as a dictionary or a list of dictionaries.
             file_path (str, optional): The file path to save the data. Defaults to `self.default_file_path`.
-            storage_format (StorageFormat, optional): The format to save the data in ("csv" or "json"). Defaults to `self.default_storage_format`.
+            storage_format (StorageFormat, optional): The format to save the data in ("csv" or "json").
+            Defaults to `self.default_storage_format`.
 
         Raises:
             ValueError: If the data is not in the correct format (dict or list of dicts).

@@ -46,7 +46,7 @@ class PlaywrightManager:
                 locale=locale,
                 timezone_id=timezone_id,
                 user_agent=user_agent,
-                viewport={"width": random.randint(1366, 1920), "height": random.randint(768, 1080)},
+                viewport={"width": random.randint(1366, 1920), "height": random.randint(768, 1080)},  # noqa: S311
             )
 
             self.page = await self.context.new_page()

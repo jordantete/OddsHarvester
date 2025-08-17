@@ -318,7 +318,12 @@ async def test_extract_match_details_event_header(json_mock, bs4_mock, setup_bas
 
     # Mock the div with event header data
     event_header_div = MagicMock()
-    event_header_div.__getitem__.return_value = '{"eventBody": {"startDate": 1681753200, "homeResult": 2, "awayResult": 1, "partialresult": "1-0", "venue": "Emirates Stadium", "venueTown": "London", "venueCountry": "England"}, "eventData": {"home": "Arsenal", "away": "Chelsea", "tournamentName": "Premier League"}}'
+    event_header_div.__getitem__.return_value = (
+        '{"eventBody": {"startDate": 1681753200, "homeResult": 2, "awayResult": 1, '
+        '"partialresult": "1-0", "venue": "Emirates Stadium", "venueTown": "London", '
+        '"venueCountry": "England"}, "eventData": {"home": "Arsenal", "away": "Chelsea", '
+        '"tournamentName": "Premier League"}}'
+    )
     soup_mock.find.return_value = event_header_div
 
     # Mock JSON parsing

@@ -324,7 +324,7 @@ class OddsPortalScraper(BaseScraper):
                 page_url = f"{base_url}#/page/{page_number}"
                 self.logger.info(f"Navigating to: {page_url}")
                 await tab.goto(page_url, timeout=10000, wait_until="domcontentloaded")
-                delay = random.randint(6000, 8000)
+                delay = random.randint(6000, 8000)  # noqa: S311
                 self.logger.debug(f"Waiting {delay}ms before processing...")
                 await tab.wait_for_timeout(delay)
 

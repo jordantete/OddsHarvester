@@ -52,7 +52,7 @@ class OddsPortalMarketExtractor:
             period (str): The match period (e.g., "FullTime").
             scrape_odds_history (bool): Whether to extract historic odds evolution.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
-            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading individual bookmaker details.
+            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets.
 
         Returns:
             Dict[str, Any]: A dictionary containing market data.
@@ -177,18 +177,19 @@ class OddsPortalMarketExtractor:
         Args:
             page (Page): The Playwright page instance.
             main_market (str): The main market name (e.g., "Over/Under", "European Handicap").
-            specific_market (str, optional): The specific market within the main market (e.g., "Over/Under 2.5", "EH +1").
+            specific_market (str, optional): The specific market within the main market (e.g., "Over/Under 2.5", ...)
             period (str): The match period (e.g., "FullTime").
             odds_labels (list): Labels corresponding to odds values in the extracted data.
             scrape_odds_history (bool): Whether to scrape and attach odds history.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
-            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading individual bookmaker details.
+            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets.
 
         Returns:
             list[dict]: A list of dictionaries containing bookmaker odds.
         """
         self.logger.info(
-            f"Scraping odds for market: {main_market}, specific: {specific_market}, period: {period}, preview_mode: {preview_submarkets_only}"
+            f"Scraping odds for market: {main_market}, specific: {specific_market}, period: {period}, "
+            f"preview_mode: {preview_submarkets_only}"
         )
 
         try:
@@ -321,12 +322,14 @@ class OddsPortalMarketExtractor:
                 # If we have multiple visible submarkets with odds, the market is compatible
                 if visible_submarkets_count > 1 and submarkets_with_odds > 0:
                     self.logger.info(
-                        f"Market {main_market} has {visible_submarkets_count} visible submarkets ({submarkets_with_odds} with odds) - compatible with preview mode"
+                        f"Market {main_market} has {visible_submarkets_count} visible submarkets "
+                        f"({submarkets_with_odds} with odds) - compatible with preview mode"
                     )
                     return True
                 else:
                     self.logger.info(
-                        f"Market {main_market} has {visible_submarkets_count} visible submarkets but only {submarkets_with_odds} with odds - incompatible with preview mode"
+                        f"Market {main_market} has {visible_submarkets_count} visible submarkets but only "
+                        f"{submarkets_with_odds} with odds - incompatible with preview mode"
                     )
                     return False
             else:
@@ -346,7 +349,8 @@ class OddsPortalMarketExtractor:
             page (Page): The Playwright page instance.
             main_market (str): The main market name (e.g., "Over/Under", "European Handicap").
             period (str): The match period (e.g., "FullTime").
-            odds_labels (list, optional): Labels corresponding to odds values. If None, defaults to ["odds_over", "odds_under"].
+            odds_labels (list, optional): Labels corresponding to odds values. If None, defaults to
+            ["odds_over", "odds_under"].
 
         Returns:
             list[dict]: A list of dictionaries containing submarket data with odds.
@@ -448,7 +452,8 @@ class OddsPortalMarketExtractor:
 
                     if len(odds_containers) < min_odds_required:
                         self.logger.debug(
-                            f"Skipping row with {len(odds_containers)} odds, need at least {min_odds_required} for {main_market}"
+                            f"Skipping row with {len(odds_containers)} odds, need at least {min_odds_required} "
+                            f"for {main_market}"
                         )
                         continue
 

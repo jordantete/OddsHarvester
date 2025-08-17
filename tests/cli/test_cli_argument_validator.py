@@ -243,13 +243,15 @@ def test_validate_date_wrong_command(validator):
         (
             ["invalid_proxy_format"],
             [
-                "Invalid proxy format: 'invalid_proxy_format'. Expected format: 'http[s]://host:port [user pass]' or 'socks5://host:port [user pass]'."
+                "Invalid proxy format: 'invalid_proxy_format'. Expected format: "
+                "'http[s]://host:port [user pass]' or 'socks5://host:port [user pass]'."
             ],
         ),
         (
             ["http://proxy.com:8080", "invalid_proxy"],
             [
-                "Invalid proxy format: 'invalid_proxy'. Expected format: 'http[s]://host:port [user pass]' or 'socks5://host:port [user pass]'."
+                "Invalid proxy format: 'invalid_proxy'. Expected format: "
+                "'http[s]://host:port [user pass]' or 'socks5://host:port [user pass]'."
             ],
         ),
     ],
@@ -383,7 +385,8 @@ def test_validate_scrape_odds_history(validator, mock_args):
         (
             "Invalid Format",
             [
-                "Invalid odds format: 'Invalid Format'. Supported formats are: Decimal Odds, Fractional Odds, Money Line Odds, Hong Kong Odds."
+                "Invalid odds format: 'Invalid Format'. Supported formats are: "
+                "Decimal Odds, Fractional Odds, Money Line Odds, Hong Kong Odds."
             ],
         ),
     ],
@@ -422,7 +425,8 @@ def test_validate_args_with_new_arguments(validator, mock_args):
     mock_args.odds_format = "Invalid Format"
     with pytest.raises(
         ValueError,
-        match="Invalid odds format: 'Invalid Format'. Supported formats are: Decimal Odds, Fractional Odds, Money Line Odds, Hong Kong Odds.",
+        match="Invalid odds format: 'Invalid Format'. Supported formats are: "
+        "Decimal Odds, Fractional Odds, Money Line Odds, Hong Kong Odds.",
     ):
         validator.validate_args(mock_args)
 

@@ -237,7 +237,8 @@ class BrowserHelper:
             await page.wait_for_timeout(scroll_pause_time * 1000)
 
         self.logger.warning(
-            f"Failed to find and click parent of element matching selector '{selector}' with text '{text}' within timeout."
+            f"Failed to find and click parent of element matching selector '{selector}' with text '{text}' "
+            f"within timeout."
         )
         return False
 
@@ -355,7 +356,8 @@ class BrowserHelper:
                             return True
                 except Exception as e:
                     self.logger.debug(
-                        f"Exception while searching for market '{market_tab_name}' in dropdown with selector '{selector}': {e}"
+                        f"Exception while searching for market '{market_tab_name}' in dropdown with selector "
+                        f"'{selector}': {e}"
                     )
                     continue
 

@@ -50,11 +50,14 @@ async def run_scraper(
     preview_submarkets_only: bool = False,
 ) -> dict:
     """Runs the scraping process and handles execution."""
-    logger.info(f"""
-        Starting scraper with parameters: command={command}, match_links={match_links}, sport={sport}, date={date}, leagues={leagues},
-        season={season}, markets={markets}, max_pages={max_pages}, proxies={proxies}, browser_user_agent={browser_user_agent},
-        browser_locale_timezone={browser_locale_timezone}, browser_timezone_id={browser_timezone_id},
-        scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}, headless={headless}, preview_submarkets_only={preview_submarkets_only}""")
+    logger.info(
+        f"Starting scraper with parameters: command={command}, match_links={match_links}, "
+        f"sport={sport}, date={date}, leagues={leagues}, season={season}, markets={markets}, "
+        f"max_pages={max_pages}, proxies={proxies}, browser_user_agent={browser_user_agent}, "
+        f"browser_locale_timezone={browser_locale_timezone}, browser_timezone_id={browser_timezone_id}, "
+        f"scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}, "
+        f"headless={headless}, preview_submarkets_only={preview_submarkets_only}"
+    )
 
     proxy_manager = ProxyManager(cli_proxies=proxies)
     SportMarketRegistrar.register_all_markets()
@@ -223,10 +226,11 @@ async def _scrape_multiple_leagues(scraper, scrape_func, leagues: list[str], spo
     successful_leagues = len(leagues) - len(failed_leagues)
 
     if failed_leagues:
-        logger.warning(f"ailed to scrape {len(failed_leagues)} leagues: {failed_leagues}")
+        logger.warning(f"Failed to scrape {len(failed_leagues)} leagues: {failed_leagues}")
 
     logger.info(
-        f"Multi-league scraping completed: {successful_leagues}/{len(leagues)} leagues successful, {total_matches} total matches scraped"
+        f"Multi-league scraping completed: {successful_leagues}/{len(leagues)} leagues successful, "
+        f"{total_matches} total matches scraped"
     )
 
     return all_results

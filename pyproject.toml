@@ -14,6 +14,15 @@ dependencies = [
     "pytz>=2024.2"
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=4.2.0",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.0.0",
+    "pytest-cov>=6.2.1",
+    "ruff>=0.12.0",
+]
+
 [project.urls]
 repository= "https://github.com/jordantete/OddsHarvester"
 issues = "https://github.com/jordantete/OddsHarvester/issues"
@@ -50,14 +59,8 @@ select = [
     "Q",    # flake8-quotes
 ]
 ignore = [
-    "E501",   # line too long, handled by formatter
-    "B008",   # do not perform function calls in argument defaults
-    "C901",   # too complex
     "S101",   # assert used (OK in tests)
     "T201",   # print found (OK for CLI tool)
-    "S311",   # pseudo-random generators (OK for user agents, not crypto)
-    "S603",   # subprocess call with shell=True (needed for some operations)
-    "S607",   # starting process with partial executable path
 ]
 
 [tool.ruff.format]
@@ -78,16 +81,6 @@ force-sort-within-sections = true
 "src/lambda_handler.py" = ["T201"]
 # CLI help messages can use unicode characters
 "src/cli/cli_help_message_generator.py" = ["RUF001"]
-
-[dependency-groups]
-dev = [
-    "playwright>=1.49.1",
-    "pre-commit>=4.2.0",
-    "pytest>=8.4.1",
-    "pytest-asyncio>=1.0.0",
-    "pytest-cov>=6.2.1",
-    "ruff>=0.12.0",
-]
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]

@@ -41,7 +41,8 @@ coverage.xml
 conda_packages.txt
 
 # VSCode
-.vscode/
+.vscode/*
+!.vscode/settings.json
 !.vscode/extensions.json
 
 # Ignore Lambda Layer Artifacts

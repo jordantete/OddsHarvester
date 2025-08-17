@@ -142,7 +142,8 @@ class CLIArgumentValidator:
             for market in markets:
                 if market not in supported_markets:
                     errors.append(
-                        f"Invalid market: {market}. Supported markets for {sport.value}: {', '.join(supported_markets)}."
+                        f"Invalid market: {market}. Supported markets for {sport.value}: "
+                        f"{', '.join(supported_markets)}."
                     )
 
         return errors
@@ -241,7 +242,8 @@ class CLIArgumentValidator:
             StorageType(storage)
         except ValueError:
             return [
-                f"Invalid storage type: '{storage}'. Supported storage types are: {', '.join([e.value for e in StorageType])}"
+                f"Invalid storage type: '{storage}'. Supported storage types are: "
+                f"{', '.join([e.value for e in StorageType])}"
             ]
         return []
 
@@ -261,7 +263,8 @@ class CLIArgumentValidator:
         if args.format:
             if args.format not in [f.value for f in StorageFormat]:
                 errors.append(
-                    f"Invalid file format: '{args.format}'. Supported formats are: {', '.join(f.value for f in StorageFormat)}."
+                    f"Invalid file format: '{args.format}'. Supported formats are: "
+                    f"{', '.join(f.value for f in StorageFormat)}."
                 )
             elif extracted_format and args.format != extracted_format:
                 errors.append(
@@ -271,7 +274,8 @@ class CLIArgumentValidator:
         elif extracted_format:
             if extracted_format not in [f.value for f in StorageFormat]:
                 errors.append(
-                    f"Invalid file extension in file path: '{extracted_format}'. Supported formats are: {', '.join(f.value for f in StorageFormat)}."
+                    f"Invalid file extension in file path: '{extracted_format}'. Supported formats are: "
+                    f"{', '.join(f.value for f in StorageFormat)}."
                 )
             args.format = extracted_format
 
