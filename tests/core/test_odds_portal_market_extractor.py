@@ -77,7 +77,7 @@ class TestOddsPortalMarketExtractor:
         odds_labels = ["1", "X", "2"]
 
         # Act
-        result = await extractor._parse_market_odds(SAMPLE_HTML_ODDS, "FullTime", odds_labels)
+        result = extractor.odds_parser.parse_market_odds(SAMPLE_HTML_ODDS, "FullTime", odds_labels)
 
         # Assert
         assert len(result) == 2
@@ -96,7 +96,7 @@ class TestOddsPortalMarketExtractor:
         target_bookmaker = "Bookmaker1"
 
         # Act
-        result = await extractor._parse_market_odds(SAMPLE_HTML_ODDS, "FullTime", odds_labels, target_bookmaker)
+        result = extractor.odds_parser.parse_market_odds(SAMPLE_HTML_ODDS, "FullTime", odds_labels, target_bookmaker)
 
         # Assert
         assert len(result) == 1
@@ -113,7 +113,7 @@ class TestOddsPortalMarketExtractor:
         empty_html = "<div>No bookmakers found</div>"
 
         # Act
-        result = await extractor._parse_market_odds(empty_html, "FullTime", odds_labels)
+        result = extractor.odds_parser.parse_market_odds(empty_html, "FullTime", odds_labels)
 
         # Assert
         assert len(result) == 0
@@ -125,7 +125,7 @@ class TestOddsPortalMarketExtractor:
         odds_labels = ["1", "X", "2", "Extras"]
 
         # Act
-        result = await extractor._parse_market_odds(SAMPLE_HTML_ODDS, "FullTime", odds_labels)
+        result = extractor.odds_parser.parse_market_odds(SAMPLE_HTML_ODDS, "FullTime", odds_labels)
 
         # Assert
         assert len(result) == 0
@@ -143,22 +143,22 @@ class TestOddsPortalMarketExtractor:
         """
 
         # Act
-        result = await extractor._parse_market_odds(broken_html, "FullTime", odds_labels)
+        result = extractor.odds_parser.parse_market_odds(broken_html, "FullTime", odds_labels)
 
         # Assert
         assert len(result) == 0  # Should handle error gracefully
 
     def test_parse_odds_history_modal(self, extractor):
         """Test parsing odds history from a modal HTML."""
-        # Arrange - Mock datetime.now to avoid date-related issues
-        with patch("src.core.odds_portal_market_extractor.datetime") as mock_datetime:
+        # Arrange
+        with patch("src.core.market_extraction.odds_parser.datetime") as mock_datetime:
             mock_now = MagicMock()
             mock_now.year = 2025
             mock_datetime.now.return_value = mock_now
             mock_datetime.strptime.side_effect = lambda *args, **kwargs: datetime.strptime(*args, **kwargs)
 
             # Act
-            result = extractor._parse_odds_history_modal(SAMPLE_HTML_ODDS_HISTORY)
+            result = extractor.odds_parser.parse_odds_history_modal(SAMPLE_HTML_ODDS_HISTORY)
 
             # Assert
             assert "odds_history" in result
@@ -172,8 +172,8 @@ class TestOddsPortalMarketExtractor:
 
     def test_parse_odds_history_modal_invalid_html(self, extractor):
         """Test parsing odds history from invalid HTML."""
-        # Arrange - Mock datetime.now to avoid date-related issues
-        with patch("src.core.odds_portal_market_extractor.datetime") as mock_datetime:
+        # Arrange
+        with patch("src.core.market_extraction.odds_parser.datetime") as mock_datetime:
             mock_now = MagicMock()
             mock_now.year = 2025
             mock_datetime.now.return_value = mock_now
@@ -181,15 +181,15 @@ class TestOddsPortalMarketExtractor:
 
             # Act
             invalid_html = "<div>Invalid HTML content</div>"
-            result = extractor._parse_odds_history_modal(invalid_html)
+            result = extractor.odds_parser.parse_odds_history_modal(invalid_html)
 
             # Assert
             assert result == {}
 
     def test_parse_odds_history_modal_invalid_date(self, extractor):
         """Test parsing odds history with invalid date format."""
-        # Arrange - Mock datetime.now to avoid date-related issues
-        with patch("src.core.odds_portal_market_extractor.datetime") as mock_datetime:
+        # Arrange
+        with patch("src.core.market_extraction.odds_parser.datetime") as mock_datetime:
             mock_now = MagicMock()
             mock_now.year = 2025
             mock_datetime.now.return_value = mock_now
@@ -197,7 +197,7 @@ class TestOddsPortalMarketExtractor:
             mock_datetime.strptime.side_effect = ValueError("Invalid date format")
 
             # Act
-            result = extractor._parse_odds_history_modal(SAMPLE_HTML_ODDS_HISTORY)
+            result = extractor.odds_parser.parse_odds_history_modal(SAMPLE_HTML_ODDS_HISTORY)
 
             # Assert
             assert "odds_history" in result
@@ -208,13 +208,14 @@ class TestOddsPortalMarketExtractor:
         """Test complete extraction of odds for a given market."""
         # Arrange
         browser_helper_mock.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor._parse_market_odds = AsyncMock(
+        extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[{"bookmaker_name": "Bookmaker1", "1": "1.90", "X": "3.50", "2": "4.20", "period": "FullTime"}]
         )
 
         mock_active_tab = AsyncMock()
         mock_active_tab.text_content = AsyncMock(return_value="1X2")
         page_mock.query_selector = AsyncMock(return_value=mock_active_tab)
+        page_mock.content = AsyncMock(return_value="<div>test</div>")
 
         main_market = "1X2"
         odds_labels = ["1", "X", "2"]
@@ -226,7 +227,7 @@ class TestOddsPortalMarketExtractor:
         browser_helper_mock.navigate_to_market_tab.assert_called_once_with(
             page=page_mock, market_tab_name=main_market, timeout=extractor.DEFAULT_TIMEOUT
         )
-        extractor._parse_market_odds.assert_called_once()
+        extractor.odds_parser.parse_market_odds.assert_called_once()
         assert len(result) == 1
         assert result[0]["bookmaker_name"] == "Bookmaker1"
 
@@ -236,7 +237,7 @@ class TestOddsPortalMarketExtractor:
         # Arrange
         browser_helper_mock.navigate_to_market_tab = AsyncMock(return_value=True)
         browser_helper_mock.scroll_until_visible_and_click_parent = AsyncMock(return_value=True)
-        extractor._parse_market_odds = AsyncMock(
+        extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[
                 {"bookmaker_name": "Bookmaker1", "odds_over": "1.90", "odds_under": "1.90", "period": "FullTime"}
             ]
@@ -245,6 +246,7 @@ class TestOddsPortalMarketExtractor:
         mock_active_tab = AsyncMock()
         mock_active_tab.text_content = AsyncMock(return_value="Over/Under")
         page_mock.query_selector = AsyncMock(return_value=mock_active_tab)
+        page_mock.content = AsyncMock(return_value="<div>test</div>")
 
         main_market = "Over/Under"
         specific_market = "Over/Under +2.5"
@@ -304,11 +306,13 @@ class TestOddsPortalMarketExtractor:
         """Test extracting odds with odds history."""
         # Arrange
         browser_helper_mock.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor._parse_market_odds = AsyncMock(
+        extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[{"bookmaker_name": "Bookmaker1", "1": "1.90", "X": "3.50", "2": "4.20", "period": "FullTime"}]
         )
-        extractor._extract_odds_history_for_bookmaker = AsyncMock(return_value=[SAMPLE_HTML_ODDS_HISTORY])
-        extractor._parse_odds_history_modal = MagicMock(
+        extractor.odds_history_extractor.extract_odds_history_for_bookmaker = AsyncMock(
+            return_value=[SAMPLE_HTML_ODDS_HISTORY]
+        )
+        extractor.odds_parser.parse_odds_history_modal = MagicMock(
             return_value={
                 "odds_history": [{"timestamp": "2025-06-10T14:30:00", "odds": 1.95}],
                 "opening_odds": {"timestamp": "2025-06-10T08:00:00", "odds": 1.85},
@@ -318,6 +322,7 @@ class TestOddsPortalMarketExtractor:
         mock_active_tab = AsyncMock()
         mock_active_tab.text_content = AsyncMock(return_value="1X2")
         page_mock.query_selector = AsyncMock(return_value=mock_active_tab)
+        page_mock.content = AsyncMock(return_value="<div>test</div>")
 
         # Act
         result = await extractor.extract_market_odds(
@@ -325,8 +330,8 @@ class TestOddsPortalMarketExtractor:
         )
 
         # Assert
-        extractor._extract_odds_history_for_bookmaker.assert_called_once()
-        extractor._parse_odds_history_modal.assert_called_once()
+        extractor.odds_history_extractor.extract_odds_history_for_bookmaker.assert_called_once()
+        extractor.odds_parser.parse_odds_history_modal.assert_called_once()
         assert len(result) == 1
         assert "odds_history_data" in result[0]
         assert result[0]["odds_history_data"][0]["odds_history"][0]["odds"] == 1.95
@@ -373,7 +378,7 @@ class TestOddsPortalMarketExtractor:
         page_mock.wait_for_selector.return_value.evaluate_handle.return_value = modal_wrapper
 
         # Act
-        result = await extractor._extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
+        result = await extractor.odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
 
         # Assert
         assert len(result) == 1
@@ -395,7 +400,7 @@ class TestOddsPortalMarketExtractor:
         page_mock.query_selector_all = AsyncMock(return_value=[bookmaker_row])
 
         # Act
-        result = await extractor._extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
+        result = await extractor.odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
 
         # Assert
         assert result == []
@@ -410,7 +415,7 @@ class TestOddsPortalMarketExtractor:
         page_mock.query_selector_all = AsyncMock(side_effect=Exception("Test exception"))
 
         # Act - This method handles exceptions internally
-        result = await extractor._extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
+        result = await extractor.odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
 
         # Assert - Should return an empty list on exception
         assert result == []
