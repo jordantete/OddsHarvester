@@ -29,6 +29,8 @@ class SubmarketExtractor:
         try:
             # Get current page HTML
             html_content = await page.content()
+            if not isinstance(html_content, str):
+                html_content = ""
             soup = BeautifulSoup(html_content, "html.parser")
 
             # Look for submarket containers
@@ -89,6 +91,8 @@ class SubmarketExtractor:
         try:
             await page.wait_for_timeout(2000)  # SCROLL_PAUSE_TIME
             html_content = await page.content()
+            if not isinstance(html_content, str):
+                html_content = ""
             soup = BeautifulSoup(html_content, "html.parser")
 
             # Find all submarket rows (these contain the handicap names and odds)

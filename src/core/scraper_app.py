@@ -97,13 +97,16 @@ async def run_scraper(
             )
 
         if command == CommandEnum.HISTORIC:
-            if not sport or not leagues or not season:
-                raise ValueError("Both 'sport', 'leagues' and 'season' must be provided for historic scraping.")
+            if not sport or not leagues:
+                raise ValueError("Both 'sport' and 'leagues' must be provided for historic scraping.")
 
-            logger.info(f"""
-                Scraping historical odds for sport={sport}, leagues={leagues}, season={season}, markets={markets},
-                scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}, max_pages={max_pages}
-            """)
+            printable_season = season if season else "current"
+            logger.info(
+                "\n                Scraping historical odds for "
+                f"sport={sport}, leagues={leagues}, season={printable_season}, "
+                f"markets={markets}, scrape_odds_history={scrape_odds_history}, "
+                f"target_bookmaker={target_bookmaker}, max_pages={max_pages}\n            "
+            )
 
             if len(leagues) == 1:
                 return await retry_scrape(

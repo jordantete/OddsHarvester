@@ -26,6 +26,24 @@ class CLIArgumentHandler:
             self.parser.print_help()
             exit(1)
 
+        # Normalize 'current' to None for allowed sports so URL builder targets current season
+        if (
+            args.command == "scrape_historic"
+            and isinstance(args.season, str)
+            and args.season.lower() == "current"
+            and isinstance(args.sport, str)
+            and args.sport.lower()
+            in {
+                "tennis",
+                "football",
+                "baseball",
+                "ice-hockey",
+                "rugby-league",
+                "rugby-union",
+            }
+        ):
+            args.season = None
+
         return {
             "command": args.command,
             "match_links": getattr(args, "match_links", None),
