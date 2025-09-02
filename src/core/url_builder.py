@@ -31,8 +31,12 @@ class URLBuilder:
         """
         base_url = URLBuilder.get_league_url(sport, league).rstrip("/")
 
+        # Treat missing season as current
         if not season:
             return f"{base_url}/results/"
+
+        if isinstance(season, str) and season.lower() == "current":
+            raise ValueError(f"Invalid season format: {season}. Expected format: 'YYYY' or 'YYYY-YYYY'")
 
         if re.match(r"^\d{4}$", season):
             return f"{base_url}-{season}/results/"

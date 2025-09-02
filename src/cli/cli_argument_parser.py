@@ -47,7 +47,7 @@ class CLIArgumentParser:
             "--season",
             type=str,
             required=True,
-            help="📅 Season to scrape (format: YYYY, YYYY-YYYY, e.g., 2023 or 2022-2023).",
+            help="📅 Season to scrape (YYYY, YYYY-YYYY, or 'current'; e.g., 2023, 2022-2023, current).",
         )
         parser.add_argument("--max_pages", type=int, help="📑 Maximum number of pages to scrape (optional).")
 

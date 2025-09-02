@@ -37,7 +37,7 @@ class CLIArgumentValidator:
             errors.extend(self._validate_leagues(sport=args.sport, leagues=args.leagues))
 
         if hasattr(args, "season"):
-            errors.extend(self._validate_season(command=args.command, season=args.season))
+            errors.extend(self._validate_season(command=args.command, season=args.season, sport=args.sport))
 
         if hasattr(args, "date"):
             errors.extend(
@@ -171,7 +171,7 @@ class CLIArgumentValidator:
 
         return errors
 
-    def _validate_season(self, command: str, season: str | None) -> list[str]:
+    def _validate_season(self, command: str, season: str | None, sport: str | None = None) -> list[str]:
         """Validates the season argument (only for scrape_historic command)."""
         errors = []
 
@@ -180,6 +180,21 @@ class CLIArgumentValidator:
 
         if not season:
             errors.append("The season argument is required for the 'scrape_historic' command.")
+            return errors
+
+        if isinstance(season, str) and season.lower() == "current":
+            if isinstance(sport, str) and sport.lower() in {
+                "tennis",
+                "football",
+                "baseball",
+                "ice-hockey",
+                "rugby-league",
+                "rugby-union",
+            }:
+                return errors
+            errors.append(
+                f"Invalid season format: '{season}'. Expected format: YYYY or YYYY-YYYY (e.g., 2024 or 2024-2025)."
+            )
             return errors
 
         single_year_pattern = re.compile(r"^\d{4}$")

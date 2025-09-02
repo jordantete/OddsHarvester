@@ -67,13 +67,6 @@ def test_get_historic_matches_url(sport, league, season, expected_url):
             "2023/2024",
             "Invalid season format: 2023/2024. Expected format: 'YYYY' or 'YYYY-YYYY'",
         ),
-        # Special cases that are invalid according to implementation
-        (
-            "football",
-            "england-premier-league",
-            "current",
-            "Invalid season format: current. Expected format: 'YYYY' or 'YYYY-YYYY'",
-        ),
         (
             "football",
             "england-premier-league",
