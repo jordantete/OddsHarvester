@@ -269,7 +269,7 @@ OddsHarvester is compatible with Docker, allowing you to run the application sea
 
 3. **Run the Container**
    Start a Docker container based on the built image. Map the necessary ports if required and specify any volumes to persist data. Pass any CLI arguments (e.g., `scrape_upcoming`) as part of the Docker run command:
-   `docker run --rm odds-harvester:latest python3 -m main scrape_upcoming --sport football --date 20250125 --markets 1x2 --storage local --file_path output.json --headless`
+   `docker run --rm odds-harvester:local python3 -m src.main scrape_upcoming --sport football --date 20250903 --markets 1x2 --storage local --file_path output.json --headless`
 
 4. **Interactive Mode for Debugging**
    If you need to debug or run commands interactively: `docker run --rm -it odds-harvester:latest /bin/bash`
