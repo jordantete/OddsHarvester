@@ -10,8 +10,8 @@ ENV LAMBDA_TASK_ROOT=/var/task
 WORKDIR "${LAMBDA_TASK_ROOT}"
 
 # Copy application files
-COPY src ${LAMBDA_TASK_ROOT}
-COPY pyproject.toml uv.lock README.md LICENSE.txt ${LAMBDA_TASK_ROOT}
+COPY src ${LAMBDA_TASK_ROOT}/src
+COPY pyproject.toml uv.lock README.md LICENSE.txt ${LAMBDA_TASK_ROOT}/
 
 # Install dependencies
 RUN uv sync --frozen
@@ -32,4 +32,5 @@ FROM base AS local-dev
 ENV PATH="${LAMBDA_TASK_ROOT}/.venv/bin:$PATH"
 
 # Set default command for local testing
-CMD ["xvfb-run", "--", "python3", "-m", "main"]
+CMD ["xvfb-run", "--", "python3", "-m", "src.main"]
+
