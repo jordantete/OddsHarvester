@@ -33,7 +33,9 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "scotland-premiership": "https://www.oddsportal.com/football/scotland/premiership/",
         "switzerland-super-league": "https://www.oddsportal.com/football/switzerland/super-league/",
         "turkey-super-lig": "https://www.oddsportal.com/football/turkey/super-lig/",
-        "world-championship-2026": "https://www.oddsportal.com/football/world/world-championship-2026/",
+        "world-championship": "https://www.oddsportal.com/football/world/world-championship",
+        "world-cup": "https://www.oddsportal.com/football/world/world-cup",
+        "euro-cup": "https://www.oddsportal.com/football/europe/euro",
     },
     Sport.TENNIS: {
         # ATP
