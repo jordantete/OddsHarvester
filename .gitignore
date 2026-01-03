@@ -19,7 +19,11 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
-node_modules
+
+# Node.js / Serverless Framework (unused but keep ignored)
+node_modules/
+package.json
+package-lock.json
 .serverless/
 
 # Installer logs
