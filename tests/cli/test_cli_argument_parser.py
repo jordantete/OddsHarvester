@@ -103,6 +103,7 @@ def test_parser_defaults():
     assert args.odds_format == "Decimal Odds"
     assert args.concurrency_tasks == 3
     assert args.date is None
+    assert args.period == "full_time"  # Default period
 
 
 def test_invalid_sport(parser):
@@ -242,5 +243,87 @@ def test_invalid_concurrency_tasks(parser):
                 "20250225",
                 "--concurrency_tasks",
                 "invalid",
+            ]
+        )
+
+
+def test_parse_period_default(parser):
+    """Test that period defaults to full_time."""
+    args = parser.parse_args(
+        [
+            "scrape_upcoming",
+            "--sport",
+            "football",
+            "--date",
+            "20250225",
+        ]
+    )
+    assert args.period == "full_time"
+
+
+def test_parse_period_first_half(parser):
+    """Test parsing period argument for 1st half."""
+    args = parser.parse_args(
+        [
+            "scrape_historic",
+            "--sport",
+            "football",
+            "--season",
+            "2023-2024",
+            "--leagues",
+            "england-premier-league",
+            "--period",
+            "1st_half",
+        ]
+    )
+    assert args.period == "1st_half"
+
+
+def test_parse_period_second_half(parser):
+    """Test parsing period argument for 2nd half."""
+    args = parser.parse_args(
+        [
+            "scrape_historic",
+            "--sport",
+            "football",
+            "--season",
+            "2023-2024",
+            "--leagues",
+            "england-premier-league",
+            "--period",
+            "2nd_half",
+        ]
+    )
+    assert args.period == "2nd_half"
+
+
+def test_parse_period_full_time(parser):
+    """Test parsing explicit full_time period."""
+    args = parser.parse_args(
+        [
+            "scrape_upcoming",
+            "--sport",
+            "football",
+            "--date",
+            "20250225",
+            "--period",
+            "full_time",
+        ]
+    )
+    assert args.period == "full_time"
+
+
+def test_invalid_period(parser):
+    """Test that invalid period raises SystemExit."""
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "scrape_upcoming",
+                "--sport",
+                "football",
+                "--date",
+                "20250225",
+                "--period",
+                "invalid_period",
             ]
         )

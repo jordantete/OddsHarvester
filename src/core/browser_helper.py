@@ -5,6 +5,7 @@ from playwright.async_api import Page
 
 from src.core.odds_portal_selectors import OddsPortalSelectors
 from src.utils.bookies_filter_enum import BookiesFilter
+from src.utils.period_constants import MatchPeriod
 
 
 class BrowserHelper:
@@ -175,6 +176,125 @@ class BrowserHelper:
 
         except Exception as e:
             self.logger.error(f"Error getting current bookmaker filter: {e}")
+            return None
+
+    # =============================================================================
+    # PERIOD SELECTION MANAGEMENT (Football only)
+    # =============================================================================
+
+    async def ensure_period_selected(self, page: Page, desired_period: MatchPeriod) -> bool:
+        """
+        Ensure the desired match period is selected on the page (Football only).
+
+        This method:
+        1. Checks if the period selector nav is present
+        2. Reads the currently selected period
+        3. If it matches desired period, does nothing
+        4. Otherwise, clicks the desired period option
+        5. Waits for the selection to update
+
+        Args:
+            page (Page): The Playwright page instance.
+            desired_period (MatchPeriod): The desired period to select.
+
+        Returns:
+            bool: True if the desired period is selected, False otherwise.
+        """
+        try:
+            display_label = MatchPeriod.get_display_label(desired_period)
+            self.logger.info(f"Ensuring match period is set to: {display_label}")
+
+            # Check if period selector nav exists
+            period_container = await page.query_selector(OddsPortalSelectors.PERIOD_SELECTOR_CONTAINER)
+            if not period_container:
+                self.logger.warning("Period selector navigation not found on page. Skipping period selection.")
+                return False
+
+            # Get current selected period
+            current_period = await self._get_current_period(page)
+            if current_period:
+                self.logger.info(f"Current match period: {current_period}")
+
+                # If already selected, do nothing
+                if current_period == display_label:
+                    self.logger.info(f"Match period already set to '{display_label}'. No action needed.")
+                    return True
+
+            # Click the desired period
+            self.logger.info(f"Clicking match period: {display_label}")
+
+            # Find the period element by text within the container
+            period_element = await page.query_selector(
+                f"{OddsPortalSelectors.PERIOD_SELECTOR_CONTAINER} div:has-text('{display_label}')"
+            )
+
+            if not period_element:
+                self.logger.error(f"Period element not found for: {display_label}")
+                return False
+
+            await period_element.click()
+
+            # Wait for selection to update using robust wait condition
+            try:
+                active_class = OddsPortalSelectors.PERIOD_ACTIVE_CLASS
+                await page.wait_for_function(
+                    f"""
+                    () => {{
+                        const container = document.querySelector('[data-testid="kickoff-events-nav"]');
+                        if (!container) return false;
+                        const activeElement = container.querySelector('.{active_class}');
+                        if (!activeElement) return false;
+                        return activeElement.textContent.trim() === '{display_label}';
+                    }}
+                    """,
+                    timeout=5000,
+                )
+                self.logger.info(f"Successfully set match period to: {display_label}")
+                return True
+
+            except Exception as wait_error:
+                self.logger.warning(f"Wait condition failed: {wait_error}. Verifying selection...")
+
+                # Fallback: verify the selection after a short delay
+                await page.wait_for_timeout(1000)
+                new_period = await self._get_current_period(page)
+                if new_period == display_label:
+                    self.logger.info(f"Match period successfully set to: {display_label}")
+                    return True
+                else:
+                    self.logger.error(f"Failed to set match period to: {display_label}")
+                    return False
+
+        except Exception as e:
+            self.logger.error(f"Error setting match period: {e}")
+            return False
+
+    async def _get_current_period(self, page: Page) -> str | None:
+        """
+        Get the currently selected match period.
+
+        Args:
+            page (Page): The Playwright page instance.
+
+        Returns:
+            str | None: The text of the currently selected period, or None if not found.
+        """
+        try:
+            # Find the active element within the period selector container
+            active_selector = (
+                f"{OddsPortalSelectors.PERIOD_SELECTOR_CONTAINER} .{OddsPortalSelectors.PERIOD_ACTIVE_CLASS}"
+            )
+            active_element = await page.query_selector(active_selector)
+
+            if active_element:
+                period_text = await active_element.text_content()
+                return period_text.strip() if period_text else None
+
+            self.logger.warning("No active period found")
+            return None
+
+        except Exception as e:
+            self.logger.error(f"Error getting current period: {e}")
             return None
 
     # =============================================================================

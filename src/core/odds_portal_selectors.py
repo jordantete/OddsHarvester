@@ -36,6 +36,10 @@ class OddsPortalSelectors:
     BOOKIES_FILTER_CONTAINER = "div[data-testid='bookies-filter-nav']"
     BOOKIES_FILTER_ACTIVE_CLASS = "active-item-calendar"
 
+    # Period selection navigation
+    PERIOD_SELECTOR_CONTAINER = "div[data-testid='kickoff-events-nav']"
+    PERIOD_ACTIVE_CLASS = "active-item-calendar"
+
     @staticmethod
     def get_dropdown_selectors_for_market(market_name: str) -> list[str]:
         """Generate dropdown selectors for a specific market name."""

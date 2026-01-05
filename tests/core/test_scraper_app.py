@@ -87,6 +87,7 @@ async def test_run_scraper_historic(
         target_bookmaker=None,
         max_pages=2,
         bookies_filter=ANY,
+        period=ANY,
     )
 
     scraper_mock.stop_playwright.assert_called_once()
@@ -145,6 +146,7 @@ async def test_run_scraper_upcoming(
         scrape_odds_history=False,
         target_bookmaker=None,
         bookies_filter=ANY,
+        period=ANY,
     )
 
     assert result == {"result": "upcoming_data"}
@@ -192,6 +194,7 @@ async def test_run_scraper_match_links(
         scrape_odds_history=True,
         target_bookmaker="bet365",
         bookies_filter=ANY,
+        period=ANY,
     )
 
     assert result == {"result": "match_data"}

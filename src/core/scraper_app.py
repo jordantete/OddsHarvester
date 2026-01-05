@@ -8,6 +8,7 @@ from src.core.playwright_manager import PlaywrightManager
 from src.core.sport_market_registry import SportMarketRegistrar
 from src.utils.bookies_filter_enum import BookiesFilter
 from src.utils.command_enum import CommandEnum
+from src.utils.period_constants import MatchPeriod
 from src.utils.proxy_manager import ProxyManager
 
 logger = logging.getLogger("ScraperApp")
@@ -50,10 +51,26 @@ async def run_scraper(
     headless: bool = True,
     preview_submarkets_only: bool = False,
     bookies_filter: str = BookiesFilter.ALL.value,
+    period: str = MatchPeriod.FULL_TIME.value,
 ) -> dict:
     """Runs the scraping process and handles execution."""
     # Convert bookies_filter string to BookiesFilter enum
     bookies_filter_enum = BookiesFilter(bookies_filter)
+
+    # Convert period string to MatchPeriod enum
+    try:
+        period_enum = MatchPeriod.from_cli_value(period)
+    except ValueError:
+        logger.warning(f"Invalid period '{period}', defaulting to full_time")
+        period_enum = MatchPeriod.FULL_TIME
+
+    # Only apply non-default period for football
+    if sport and sport.lower() != "football" and period_enum != MatchPeriod.FULL_TIME:
+        logger.warning(
+            f"Period selection '{period}' is only supported for football. "
+            f"Using default period (full_time) for sport '{sport}'."
+        )
+        period_enum = MatchPeriod.FULL_TIME
 
     logger.info(
         f"Starting scraper with parameters: command={command}, match_links={match_links}, "
@@ -62,7 +79,7 @@ async def run_scraper(
         f"browser_locale_timezone={browser_locale_timezone}, browser_timezone_id={browser_timezone_id}, "
         f"scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}, "
         f"headless={headless}, preview_submarkets_only={preview_submarkets_only}, "
-        f"bookies_filter={bookies_filter}"
+        f"bookies_filter={bookies_filter}, period={period}"
     )
 
     proxy_manager = ProxyManager(cli_proxies=proxies)
@@ -92,7 +109,7 @@ async def run_scraper(
             logger.info(f"""
                 Scraping specific matches: {match_links} for sport: {sport}, markets={markets},
                 scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker},
-                bookies_filter={bookies_filter}
+                bookies_filter={bookies_filter}, period={period}
             """)
             return await retry_scrape(
                 scraper.scrape_matches,
@@ -102,6 +119,7 @@ async def run_scraper(
                 scrape_odds_history=scrape_odds_history,
                 target_bookmaker=target_bookmaker,
                 bookies_filter=bookies_filter_enum,
+                period=period_enum,
             )
 
         if command == CommandEnum.HISTORIC:
@@ -127,6 +145,7 @@ async def run_scraper(
                     target_bookmaker=target_bookmaker,
                     max_pages=max_pages,
                     bookies_filter=bookies_filter_enum,
+                    period=period_enum,
                 )
             else:
                 return await _scrape_multiple_leagues(
@@ -140,6 +159,7 @@ async def run_scraper(
                     target_bookmaker=target_bookmaker,
                     max_pages=max_pages,
                     bookies_filter=bookies_filter_enum,
+                    period=period_enum,
                 )
 
         elif command == CommandEnum.UPCOMING_MATCHES:
@@ -162,6 +182,7 @@ async def run_scraper(
                         scrape_odds_history=scrape_odds_history,
                         target_bookmaker=target_bookmaker,
                         bookies_filter=bookies_filter_enum,
+                        period=period_enum,
                     )
                 else:
                     return await _scrape_multiple_leagues(
@@ -174,12 +195,13 @@ async def run_scraper(
                         scrape_odds_history=scrape_odds_history,
                         target_bookmaker=target_bookmaker,
                         bookies_filter=bookies_filter_enum,
+                        period=period_enum,
                     )
             else:
                 logger.info(f"""
                     Scraping upcoming matches for sport={sport}, date={date}, markets={markets},
                     scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker},
-                    bookies_filter={bookies_filter}
+                    bookies_filter={bookies_filter}, period={period}
                 """)
                 return await retry_scrape(
                     scraper.scrape_upcoming,
@@ -190,6 +212,7 @@ async def run_scraper(
                     scrape_odds_history=scrape_odds_history,
                     target_bookmaker=target_bookmaker,
                     bookies_filter=bookies_filter_enum,
+                    period=period_enum,
                 )
 
         else:

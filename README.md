@@ -148,6 +148,7 @@ Retrieve odds and event details for upcoming sports matches.
 | `--concurrency_tasks`       | Number of concurrent tasks for scraping.                                                                              | ❌                                                  | `3`            |
 | `--preview_submarkets_only` | Only scrape average odds from visible submarkets without loading individual bookmaker details (faster, limited data). | ❌                                                  | `False`        |
 | `--bookies_filter`          | Filter bookmakers displayed on OddsPortal (`all`, `classic`, `crypto`).                                               | ❌                                                  | `all`          |
+| `--period`                  | Match period for football: `full_time`, `1st_half`, or `2nd_half` (football only).                                    | ❌                                                  | `full_time`    |
 
 #### **📌 Important Notes:**
 
@@ -156,6 +157,7 @@ Retrieve odds and event details for upcoming sports matches.
 - **All match links must belong to the same sport** when using `--match_links`.
 - **When providing multiple `--match_links`, separate each URL with a space** (not commas). Each URL should be quoted individually if it contains special characters like `#`.
 - **For best results, ensure the proxy's region matches the `BROWSER_LOCALE_TIMEZONE` and `BROWSER_TIMEZONE_ID` settings.**
+- **The `--period` argument is only supported for football.** For other sports, it will default to full time with a warning logged.
 
 #### **Example Usage:**
 
@@ -212,6 +214,7 @@ Retrieve historical odds and results for analytical purposes.
 | `--concurrency_tasks`       | Number of concurrent tasks for scraping.                                                                              | ❌          | `3`            |
 | `--preview_submarkets_only` | Only scrape average odds from visible submarkets without loading individual bookmaker details (faster, limited data). | ❌          | `False`        |
 | `--bookies_filter`          | Filter bookmakers displayed on OddsPortal (`all`, `classic`, `crypto`).                                               | ❌          | `all`          |
+| `--period`                  | Match period for football: `full_time`, `1st_half`, or `2nd_half` (football only).                                    | ❌          | `full_time`    |
 
 #### **Example Usage:**
 

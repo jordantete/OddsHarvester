@@ -1,5 +1,6 @@
 import argparse
 from datetime import datetime
+import logging
 import re
 
 from src.storage.storage_format import StorageFormat
@@ -7,12 +8,16 @@ from src.storage.storage_type import StorageType
 from src.utils.bookies_filter_enum import BookiesFilter
 from src.utils.command_enum import CommandEnum
 from src.utils.odds_format_enum import OddsFormat
+from src.utils.period_constants import MatchPeriod
 from src.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from src.utils.sport_market_constants import Sport
 from src.utils.utils import get_supported_markets
 
 
 class CLIArgumentValidator:
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+
     def validate_args(self, args: argparse.Namespace):
         """Validates parsed CLI arguments."""
         self._validate_command(command=args.command)
@@ -73,6 +78,9 @@ class CLIArgumentValidator:
 
         if hasattr(args, "bookies_filter"):
             errors.extend(self._validate_bookies_filter(bookies_filter=args.bookies_filter))
+
+        if hasattr(args, "period"):
+            self._validate_period(period=args.period, sport=args.sport)
 
         errors.extend(
             self._validate_browser_settings(
@@ -377,3 +385,26 @@ class CLIArgumentValidator:
             supported_filters = ", ".join([f.value for f in BookiesFilter])
             errors.append(f"Invalid bookies filter: '{bookies_filter}'. Supported filters are: {supported_filters}.")
         return errors
+
+    def _validate_period(self, period: str, sport: str | None) -> None:
+        """
+        Validates the period argument.
+        For non-football sports, logs a warning and resets to full_time.
+
+        Args:
+            period: The period CLI value.
+            sport: The sport being scraped.
+        """
+        # Validate that period value is valid
+        try:
+            period_enum = MatchPeriod.from_cli_value(period)
+        except ValueError:
+            supported_periods = ", ".join(MatchPeriod.get_all_cli_values())
+            raise ValueError(f"Invalid period: '{period}'. Supported periods are: {supported_periods}.") from None
+
+        # Check if sport is football
+        if sport and sport.lower() != "football" and period_enum != MatchPeriod.FULL_TIME:
+            self.logger.warning(
+                f"Period selection '{period}' is only supported for football. "
+                f"Sport '{sport}' will use default period (full_time)."
+            )

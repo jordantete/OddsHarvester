@@ -5,6 +5,7 @@ from src.storage.storage_format import StorageFormat
 from src.storage.storage_type import StorageType
 from src.utils.bookies_filter_enum import BookiesFilter
 from src.utils.odds_format_enum import OddsFormat
+from src.utils.period_constants import MatchPeriod
 from src.utils.sport_market_constants import Sport
 
 
@@ -156,6 +157,13 @@ class CLIArgumentParser:
             choices=[f.value for f in BookiesFilter],
             default=BookiesFilter.ALL.value,
             help="🎯 Bookmaker filter: all, classic, or crypto (default: all).",
+        )
+        parser.add_argument(
+            "--period",
+            type=str,
+            choices=MatchPeriod.get_all_cli_values(),
+            default=MatchPeriod.FULL_TIME.value,
+            help="⏱️ Match period: full_time, 1st_half, or 2nd_half (default: full_time, football only).",
         )
 
     def get_parser(self) -> argparse.ArgumentParser:

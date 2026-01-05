@@ -34,6 +34,7 @@ def mock_args():
         odds_format="Decimal Odds",
         concurrency_tasks=3,
         bookies_filter="all",
+        period="full_time",
     )
 
 

@@ -147,6 +147,7 @@ async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
         target_bookmaker="bet365",
         preview_submarkets_only=False,
         bookies_filter=ANY,
+        period=ANY,
     )
 
     # Verify the result
@@ -197,6 +198,7 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
         target_bookmaker=None,
         preview_submarkets_only=False,
         bookies_filter=ANY,
+        period=ANY,
     )
 
     # Verify the result
@@ -234,6 +236,7 @@ async def test_scrape_matches(setup_scraper_mocks):
         concurrent_scraping_task=2,
         preview_submarkets_only=False,
         bookies_filter=ANY,
+        period=ANY,
     )
 
     # Verify the result

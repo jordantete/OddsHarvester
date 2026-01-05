@@ -7,6 +7,7 @@ from src.core.base_scraper import BaseScraper
 from src.core.url_builder import URLBuilder
 from src.utils.bookies_filter_enum import BookiesFilter
 from src.utils.constants import ODDSPORTAL_BASE_URL
+from src.utils.period_constants import MatchPeriod
 
 
 class OddsPortalScraper(BaseScraper):
@@ -51,6 +52,7 @@ class OddsPortalScraper(BaseScraper):
         target_bookmaker: str | None = None,
         max_pages: int | None = None,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
+        period: MatchPeriod = MatchPeriod.FULL_TIME,
     ) -> list[dict[str, Any]]:
         """
         Scrapes historical odds data.
@@ -101,6 +103,7 @@ class OddsPortalScraper(BaseScraper):
             target_bookmaker=target_bookmaker,
             preview_submarkets_only=self.preview_submarkets_only,
             bookies_filter=bookies_filter,
+            period=period,
         )
 
     async def scrape_upcoming(
@@ -112,6 +115,7 @@ class OddsPortalScraper(BaseScraper):
         scrape_odds_history: bool = False,
         target_bookmaker: str | None = None,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
+        period: MatchPeriod = MatchPeriod.FULL_TIME,
     ) -> list[dict[str, Any]]:
         """
         Scrapes upcoming match odds.
@@ -161,6 +165,7 @@ class OddsPortalScraper(BaseScraper):
             target_bookmaker=target_bookmaker,
             preview_submarkets_only=self.preview_submarkets_only,
             bookies_filter=bookies_filter,
+            period=period,
         )
 
     async def scrape_matches(
@@ -171,6 +176,7 @@ class OddsPortalScraper(BaseScraper):
         scrape_odds_history: bool = False,
         target_bookmaker: str | None = None,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
+        period: MatchPeriod = MatchPeriod.FULL_TIME,
     ) -> list[dict[str, Any]]:
         """
         Scrapes match odds from a list of specific match URLs.
@@ -200,6 +206,7 @@ class OddsPortalScraper(BaseScraper):
             concurrent_scraping_task=len(match_links),
             preview_submarkets_only=self.preview_submarkets_only,
             bookies_filter=bookies_filter,
+            period=period,
         )
 
     async def _prepare_page_for_scraping(self, page: Page):

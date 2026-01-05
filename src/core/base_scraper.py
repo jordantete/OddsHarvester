@@ -14,6 +14,7 @@ from src.core.playwright_manager import PlaywrightManager
 from src.utils.bookies_filter_enum import BookiesFilter
 from src.utils.constants import ODDSPORTAL_BASE_URL
 from src.utils.odds_format_enum import OddsFormat
+from src.utils.period_constants import MatchPeriod
 from src.utils.utils import clean_html_text
 
 
@@ -128,6 +129,7 @@ class BaseScraper:
         concurrent_scraping_task: int = 3,
         preview_submarkets_only: bool = False,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
+        period: MatchPeriod = MatchPeriod.FULL_TIME,
     ) -> list[dict[str, Any]]:
         """
         Extract odds for a list of match links concurrently.
@@ -142,6 +144,7 @@ class BaseScraper:
             preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading
             individual bookmaker details.
             bookies_filter (BookiesFilter): The bookmaker filter to apply.
+            period (MatchPeriod): The period to scrape odds for.
 
         Returns:
             List[Dict[str, Any]]: A list of dictionaries containing scraped odds data.
@@ -165,6 +168,7 @@ class BaseScraper:
                         target_bookmaker=target_bookmaker,
                         preview_submarkets_only=preview_submarkets_only,
                         bookies_filter=bookies_filter,
+                        period=period,
                     )
                     self.logger.info(f"Successfully scraped match link: {link}")
                     return data
@@ -198,6 +202,7 @@ class BaseScraper:
         target_bookmaker: str | None = None,
         preview_submarkets_only: bool = False,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
+        period: MatchPeriod = MatchPeriod.FULL_TIME,
     ) -> dict[str, Any] | None:
         """
         Scrape data for a specific match based on the desired markets.
@@ -212,6 +217,7 @@ class BaseScraper:
             preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading
             individual bookmaker details.
             bookies_filter (BookiesFilter): The bookmaker filter to apply.
+            period (MatchPeriod): The period to scrape odds for.
 
         Returns:
             Optional[Dict[str, Any]]: A dictionary containing scraped data, or None if scraping fails.
@@ -228,6 +234,10 @@ class BaseScraper:
             # Apply bookmaker filter before extracting odds
             await self.browser_helper.ensure_bookies_filter_selected(page=page, desired_filter=bookies_filter)
 
+            # Apply period selection (football only) before extracting odds
+            if sport and sport.lower() == "football":
+                await self.browser_helper.ensure_period_selected(page=page, desired_period=period)
+
             match_details = await self._extract_match_details_event_header(page, match_link)
 
             if not match_details:
@@ -239,11 +249,13 @@ class BaseScraper:
             if markets:
                 self.logger.info(f"Scraping markets: {markets}")
                 try:
+                    # Convert MatchPeriod enum to internal value for market extractor
+                    period_internal = MatchPeriod.get_internal_value(period)
                     market_data = await self.market_extractor.scrape_markets(
                         page=page,
                         sport=sport,
                         markets=markets,
-                        period="FullTime",
+                        period=period_internal,
                         scrape_odds_history=scrape_odds_history,
                         target_bookmaker=target_bookmaker,
                         preview_submarkets_only=preview_submarkets_only,
