@@ -103,7 +103,7 @@ def test_parser_defaults():
     assert args.odds_format == "Decimal Odds"
     assert args.concurrency_tasks == 3
     assert args.date is None
-    assert args.period == "full_time"  # Default period
+    assert args.period is None  # Default period
 
 
 def test_invalid_sport(parser):
@@ -258,7 +258,7 @@ def test_parse_period_default(parser):
             "20250225",
         ]
     )
-    assert args.period == "full_time"
+    assert args.period is None
 
 
 def test_parse_period_first_half(parser):

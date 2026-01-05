@@ -12,7 +12,7 @@ from src.core.market_extraction import (
     SubmarketExtractor,
 )
 from src.core.sport_market_registry import SportMarketRegistry
-from src.utils.period_constants import MatchPeriod
+from src.utils.period_constants import BasketballPeriod, FootballPeriod, TennisPeriod
 
 
 class OddsPortalMarketExtractor:
@@ -43,6 +43,52 @@ class OddsPortalMarketExtractor:
         self.submarket_extractor = SubmarketExtractor()
         self.odds_history_extractor = OddsHistoryExtractor()
         self.market_grouping = MarketGrouping()
+
+    def _convert_internal_to_enum(self, internal_value: str, sport: str):
+        """
+        Convert internal period value to the appropriate sport-specific enum.
+
+        Args:
+            internal_value: Internal value like "FullTime", "FirstSet", etc.
+            sport: The sport name.
+
+        Returns:
+            The period enum, or None if conversion fails.
+        """
+        # Map internal values to enums by sport
+        sport_lower = sport.lower()
+
+        if sport_lower == "football":
+            internal_map = {
+                "FullTime": FootballPeriod.FULL_TIME,
+                "FirstHalf": FootballPeriod.FIRST_HALF,
+                "SecondHalf": FootballPeriod.SECOND_HALF,
+            }
+        elif sport_lower == "tennis":
+            internal_map = {
+                "FullTime": TennisPeriod.FULL_TIME,
+                "FirstSet": TennisPeriod.FIRST_SET,
+                "SecondSet": TennisPeriod.SECOND_SET,
+            }
+        elif sport_lower == "basketball":
+            internal_map = {
+                "FullIncludingOT": BasketballPeriod.FULL_INCLUDING_OT,
+                "FirstHalf": BasketballPeriod.FIRST_HALF,
+                "SecondHalf": BasketballPeriod.SECOND_HALF,
+                "FirstQuarter": BasketballPeriod.FIRST_QUARTER,
+                "SecondQuarter": BasketballPeriod.SECOND_QUARTER,
+                "ThirdQuarter": BasketballPeriod.THIRD_QUARTER,
+                "FourthQuarter": BasketballPeriod.FOURTH_QUARTER,
+            }
+        else:
+            self.logger.warning(f"No period mapping for sport: {sport}")
+            return None
+
+        if internal_value not in internal_map:
+            self.logger.warning(f"Invalid internal value '{internal_value}' for sport '{sport}'")
+            return None
+
+        return internal_map[internal_value]
 
     async def scrape_markets(
         self,
@@ -181,15 +227,13 @@ class OddsPortalMarketExtractor:
             # Wait for market switch to complete
             await self.navigation_manager.wait_for_market_switch(page, main_market)
 
-            # Ensure correct period is selected after market switch (football only)
-            if sport and sport.lower() == "football":
-                try:
-                    period_enum = MatchPeriod.from_internal_value(period)
+            # Ensure correct period is selected after market switch
+            if sport:
+                period_enum = self._convert_internal_to_enum(period, sport)
+                if period_enum:
                     await self.browser_helper.ensure_period_selected(page=page, desired_period=period_enum)
-                except ValueError as e:
-                    self.logger.warning(f"Invalid period value '{period}': {e}. Continuing with current period.")
-            else:
-                self.logger.debug(f"Period selection skipped for sport: {sport}")
+                else:
+                    self.logger.debug(f"Period selection skipped for sport: {sport}")
 
             # Handle different scraping modes
             if preview_submarkets_only:

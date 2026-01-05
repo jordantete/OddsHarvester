@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.utils.period_constants import MatchPeriod
+from src.utils.period_constants import BasketballPeriod, FootballPeriod, TennisPeriod
 from src.utils.sport_market_constants import (
     AmericanFootballAsianHandicapMarket,
     AmericanFootballMarket,
@@ -208,50 +208,66 @@ def test_clean_html_text():
 
 def test_validate_and_convert_period_valid_football():
     """Test valid period for football returns correct enum."""
-    assert validate_and_convert_period("full_time", "football") == MatchPeriod.FULL_TIME
-    assert validate_and_convert_period("1st_half", "football") == MatchPeriod.FIRST_HALF
-    assert validate_and_convert_period("2nd_half", "football") == MatchPeriod.SECOND_HALF
+    assert validate_and_convert_period("full_time", "football") == FootballPeriod.FULL_TIME
+    assert validate_and_convert_period("1st_half", "football") == FootballPeriod.FIRST_HALF
+    assert validate_and_convert_period("2nd_half", "football") == FootballPeriod.SECOND_HALF
+
+
+def test_validate_and_convert_period_valid_tennis():
+    """Test valid period for tennis returns correct enum."""
+    assert validate_and_convert_period("full_time", "tennis") == TennisPeriod.FULL_TIME
+    assert validate_and_convert_period("1st_set", "tennis") == TennisPeriod.FIRST_SET
+    assert validate_and_convert_period("2nd_set", "tennis") == TennisPeriod.SECOND_SET
+
+
+def test_validate_and_convert_period_valid_basketball():
+    """Test valid period for basketball returns correct enum."""
+    assert validate_and_convert_period("full_including_ot", "basketball") == BasketballPeriod.FULL_INCLUDING_OT
+    assert validate_and_convert_period("1st_quarter", "basketball") == BasketballPeriod.FIRST_QUARTER
+    assert validate_and_convert_period("4th_quarter", "basketball") == BasketballPeriod.FOURTH_QUARTER
 
 
 def test_validate_and_convert_period_case_insensitive():
     """Test that sport comparison is case-insensitive."""
-    assert validate_and_convert_period("1st_half", "FOOTBALL") == MatchPeriod.FIRST_HALF
-    assert validate_and_convert_period("2nd_half", "Football") == MatchPeriod.SECOND_HALF
+    assert validate_and_convert_period("1st_half", "FOOTBALL") == FootballPeriod.FIRST_HALF
+    assert validate_and_convert_period("2nd_half", "Football") == FootballPeriod.SECOND_HALF
 
 
-def test_validate_and_convert_period_invalid_defaults_to_full_time():
-    """Test that invalid period defaults to full_time with warning."""
+def test_validate_and_convert_period_invalid_defaults_to_sport_default():
+    """Test that invalid period defaults to sport's default with error log."""
+    # Invalid period for football should fallback to full_time
     result = validate_and_convert_period("invalid_period", "football")
-    assert result == MatchPeriod.FULL_TIME
+    assert result == FootballPeriod.FULL_TIME
+
+    # Invalid period for basketball should fallback to full_including_ot
+    result = validate_and_convert_period("invalid_period", "basketball")
+    assert result == BasketballPeriod.FULL_INCLUDING_OT
 
 
-def test_validate_and_convert_period_non_football_with_non_default():
-    """Test that non-football sports fallback to full_time for non-default periods."""
-    assert validate_and_convert_period("1st_half", "tennis") == MatchPeriod.FULL_TIME
-    assert validate_and_convert_period("2nd_half", "basketball") == MatchPeriod.FULL_TIME
-    assert validate_and_convert_period("1st_half", "rugby-league") == MatchPeriod.FULL_TIME
+def test_validate_and_convert_period_wrong_period_for_sport():
+    """Test that using wrong period for a sport falls back to that sport's default."""
+    # Using tennis period for football should fallback to football default
+    assert validate_and_convert_period("1st_set", "football") == FootballPeriod.FULL_TIME
+    # Using football period for tennis should fallback to tennis default
+    assert validate_and_convert_period("2nd_half", "tennis") == TennisPeriod.FULL_TIME
 
 
-def test_validate_and_convert_period_non_football_with_full_time():
-    """Test that non-football sports accept full_time period."""
-    assert validate_and_convert_period("full_time", "tennis") == MatchPeriod.FULL_TIME
-    assert validate_and_convert_period("full_time", "basketball") == MatchPeriod.FULL_TIME
+def test_validate_and_convert_period_unregistered_sport():
+    """Test that unregistered sports return None."""
+    result = validate_and_convert_period("full_time", "rugby-league")
+    assert result is None
 
 
 def test_validate_and_convert_period_none_sport():
-    """Test that None sport is handled correctly."""
-    # Should work fine for full_time
-    assert validate_and_convert_period("full_time", None) == MatchPeriod.FULL_TIME
-    # Should also work for other periods (no sport check)
-    assert validate_and_convert_period("1st_half", None) == MatchPeriod.FIRST_HALF
+    """Test that None sport returns None."""
+    # Without sport, cannot determine period
+    assert validate_and_convert_period("full_time", None) is None
+    assert validate_and_convert_period("1st_half", None) is None
 
 
-def test_validate_and_convert_period_all_values_for_football():
-    """Test all valid period values for football."""
-    periods = [
-        ("full_time", MatchPeriod.FULL_TIME),
-        ("1st_half", MatchPeriod.FIRST_HALF),
-        ("2nd_half", MatchPeriod.SECOND_HALF),
-    ]
-    for cli_value, expected_enum in periods:
-        assert validate_and_convert_period(cli_value, "football") == expected_enum
+def test_validate_and_convert_period_none_period():
+    """Test that None period returns sport's default."""
+    # None period should return default for each sport
+    assert validate_and_convert_period(None, "football") == FootballPeriod.FULL_TIME
+    assert validate_and_convert_period(None, "tennis") == TennisPeriod.FULL_TIME
+    assert validate_and_convert_period(None, "basketball") == BasketballPeriod.FULL_INCLUDING_OT

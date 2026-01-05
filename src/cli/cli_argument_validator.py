@@ -3,12 +3,12 @@ from datetime import datetime
 import logging
 import re
 
+from src.core.sport_period_registry import SportPeriodRegistry
 from src.storage.storage_format import StorageFormat
 from src.storage.storage_type import StorageType
 from src.utils.bookies_filter_enum import BookiesFilter
 from src.utils.command_enum import CommandEnum
 from src.utils.odds_format_enum import OddsFormat
-from src.utils.period_constants import MatchPeriod
 from src.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from src.utils.sport_market_constants import Sport
 from src.utils.utils import get_supported_markets
@@ -386,17 +386,26 @@ class CLIArgumentValidator:
             errors.append(f"Invalid bookies filter: '{bookies_filter}'. Supported filters are: {supported_filters}.")
         return errors
 
-    def _validate_period(self, period: str, sport: str | None) -> None:
+    def _validate_period(self, period: str | None, sport: str | None) -> None:
         """Validates the period argument."""
-        try:
-            period_enum = MatchPeriod.from_cli_value(period)
-        except ValueError:
-            supported_periods = ", ".join(MatchPeriod.get_all_cli_values())
-            raise ValueError(f"Invalid period: '{period}'. Supported periods are: {supported_periods}.") from None
+        # If period is None, it will use sport's default - no validation needed
+        if period is None:
+            return
 
-        # Check if sport is football
-        if sport and sport.lower() != "football" and period_enum != MatchPeriod.FULL_TIME:
+        # Check if sport has period configuration
+        if not SportPeriodRegistry.is_sport_registered(sport.lower()):
             self.logger.warning(
-                f"Period selection '{period}' is only supported for football. "
-                f"Sport '{sport}' will use default period (full_time)."
+                f"Sport '{sport}' does not have period configuration. "
+                f"Period selection '{period}' is only supported for football, tennis, and basketball."
             )
+            return
+
+        # Get valid periods for this sport
+        valid_periods = SportPeriodRegistry.get_all_cli_values(sport.lower())
+
+        # Check if period is valid for this sport
+        if period not in valid_periods:
+            supported_periods = ", ".join(valid_periods)
+            raise ValueError(
+                f"Invalid period: '{period}' for sport '{sport}'. Supported periods are: {supported_periods}."
+            ) from None

@@ -1,3 +1,4 @@
+from enum import Enum
 import random
 from typing import Any
 
@@ -7,7 +8,6 @@ from src.core.base_scraper import BaseScraper
 from src.core.url_builder import URLBuilder
 from src.utils.bookies_filter_enum import BookiesFilter
 from src.utils.constants import ODDSPORTAL_BASE_URL
-from src.utils.period_constants import MatchPeriod
 
 
 class OddsPortalScraper(BaseScraper):
@@ -52,7 +52,7 @@ class OddsPortalScraper(BaseScraper):
         target_bookmaker: str | None = None,
         max_pages: int | None = None,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
-        period: MatchPeriod = MatchPeriod.FULL_TIME,
+        period: Enum | None = None,
     ) -> list[dict[str, Any]]:
         """
         Scrapes historical odds data.
@@ -115,7 +115,7 @@ class OddsPortalScraper(BaseScraper):
         scrape_odds_history: bool = False,
         target_bookmaker: str | None = None,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
-        period: MatchPeriod = MatchPeriod.FULL_TIME,
+        period: Enum | None = None,
     ) -> list[dict[str, Any]]:
         """
         Scrapes upcoming match odds.
@@ -176,7 +176,7 @@ class OddsPortalScraper(BaseScraper):
         scrape_odds_history: bool = False,
         target_bookmaker: str | None = None,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
-        period: MatchPeriod = MatchPeriod.FULL_TIME,
+        period: Enum | None = None,
     ) -> list[dict[str, Any]]:
         """
         Scrapes match odds from a list of specific match URLs.

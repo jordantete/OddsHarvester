@@ -8,7 +8,6 @@ from src.core.playwright_manager import PlaywrightManager
 from src.core.sport_market_registry import SportMarketRegistrar
 from src.utils.bookies_filter_enum import BookiesFilter
 from src.utils.command_enum import CommandEnum
-from src.utils.period_constants import MatchPeriod
 from src.utils.proxy_manager import ProxyManager
 from src.utils.utils import validate_and_convert_period
 
@@ -52,7 +51,7 @@ async def run_scraper(
     headless: bool = True,
     preview_submarkets_only: bool = False,
     bookies_filter: str = BookiesFilter.ALL.value,
-    period: str = MatchPeriod.FULL_TIME.value,
+    period: str | None = None,
 ) -> dict:
     """Runs the scraping process and handles execution."""
 

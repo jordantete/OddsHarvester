@@ -4,7 +4,7 @@ import os
 
 from bs4 import BeautifulSoup
 
-from src.utils.period_constants import MatchPeriod
+from src.core.sport_period_registry import SportPeriodRegistry
 from src.utils.sport_market_constants import (
     AmericanFootballAsianHandicapMarket,
     AmericanFootballMarket,
@@ -107,33 +107,49 @@ def is_running_in_docker() -> bool:
         return False
 
 
-def validate_and_convert_period(period: str, sport: str | None) -> MatchPeriod:
+def validate_and_convert_period(period: str | None, sport: str | None):
     """
-    Validate and convert period string to MatchPeriod enum.
+    Validate and convert period string to the appropriate sport-specific period enum.
 
     Args:
-        period: The period CLI value to convert.
+        period: The period CLI value to convert, or None to use sport's default.
         sport: The sport being scraped (used for validation).
 
     Returns:
-        MatchPeriod: The validated period enum.
+        The validated period enum for the specific sport, or None if sport not provided or not registered.
     """
-    # Convert period string to MatchPeriod enum
-    try:
-        period_enum = MatchPeriod.from_cli_value(period)
-    except ValueError:
-        logger.warning(f"Invalid period '{period}', defaulting to full_time")
-        period_enum = MatchPeriod.FULL_TIME
+    # If no sport provided, cannot determine period
+    if not sport:
+        logger.error("No sport provided for period validation")
+        return None
 
-    # Only apply non-default period for football
-    if sport and sport.lower() != "football" and period_enum != MatchPeriod.FULL_TIME:
-        logger.warning(
-            f"Period selection '{period}' is only supported for football. "
-            f"Using default period (full_time) for sport '{sport}'."
-        )
-        period_enum = MatchPeriod.FULL_TIME
+    # Check if sport has period configuration
+    if not SportPeriodRegistry.is_sport_registered(sport.lower()):
+        logger.error(f"Sport '{sport}' does not have period configuration registered")
+        return None
 
-    return period_enum
+    # Get the period enum class and default for this sport
+    period_enum_cls = SportPeriodRegistry.get_period_enum(sport)
+    default_period = SportPeriodRegistry.get_default_period(sport)
+
+    # If no period provided, use sport's default
+    if period is None:
+        logger.info(f"No period specified, using default for {sport}: '{default_period.value}'")
+        return default_period
+
+    # Try to find matching period in the sport's enum
+    for p in period_enum_cls:
+        if p.value == period:
+            return p
+
+    # Period not found - log error and fallback to sport's default
+    valid_periods = ", ".join(SportPeriodRegistry.get_all_cli_values(sport))
+    logger.error(
+        f"Invalid period '{period}' for sport '{sport}'. "
+        f"Valid periods are: {valid_periods}. "
+        f"Falling back to default: '{default_period.value}'"
+    )
+    return default_period
 
 
 def clean_html_text(html_content: str | None) -> str | None:

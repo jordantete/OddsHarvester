@@ -61,7 +61,7 @@ def test_parse_and_validate_args_valid(cli_handler):
             target_bookmaker=None,
             preview_submarkets_only=False,
             bookies_filter="all",
-            period="full_time",
+            period=None,
         )
 
         parsed_args = cli_handler.parse_and_validate_args()
@@ -87,7 +87,7 @@ def test_parse_and_validate_args_valid(cli_handler):
             "target_bookmaker": None,
             "preview_submarkets_only": False,
             "bookies_filter": "all",
-            "period": "full_time",
+            "period": None,
         }
 
         mock_validate_args.assert_called_once_with(mock_parse_args.return_value)

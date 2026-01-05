@@ -5,7 +5,7 @@ from src.storage.storage_format import StorageFormat
 from src.storage.storage_type import StorageType
 from src.utils.bookies_filter_enum import BookiesFilter
 from src.utils.odds_format_enum import OddsFormat
-from src.utils.period_constants import MatchPeriod
+from src.utils.period_constants import BasketballPeriod, FootballPeriod, TennisPeriod
 from src.utils.sport_market_constants import Sport
 
 
@@ -158,12 +158,23 @@ class CLIArgumentParser:
             default=BookiesFilter.ALL.value,
             help="🎯 Bookmaker filter: all, classic, or crypto (default: all).",
         )
+        # Collect all period values from all sports
+        all_period_values = set()
+        all_period_values.update([p.value for p in FootballPeriod])
+        all_period_values.update([p.value for p in TennisPeriod])
+        all_period_values.update([p.value for p in BasketballPeriod])
+
         parser.add_argument(
             "--period",
             type=str,
-            choices=MatchPeriod.get_all_cli_values(),
-            default=MatchPeriod.FULL_TIME.value,
-            help="⏱️ Match period: full_time, 1st_half, or 2nd_half (default: full_time, football only).",
+            choices=sorted(all_period_values),
+            default=None,
+            help=(
+                "⏱️ Match period to scrape (optional, defaults to sport's default period). "
+                "Football: full_time (default), 1st_half, 2nd_half | "
+                "Tennis: full_time (default), 1st_set to 2nd_set | "
+                "Basketball: full_including_ot (default), 1st_half, 2nd_half, 1st_quarter to 4th_quarter"
+            ),
         )
 
     def get_parser(self) -> argparse.ArgumentParser:

@@ -3,7 +3,7 @@ import argparse
 import pytest
 
 from src.cli.cli_argument_validator import CLIArgumentValidator
-from src.utils.period_constants import MatchPeriod
+from src.utils.period_constants import FootballPeriod
 
 
 class TestPeriodValidation:
@@ -30,44 +30,43 @@ class TestPeriodValidation:
 
     def test_validate_period_all_values_football(self):
         """Test that all period values are accepted for football."""
-        for period_value in MatchPeriod.get_all_cli_values():
+        for period_value in [p.value for p in FootballPeriod]:
             # Should not raise any exception
             self.validator._validate_period(period=period_value, sport="football")
 
     def test_validate_period_invalid_value(self):
         """Test that invalid period values raise ValueError."""
-        with pytest.raises(ValueError, match="Invalid period: 'invalid_period'. Supported periods are:"):
+        with pytest.raises(ValueError, match="Invalid period: 'invalid_period' for sport 'football'"):
             self.validator._validate_period(period="invalid_period", sport="football")
 
-    def test_validate_period_non_football_warning(self, caplog):
-        """Test that non-default period for non-football sports logs a warning."""
-        # Test with tennis (non-football sport) and non-default period
-        self.validator._validate_period(period="1st_half", sport="tennis")
-
-        # Check that warning was logged
-        assert any(
-            "Period selection '1st_half' is only supported for football" in record.message for record in caplog.records
-        )
-
-    def test_validate_period_non_football_default_no_warning(self, caplog):
-        """Test that default period for non-football sports doesn't log a warning."""
-        # Clear any previous logs
-        caplog.clear()
-
-        # Test with tennis (non-football sport) and default period
+    def test_validate_period_tennis_valid(self):
+        """Test that valid tennis periods are accepted."""
+        # Should not raise any exception
         self.validator._validate_period(period="full_time", sport="tennis")
+        self.validator._validate_period(period="1st_set", sport="tennis")
 
-        # Check that no warning was logged
-        assert not any("Period selection" in record.message for record in caplog.records)
+    def test_validate_period_basketball_valid(self):
+        """Test that valid basketball periods are accepted."""
+        # Should not raise any exception
+        self.validator._validate_period(period="full_including_ot", sport="basketball")
+        self.validator._validate_period(period="1st_quarter", sport="basketball")
 
-    def test_validate_period_basketball_non_default(self, caplog):
-        """Test that non-default period for basketball logs a warning."""
-        self.validator._validate_period(period="2nd_half", sport="basketball")
+    def test_validate_period_wrong_for_sport(self):
+        """Test that using wrong period for a sport raises error."""
+        # Football period for tennis should raise error
+        with pytest.raises(ValueError, match="Invalid period: '1st_half' for sport 'tennis'"):
+            self.validator._validate_period(period="1st_half", sport="tennis")
+
+        # Tennis period for football should raise error
+        with pytest.raises(ValueError, match="Invalid period: '1st_set' for sport 'football'"):
+            self.validator._validate_period(period="1st_set", sport="football")
+
+    def test_validate_period_unregistered_sport(self, caplog):
+        """Test that unregistered sport logs a warning."""
+        self.validator._validate_period(period="full_time", sport="rugby-league")
 
         # Check that warning was logged
-        assert any(
-            "Period selection '2nd_half' is only supported for football" in record.message for record in caplog.records
-        )
+        assert any("does not have period configuration" in record.message for record in caplog.records)
 
     def test_full_validation_with_period(self):
         """Test full argument validation including period."""

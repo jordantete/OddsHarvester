@@ -1,3 +1,4 @@
+from enum import Enum
 import logging
 import time
 
@@ -5,7 +6,6 @@ from playwright.async_api import Page
 
 from src.core.odds_portal_selectors import OddsPortalSelectors
 from src.utils.bookies_filter_enum import BookiesFilter
-from src.utils.period_constants import MatchPeriod
 
 
 class BrowserHelper:
@@ -179,12 +179,12 @@ class BrowserHelper:
             return None
 
     # =============================================================================
-    # PERIOD SELECTION MANAGEMENT (Football only)
+    # PERIOD SELECTION MANAGEMENT
     # =============================================================================
 
-    async def ensure_period_selected(self, page: Page, desired_period: MatchPeriod) -> bool:
+    async def ensure_period_selected(self, page: Page, desired_period: Enum) -> bool:
         """
-        Ensure the desired match period is selected on the page (Football only).
+        Ensure the desired match period is selected on the page.
 
         This method:
         1. Checks if the period selector nav is present
@@ -195,13 +195,14 @@ class BrowserHelper:
 
         Args:
             page (Page): The Playwright page instance.
-            desired_period (MatchPeriod): The desired period to select.
+            desired_period: The desired period enum to select.
 
         Returns:
             bool: True if the desired period is selected, False otherwise.
         """
         try:
-            display_label = MatchPeriod.get_display_label(desired_period)
+            # All period enums have get_display_label method
+            display_label = desired_period.get_display_label(desired_period)
             self.logger.info(f"Ensuring match period is set to: {display_label}")
 
             # Check if period selector nav exists

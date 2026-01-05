@@ -264,7 +264,7 @@ async def test_scrape_match_data(setup_base_scraper_mocks):
         page=page_mock,
         sport="football",
         markets=["1x2", "over_under_2_5"],
-        period="FullTime",
+        period=None,
         scrape_odds_history=True,
         target_bookmaker="bet365",
         preview_submarkets_only=False,
