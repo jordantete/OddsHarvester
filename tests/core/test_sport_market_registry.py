@@ -235,6 +235,23 @@ class TestSportMarketRegistrar:
         # Over/Under markets
         assert "over_under_7_5" in baseball_markets
 
+    def test_register_american_football_markets(self):
+        """Test registering markets for American Football."""
+        # Act
+        SportMarketRegistrar.register_american_football_markets()
+
+        # Assert
+        american_football_markets = SportMarketRegistry.get_market_mapping(Sport.AMERICAN_FOOTBALL.value)
+
+        # Basic markets
+        assert "1x2" in american_football_markets
+        assert "home_away" in american_football_markets
+
+        # Over/Under markets
+        assert "over_under_45_5" in american_football_markets
+        assert "over_under_25_5" in american_football_markets
+        assert "over_under_60_5" in american_football_markets
+
     def test_register_all_markets(self):
         """Test registering all markets for all sports."""
         # Act
@@ -245,7 +262,10 @@ class TestSportMarketRegistrar:
                         with patch.object(SportMarketRegistrar, "register_rugby_union_markets") as mock_rugby_union:
                             with patch.object(SportMarketRegistrar, "register_ice_hockey_markets") as mock_ice_hockey:
                                 with patch.object(SportMarketRegistrar, "register_baseball_markets") as mock_baseball:
-                                    SportMarketRegistrar.register_all_markets()
+                                    with patch.object(
+                                        SportMarketRegistrar, "register_american_football_markets"
+                                    ) as mock_american_football:
+                                        SportMarketRegistrar.register_all_markets()
 
         # Assert
         mock_football.assert_called_once()
@@ -255,6 +275,7 @@ class TestSportMarketRegistrar:
         mock_rugby_union.assert_called_once()
         mock_ice_hockey.assert_called_once()
         mock_baseball.assert_called_once()
+        mock_american_football.assert_called_once()
 
     def test_register_all_markets_integration(self):
         """Test registering all markets in an integration test"""
@@ -274,3 +295,4 @@ class TestSportMarketRegistrar:
         assert "double_chance" in SportMarketRegistry.get_market_mapping(Sport.RUGBY_UNION.value)
         assert "btts" in SportMarketRegistry.get_market_mapping(Sport.ICE_HOCKEY.value)
         assert "home_away" in SportMarketRegistry.get_market_mapping(Sport.BASEBALL.value)
+        assert "home_away" in SportMarketRegistry.get_market_mapping(Sport.AMERICAN_FOOTBALL.value)

@@ -1,4 +1,7 @@
 from src.utils.sport_market_constants import (
+    AmericanFootballAsianHandicapMarket,
+    AmericanFootballMarket,
+    AmericanFootballOverUnderMarket,
     BaseballMarket,
     BaseballOverUnderMarket,
     BasketballAsianHandicapMarket,
@@ -40,6 +43,7 @@ class TestSportEnums:
         assert "rugby-union" in sport_values
         assert "ice-hockey" in sport_values
         assert "baseball" in sport_values
+        assert "american-football" in sport_values
 
     def test_football_market_enum(self):
         """Verify football markets."""
@@ -146,3 +150,22 @@ class TestSportEnums:
         assert "1x2" in market_values
         assert "home_away" in market_values
         assert "over_under_8_5" in over_under_values
+
+    def test_american_football_market_enums(self):
+        """Verify American Football markets."""
+        # Arrange/Act
+        market_values = [market.value for market in AmericanFootballMarket]
+        over_under_values = [market.value for market in AmericanFootballOverUnderMarket]
+        handicap_values = [market.value for market in AmericanFootballAsianHandicapMarket]
+
+        # Assert
+        assert "1x2" in market_values
+        assert "home_away" in market_values
+        assert "over_under_25_5" in over_under_values
+        assert "over_under_45_5" in over_under_values
+        assert "over_under_60_5" in over_under_values
+        assert len(over_under_values) >= 30  # Should have many over/under options
+        assert "asian_handicap_-21_5" in handicap_values
+        assert "asian_handicap_0" in handicap_values
+        assert "asian_handicap_+21_5" in handicap_values
+        assert len(handicap_values) >= 86  # Should have handicaps from -21.5 to +21.5

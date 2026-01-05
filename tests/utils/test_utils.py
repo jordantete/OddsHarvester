@@ -3,6 +3,9 @@ from unittest.mock import patch
 import pytest
 
 from src.utils.sport_market_constants import (
+    AmericanFootballAsianHandicapMarket,
+    AmericanFootballMarket,
+    AmericanFootballOverUnderMarket,
     BaseballMarket,
     BaseballOverUnderMarket,
     BasketballAsianHandicapMarket,
@@ -66,6 +69,11 @@ EXPECTED_MARKETS = {
         *[market.value for market in BaseballMarket],
         *[market.value for market in BaseballOverUnderMarket],
     ],
+    Sport.AMERICAN_FOOTBALL: [
+        *[market.value for market in AmericanFootballMarket],
+        *[market.value for market in AmericanFootballOverUnderMarket],
+        *[market.value for market in AmericanFootballAsianHandicapMarket],
+    ],
 }
 
 
@@ -79,6 +87,7 @@ EXPECTED_MARKETS = {
         (Sport.RUGBY_UNION, EXPECTED_MARKETS[Sport.RUGBY_UNION]),
         (Sport.ICE_HOCKEY, EXPECTED_MARKETS[Sport.ICE_HOCKEY]),
         (Sport.BASEBALL, EXPECTED_MARKETS[Sport.BASEBALL]),
+        (Sport.AMERICAN_FOOTBALL, EXPECTED_MARKETS[Sport.AMERICAN_FOOTBALL]),
     ],
 )
 def test_get_supported_markets_enum(sport_enum, expected):
@@ -96,6 +105,7 @@ def test_get_supported_markets_enum(sport_enum, expected):
         ("rugby-union", EXPECTED_MARKETS[Sport.RUGBY_UNION]),
         ("ice-hockey", EXPECTED_MARKETS[Sport.ICE_HOCKEY]),
         ("baseball", EXPECTED_MARKETS[Sport.BASEBALL]),
+        ("american-football", EXPECTED_MARKETS[Sport.AMERICAN_FOOTBALL]),
     ],
 )
 def test_get_supported_markets_string(sport_str, expected):

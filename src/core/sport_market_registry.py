@@ -1,6 +1,8 @@
 from typing import ClassVar
 
 from src.utils.sport_market_constants import (
+    AmericanFootballAsianHandicapMarket,
+    AmericanFootballOverUnderMarket,
     BaseballOverUnderMarket,
     BasketballAsianHandicapMarket,
     BasketballOverUnderMarket,
@@ -374,6 +376,45 @@ class SportMarketRegistrar:
             )
 
     @classmethod
+    def register_american_football_markets(cls):
+        """Registers all American Football betting markets."""
+        SportMarketRegistry.register(
+            Sport.AMERICAN_FOOTBALL,
+            {
+                "1x2": cls.create_market_lambda("1X2", odds_labels=["1", "X", "2"]),
+                "home_away": cls.create_market_lambda("Home/Away", odds_labels=["1", "2"]),
+            },
+        )
+
+        # Register Over/Under Markets
+        for over_under in AmericanFootballOverUnderMarket:
+            numeric_part = over_under.value.replace("over_under_", "").replace("_", ".")
+            SportMarketRegistry.register(
+                Sport.AMERICAN_FOOTBALL,
+                {
+                    over_under.value: cls.create_market_lambda(
+                        main_market="Over/Under",
+                        specific_market=f"Over/Under +{numeric_part}",
+                        odds_labels=["odds_over", "odds_under"],
+                    )
+                },
+            )
+
+        # Register Asian Handicap Markets
+        for handicap in AmericanFootballAsianHandicapMarket:
+            numeric_part = handicap.value.replace("asian_handicap_", "").replace("_", ".")
+            SportMarketRegistry.register(
+                Sport.AMERICAN_FOOTBALL,
+                {
+                    handicap.value: cls.create_market_lambda(
+                        main_market="Asian Handicap",
+                        specific_market=f"Asian Handicap {numeric_part}",
+                        odds_labels=["1", "2"],
+                    )
+                },
+            )
+
+    @classmethod
     def register_all_markets(cls):
         """Registers all sports markets."""
         cls.register_football_markets()
@@ -383,3 +424,4 @@ class SportMarketRegistrar:
         cls.register_rugby_union_markets()
         cls.register_ice_hockey_markets()
         cls.register_baseball_markets()
+        cls.register_american_football_markets()

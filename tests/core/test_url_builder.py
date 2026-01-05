@@ -17,6 +17,10 @@ SPORTS_LEAGUES_URLS_MAPPING[Sport.BASEBALL] = {
     "mlb": f"{ODDSPORTAL_BASE_URL}/baseball/usa/mlb",
     "japan-npb": f"{ODDSPORTAL_BASE_URL}/baseball/japan/npb",
 }
+SPORTS_LEAGUES_URLS_MAPPING[Sport.AMERICAN_FOOTBALL] = {
+    "nfl": f"{ODDSPORTAL_BASE_URL}/american-football/usa/nfl",
+    "ncaa": f"{ODDSPORTAL_BASE_URL}/american-football/usa/ncaa",
+}
 
 
 @pytest.mark.parametrize(
@@ -38,6 +42,19 @@ SPORTS_LEAGUES_URLS_MAPPING[Sport.BASEBALL] = {
         # Baseball special cases (should only use first year)
         ("baseball", "mlb", "2023-2024", f"{ODDSPORTAL_BASE_URL}/baseball/usa/mlb-2023/results/"),
         ("baseball", "japan-npb", "2024-2025", f"{ODDSPORTAL_BASE_URL}/baseball/japan/npb-2024/results/"),
+        # American Football cases
+        (
+            "american-football",
+            "nfl",
+            "2024-2025",
+            f"{ODDSPORTAL_BASE_URL}/american-football/usa/nfl-2024-2025/results/",
+        ),
+        (
+            "american-football",
+            "ncaa",
+            "2023-2024",
+            f"{ODDSPORTAL_BASE_URL}/american-football/usa/ncaa-2023-2024/results/",
+        ),
     ],
 )
 def test_get_historic_matches_url(sport, league, season, expected_url):
@@ -156,6 +173,7 @@ def test_get_upcoming_matches_url(sport, date, league, expected_url):
         ("football", "england-premier-league", f"{ODDSPORTAL_BASE_URL}/football/england/premier-league"),
         ("tennis", "atp-tour", f"{ODDSPORTAL_BASE_URL}/tennis/atp-tour"),
         ("baseball", "mlb", f"{ODDSPORTAL_BASE_URL}/baseball/usa/mlb"),
+        ("american-football", "nfl", f"{ODDSPORTAL_BASE_URL}/american-football/usa/nfl"),
     ],
 )
 def test_get_league_url(sport, league, expected_url):

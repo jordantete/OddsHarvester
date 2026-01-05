@@ -36,15 +36,16 @@ OddsHarvester supports a growing number of sports and their associated betting m
 
 #### ✅ Supported Sports & Markets
 
-| 🏅 Sport        | 🛒 Supported Markets                                                                               |
-| --------------- | -------------------------------------------------------------------------------------------------- |
-| ⚽ Football     | `1x2`, `btts`, `double_chance`, `draw_no_bet`, `over/under`, `european_handicap`, `asian_handicap` |
-| 🎾 Tennis       | `match_winner`, `total_sets_over/under`, `total_games_over/under`, `asian_handicap`, `exact_score` |
-| 🏀 Basketball   | `1x2`, `moneyline`, `asian_handicap`, `over/under`                                                 |
-| 🏉 Rugby League | `1x2`, `home_away`, `double_chance`, `draw_no_bet`, `over/under`, `handicap`                       |
-| 🏉 Rugby Union  | `1x2`, `home_away`, `double_chance`, `draw_no_bet`, `over/under`, `handicap`                       |
-| 🏒 Ice Hockey   | `1x2`, `home_away`, `double_chance`, `draw_no_bet`, `btts`, `over/under`                           |
-| ⚾ Baseball     | `moneyline`, `over/under`                                                                          |
+| 🏅 Sport             | 🛒 Supported Markets                                                                               |
+| -------------------- | -------------------------------------------------------------------------------------------------- |
+| ⚽ Football          | `1x2`, `btts`, `double_chance`, `draw_no_bet`, `over/under`, `european_handicap`, `asian_handicap` |
+| 🎾 Tennis            | `match_winner`, `total_sets_over/under`, `total_games_over/under`, `asian_handicap`, `exact_score` |
+| 🏀 Basketball        | `1x2`, `moneyline`, `asian_handicap`, `over/under`                                                 |
+| 🏉 Rugby League      | `1x2`, `home_away`, `double_chance`, `draw_no_bet`, `over/under`, `handicap`                       |
+| 🏉 Rugby Union       | `1x2`, `home_away`, `double_chance`, `draw_no_bet`, `over/under`, `handicap`                       |
+| 🏒 Ice Hockey        | `1x2`, `home_away`, `double_chance`, `draw_no_bet`, `btts`, `over/under`                           |
+| ⚾ Baseball          | `moneyline`, `over/under`                                                                          |
+| 🏈 American Football | `1x2`, `moneyline`, `over/under`, `asian_handicap`                                                 |
 
 > ⚙️ **Note**: Each sport and its markets are declared in enums inside `sport_market_constants.py`.
 
@@ -62,6 +63,7 @@ You'll find support for:
 - 🏉 **Major Rugby Union competitions** (Six Nations, Rugby Championship, Top 14, etc.)
 - 🏒 **Major Ice Hockey leagues** (NHL, KHL, SHL, Liiga, etc.)
 - ⚾ **Major Baseball leagues** (MLB, NPB, KBO, etc.)
+- 🏈 **American Football leagues** (NFL, NCAA, etc.)
 
 ## **🛠️ Local Installation**
 
@@ -126,7 +128,7 @@ Retrieve odds and event details for upcoming sports matches.
 
 | 🏷️ Option                   | 📝 Description                                                                                                        | 🔐 Required                                         | 🔧 Default     |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | -------------- |
-| `--sport`                   | Specify the sport to scrape (e.g., `football`, `ice-hockey`, `baseball`).                                             | ✅                                                  | None           |
+| `--sport`                   | Specify the sport to scrape (e.g., `football`, `ice-hockey`, `baseball`, `american-football`).                        | ✅                                                  | None           |
 | `--date`                    | Date for matches in `YYYYMMDD` format (e.g., `20250227`).                                                             | ✅ (unless `--match_links` or `--leagues` provided) | None           |
 | `--leagues`                 | Comma-separated leagues to scrape (e.g., `england-premier-league,spain-laliga`).                                      | ❌                                                  | None           |
 | `--markets`                 | Comma-separated betting markets (e.g., `1x2,btts`).                                                                   | ❌                                                  | None           |
@@ -183,7 +185,7 @@ Retrieve historical odds and results for analytical purposes.
 
 | 🏷️ Option                   | 📝 Description                                                                                                        | 🔐 Required | 🔧 Default     |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------- | -------------- |
-| `--sport`                   | Specify the sport to scrape (e.g., `football`, `ice-hockey`, `baseball`).                                             | ✅          | None           |
+| `--sport`                   | Specify the sport to scrape (e.g., `football`, `ice-hockey`, `baseball`, `american-football`).                        | ✅          | None           |
 | `--leagues`                 | Comma-separated leagues to scrape (e.g., `england-premier-league,spain-laliga`).                                      | ✅          | None           |
 | `--season`                  | Target season in `YYYY`, `YYYY-YYYY` format (e.g., `2022` or `2022-2023`), or `current` for the current season.       | ✅          | None           |
 | `--markets`                 | Comma-separated betting markets (e.g., `1x2,btts`).                                                                   | ❌          | None           |

@@ -295,4 +295,8 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "australian-baseball-league": "https://www.oddsportal.com/baseball/australia/abl/",
         "japan-baseball-league": "https://www.oddsportal.com/baseball/japan/npb/",
     },
+    Sport.AMERICAN_FOOTBALL: {
+        "nfl": "https://www.oddsportal.com/american-football/usa/nfl/",
+        "ncaa": "https://www.oddsportal.com/american-football/usa/ncaa/",
+    },
 }

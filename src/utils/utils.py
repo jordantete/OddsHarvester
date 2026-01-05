@@ -5,6 +5,9 @@ import os
 from bs4 import BeautifulSoup
 
 from src.utils.sport_market_constants import (
+    AmericanFootballAsianHandicapMarket,
+    AmericanFootballMarket,
+    AmericanFootballOverUnderMarket,
     BaseballMarket,
     BaseballOverUnderMarket,
     BasketballAsianHandicapMarket,
@@ -51,6 +54,11 @@ SPORT_MARKETS_MAPPING: dict[Sport, list[type[Enum]]] = {
     Sport.RUGBY_UNION: [RugbyUnionMarket, RugbyOverUnderMarket, RugbyHandicapMarket],
     Sport.ICE_HOCKEY: [IceHockeyMarket, IceHockeyOverUnderMarket],
     Sport.BASEBALL: [BaseballMarket, BaseballOverUnderMarket],
+    Sport.AMERICAN_FOOTBALL: [
+        AmericanFootballMarket,
+        AmericanFootballOverUnderMarket,
+        AmericanFootballAsianHandicapMarket,
+    ],
 }
 
 

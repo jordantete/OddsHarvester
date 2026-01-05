@@ -4,6 +4,7 @@ from src.cli.cli_help_message_generator import CLIHelpMessageGenerator
 from src.storage.storage_format import StorageFormat
 from src.storage.storage_type import StorageType
 from src.utils.odds_format_enum import OddsFormat
+from src.utils.sport_market_constants import Sport
 
 
 class CLIArgumentParser:
@@ -62,10 +63,10 @@ class CLIArgumentParser:
         parser.add_argument(
             "--sport",
             type=str,
-            choices=["football", "tennis", "basketball", "rugby-league", "rugby-union", "ice-hockey", "baseball"],
+            choices=[sport.value for sport in Sport],
             help=(
                 "Specify the sport to scrape (e.g., football, tennis, basketball, rugby-league, "
-                "rugby-union, ice-hockey)."
+                "rugby-union, ice-hockey, baseball, american-football)."
             ),
         )
         parser.add_argument(
