@@ -11,6 +11,7 @@ from playwright.async_api import Page, TimeoutError
 from src.core.browser_helper import BrowserHelper
 from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from src.core.playwright_manager import PlaywrightManager
+from src.utils.bookies_filter_enum import BookiesFilter
 from src.utils.constants import ODDSPORTAL_BASE_URL
 from src.utils.odds_format_enum import OddsFormat
 from src.utils.utils import clean_html_text
@@ -33,7 +34,8 @@ class BaseScraper:
             playwright_manager (PlaywrightManager): Handles Playwright lifecycle.
             browser_helper (BrowserHelper): Helper class for browser interactions.
             market_extractor (OddsPortalMarketExtractor): Handles market scraping.
-            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading individual bookmaker details.
+            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading
+            individual bookmaker details.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
         self.playwright_manager = playwright_manager
@@ -125,6 +127,7 @@ class BaseScraper:
         target_bookmaker: str | None = None,
         concurrent_scraping_task: int = 3,
         preview_submarkets_only: bool = False,
+        bookies_filter: BookiesFilter = BookiesFilter.ALL,
     ) -> list[dict[str, Any]]:
         """
         Extract odds for a list of match links concurrently.
@@ -136,7 +139,9 @@ class BaseScraper:
             scrape_odds_history (bool): Whether to scrape and attach odds history.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
             concurrent_scraping_task (int): Controls how many pages are processed simultaneously.
-            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading individual bookmaker details.
+            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading
+            individual bookmaker details.
+            bookies_filter (BookiesFilter): The bookmaker filter to apply.
 
         Returns:
             List[Dict[str, Any]]: A list of dictionaries containing scraped odds data.
@@ -159,6 +164,7 @@ class BaseScraper:
                         scrape_odds_history=scrape_odds_history,
                         target_bookmaker=target_bookmaker,
                         preview_submarkets_only=preview_submarkets_only,
+                        bookies_filter=bookies_filter,
                     )
                     self.logger.info(f"Successfully scraped match link: {link}")
                     return data
@@ -191,6 +197,7 @@ class BaseScraper:
         scrape_odds_history: bool = False,
         target_bookmaker: str | None = None,
         preview_submarkets_only: bool = False,
+        bookies_filter: BookiesFilter = BookiesFilter.ALL,
     ) -> dict[str, Any] | None:
         """
         Scrape data for a specific match based on the desired markets.
@@ -202,7 +209,9 @@ class BaseScraper:
             markets (Optional[List[str]]): A list of markets to scrape (e.g., ['1x2', 'over_under_2_5']).
             scrape_odds_history (bool): Whether to scrape and attach odds history.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
-            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading individual bookmaker details.
+            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading
+            individual bookmaker details.
+            bookies_filter (BookiesFilter): The bookmaker filter to apply.
 
         Returns:
             Optional[Dict[str, Any]]: A dictionary containing scraped data, or None if scraping fails.
@@ -215,6 +224,9 @@ class BaseScraper:
 
             # Wait a bit for dynamic content to load
             await page.wait_for_timeout(2000)
+
+            # Apply bookmaker filter before extracting odds
+            await self.browser_helper.ensure_bookies_filter_selected(page=page, desired_filter=bookies_filter)
 
             match_details = await self._extract_match_details_event_header(page)
 

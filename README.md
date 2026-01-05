@@ -147,6 +147,7 @@ Retrieve odds and event details for upcoming sports matches.
 | `--odds_format`             | Odds format to display (`Decimal Odds`, `Fractional Odds`, `Money Line Odds`, `Hong Kong Odds`).                      | ❌                                                  | `Decimal Odds` |
 | `--concurrency_tasks`       | Number of concurrent tasks for scraping.                                                                              | ❌                                                  | `3`            |
 | `--preview_submarkets_only` | Only scrape average odds from visible submarkets without loading individual bookmaker details (faster, limited data). | ❌                                                  | `False`        |
+| `--bookies_filter`          | Filter bookmakers displayed on OddsPortal (`all`, `classic`, `crypto`).                                               | ❌                                                  | `all`          |
 
 #### **📌 Important Notes:**
 
@@ -205,6 +206,7 @@ Retrieve historical odds and results for analytical purposes.
 | `--odds_format`             | Odds format to display (`Decimal Odds`, `Fractional Odds`, `Money Line Odds`, `Hong Kong Odds`).                      | ❌          | `Decimal Odds` |
 | `--concurrency_tasks`       | Number of concurrent tasks for scraping.                                                                              | ❌          | `3`            |
 | `--preview_submarkets_only` | Only scrape average odds from visible submarkets without loading individual bookmaker details (faster, limited data). | ❌          | `False`        |
+| `--bookies_filter`          | Filter bookmakers displayed on OddsPortal (`all`, `classic`, `crypto`).                                               | ❌          | `all`          |
 
 #### **Example Usage:**
 

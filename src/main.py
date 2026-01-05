@@ -35,6 +35,7 @@ def main():
                 scrape_odds_history=args["scrape_odds_history"],
                 headless=args["headless"],
                 preview_submarkets_only=args["preview_submarkets_only"],
+                bookies_filter=args["bookies_filter"],
             )
         )
 

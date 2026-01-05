@@ -4,6 +4,7 @@ import re
 
 from src.storage.storage_format import StorageFormat
 from src.storage.storage_type import StorageType
+from src.utils.bookies_filter_enum import BookiesFilter
 from src.utils.command_enum import CommandEnum
 from src.utils.odds_format_enum import OddsFormat
 from src.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
@@ -69,6 +70,9 @@ class CLIArgumentValidator:
 
         if hasattr(args, "concurrency_tasks"):
             errors.extend(self._validate_concurrency_tasks(concurrency_tasks=args.concurrency_tasks))
+
+        if hasattr(args, "bookies_filter"):
+            errors.extend(self._validate_bookies_filter(bookies_filter=args.bookies_filter))
 
         errors.extend(
             self._validate_browser_settings(
@@ -362,4 +366,14 @@ class CLIArgumentValidator:
         errors = []
         if not isinstance(concurrency_tasks, int) or concurrency_tasks <= 0:
             errors.append(f"Invalid concurrency tasks value: '{concurrency_tasks}'. It must be a positive integer.")
+        return errors
+
+    def _validate_bookies_filter(self, bookies_filter: str) -> list[str]:
+        """Validates the bookies filter argument."""
+        errors = []
+        try:
+            BookiesFilter(bookies_filter)
+        except ValueError:
+            supported_filters = ", ".join([f.value for f in BookiesFilter])
+            errors.append(f"Invalid bookies filter: '{bookies_filter}'. Supported filters are: {supported_filters}.")
         return errors

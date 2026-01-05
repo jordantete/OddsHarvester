@@ -4,6 +4,7 @@ import time
 from playwright.async_api import Page
 
 from src.core.odds_portal_selectors import OddsPortalSelectors
+from src.utils.bookies_filter_enum import BookiesFilter
 
 
 class BrowserHelper:
@@ -56,6 +57,125 @@ class BrowserHelper:
         except Exception as e:
             self.logger.error(f"Error while dismissing cookie banner: {e}")
             return False
+
+    # =============================================================================
+    # BOOKMAKER FILTER MANAGEMENT
+    # =============================================================================
+
+    async def ensure_bookies_filter_selected(self, page: Page, desired_filter: BookiesFilter) -> bool:
+        """
+        Ensure the desired bookmaker filter is selected on the page.
+
+        This method:
+        1. Checks if the bookies filter nav is present
+        2. Reads the currently selected filter
+        3. If it matches desired filter, does nothing
+        4. Otherwise, clicks the desired filter option
+        5. Waits for the selection to update
+
+        Args:
+            page (Page): The Playwright page instance.
+            desired_filter (BookiesFilter): The desired bookmaker filter to select.
+
+        Returns:
+            bool: True if the desired filter is selected, False otherwise.
+        """
+        try:
+            display_label = BookiesFilter.get_display_label(desired_filter)
+            self.logger.info(f"Ensuring bookmaker filter is set to: {display_label}")
+
+            # Check if bookies filter nav exists
+            filter_container = await page.query_selector(OddsPortalSelectors.BOOKIES_FILTER_CONTAINER)
+            if not filter_container:
+                self.logger.warning("Bookies filter navigation not found on page. Skipping filter selection.")
+                return False
+
+            # Get current selected filter
+            current_filter = await self._get_current_bookies_filter(page)
+            if current_filter:
+                self.logger.info(f"Current bookmaker filter: {current_filter}")
+
+                # If already selected, do nothing
+                if current_filter == desired_filter.value:
+                    self.logger.info(f"Bookmaker filter already set to '{desired_filter.value}'. No action needed.")
+
+                    return True
+
+            # Click the desired filter
+            filter_selector = OddsPortalSelectors.get_bookies_filter_selector(desired_filter.value)
+
+            self.logger.info(f"Clicking bookmaker filter: {BookiesFilter.get_display_label(desired_filter)}")
+            filter_element = await page.query_selector(filter_selector)
+
+            if not filter_element:
+                self.logger.error(f"Bookmaker filter element not found for: {desired_filter.value}")
+                return False
+
+            await filter_element.click()
+
+            # Wait for selection to update using robust wait condition
+            try:
+                active_class = OddsPortalSelectors.BOOKIES_FILTER_ACTIVE_CLASS
+                await page.wait_for_function(
+                    f"""
+                    () => {{
+                        const container = document.querySelector('[data-testid="bookies-filter-nav"]');
+                        if (!container) return false;
+                        const activeElement = container.querySelector('.{active_class}');
+                        if (!activeElement) return false;
+                        return activeElement.getAttribute('data-testid') === '{desired_filter.value}';
+                    }}
+                    """,
+                    timeout=5000,
+                )
+                display_label = BookiesFilter.get_display_label(desired_filter)
+                self.logger.info(f"Successfully set bookmaker filter to: {display_label}")
+                return True
+
+            except Exception as wait_error:
+                self.logger.warning(f"Wait condition failed: {wait_error}. Verifying selection...")
+
+                # Fallback: verify the selection after a short delay
+                await page.wait_for_timeout(1000)
+                new_filter = await self._get_current_bookies_filter(page)
+                if new_filter == desired_filter.value:
+                    self.logger.info(f"Bookmaker filter successfully set to: {desired_filter.value}")
+                    return True
+                else:
+                    self.logger.error(f"Failed to set bookmaker filter to: {desired_filter.value}")
+                    return False
+
+        except Exception as e:
+            self.logger.error(f"Error setting bookmaker filter: {e}")
+            return False
+
+    async def _get_current_bookies_filter(self, page: Page) -> str | None:
+        """
+        Get the currently selected bookmaker filter.
+
+        Args:
+            page (Page): The Playwright page instance.
+
+        Returns:
+            str | None: The data-testid of the currently selected filter, or None if not found.
+        """
+        try:
+            # Find the active element within the bookies filter container
+            active_selector = (
+                f"{OddsPortalSelectors.BOOKIES_FILTER_CONTAINER} .{OddsPortalSelectors.BOOKIES_FILTER_ACTIVE_CLASS}"
+            )
+            active_element = await page.query_selector(active_selector)
+
+            if active_element:
+                data_testid = await active_element.get_attribute("data-testid")
+                return data_testid
+
+            self.logger.warning("No active bookmaker filter found")
+            return None
+
+        except Exception as e:
+            self.logger.error(f"Error getting current bookmaker filter: {e}")
+            return None
 
     # =============================================================================
     # MARKET NAVIGATION

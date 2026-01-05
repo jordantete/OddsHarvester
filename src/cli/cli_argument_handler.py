@@ -64,4 +64,5 @@ class CLIArgumentHandler:
             "target_bookmaker": getattr(args, "target_bookmaker", None),
             "scrape_odds_history": getattr(args, "scrape_odds_history", False),
             "preview_submarkets_only": getattr(args, "preview_submarkets_only", False),
+            "bookies_filter": getattr(args, "bookies_filter", "all"),
         }

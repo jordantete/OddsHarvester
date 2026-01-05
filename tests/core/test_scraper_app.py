@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -86,6 +86,7 @@ async def test_run_scraper_historic(
         scrape_odds_history=False,
         target_bookmaker=None,
         max_pages=2,
+        bookies_filter=ANY,
     )
 
     scraper_mock.stop_playwright.assert_called_once()
@@ -143,6 +144,7 @@ async def test_run_scraper_upcoming(
         markets=["1x2"],
         scrape_odds_history=False,
         target_bookmaker=None,
+        bookies_filter=ANY,
     )
 
     assert result == {"result": "upcoming_data"}
@@ -184,7 +186,12 @@ async def test_run_scraper_match_links(
     )
 
     scraper_mock.scrape_matches.assert_called_once_with(
-        match_links=match_links, sport="tennis", markets=["1x2"], scrape_odds_history=True, target_bookmaker="bet365"
+        match_links=match_links,
+        sport="tennis",
+        markets=["1x2"],
+        scrape_odds_history=True,
+        target_bookmaker="bet365",
+        bookies_filter=ANY,
     )
 
     assert result == {"result": "match_data"}

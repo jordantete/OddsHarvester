@@ -3,6 +3,7 @@ import argparse
 from src.cli.cli_help_message_generator import CLIHelpMessageGenerator
 from src.storage.storage_format import StorageFormat
 from src.storage.storage_type import StorageType
+from src.utils.bookies_filter_enum import BookiesFilter
 from src.utils.odds_format_enum import OddsFormat
 from src.utils.sport_market_constants import Sport
 
@@ -148,6 +149,13 @@ class CLIArgumentParser:
                 "👁️ Only scrape average odds from visible submarkets without loading "
                 "individual bookmaker details (faster, limited data)."
             ),
+        )
+        parser.add_argument(
+            "--bookies_filter",
+            type=str,
+            choices=[f.value for f in BookiesFilter],
+            default=BookiesFilter.ALL.value,
+            help="🎯 Bookmaker filter: all, classic, or crypto (default: all).",
         )
 
     def get_parser(self) -> argparse.ArgumentParser:

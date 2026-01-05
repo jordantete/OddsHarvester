@@ -32,6 +32,10 @@ class OddsPortalSelectors:
     # Market navigation - sub-market selection
     SUB_MARKET_SELECTOR = "div.flex.w-full.items-center.justify-start.pl-3.font-bold p"
 
+    # Bookmaker filter navigation
+    BOOKIES_FILTER_CONTAINER = "div[data-testid='bookies-filter-nav']"
+    BOOKIES_FILTER_ACTIVE_CLASS = "active-item-calendar"
+
     @staticmethod
     def get_dropdown_selectors_for_market(market_name: str) -> list[str]:
         """Generate dropdown selectors for a specific market name."""
@@ -42,6 +46,19 @@ class OddsPortalSelectors:
             f"div:has-text('{market_name}')",
             f"span:has-text('{market_name}')",
         ]
+
+    @staticmethod
+    def get_bookies_filter_selector(filter_value: str) -> str:
+        """
+        Generate selector for a specific bookmaker filter option.
+
+        Args:
+            filter_value: The filter value (e.g., 'all', 'classic', 'crypto').
+
+        Returns:
+            str: CSS selector for the filter option.
+        """
+        return f"div[data-testid='bookies-filter-nav'] div[data-testid='{filter_value}']"
 
     # Debug selectors
     DROPDOWN_DEBUG_ELEMENTS = "li, a, button, div, span"

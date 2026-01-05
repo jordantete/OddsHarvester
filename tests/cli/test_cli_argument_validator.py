@@ -33,6 +33,7 @@ def mock_args():
         target_bookmaker=None,
         odds_format="Decimal Odds",
         concurrency_tasks=3,
+        bookies_filter="all",
     )
 
 

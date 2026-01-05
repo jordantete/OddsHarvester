@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 from playwright.async_api import Browser, BrowserContext, Page
 import pytest
@@ -146,6 +146,7 @@ async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
         scrape_odds_history=True,
         target_bookmaker="bet365",
         preview_submarkets_only=False,
+        bookies_filter=ANY,
     )
 
     # Verify the result
@@ -195,6 +196,7 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
         scrape_odds_history=False,
         target_bookmaker=None,
         preview_submarkets_only=False,
+        bookies_filter=ANY,
     )
 
     # Verify the result
@@ -231,6 +233,7 @@ async def test_scrape_matches(setup_scraper_mocks):
         target_bookmaker="bwin",
         concurrent_scraping_task=2,
         preview_submarkets_only=False,
+        bookies_filter=ANY,
     )
 
     # Verify the result

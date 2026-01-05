@@ -6,6 +6,7 @@ from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from src.core.odds_portal_scraper import OddsPortalScraper
 from src.core.playwright_manager import PlaywrightManager
 from src.core.sport_market_registry import SportMarketRegistrar
+from src.utils.bookies_filter_enum import BookiesFilter
 from src.utils.command_enum import CommandEnum
 from src.utils.proxy_manager import ProxyManager
 
@@ -48,15 +49,20 @@ async def run_scraper(
     scrape_odds_history: bool = False,
     headless: bool = True,
     preview_submarkets_only: bool = False,
+    bookies_filter: str = BookiesFilter.ALL.value,
 ) -> dict:
     """Runs the scraping process and handles execution."""
+    # Convert bookies_filter string to BookiesFilter enum
+    bookies_filter_enum = BookiesFilter(bookies_filter)
+
     logger.info(
         f"Starting scraper with parameters: command={command}, match_links={match_links}, "
         f"sport={sport}, date={date}, leagues={leagues}, season={season}, markets={markets}, "
         f"max_pages={max_pages}, proxies={proxies}, browser_user_agent={browser_user_agent}, "
         f"browser_locale_timezone={browser_locale_timezone}, browser_timezone_id={browser_timezone_id}, "
         f"scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}, "
-        f"headless={headless}, preview_submarkets_only={preview_submarkets_only}"
+        f"headless={headless}, preview_submarkets_only={preview_submarkets_only}, "
+        f"bookies_filter={bookies_filter}"
     )
 
     proxy_manager = ProxyManager(cli_proxies=proxies)
@@ -85,7 +91,8 @@ async def run_scraper(
         if match_links and sport:
             logger.info(f"""
                 Scraping specific matches: {match_links} for sport: {sport}, markets={markets},
-                scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}
+                scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker},
+                bookies_filter={bookies_filter}
             """)
             return await retry_scrape(
                 scraper.scrape_matches,
@@ -94,6 +101,7 @@ async def run_scraper(
                 markets=markets,
                 scrape_odds_history=scrape_odds_history,
                 target_bookmaker=target_bookmaker,
+                bookies_filter=bookies_filter_enum,
             )
 
         if command == CommandEnum.HISTORIC:
@@ -118,6 +126,7 @@ async def run_scraper(
                     scrape_odds_history=scrape_odds_history,
                     target_bookmaker=target_bookmaker,
                     max_pages=max_pages,
+                    bookies_filter=bookies_filter_enum,
                 )
             else:
                 return await _scrape_multiple_leagues(
@@ -130,6 +139,7 @@ async def run_scraper(
                     scrape_odds_history=scrape_odds_history,
                     target_bookmaker=target_bookmaker,
                     max_pages=max_pages,
+                    bookies_filter=bookies_filter_enum,
                 )
 
         elif command == CommandEnum.UPCOMING_MATCHES:
@@ -151,6 +161,7 @@ async def run_scraper(
                         markets=markets,
                         scrape_odds_history=scrape_odds_history,
                         target_bookmaker=target_bookmaker,
+                        bookies_filter=bookies_filter_enum,
                     )
                 else:
                     return await _scrape_multiple_leagues(
@@ -162,11 +173,13 @@ async def run_scraper(
                         markets=markets,
                         scrape_odds_history=scrape_odds_history,
                         target_bookmaker=target_bookmaker,
+                        bookies_filter=bookies_filter_enum,
                     )
             else:
                 logger.info(f"""
                     Scraping upcoming matches for sport={sport}, date={date}, markets={markets},
-                    scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}
+                    scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker},
+                    bookies_filter={bookies_filter}
                 """)
                 return await retry_scrape(
                     scraper.scrape_upcoming,
@@ -176,6 +189,7 @@ async def run_scraper(
                     markets=markets,
                     scrape_odds_history=scrape_odds_history,
                     target_bookmaker=target_bookmaker,
+                    bookies_filter=bookies_filter_enum,
                 )
 
         else:
