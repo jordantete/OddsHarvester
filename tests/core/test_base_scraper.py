@@ -256,7 +256,9 @@ async def test_scrape_match_data(setup_base_scraper_mocks):
         "https://oddsportal.com/football/england/arsenal-chelsea/123456", timeout=15000, wait_until="domcontentloaded"
     )
 
-    scraper._extract_match_details_event_header.assert_called_once_with(page_mock)
+    scraper._extract_match_details_event_header.assert_called_once_with(
+        page_mock, "https://oddsportal.com/football/england/arsenal-chelsea/123456"
+    )
 
     mocks["market_extractor_mock"].scrape_markets.assert_called_once_with(
         page=page_mock,
@@ -342,7 +344,9 @@ async def test_extract_match_details_event_header(json_mock, bs4_mock, setup_bas
     json_mock.loads.return_value = parsed_data
 
     # Call the method under test
-    result = await scraper._extract_match_details_event_header(page=page_mock)
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock, match_link="https://www.oddsportal.com/football/england/arsenal-chelsea-123456"
+    )
 
     # Verify interactions
     page_mock.content.assert_called_once()
@@ -351,6 +355,7 @@ async def test_extract_match_details_event_header(json_mock, bs4_mock, setup_bas
     json_mock.loads.assert_called_once()
 
     # Verify the result has expected fields
+    assert result["match_link"] == "https://www.oddsportal.com/football/england/arsenal-chelsea-123456"
     assert result["home_team"] == "Arsenal"
     assert result["away_team"] == "Chelsea"
     assert result["league_name"] == "Premier League"
@@ -378,7 +383,9 @@ async def test_extract_match_details_missing_div(bs4_mock, setup_base_scraper_mo
     soup_mock.find.return_value = None
 
     # Call the method under test
-    result = await scraper._extract_match_details_event_header(page=page_mock)
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock, match_link="https://www.oddsportal.com/football/england/test-match"
+    )
 
     # Verify result is None when the div is missing
     assert result is None
@@ -406,7 +413,9 @@ async def test_extract_match_details_invalid_json(json_mock, bs4_mock, setup_bas
     json_mock.loads.side_effect = json.JSONDecodeError("Invalid JSON", "invalid JSON", 0)
 
     # Call the method under test
-    result = await scraper._extract_match_details_event_header(page=page_mock)
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock, match_link="https://www.oddsportal.com/football/england/test-match"
+    )
 
     # Verify result is None when JSON is invalid
     assert result is None

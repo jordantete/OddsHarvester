@@ -154,6 +154,7 @@ Retrieve odds and event details for upcoming sports matches.
 - If both `--leagues` and `--date` are provided, the scraper **will only consider the leagues**, meaning **all upcoming matches for those leagues will be scraped**, regardless of the `--date` argument.
 - **If `--match_links` is provided, it overrides `--sport`, `--date`, and `--leagues`, and only the specified match links will be scraped.**
 - **All match links must belong to the same sport** when using `--match_links`.
+- **When providing multiple `--match_links`, separate each URL with a space** (not commas). Each URL should be quoted individually if it contains special characters like `#`.
 - **For best results, ensure the proxy's region matches the `BROWSER_LOCALE_TIMEZONE` and `BROWSER_TIMEZONE_ID` settings.**
 
 #### **Example Usage:**
@@ -177,6 +178,10 @@ Retrieve odds and event details for upcoming sports matches.
 - **Scrapes football matches in preview mode (average odds only, faster):**
 
 `uv run python src/main.py scrape_upcoming --sport football --date 20250101 --markets over_under_2_5 --preview_submarkets_only --headless`
+
+- **Scrapes specific matches using match links (note the space-separated URLs, each quoted):**
+
+`uv run python src/main.py scrape_upcoming --sport football --match_links "https://www.oddsportal.com/football/..." "https://www.oddsportal.com/football/..." --markets 1x2`
 
 #### **2. Scrape Historical Odds**
 

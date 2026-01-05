@@ -228,7 +228,7 @@ class BaseScraper:
             # Apply bookmaker filter before extracting odds
             await self.browser_helper.ensure_bookies_filter_selected(page=page, desired_filter=bookies_filter)
 
-            match_details = await self._extract_match_details_event_header(page)
+            match_details = await self._extract_match_details_event_header(page, match_link)
 
             if not match_details:
                 self.logger.warning(
@@ -262,12 +262,13 @@ class BaseScraper:
             self.logger.error(f"Error scraping match data from {match_link}: {e}")
             return None
 
-    async def _extract_match_details_event_header(self, page: Page) -> dict[str, Any] | None:
+    async def _extract_match_details_event_header(self, page: Page, match_link: str) -> dict[str, Any] | None:
         """
         Extract match details such as date, teams, and scores from the react event header.
 
         Args:
             page (Page): A Playwright Page instance for this task.
+            match_link (str): The link to the match page.
 
         Returns:
             Optional[Dict[str, Any]]: A dictionary containing match details, or None if header is not found.
@@ -313,13 +314,16 @@ class BaseScraper:
             return {
                 "scraped_date": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S %Z"),
                 "match_date": match_date,
+                "match_link": match_link,
                 "home_team": event_data.get("home"),
                 "away_team": event_data.get("away"),
                 "league_name": event_data.get("tournamentName"),
                 "home_score": event_body.get("homeResult"),
                 "away_score": event_body.get("awayResult"),
                 "partial_results": clean_html_text(event_body.get("partialresult")),
-                "venue": event_body.get("venue"),
+                "venue": event_body.get("venue").encode("ascii", "ignore").decode("ascii")
+                if event_body.get("venue")
+                else None,
                 "venue_town": event_body.get("venueTown").encode("ascii", "ignore").decode("ascii")
                 if event_body.get("venueTown")
                 else None,
