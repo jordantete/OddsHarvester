@@ -4,6 +4,7 @@ import os
 
 from bs4 import BeautifulSoup
 
+from src.utils.period_constants import MatchPeriod
 from src.utils.sport_market_constants import (
     AmericanFootballAsianHandicapMarket,
     AmericanFootballMarket,
@@ -104,6 +105,35 @@ def is_running_in_docker() -> bool:
     except (PermissionError, OSError) as e:
         logger.warning(f"Error checking Docker environment: {e!s}")
         return False
+
+
+def validate_and_convert_period(period: str, sport: str | None) -> MatchPeriod:
+    """
+    Validate and convert period string to MatchPeriod enum.
+
+    Args:
+        period: The period CLI value to convert.
+        sport: The sport being scraped (used for validation).
+
+    Returns:
+        MatchPeriod: The validated period enum.
+    """
+    # Convert period string to MatchPeriod enum
+    try:
+        period_enum = MatchPeriod.from_cli_value(period)
+    except ValueError:
+        logger.warning(f"Invalid period '{period}', defaulting to full_time")
+        period_enum = MatchPeriod.FULL_TIME
+
+    # Only apply non-default period for football
+    if sport and sport.lower() != "football" and period_enum != MatchPeriod.FULL_TIME:
+        logger.warning(
+            f"Period selection '{period}' is only supported for football. "
+            f"Using default period (full_time) for sport '{sport}'."
+        )
+        period_enum = MatchPeriod.FULL_TIME
+
+    return period_enum
 
 
 def clean_html_text(html_content: str | None) -> str | None:

@@ -45,3 +45,14 @@ class TestMatchPeriod:
         assert "full_time" in cli_values
         assert "1st_half" in cli_values
         assert "2nd_half" in cli_values
+
+    def test_from_internal_value_valid(self):
+        """Test converting from internal value to enum."""
+        assert MatchPeriod.from_internal_value("FullTime") == MatchPeriod.FULL_TIME
+        assert MatchPeriod.from_internal_value("FirstHalf") == MatchPeriod.FIRST_HALF
+        assert MatchPeriod.from_internal_value("SecondHalf") == MatchPeriod.SECOND_HALF
+
+    def test_from_internal_value_invalid(self):
+        """Test converting from invalid internal value raises error."""
+        with pytest.raises(ValueError, match="Invalid internal value for MatchPeriod"):
+            MatchPeriod.from_internal_value("InvalidPeriod")

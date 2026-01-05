@@ -36,6 +36,7 @@ def main():
                 headless=args["headless"],
                 preview_submarkets_only=args["preview_submarkets_only"],
                 bookies_filter=args["bookies_filter"],
+                period=args["period"],
             )
         )
 

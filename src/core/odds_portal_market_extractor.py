@@ -12,6 +12,7 @@ from src.core.market_extraction import (
     SubmarketExtractor,
 )
 from src.core.sport_market_registry import SportMarketRegistry
+from src.utils.period_constants import MatchPeriod
 
 
 class OddsPortalMarketExtractor:
@@ -90,7 +91,7 @@ class OddsPortalMarketExtractor:
                         # Normal mode: scrape each market individually
                         self.logger.info(f"Scraping market: {market} (Period: {period})")
                         market_data[f"{market}_market"] = await market_methods[market](
-                            self, page, period, scrape_odds_history, target_bookmaker, preview_submarkets_only
+                            self, page, period, scrape_odds_history, target_bookmaker, preview_submarkets_only, sport
                         )
                 else:
                     self.logger.warning(f"Market '{market}' is not supported for sport '{sport}'.")
@@ -123,6 +124,7 @@ class OddsPortalMarketExtractor:
                             scrape_odds_history=scrape_odds_history,
                             target_bookmaker=target_bookmaker,
                             preview_submarkets_only=preview_submarkets_only,
+                            sport=sport,
                         )
 
                         # Distribute the results to each specific market
@@ -146,6 +148,7 @@ class OddsPortalMarketExtractor:
         scrape_odds_history: bool = False,
         target_bookmaker: str | None = None,
         preview_submarkets_only: bool = False,
+        sport: str | None = None,
     ) -> list:
         """
         Extracts odds for a given main market and optional specific sub-market.
@@ -159,6 +162,7 @@ class OddsPortalMarketExtractor:
             scrape_odds_history (bool): Whether to scrape and attach odds history.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
             preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets.
+            sport (str): The sport being scraped (used for period selection).
 
         Returns:
             list[dict]: A list of dictionaries containing bookmaker odds.
@@ -176,6 +180,16 @@ class OddsPortalMarketExtractor:
 
             # Wait for market switch to complete
             await self.navigation_manager.wait_for_market_switch(page, main_market)
+
+            # Ensure correct period is selected after market switch (football only)
+            if sport and sport.lower() == "football":
+                try:
+                    period_enum = MatchPeriod.from_internal_value(period)
+                    await self.browser_helper.ensure_period_selected(page=page, desired_period=period_enum)
+                except ValueError as e:
+                    self.logger.warning(f"Invalid period value '{period}': {e}. Continuing with current period.")
+            else:
+                self.logger.debug(f"Period selection skipped for sport: {sport}")
 
             # Handle different scraping modes
             if preview_submarkets_only:

@@ -96,6 +96,7 @@ class TestSportMarketRegistrar:
             scrape_odds_history=False,
             target_bookmaker=None,
             preview_submarkets_only=False,
+            sport=None,
         )
 
     def test_register_football_markets(self):

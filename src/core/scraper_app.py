@@ -10,6 +10,7 @@ from src.utils.bookies_filter_enum import BookiesFilter
 from src.utils.command_enum import CommandEnum
 from src.utils.period_constants import MatchPeriod
 from src.utils.proxy_manager import ProxyManager
+from src.utils.utils import validate_and_convert_period
 
 logger = logging.getLogger("ScraperApp")
 MAX_RETRIES = 3
@@ -54,23 +55,9 @@ async def run_scraper(
     period: str = MatchPeriod.FULL_TIME.value,
 ) -> dict:
     """Runs the scraping process and handles execution."""
-    # Convert bookies_filter string to BookiesFilter enum
+
     bookies_filter_enum = BookiesFilter(bookies_filter)
-
-    # Convert period string to MatchPeriod enum
-    try:
-        period_enum = MatchPeriod.from_cli_value(period)
-    except ValueError:
-        logger.warning(f"Invalid period '{period}', defaulting to full_time")
-        period_enum = MatchPeriod.FULL_TIME
-
-    # Only apply non-default period for football
-    if sport and sport.lower() != "football" and period_enum != MatchPeriod.FULL_TIME:
-        logger.warning(
-            f"Period selection '{period}' is only supported for football. "
-            f"Using default period (full_time) for sport '{sport}'."
-        )
-        period_enum = MatchPeriod.FULL_TIME
+    period_enum = validate_and_convert_period(period, sport)
 
     logger.info(
         f"Starting scraper with parameters: command={command}, match_links={match_links}, "

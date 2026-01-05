@@ -234,10 +234,6 @@ class BaseScraper:
             # Apply bookmaker filter before extracting odds
             await self.browser_helper.ensure_bookies_filter_selected(page=page, desired_filter=bookies_filter)
 
-            # Apply period selection (football only) before extracting odds
-            if sport and sport.lower() == "football":
-                await self.browser_helper.ensure_period_selected(page=page, desired_period=period)
-
             match_details = await self._extract_match_details_event_header(page, match_link)
 
             if not match_details:

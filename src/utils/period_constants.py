@@ -34,3 +34,14 @@ class MatchPeriod(Enum):
     @classmethod
     def get_all_cli_values(cls) -> list[str]:
         return [period.value for period in cls]
+
+    @classmethod
+    def from_internal_value(cls, internal_value: str) -> "MatchPeriod":
+        internal_map = {
+            "FullTime": cls.FULL_TIME,
+            "FirstHalf": cls.FIRST_HALF,
+            "SecondHalf": cls.SECOND_HALF,
+        }
+        if internal_value not in internal_map:
+            raise ValueError(f"Invalid internal value for MatchPeriod: {internal_value}")
+        return internal_map[internal_value]

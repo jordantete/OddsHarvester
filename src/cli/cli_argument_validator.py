@@ -387,15 +387,7 @@ class CLIArgumentValidator:
         return errors
 
     def _validate_period(self, period: str, sport: str | None) -> None:
-        """
-        Validates the period argument.
-        For non-football sports, logs a warning and resets to full_time.
-
-        Args:
-            period: The period CLI value.
-            sport: The sport being scraped.
-        """
-        # Validate that period value is valid
+        """Validates the period argument."""
         try:
             period_enum = MatchPeriod.from_cli_value(period)
         except ValueError:
