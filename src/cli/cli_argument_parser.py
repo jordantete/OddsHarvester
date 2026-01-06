@@ -5,7 +5,16 @@ from src.storage.storage_format import StorageFormat
 from src.storage.storage_type import StorageType
 from src.utils.bookies_filter_enum import BookiesFilter
 from src.utils.odds_format_enum import OddsFormat
-from src.utils.period_constants import BasketballPeriod, FootballPeriod, TennisPeriod
+from src.utils.period_constants import (
+    AmericanFootballPeriod,
+    BaseballPeriod,
+    BasketballPeriod,
+    FootballPeriod,
+    IceHockeyPeriod,
+    RugbyLeaguePeriod,
+    RugbyUnionPeriod,
+    TennisPeriod,
+)
 from src.utils.sport_market_constants import Sport
 
 
@@ -163,6 +172,11 @@ class CLIArgumentParser:
         all_period_values.update([p.value for p in FootballPeriod])
         all_period_values.update([p.value for p in TennisPeriod])
         all_period_values.update([p.value for p in BasketballPeriod])
+        all_period_values.update([p.value for p in RugbyLeaguePeriod])
+        all_period_values.update([p.value for p in RugbyUnionPeriod])
+        all_period_values.update([p.value for p in AmericanFootballPeriod])
+        all_period_values.update([p.value for p in IceHockeyPeriod])
+        all_period_values.update([p.value for p in BaseballPeriod])
 
         parser.add_argument(
             "--period",
@@ -170,10 +184,14 @@ class CLIArgumentParser:
             choices=sorted(all_period_values),
             default=None,
             help=(
-                "⏱️ Match period to scrape (optional, defaults to sport's default period). "
-                "Football: full_time (default), 1st_half, 2nd_half | "
-                "Tennis: full_time (default), 1st_set to 2nd_set | "
-                "Basketball: full_including_ot (default), 1st_half, 2nd_half, 1st_quarter to 4th_quarter"
+                "⏱️ Match period to scrape (optional, defaults to sport's default). "
+                "Football: full_time, 1st_half, 2nd_half | "
+                "Tennis: full_time, 1st_set and 2nd_set | "
+                "Basketball: full_including_ot, 1st/2nd_half, 1st-4th_quarter | "
+                "Rugby League/Union: full_time, 1st_half | "
+                "American Football: full_including_ot, 1st/2nd_half, 1st-4th_quarter | "
+                "Ice Hockey: full_time, 1st-3rd_period | "
+                "Baseball: full_including_ot, full_time, 1st_half"
             ),
         )
 

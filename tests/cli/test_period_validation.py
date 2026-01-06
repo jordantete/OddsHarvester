@@ -63,7 +63,7 @@ class TestPeriodValidation:
 
     def test_validate_period_unregistered_sport(self, caplog):
         """Test that unregistered sport logs a warning."""
-        self.validator._validate_period(period="full_time", sport="rugby-league")
+        self.validator._validate_period(period="full_time", sport="cricket")
 
         # Check that warning was logged
         assert any("does not have period configuration" in record.message for record in caplog.records)

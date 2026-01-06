@@ -2,7 +2,16 @@ from unittest.mock import patch
 
 import pytest
 
-from src.utils.period_constants import BasketballPeriod, FootballPeriod, TennisPeriod
+from src.utils.period_constants import (
+    AmericanFootballPeriod,
+    BaseballPeriod,
+    BasketballPeriod,
+    FootballPeriod,
+    IceHockeyPeriod,
+    RugbyLeaguePeriod,
+    RugbyUnionPeriod,
+    TennisPeriod,
+)
 from src.utils.sport_market_constants import (
     AmericanFootballAsianHandicapMarket,
     AmericanFootballMarket,
@@ -227,6 +236,42 @@ def test_validate_and_convert_period_valid_basketball():
     assert validate_and_convert_period("4th_quarter", "basketball") == BasketballPeriod.FOURTH_QUARTER
 
 
+def test_validate_and_convert_period_valid_rugby_league():
+    """Test valid period for rugby league returns correct enum."""
+    assert validate_and_convert_period("full_time", "rugby-league") == RugbyLeaguePeriod.FULL_TIME
+    assert validate_and_convert_period("1st_half", "rugby-league") == RugbyLeaguePeriod.FIRST_HALF
+
+
+def test_validate_and_convert_period_valid_rugby_union():
+    """Test valid period for rugby union returns correct enum."""
+    assert validate_and_convert_period("full_time", "rugby-union") == RugbyUnionPeriod.FULL_TIME
+    assert validate_and_convert_period("1st_half", "rugby-union") == RugbyUnionPeriod.FIRST_HALF
+
+
+def test_validate_and_convert_period_valid_american_football():
+    """Test valid period for american football returns correct enum."""
+    assert (
+        validate_and_convert_period("full_including_ot", "american-football")
+        == AmericanFootballPeriod.FULL_INCLUDING_OT
+    )
+    assert validate_and_convert_period("1st_quarter", "american-football") == AmericanFootballPeriod.FIRST_QUARTER
+    assert validate_and_convert_period("4th_quarter", "american-football") == AmericanFootballPeriod.FOURTH_QUARTER
+
+
+def test_validate_and_convert_period_valid_ice_hockey():
+    """Test valid period for ice hockey returns correct enum."""
+    assert validate_and_convert_period("full_time", "ice-hockey") == IceHockeyPeriod.FULL_TIME
+    assert validate_and_convert_period("1st_period", "ice-hockey") == IceHockeyPeriod.FIRST_PERIOD
+    assert validate_and_convert_period("3rd_period", "ice-hockey") == IceHockeyPeriod.THIRD_PERIOD
+
+
+def test_validate_and_convert_period_valid_baseball():
+    """Test valid period for baseball returns correct enum."""
+    assert validate_and_convert_period("full_including_ot", "baseball") == BaseballPeriod.FULL_INCLUDING_OT
+    assert validate_and_convert_period("full_time", "baseball") == BaseballPeriod.FULL_TIME
+    assert validate_and_convert_period("1st_half", "baseball") == BaseballPeriod.FIRST_HALF
+
+
 def test_validate_and_convert_period_case_insensitive():
     """Test that sport comparison is case-insensitive."""
     assert validate_and_convert_period("1st_half", "FOOTBALL") == FootballPeriod.FIRST_HALF
@@ -254,7 +299,7 @@ def test_validate_and_convert_period_wrong_period_for_sport():
 
 def test_validate_and_convert_period_unregistered_sport():
     """Test that unregistered sports return None."""
-    result = validate_and_convert_period("full_time", "rugby-league")
+    result = validate_and_convert_period("full_time", "cricket")
     assert result is None
 
 

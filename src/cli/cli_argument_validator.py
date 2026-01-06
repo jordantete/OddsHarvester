@@ -396,7 +396,8 @@ class CLIArgumentValidator:
         if not SportPeriodRegistry.is_sport_registered(sport.lower()):
             self.logger.warning(
                 f"Sport '{sport}' does not have period configuration. "
-                f"Period selection '{period}' is only supported for football, tennis, and basketball."
+                f"Period selection '{period}' is only supported for football, tennis, basketball, "
+                "rugby-league, rugby-union, american-football, ice-hockey, and baseball."
             )
             return
 
