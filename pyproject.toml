@@ -1,35 +1,52 @@
 [project]
-name = "OddsHarvester"
+name = "oddsharvester"
 version = "0.1.0"
 description = "A Python application to scrape and manage odds data from OddsPortal website."
 authors = [{ name = "Jordan TETE", email = "tetej171@gmail.com" }]
 readme = "README.md"
 license = { file = "LICENSE.txt" }
 requires-python = ">=3.12"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+]
 dependencies = [
     "beautifulsoup4>=4.14.3",
     "boto3>=1.42.21",
+    "click>=8.3.1",
     "lxml>=6.0.2",
     "playwright>=1.57.0",
-    "pytz>=2025.2"
+    "pytz>=2025.2",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pre-commit>=4.5.1",
+[project.scripts]
+oh = "oddsharvester.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/jordantete/OddsHarvester"
+Repository = "https://github.com/jordantete/OddsHarvester"
+Issues = "https://github.com/jordantete/OddsHarvester/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+test = [
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.0.0",
+]
+dev = [
+    "pre-commit>=4.5.1",
     "ruff>=0.14.10",
 ]
 
-[project.urls]
-repository= "https://github.com/jordantete/OddsHarvester"
-issues = "https://github.com/jordantete/OddsHarvester/issues"
-discussions = "https://github.com/jordantete/OddsHarvester/discussions"
-
 [tool.pytest.ini_options]
-pythonpath = "."
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
@@ -38,7 +55,7 @@ python_functions = "test_*"
 [tool.ruff]
 line-length = 120
 target-version = "py312"
-src = ["src", "tests"]
+src = ["src/oddsharvester", "tests"]
 
 [tool.ruff.lint]
 # Enable comprehensive rule sets for a production project
@@ -71,23 +88,9 @@ line-ending = "auto"
 docstring-code-format = true
 
 [tool.ruff.lint.isort]
-known-first-party = ["src"]
+known-first-party = ["oddsharvester"]
 force-sort-within-sections = true
 
 [tool.ruff.lint.per-file-ignores]
 # Tests can use more flexible patterns
 "tests/**" = ["S101", "S105", "S106", "S108", "PT011", "SIM117"]
-# Lambda handler may need different patterns
-"src/lambda_handler.py" = ["T201"]
-# CLI help messages can use unicode characters
-"src/cli/cli_help_message_generator.py" = ["RUF001"]
-
-[build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["."]
-
-[tool.setuptools]
-include-package-data = true

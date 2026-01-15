@@ -31,6 +31,6 @@ FROM base AS local-dev
 # Activate the virtual environment
 ENV PATH="${LAMBDA_TASK_ROOT}/.venv/bin:$PATH"
 
-# Set default command for local testing
-CMD ["xvfb-run", "--", "python3", "-m", "src.main"]
+# Set default command for local testing (use the new 'oh' CLI)
+CMD ["xvfb-run", "--", "oh"]
 
