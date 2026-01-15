@@ -1,7 +1,7 @@
 import logging
 
-from src.storage.storage_format import StorageFormat
-from src.storage.storage_type import StorageType
+from oddsharvester.storage.storage_format import StorageFormat
+from oddsharvester.storage.storage_type import StorageType
 
 logger = logging.getLogger("StorageManager")
 

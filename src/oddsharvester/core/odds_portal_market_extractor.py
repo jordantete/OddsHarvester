@@ -3,16 +3,16 @@ from typing import Any
 
 from playwright.async_api import Page
 
-from src.core.browser_helper import BrowserHelper
-from src.core.market_extraction import (
+from oddsharvester.core.browser_helper import BrowserHelper
+from oddsharvester.core.market_extraction import (
     MarketGrouping,
     NavigationManager,
     OddsHistoryExtractor,
     OddsParser,
     SubmarketExtractor,
 )
-from src.core.sport_market_registry import SportMarketRegistry
-from src.core.sport_period_registry import SportPeriodRegistry
+from oddsharvester.core.sport_market_registry import SportMarketRegistry
+from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 
 
 class OddsPortalMarketExtractor:

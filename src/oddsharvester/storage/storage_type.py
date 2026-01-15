@@ -1,7 +1,7 @@
 from enum import Enum
 
-from src.storage.local_data_storage import LocalDataStorage
-from src.storage.remote_data_storage import RemoteDataStorage
+from oddsharvester.storage.local_data_storage import LocalDataStorage
+from oddsharvester.storage.remote_data_storage import RemoteDataStorage
 
 
 class StorageType(Enum):

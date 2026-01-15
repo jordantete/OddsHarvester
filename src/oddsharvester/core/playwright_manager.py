@@ -3,8 +3,8 @@ import random
 
 from playwright.async_api import async_playwright
 
-from src.utils.constants import PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER
-from src.utils.utils import is_running_in_docker
+from oddsharvester.utils.constants import PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER
+from oddsharvester.utils.utils import is_running_in_docker
 
 
 class PlaywrightManager:

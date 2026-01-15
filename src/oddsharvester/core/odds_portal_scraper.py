@@ -4,10 +4,10 @@ from typing import Any
 
 from playwright.async_api import Page
 
-from src.core.base_scraper import BaseScraper
-from src.core.url_builder import URLBuilder
-from src.utils.bookies_filter_enum import BookiesFilter
-from src.utils.constants import ODDSPORTAL_BASE_URL
+from oddsharvester.core.base_scraper import BaseScraper
+from oddsharvester.core.url_builder import URLBuilder
+from oddsharvester.utils.bookies_filter_enum import BookiesFilter
+from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
 
 
 class OddsPortalScraper(BaseScraper):

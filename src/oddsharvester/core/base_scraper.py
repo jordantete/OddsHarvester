@@ -9,13 +9,13 @@ from typing import Any
 from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError
 
-from src.core.browser_helper import BrowserHelper
-from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
-from src.core.playwright_manager import PlaywrightManager
-from src.utils.bookies_filter_enum import BookiesFilter
-from src.utils.constants import ODDSPORTAL_BASE_URL
-from src.utils.odds_format_enum import OddsFormat
-from src.utils.utils import clean_html_text
+from oddsharvester.core.browser_helper import BrowserHelper
+from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
+from oddsharvester.core.playwright_manager import PlaywrightManager
+from oddsharvester.utils.bookies_filter_enum import BookiesFilter
+from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
+from oddsharvester.utils.odds_format_enum import OddsFormat
+from oddsharvester.utils.utils import clean_html_text
 
 
 class BaseScraper:

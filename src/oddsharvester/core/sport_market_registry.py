@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from src.utils.sport_market_constants import (
+from oddsharvester.utils.sport_market_constants import (
     AmericanFootballAsianHandicapMarket,
     AmericanFootballOverUnderMarket,
     BaseballOverUnderMarket,

@@ -230,7 +230,7 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "korisliiga-finland": "https://www.oddsportal.com/basketball/finland/korisliiga/",
         "liga-acb-brazil": "https://www.oddsportal.com/basketball/brazil/nbb/",
         "pba-philippines": "https://www.oddsportal.com/basketball/philippines/pba/",
-        "liga-națională-romania": "https://www.oddsportal.com/basketball/romania/liga-nationala/",
+        "liga-nationala-romania": "https://www.oddsportal.com/basketball/romania/liga-nationala/",
         "liga-nacional-chile": "https://www.oddsportal.com/basketball/chile/liga-nacional/",
         "liga-uruguay": "https://www.oddsportal.com/basketball/uruguay/liga-uruguaya/",
         "liga-bolivia": "https://www.oddsportal.com/basketball/bolivia/lnb/",

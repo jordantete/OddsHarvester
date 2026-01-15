@@ -1,15 +1,15 @@
 import asyncio
 import logging
 
-from src.core.browser_helper import BrowserHelper
-from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
-from src.core.odds_portal_scraper import OddsPortalScraper
-from src.core.playwright_manager import PlaywrightManager
-from src.core.sport_market_registry import SportMarketRegistrar
-from src.utils.bookies_filter_enum import BookiesFilter
-from src.utils.command_enum import CommandEnum
-from src.utils.proxy_manager import ProxyManager
-from src.utils.utils import validate_and_convert_period
+from oddsharvester.core.browser_helper import BrowserHelper
+from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
+from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
+from oddsharvester.core.playwright_manager import PlaywrightManager
+from oddsharvester.core.sport_market_registry import SportMarketRegistrar
+from oddsharvester.utils.bookies_filter_enum import BookiesFilter
+from oddsharvester.utils.command_enum import CommandEnum
+from oddsharvester.utils.proxy_manager import ProxyManager
+from oddsharvester.utils.utils import validate_and_convert_period
 
 logger = logging.getLogger("ScraperApp")
 MAX_RETRIES = 3
