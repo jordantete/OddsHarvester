@@ -1,9 +1,9 @@
 import pytest
 
-from src.core.url_builder import URLBuilder
-from src.utils.constants import ODDSPORTAL_BASE_URL
-from src.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
-from src.utils.sport_market_constants import Sport
+from oddsharvester.core.url_builder import URLBuilder
+from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
+from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
+from oddsharvester.utils.sport_market_constants import Sport
 
 # Create test mapping for sports and leagues
 SPORTS_LEAGUES_URLS_MAPPING[Sport.FOOTBALL] = {

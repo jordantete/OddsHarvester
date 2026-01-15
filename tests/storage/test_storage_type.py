@@ -1,8 +1,8 @@
 import pytest
 
-from src.storage.local_data_storage import LocalDataStorage
-from src.storage.remote_data_storage import RemoteDataStorage
-from src.storage.storage_type import StorageType
+from oddsharvester.storage.local_data_storage import LocalDataStorage
+from oddsharvester.storage.remote_data_storage import RemoteDataStorage
+from oddsharvester.storage.storage_type import StorageType
 
 
 def test_storage_type_local():

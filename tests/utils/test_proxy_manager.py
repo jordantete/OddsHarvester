@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.utils.proxy_manager import ProxyManager
+from oddsharvester.utils.proxy_manager import ProxyManager
 
 
 @pytest.fixture
@@ -26,14 +26,14 @@ def test_parse_proxies_valid(proxy_manager):
 def test_parse_proxies_invalid_format():
     invalid_proxies = ["invalid_proxy_format", "http://proxy3.com:8080 user_only"]
 
-    with patch("src.utils.proxy_manager.logging.getLogger") as mock_logger:
+    with patch("oddsharvester.utils.proxy_manager.logging.getLogger") as mock_logger:
         proxy_manager = ProxyManager(cli_proxies=invalid_proxies)
         assert proxy_manager.proxies == []
         assert mock_logger.return_value.error.called
 
 
 def test_no_proxies_logs_warning():
-    with patch("src.utils.proxy_manager.logging.getLogger") as mock_logger:
+    with patch("oddsharvester.utils.proxy_manager.logging.getLogger") as mock_logger:
         proxy_manager = ProxyManager(cli_proxies=None)
         assert proxy_manager.proxies == []
         mock_logger.return_value.info.assert_called_with("No proxies provided, running without proxy.")
@@ -78,7 +78,7 @@ def test_rotate_proxy(proxy_manager):
 
 
 def test_rotate_proxy_no_proxies():
-    with patch("src.utils.proxy_manager.logging.getLogger") as mock_logger:
+    with patch("oddsharvester.utils.proxy_manager.logging.getLogger") as mock_logger:
         proxy_manager = ProxyManager(cli_proxies=None)
         proxy_manager.rotate_proxy()
         assert proxy_manager.get_current_proxy() is None

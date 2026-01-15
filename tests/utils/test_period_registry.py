@@ -1,5 +1,5 @@
-from src.core.sport_period_registry import SportPeriodRegistry
-from src.utils.period_constants import (
+from oddsharvester.core.sport_period_registry import SportPeriodRegistry
+from oddsharvester.utils.period_constants import (
     AmericanFootballPeriod,
     BaseballPeriod,
     BasketballPeriod,

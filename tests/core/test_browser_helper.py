@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from src.core.browser_helper import BrowserHelper
+from oddsharvester.core.browser_helper import BrowserHelper
 
 
 class TestBrowserHelper:

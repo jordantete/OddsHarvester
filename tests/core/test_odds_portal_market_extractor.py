@@ -3,9 +3,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.core.browser_helper import BrowserHelper
-from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
-from src.core.sport_market_registry import SportMarketRegistry
+from oddsharvester.core.browser_helper import BrowserHelper
+from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
+from oddsharvester.core.sport_market_registry import SportMarketRegistry
 
 # Sample HTML for testing
 SAMPLE_HTML_ODDS = """
@@ -151,7 +151,7 @@ class TestOddsPortalMarketExtractor:
     def test_parse_odds_history_modal(self, extractor):
         """Test parsing odds history from a modal HTML."""
         # Arrange
-        with patch("src.core.market_extraction.odds_parser.datetime") as mock_datetime:
+        with patch("oddsharvester.core.market_extraction.odds_parser.datetime") as mock_datetime:
             mock_now = MagicMock()
             mock_now.year = 2025
             mock_datetime.now.return_value = mock_now
@@ -173,7 +173,7 @@ class TestOddsPortalMarketExtractor:
     def test_parse_odds_history_modal_invalid_html(self, extractor):
         """Test parsing odds history from invalid HTML."""
         # Arrange
-        with patch("src.core.market_extraction.odds_parser.datetime") as mock_datetime:
+        with patch("oddsharvester.core.market_extraction.odds_parser.datetime") as mock_datetime:
             mock_now = MagicMock()
             mock_now.year = 2025
             mock_datetime.now.return_value = mock_now
@@ -189,7 +189,7 @@ class TestOddsPortalMarketExtractor:
     def test_parse_odds_history_modal_invalid_date(self, extractor):
         """Test parsing odds history with invalid date format."""
         # Arrange
-        with patch("src.core.market_extraction.odds_parser.datetime") as mock_datetime:
+        with patch("oddsharvester.core.market_extraction.odds_parser.datetime") as mock_datetime:
             mock_now = MagicMock()
             mock_now.year = 2025
             mock_datetime.now.return_value = mock_now

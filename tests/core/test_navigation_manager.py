@@ -2,8 +2,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from src.core.browser_helper import BrowserHelper
-from src.core.market_extraction.navigation_manager import NavigationManager
+from oddsharvester.core.browser_helper import BrowserHelper
+from oddsharvester.core.market_extraction.navigation_manager import NavigationManager
 
 
 class TestNavigationManager:

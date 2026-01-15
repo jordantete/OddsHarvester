@@ -4,7 +4,7 @@ from unittest.mock import mock_open, patch
 from botocore.exceptions import BotoCoreError, NoCredentialsError
 import pytest
 
-from src.storage.remote_data_storage import RemoteDataStorage
+from oddsharvester.storage.remote_data_storage import RemoteDataStorage
 
 
 @pytest.fixture
