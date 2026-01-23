@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -49,10 +50,11 @@ class TestBookiesFilterValidation:
     def test_full_validation_with_bookies_filter(self):
         """Test full argument validation including bookies_filter."""
         # Create a mock args namespace with all required attributes
+        future_date = (datetime.now() + timedelta(days=1)).strftime("%Y%m%d")
         args = argparse.Namespace(
             command="scrape_upcoming",
             sport="football",
-            date="20260107",
+            date=future_date,
             leagues=None,
             markets=["1x2"],
             storage="local",
@@ -76,10 +78,11 @@ class TestBookiesFilterValidation:
 
     def test_full_validation_with_invalid_bookies_filter(self):
         """Test full argument validation with invalid bookies_filter."""
+        future_date = (datetime.now() + timedelta(days=1)).strftime("%Y%m%d")
         args = argparse.Namespace(
             command="scrape_upcoming",
             sport="football",
-            date="20260107",
+            date=future_date,
             leagues=None,
             markets=["1x2"],
             storage="local",

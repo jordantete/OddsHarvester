@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -71,10 +72,11 @@ class TestPeriodValidation:
     def test_full_validation_with_period(self):
         """Test full argument validation including period."""
         # Create a mock args namespace with all required attributes
+        future_date = (datetime.now() + timedelta(days=1)).strftime("%Y%m%d")
         args = argparse.Namespace(
             command="scrape_upcoming",
             sport="football",
-            date="20260107",
+            date=future_date,
             leagues=None,
             markets=["1x2"],
             storage="local",
@@ -99,10 +101,11 @@ class TestPeriodValidation:
 
     def test_full_validation_with_invalid_period(self):
         """Test full argument validation with invalid period."""
+        future_date = (datetime.now() + timedelta(days=1)).strftime("%Y%m%d")
         args = argparse.Namespace(
             command="scrape_upcoming",
             sport="football",
-            date="20260107",
+            date=future_date,
             leagues=None,
             markets=["1x2"],
             storage="local",
