@@ -1,0 +1,86 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+OddsHarvester is a Python web scraper that extracts sports betting odds from oddsportal.com. It uses Playwright for browser automation and BeautifulSoup/lxml for HTML parsing. Supports multiple sports (football, tennis, basketball, rugby, ice hockey, baseball, American football), various betting markets, and stores output locally (JSON/CSV) or remotely (AWS S3).
+
+## Commands
+
+**Package manager**: uv
+
+```bash
+# Install dependencies
+uv sync
+
+# Run the scraper
+uv run python src/main.py scrape_upcoming --sport football --date 20250101 --markets 1x2
+uv run python src/main.py scrape_historic --sport football --leagues england-premier-league --season 2022-2023 --markets 1x2
+
+# Run all tests
+uv run pytest tests/ -q
+
+# Run a single test file
+uv run pytest tests/core/test_url_builder.py -q
+
+# Run a specific test
+uv run pytest tests/core/test_url_builder.py::TestUrlBuilder::test_method_name -q
+
+# Coverage report
+uv run pytest --cov=src/core --cov=src/utils --cov=src/cli --cov=src/storage --cov-report=term
+
+# Lint and format
+uv run ruff format .
+uv run ruff check --fix src/
+```
+
+## Architecture
+
+Four-layer architecture:
+
+```
+CLI Layer (src/cli/) → Core Layer (src/core/) → Data Layer (src/utils/) → Storage Layer (src/storage/)
+```
+
+**Entry points**: `src/main.py` (CLI), `src/lambda_handler.py` (AWS Lambda)
+
+**Core Layer** (`src/core/`):
+
+- `scraper_app.py` — Top-level orchestrator; initializes browser, scraper, and storage
+- `odds_portal_scraper.py` — Navigates pages, extracts match links, coordinates per-match scraping
+- `playwright_manager.py` — Browser lifecycle (launch, context, page creation)
+- `browser_helper.py` — Page interactions (cookies, scrolling, waiting)
+- `odds_portal_market_extractor.py` — Extracts odds for specified markets from a match page
+- `url_builder.py` — Constructs oddsportal.com URLs for historic/upcoming matches
+- `sport_market_registry.py` — Registers market name→tab mappings per sport
+- `sport_period_registry.py` — Manages match period selection (full-time, halves, quarters)
+- `odds_portal_selectors.py` — CSS/XPath selectors for the OddsPortal DOM
+- `market_extraction/` — Sub-components: submarket extraction, odds parsing, odds history, navigation, market grouping
+
+**Data Layer** (`src/utils/`):
+
+- `sport_market_constants.py` — `Sport` enum and per-sport `Market` enums (defines all supported markets)
+- `sport_league_constants.py` — Maps sports to league slugs and URLs
+- `period_constants.py` — Defines match periods per sport
+
+**Storage Layer** (`src/storage/`):
+
+- `storage_manager.py` — Routes to local or remote storage
+- `local_data_storage.py` — JSON/CSV file output
+- `remote_data_storage.py` — AWS S3 upload
+
+## Adding a New Sport
+
+1. Add to `Sport` enum in `src/utils/sport_market_constants.py`
+2. Create market enum classes and add to `SPORT_MARKETS_MAPPING` in the same file
+3. Add league URLs in `src/utils/sport_league_constants.py`
+4. Add period definitions in `src/utils/period_constants.py`
+5. Register markets in `src/core/sport_market_registry.py` (create registration methods, add to `register_all_markets`)
+6. Add tests
+
+## Code Style
+
+- Python >=3.12, line length 120, double quotes
+- Linter/formatter: Ruff (pre-commit hooks enforce this)
+- `S101` (assert) and `T201` (print) are allowed
