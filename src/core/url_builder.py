@@ -3,6 +3,7 @@ import re
 from src.utils.constants import ODDSPORTAL_BASE_URL
 from src.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from src.utils.sport_market_constants import Sport
+from src.utils.league_aliases import get_league_slug_for_season
 
 
 class URLBuilder:
@@ -29,7 +30,17 @@ class URLBuilder:
         Raises:
             ValueError: If the season is provided but does not follow the expected format(s).
         """
+        sport_enum = Sport(sport)
+        
+        # Resolve league alias for this season (handles sponsor name changes)
+        effective_league_slug = get_league_slug_for_season(sport_enum, league, season)
+        
+        # Get base URL using canonical league name
         base_url = URLBuilder.get_league_url(sport, league).rstrip("/")
+        
+        # If alias differs from canonical, replace the league slug in URL
+        if effective_league_slug != league:
+            base_url = URLBuilder._replace_league_in_url(base_url, league, effective_league_slug)
 
         # Treat missing season as current
         if not season:
@@ -55,6 +66,26 @@ class URLBuilder:
             return f"{base_url}-{season}/results/"
 
         raise ValueError(f"Invalid season format: {season}. Expected format: 'YYYY' or 'YYYY-YYYY'")
+
+    @staticmethod
+    def _replace_league_in_url(base_url: str, canonical_league: str, alias_slug: str) -> str:
+        """
+        Replace the league slug in a URL with an alias.
+        
+        Args:
+            base_url: The original URL (e.g., "https://www.oddsportal.com/football/czech-republic/chance-liga")
+            canonical_league: The canonical league key (e.g., "czech-republic-chance-liga")
+            alias_slug: The alias slug to use (e.g., "fortuna-liga")
+            
+        Returns:
+            The URL with the league slug replaced
+        """
+        # The base_url ends with the actual league name from the URL mapping
+        # URL format: https://www.oddsportal.com/football/country/league-name
+        parts = base_url.rsplit("/", 1)
+        if len(parts) == 2:
+            return f"{parts[0]}/{alias_slug}"
+        return base_url
 
     @staticmethod
     def get_upcoming_matches_url(sport: str, date: str, league: str | None = None) -> str:
