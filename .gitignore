@@ -55,3 +55,6 @@ python/
 
 # Cursor
 *.cursor
+
+# Claude Code
+.claude/

@@ -79,6 +79,15 @@ CLI Layer (src/cli/) → Core Layer (src/core/) → Data Layer (src/utils/) → 
 5. Register markets in `src/core/sport_market_registry.py` (create registration methods, add to `register_all_markets`)
 6. Add tests
 
+## Adding a New League
+
+1. Find the league URL on oddsportal.com (e.g., `https://www.oddsportal.com/football/croatia/hnl/`)
+2. Add an entry to the appropriate sport dictionary in `src/utils/sport_league_constants.py`:
+   ```python
+   "league-slug": "https://www.oddsportal.com/{sport}/{country}/{league}/",
+   ```
+3. The slug should be lowercase with hyphens (e.g., `croatia-hnl`, `japan-j1-league`)
+
 ## Code Style
 
 - Python >=3.12, line length 120, double quotes
