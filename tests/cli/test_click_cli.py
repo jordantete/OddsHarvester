@@ -144,11 +144,19 @@ class TestCommonOptions:
         assert result.exit_code != 0
         assert "positive integer" in result.output.lower()
 
-    def test_invalid_proxy_format(self, runner):
-        """Test invalid proxy format."""
-        result = runner.invoke(cli, ["upcoming", "-s", "football", "-d", "20260201", "--proxy", "invalid"])
+    def test_invalid_proxy_url_format(self, runner):
+        """Test invalid proxy URL format."""
+        result = runner.invoke(cli, ["upcoming", "-s", "football", "-d", "20260201", "--proxy-url", "invalid"])
         assert result.exit_code != 0
-        assert "Invalid proxy format" in result.output
+        assert "Invalid proxy URL" in result.output
+
+    def test_valid_proxy_url(self, runner):
+        """Test valid proxy URL format is accepted."""
+        result = runner.invoke(
+            cli, ["upcoming", "-s", "football", "-d", "20260201", "--proxy-url", "http://proxy:8080"]
+        )
+        # Will fail during scraping but should pass validation
+        assert "Invalid proxy URL" not in result.output
 
     def test_invalid_match_link(self, runner):
         """Test invalid match link format."""

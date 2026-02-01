@@ -11,7 +11,7 @@ from oddsharvester.cli.validators import (
     validate_markets,
     validate_match_links,
     validate_period,
-    validate_proxies,
+    validate_proxy_url,
 )
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.odds_format_enum import OddsFormat
@@ -121,11 +121,23 @@ def common_options(func):
         help="Specific match URL(s) to scrape. Can be repeated.",
     )
     @click.option(
-        "--proxy",
-        "proxies",
-        multiple=True,
-        callback=validate_proxies,
-        help="Proxy in 'scheme://host:port [user pass]' format. Can be repeated.",
+        "--proxy-url",
+        "proxy_url",
+        callback=validate_proxy_url,
+        envvar="OH_PROXY_URL",
+        help="Proxy URL (e.g., http://proxy.example.com:8080 or socks5://proxy:1080).",
+    )
+    @click.option(
+        "--proxy-user",
+        "proxy_user",
+        envvar="OH_PROXY_USER",
+        help="Proxy username (optional).",
+    )
+    @click.option(
+        "--proxy-pass",
+        "proxy_pass",
+        envvar="OH_PROXY_PASS",
+        help="Proxy password (optional).",
     )
     @click.option(
         "--user-agent",

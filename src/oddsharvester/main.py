@@ -8,14 +8,31 @@ from oddsharvester.storage.storage_manager import store_data
 from oddsharvester.utils.setup_logging import setup_logger
 
 
+def _parse_legacy_proxy(proxies: list | None) -> tuple[str | None, str | None, str | None]:
+    """Convert legacy proxy format to new format. Takes first proxy if multiple provided."""
+    if not proxies:
+        return None, None, None
+
+    proxy_entry = proxies[0]
+    parts = proxy_entry.strip().split()
+    proxy_url = parts[0] if parts else None
+    proxy_user = parts[1] if len(parts) >= 2 else None
+    proxy_pass = parts[2] if len(parts) >= 3 else None
+
+    return proxy_url, proxy_user, proxy_pass
+
+
 def main():
-    """Main entry point for CLI usage."""
+    """Main entry point for legacy CLI usage. Prefer using the Click CLI instead."""
     setup_logger(log_level=logging.DEBUG, save_to_file=False)
     logger = logging.getLogger("Main")
 
     try:
         args = CLIArgumentHandler().parse_and_validate_args()
         logger.info(f"Parsed arguments: {args}")
+
+        # Convert legacy proxy format
+        proxy_url, proxy_user, proxy_pass = _parse_legacy_proxy(args.get("proxies"))
 
         scraped_data = asyncio.run(
             run_scraper(
@@ -27,7 +44,9 @@ def main():
                 season=args["season"],
                 markets=args["markets"],
                 max_pages=args["max_pages"],
-                proxies=args["proxies"],
+                proxy_url=proxy_url,
+                proxy_user=proxy_user,
+                proxy_pass=proxy_pass,
                 browser_user_agent=args["browser_user_agent"],
                 browser_locale_timezone=args["browser_locale_timezone"],
                 browser_timezone_id=args["browser_timezone_id"],

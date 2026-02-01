@@ -42,7 +42,9 @@ async def run_scraper(
     season: str | None = None,
     markets: list | None = None,
     max_pages: int | None = None,
-    proxies: list | None = None,
+    proxy_url: str | None = None,
+    proxy_user: str | None = None,
+    proxy_pass: str | None = None,
     browser_user_agent: str | None = None,
     browser_locale_timezone: str | None = None,
     browser_timezone_id: str | None = None,
@@ -61,14 +63,14 @@ async def run_scraper(
     logger.info(
         f"Starting scraper with parameters: command={command}, match_links={match_links}, "
         f"sport={sport}, date={date}, leagues={leagues}, season={season}, markets={markets}, "
-        f"max_pages={max_pages}, proxies={proxies}, browser_user_agent={browser_user_agent}, "
+        f"max_pages={max_pages}, proxy_url={proxy_url}, browser_user_agent={browser_user_agent}, "
         f"browser_locale_timezone={browser_locale_timezone}, browser_timezone_id={browser_timezone_id}, "
         f"scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}, "
         f"headless={headless}, preview_submarkets_only={preview_submarkets_only}, "
         f"bookies_filter={bookies_filter}, period={period}"
     )
 
-    proxy_manager = ProxyManager(cli_proxies=proxies)
+    proxy_manager = ProxyManager(proxy_url=proxy_url, proxy_user=proxy_user, proxy_pass=proxy_pass)
     SportMarketRegistrar.register_all_markets()
     playwright_manager = PlaywrightManager()
     browser_helper = BrowserHelper()

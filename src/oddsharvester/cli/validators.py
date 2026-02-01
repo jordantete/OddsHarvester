@@ -143,24 +143,19 @@ def validate_period(ctx, param, value):
     return value
 
 
-def validate_proxies(ctx, param, value):
-    """Validate proxy format."""
+def validate_proxy_url(ctx, param, value):
+    """Validate proxy URL format."""
     if not value:
         return None
 
-    proxy_pattern = re.compile(
-        r"^(?P<scheme>https?|socks5|socks4)://(?P<host>[\w\.-]+):(?P<port>\d+)(?:\s+(?P<user>\S+)\s+(?P<pass>\S+))?$"
-    )
+    proxy_pattern = re.compile(r"^(?P<scheme>https?|socks5|socks4)://(?P<host>[\w\.-]+):(?P<port>\d+)$")
 
-    invalid = [p for p in value if not proxy_pattern.match(p)]
-
-    if invalid:
+    if not proxy_pattern.match(value):
         raise click.BadParameter(
-            f"Invalid proxy format: {', '.join(invalid)}. "
-            "Expected: 'http[s]://host:port [user pass]' or 'socks5://host:port [user pass]'"
+            f"Invalid proxy URL '{value}'. Expected format: 'http[s]://host:port' or 'socks5://host:port'"
         )
 
-    return list(value)
+    return value
 
 
 def validate_concurrency(ctx, param, value):
