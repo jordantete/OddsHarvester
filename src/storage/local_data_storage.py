@@ -12,7 +12,7 @@ class LocalDataStorage:
     """
 
     def __init__(
-        self, default_file_path: str = "scraped_data.csv", default_storage_format: StorageFormat = StorageFormat.CSV
+        self, default_file_path: str = "scraped_data", default_storage_format: StorageFormat = StorageFormat.JSON
     ):
         """
         Initialize LocalDataStorage.
