@@ -22,4 +22,8 @@ PLAYWRIGHT_BROWSER_ARGS_DOCKER = [
     "--disable-background-networking",
     "--disable-popup-blocking",
     "--disable-extensions",
+    "--disable-blink-features=AutomationControlled",
+    "--disable-features=IsolateOrigins,site-per-process",
+    "--mute-audio",
+    "--window-size=1280,720",
 ]

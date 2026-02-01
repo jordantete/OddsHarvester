@@ -36,6 +36,23 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "world-championship": "https://www.oddsportal.com/football/world/world-championship",
         "world-cup": "https://www.oddsportal.com/football/world/world-cup",
         "euro-cup": "https://www.oddsportal.com/football/europe/euro",
+        # Additional leagues for backfill
+        "croatia-hnl": "https://www.oddsportal.com/football/croatia/hnl/",
+        "czech-republic-chance-liga": "https://www.oddsportal.com/football/czech-republic/chance-liga/",
+        "slovakia-nike-liga": "https://www.oddsportal.com/football/slovakia/nike-liga/",
+        "hungary-nb-i": "https://www.oddsportal.com/football/hungary/nb-i/",
+        "cyprus-first-division": "https://www.oddsportal.com/football/cyprus/1st-division/",
+        "serbia-super-liga": "https://www.oddsportal.com/football/serbia/super-liga/",
+        "ukraine-premier-league": "https://www.oddsportal.com/football/ukraine/premier-league/",
+        "belarus-vysshaya-liga": "https://www.oddsportal.com/football/belarus/vysshaya-liga/",
+        "ireland-premier-division": "https://www.oddsportal.com/football/ireland/premier-division/",
+        "israel-ligat-haal": "https://www.oddsportal.com/football/israel/ligat-haal/",
+        "japan-j1-league": "https://www.oddsportal.com/football/japan/j1-league/",
+        "argentina-liga-profesional": "https://www.oddsportal.com/football/argentina/liga-profesional/",
+        "conference-league": "https://www.oddsportal.com/football/europe/conference-league/",
+        "poland-ekstraklasa": "https://www.oddsportal.com/football/poland/ekstraklasa/",
+        "sweden-allsvenskan": "https://www.oddsportal.com/football/sweden/allsvenskan/",
+        "finland-veikkausliiga": "https://www.oddsportal.com/football/finland/veikkausliiga/",
     },
     Sport.TENNIS: {
         # ATP
