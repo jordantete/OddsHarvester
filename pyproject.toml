@@ -1,5 +1,5 @@
 [project]
-name = "OddsHarvester"
+name = "oddsharvester"
 version = "0.1.0"
 description = "A Python application to scrape and manage odds data from OddsPortal website."
 authors = [{ name = "Jordan TETE", email = "tetej171@gmail.com" }]
@@ -28,9 +28,9 @@ dev = [
 oddsharvester = "oddsharvester.cli.cli:main"
 
 [project.urls]
-repository= "https://github.com/jordantete/OddsHarvester"
-issues = "https://github.com/jordantete/OddsHarvester/issues"
-discussions = "https://github.com/jordantete/OddsHarvester/discussions"
+Homepage = "https://github.com/jordantete/OddsHarvester"
+Repository = "https://github.com/jordantete/OddsHarvester"
+Issues = "https://github.com/jordantete/OddsHarvester/issues"
 
 [tool.pytest.ini_options]
 pythonpath = "src"
@@ -45,7 +45,6 @@ target-version = "py312"
 src = ["src/oddsharvester", "tests"]
 
 [tool.ruff.lint]
-# Enable comprehensive rule sets for a production project
 select = [
     "E",    # pycodestyle errors
     "W",    # pycodestyle warnings
@@ -83,8 +82,6 @@ force-sort-within-sections = true
 "tests/**" = ["S101", "S105", "S106", "S108", "PT011", "SIM117"]
 # Lambda handler may need different patterns
 "src/oddsharvester/lambda_handler.py" = ["T201"]
-# CLI help messages can use unicode characters
-"src/oddsharvester/cli/cli_help_message_generator.py" = ["RUF001"]
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]

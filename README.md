@@ -13,6 +13,7 @@ OddsHarvester is an application designed to scrape and process sports betting od
 2. [🛠️ Local Installation](#-local-installation)
 3. [⚡ Usage](#-usage)
    - [🔧 CLI Commands](#cli-commands)
+   - [🌐 Environment Variables](#-environment-variables)
    - [🐳 Running Inside a Docker Container](#-running-inside-a-docker-container)
    - [☁️ Cloud Deployment](#-cloud-deployment)
 4. [🤝 Contributing](#-contributing)
@@ -52,7 +53,7 @@ OddsHarvester supports a growing number of sports and their associated betting m
 #### 🗺️ Leagues & Competitions
 
 Leagues and tournaments are mapped per sport in:
-[`sport_league_constants.py`](src/utils/sport_league_constants.py)
+[`sport_league_constants.py`](src/oddsharvester/utils/sport_league_constants.py)
 
 You'll find support for:
 
@@ -109,7 +110,13 @@ You'll find support for:
    Ensure all dependencies are installed and Playwright is set up by running the following command:
 
    ```bash
-   uv run python src/main.py --help
+   oddsharvester --help
+   ```
+
+   Or using the module directly:
+
+   ```bash
+   python -m oddsharvester --help
    ```
 
 By following these steps, you should have **OddsHarvester** set up and ready to use.
@@ -118,133 +125,148 @@ By following these steps, you should have **OddsHarvester** set up and ready to 
 
 ### **🔧 CLI Commands**
 
-OddsHarvester provides a Command-Line Interface (CLI) to scrape sports betting data from oddsportal.com. Use it to retrieve upcoming match odds, analyze historical data, or store results for further processing. Below are the available commands and their options:
+OddsHarvester provides a Command-Line Interface (CLI) to scrape sports betting data from oddsportal.com. Use it to retrieve upcoming match odds, analyze historical data, or store results for further processing.
+
+#### **Quick Reference**
+
+```bash
+# Scrape upcoming matches
+oddsharvester upcoming -s football -d 20250301 -m 1x2
+
+# Scrape historical data
+oddsharvester historic -s football -l england-premier-league --season 2024-2025 -m 1x2
+
+# Show help
+oddsharvester --help
+oddsharvester upcoming --help
+oddsharvester historic --help
+```
 
 #### **1. Scrape Upcoming Matches**
 
 Retrieve odds and event details for upcoming sports matches.
 
+```bash
+oddsharvester upcoming [OPTIONS]
+```
+
 **Options**:
 
-| 🏷️ Option                   | 📝 Description                                                                                                        | 🔐 Required                                         | 🔧 Default      |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | --------------- |
-| `--sport`                   | Specify the sport to scrape (e.g., `football`, `ice-hockey`, `baseball`, `american-football`).                        | ✅                                                  | None            |
-| `--date`                    | Date for matches in `YYYYMMDD` format (e.g., `20250227`).                                                             | ✅ (unless `--match_links` or `--leagues` provided) | None            |
-| `--leagues`                 | Comma-separated leagues to scrape (e.g., `england-premier-league,spain-laliga`).                                      | ❌                                                  | None            |
-| `--markets`                 | Comma-separated betting markets (e.g., `1x2,btts`).                                                                   | ❌                                                  | None            |
-| `--storage`                 | Save data locally or to a remote S3 bucket (`local` or `remote`).                                                     | ❌                                                  | `local`         |
-| `--file_path`               | File path to save data locally (e.g., `output.json`).                                                                 | ❌                                                  | None            |
-| `--format`                  | Format for saving local data (`json` or `csv`).                                                                       | ❌                                                  | None            |
-| `--headless`                | Run the browser in headless mode (`True` or `False`).                                                                 | ❌                                                  | `False`         |
-| `--save_logs`               | Save logs for debugging purposes (`True` or `False`).                                                                 | ❌                                                  | `False`         |
-| `--proxies`                 | List of proxies in `"server user pass"` format. Multiple proxies supported.                                           | ❌                                                  | None            |
-| `--browser_user_agent`      | Custom user agent string for browser requests.                                                                        | ❌                                                  | None            |
-| `--browser_locale_timezone` | Browser locale timezone (e.g., `fr-BE`).                                                                              | ❌                                                  | None            |
-| `--browser_timezone_id`     | Browser timezone ID (e.g., `Europe/Brussels`).                                                                        | ❌                                                  | None            |
-| `--match_links`             | List of specific match links to scrape (overrides other filters).                                                     | ❌                                                  | None            |
-| `--target_bookmaker`        | Filter scraping for a specific bookmaker (e.g., `Betclic.fr`).                                                        | ❌                                                  | None            |
-| `--scrape_odds_history`     | Include odds movement history by hovering modals.                                                                     | ❌                                                  | `False`         |
-| `--odds_format`             | Odds format to display (`Decimal Odds`, `Fractional Odds`, `Money Line Odds`, `Hong Kong Odds`).                      | ❌                                                  | `Decimal Odds`  |
-| `--concurrency_tasks`       | Number of concurrent tasks for scraping.                                                                              | ❌                                                  | `3`             |
-| `--preview_submarkets_only` | Only scrape average odds from visible submarkets without loading individual bookmaker details (faster, limited data). | ❌                                                  | `False`         |
-| `--bookies_filter`          | Filter bookmakers displayed on OddsPortal (`all`, `classic`, `crypto`).                                               | ❌                                                  | `all`           |
-| `--period`                  | Match period to scrape (optional, defaults to sport's default).                                                       | ❌                                                  | Sport's default |
+| Option                    | Short | Description                                                      | Required                              | Default        |
+| ------------------------- | ----- | ---------------------------------------------------------------- | ------------------------------------- | -------------- |
+| `--sport`                 | `-s`  | Sport to scrape (e.g., `football`, `tennis`, `basketball`)       | Yes                                   | None           |
+| `--date`                  | `-d`  | Date for matches in `YYYYMMDD` format                            | Yes (unless `--league` or `--match-link`) | None       |
+| `--league`                | `-l`  | Comma-separated leagues (e.g., `england-premier-league`)         | No                                    | None           |
+| `--market`                | `-m`  | Comma-separated betting markets (e.g., `1x2,btts`)               | No                                    | None           |
+| `--storage`               |       | Storage type: `local` or `remote`                                | No                                    | `local`        |
+| `--format`                | `-f`  | Output format: `json` or `csv`                                   | No                                    | `json`         |
+| `--output`                | `-o`  | Output file path                                                 | No                                    | `scraped_data` |
+| `--headless`              |       | Run browser in headless mode                                     | No                                    | `False`        |
+| `--concurrency`           | `-c`  | Number of concurrent scraping tasks                              | No                                    | `3`            |
+| `--proxy-url`             |       | Proxy URL (e.g., `http://proxy:8080` or `socks5://proxy:1080`)   | No                                    | None           |
+| `--proxy-user`            |       | Proxy username                                                   | No                                    | None           |
+| `--proxy-pass`            |       | Proxy password                                                   | No                                    | None           |
+| `--user-agent`            |       | Custom browser user agent                                        | No                                    | None           |
+| `--locale`                |       | Browser locale (e.g., `fr-BE`)                                   | No                                    | None           |
+| `--timezone`              |       | Browser timezone ID (e.g., `Europe/Brussels`)                    | No                                    | None           |
+| `--match-link`            |       | Specific match URL(s) to scrape (can be repeated)                | No                                    | None           |
+| `--target-bookmaker`      |       | Filter for a specific bookmaker                                  | No                                    | None           |
+| `--odds-history`          |       | Scrape historical odds movement                                  | No                                    | `False`        |
+| `--odds-format`           |       | Odds display format                                              | No                                    | `Decimal Odds` |
+| `--preview-only`          |       | Only scrape visible submarkets (faster, limited data)            | No                                    | `False`        |
+| `--bookies-filter`        |       | Bookmaker filter: `all`, `classic`, or `crypto`                  | No                                    | `all`          |
+| `--period`                |       | Match period to scrape (sport-specific)                          | No                                    | Sport default  |
 
-#### **📌 Important Notes:**
+**Important Notes:**
 
-- If both `--leagues` and `--date` are provided, the scraper **will only consider the leagues**, meaning **all upcoming matches for those leagues will be scraped**, regardless of the `--date` argument.
-- **If `--match_links` is provided, it overrides `--sport`, `--date`, and `--leagues`, and only the specified match links will be scraped.**
-- **All match links must belong to the same sport** when using `--match_links`.
-- **When providing multiple `--match_links`, separate each URL with a space** (not commas). Each URL should be quoted individually if it contains special characters like `#`.
-- **For best results, ensure the proxy's region matches the `BROWSER_LOCALE_TIMEZONE` and `BROWSER_TIMEZONE_ID` settings.**
-- **The `--period` argument supports football, tennis, basketball, rugby-league, rugby-union, american-football, ice-hockey, and baseball.** Each sport has its own set of valid periods. If omitted, the sport's default period is used automatically.
+- If both `--league` and `--date` are provided, the scraper **will only consider the leagues**, meaning all upcoming matches for those leagues will be scraped.
+- If `--match-link` is provided, it overrides `--sport`, `--date`, and `--league`.
+- All match links must belong to the same sport when using `--match-link`.
+- For best results, ensure the proxy's region matches the `--locale` and `--timezone` settings.
 
-#### **Example Usage:**
+**Example Usage:**
 
-- **Retrieve upcoming football matches for January 1, 2025, and save results locally:**
+```bash
+# Retrieve upcoming football matches for a specific date
+oddsharvester upcoming -s football -m 1x2 -d 20250301 --headless
 
-`uv run python src/main.py scrape_upcoming --sport football --markets 1x2 --date 20250101 --headless`
+# Scrape English Premier League matches
+oddsharvester upcoming -s football -l england-premier-league -m 1x2,btts --headless
 
-- **Scrapes English Premier League matches with odds for 1x2 and Both Teams to Score (BTTS):**
+# Scrape multiple leagues at once
+oddsharvester upcoming -s football -l england-premier-league,spain-laliga -m 1x2 --headless
 
-`uv run python src/main.py scrape_upcoming --sport football --leagues england-premier-league --markets 1x2,btts --storage local --headless`
+# Scrape with a proxy
+oddsharvester upcoming -s football -d 20250301 -m 1x2 --proxy-url http://proxy:8080 --proxy-user myuser --proxy-pass mypass --headless
 
-- **Scrapes multiple leagues at once:**
+# Scrape in preview mode (faster, average odds only)
+oddsharvester upcoming -s football -d 20250301 -m over_under --preview-only --headless
 
-`uv run python src/main.py scrape_upcoming --sport football --leagues england-premier-league,spain-laliga,italy-serie-a --markets 1x2,btts --storage local --headless`
-
-- **Scrapes baseball matches using a rotating proxy setup:**
-
-`uv run python src/main.py scrape_upcoming --sport baseball --date 20250227 --markets moneyline --proxies "http://proxy1.com:8080 user1 pass1" "http://proxy2.com:8080 user2 pass2" --headless`
-
-- **Scrapes football matches in preview mode (average odds only, faster):**
-
-`uv run python src/main.py scrape_upcoming --sport football --date 20250101 --markets over_under_2_5 --preview_submarkets_only --headless`
-
-- **Scrapes specific matches using match links (note the space-separated URLs, each quoted):**
-
-`uv run python src/main.py scrape_upcoming --sport football --match_links "https://www.oddsportal.com/football/..." "https://www.oddsportal.com/football/..." --markets 1x2`
+# Scrape specific matches using match links
+oddsharvester upcoming -s football --match-link "https://www.oddsportal.com/football/..." --match-link "https://www.oddsportal.com/football/..." -m 1x2
+```
 
 #### **2. Scrape Historical Odds**
 
 Retrieve historical odds and results for analytical purposes.
 
+```bash
+oddsharvester historic [OPTIONS]
+```
+
 **Options**:
 
-| 🏷️ Option                   | 📝 Description                                                                                                        | 🔐 Required | 🔧 Default      |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------- | --------------- |
-| `--sport`                   | Specify the sport to scrape (e.g., `football`, `ice-hockey`, `baseball`, `american-football`).                        | ✅          | None            |
-| `--leagues`                 | Comma-separated leagues to scrape (e.g., `england-premier-league,spain-laliga`).                                      | ✅          | None            |
-| `--season`                  | Target season in `YYYY`, `YYYY-YYYY` format (e.g., `2022` or `2022-2023`), or `current` for the current season.       | ✅          | None            |
-| `--markets`                 | Comma-separated betting markets (e.g., `1x2,btts`).                                                                   | ❌          | None            |
-| `--storage`                 | Save data locally or to a remote S3 bucket (`local` or `remote`).                                                     | ❌          | `local`         |
-| `--file_path`               | File path to save data locally (e.g., `output.json`).                                                                 | ❌          | None            |
-| `--format`                  | Format for saving local data (`json` or `csv`).                                                                       | ❌          | None            |
-| `--max_pages`               | Maximum number of pages to scrape.                                                                                    | ❌          | None            |
-| `--headless`                | Run the browser in headless mode (`True` or `False`).                                                                 | ❌          | `False`         |
-| `--save_logs`               | Save logs for debugging purposes (`True` or `False`).                                                                 | ❌          | `False`         |
-| `--proxies`                 | List of proxies in `"server user pass"` format. Multiple proxies supported.                                           | ❌          | None            |
-| `--browser_user_agent`      | Custom user agent string for browser requests.                                                                        | ❌          | None            |
-| `--browser_locale_timezone` | Browser locale timezone (e.g., `fr-BE`).                                                                              | ❌          | None            |
-| `--browser_timezone_id`     | Browser timezone ID (e.g., `Europe/Brussels`).                                                                        | ❌          | None            |
-| `--match_links`             | List of specific match links to scrape (overrides other filters).                                                     | ❌          | None            |
-| `--target_bookmaker`        | Filter scraping for a specific bookmaker (e.g., `Betclic.fr`).                                                        | ❌          | None            |
-| `--scrape_odds_history`     | Include odds movement history by hovering modals.                                                                     | ❌          | `False`         |
-| `--odds_format`             | Odds format to display (`Decimal Odds`, `Fractional Odds`, `Money Line Odds`, `Hong Kong Odds`).                      | ❌          | `Decimal Odds`  |
-| `--concurrency_tasks`       | Number of concurrent tasks for scraping.                                                                              | ❌          | `3`             |
-| `--preview_submarkets_only` | Only scrape average odds from visible submarkets without loading individual bookmaker details (faster, limited data). | ❌          | `False`         |
-| `--bookies_filter`          | Filter bookmakers displayed on OddsPortal (`all`, `classic`, `crypto`).                                               | ❌          | `all`           |
-| `--period`                  | Match period to scrape (optional, defaults to sport's default).                                                       | ❌          | Sport's default |
+| Option                    | Short | Description                                                      | Required | Default        |
+| ------------------------- | ----- | ---------------------------------------------------------------- | -------- | -------------- |
+| `--sport`                 | `-s`  | Sport to scrape (e.g., `football`, `tennis`, `basketball`)       | Yes      | None           |
+| `--season`                |       | Season: `YYYY`, `YYYY-YYYY`, or `current`                        | Yes      | None           |
+| `--league`                | `-l`  | Comma-separated leagues (e.g., `england-premier-league`)         | No       | None           |
+| `--market`                | `-m`  | Comma-separated betting markets (e.g., `1x2,btts`)               | No       | None           |
+| `--max-pages`             |       | Maximum number of pages to scrape                                | No       | None           |
+| `--storage`               |       | Storage type: `local` or `remote`                                | No       | `local`        |
+| `--format`                | `-f`  | Output format: `json` or `csv`                                   | No       | `json`         |
+| `--output`                | `-o`  | Output file path                                                 | No       | `scraped_data` |
+| `--headless`              |       | Run browser in headless mode                                     | No       | `False`        |
+| `--concurrency`           | `-c`  | Number of concurrent scraping tasks                              | No       | `3`            |
+| `--proxy-url`             |       | Proxy URL (e.g., `http://proxy:8080` or `socks5://proxy:1080`)   | No       | None           |
+| `--proxy-user`            |       | Proxy username                                                   | No       | None           |
+| `--proxy-pass`            |       | Proxy password                                                   | No       | None           |
+| `--user-agent`            |       | Custom browser user agent                                        | No       | None           |
+| `--locale`                |       | Browser locale (e.g., `fr-BE`)                                   | No       | None           |
+| `--timezone`              |       | Browser timezone ID (e.g., `Europe/Brussels`)                    | No       | None           |
+| `--match-link`            |       | Specific match URL(s) to scrape (can be repeated)                | No       | None           |
+| `--target-bookmaker`      |       | Filter for a specific bookmaker                                  | No       | None           |
+| `--odds-history`          |       | Scrape historical odds movement                                  | No       | `False`        |
+| `--odds-format`           |       | Odds display format                                              | No       | `Decimal Odds` |
+| `--preview-only`          |       | Only scrape visible submarkets (faster, limited data)            | No       | `False`        |
+| `--bookies-filter`        |       | Bookmaker filter: `all`, `classic`, or `crypto`                  | No       | `all`          |
+| `--period`                |       | Match period to scrape (sport-specific)                          | No       | Sport default  |
 
-#### **Example Usage:**
+**Example Usage:**
 
-- **Retrieve historical odds for the Premier League's 2022-2023 season:**
+```bash
+# Retrieve historical odds for the Premier League 2022-2023 season
+oddsharvester historic -s football -l england-premier-league --season 2022-2023 -m 1x2 --headless
 
-`uv run python src/main.py scrape_historic --sport football --leagues england-premier-league --season 2022-2023 --markets 1x2 --headless`
+# Retrieve historical odds for multiple leagues
+oddsharvester historic -s football -l england-premier-league,spain-laliga --season 2022-2023 -m 1x2 --headless
 
-- **Retrieve historical odds for multiple leagues at once:**
+# Retrieve historical odds for the current season
+oddsharvester historic -s football -l england-premier-league --season current -m 1x2 --headless
 
-`uv run python src/main.py scrape_historic --sport football --leagues england-premier-league,spain-laliga,italy-serie-a --season 2022-2023 --markets 1x2 --headless`
+# Retrieve historical MLB 2022 season data
+oddsharvester historic -s baseball -l usa-mlb --season 2022 -m moneyline --headless
 
-- **Retrieve historical odds for the current season of Premier League:**
+# Scrape only 3 pages of historical data
+oddsharvester historic -s football -l england-premier-league --season 2022-2023 -m 1x2 --max-pages 3 --headless
 
-`uv run python src/main.py scrape_historic --sport football --leagues england-premier-league --season current --markets 1x2 --headless`
+# Save output to CSV format
+oddsharvester historic -s football -l england-premier-league --season 2024-2025 -m 1x2 -f csv -o premier_league_odds --headless
+```
 
-- **Retrieve historical MLB 2022 season data:**
+#### **Preview Mode**
 
-`uv run python src/main.py scrape_historic --sport baseball --leagues usa-mlb --season 2022 --markets moneyline --headless`
-
-- **Scrapes only 3 pages of historical odds data:**
-
-`uv run python src/main.py scrape_historic --sport football --leagues england-premier-league --season 2022-2023 --markets 1x2 --max_pages 3 --headless`
-
-- **Scrapes historical odds in preview mode (average odds only, faster):**
-
-`uv run python src/main.py scrape_historic --sport football --leagues england-premier-league --season 2022-2023 --markets over_under_2_5 --preview_submarkets_only --headless`
-
-#### **📌 Preview Mode**
-
-The `--preview_submarkets_only` flag enables a faster scraping mode that extracts only average odds from visible submarkets without loading individual bookmaker details. This mode is useful for:
+The `--preview-only` flag enables a faster scraping mode that extracts only average odds from visible submarkets without loading individual bookmaker details. This mode is useful for:
 
 - **Quick exploration** of available submarkets and their average odds
 - **Testing** data structure and format
@@ -260,11 +282,36 @@ The `--preview_submarkets_only` flag enables a faster scraping mode that extract
 | **Odds History** | Available                   | Not available                 |
 | **Structure**    | By bookmaker                | By submarket (avg odds)       |
 
-#### **📌 Running the Help Command:**
+### **🌐 Environment Variables**
 
-To display all available CLI commands and options, run:
+All CLI options can also be configured via environment variables. This is useful for Docker deployments or CI/CD pipelines.
 
-`uv run python src/main.py --help`
+| Environment Variable | CLI Option           | Description                        |
+| -------------------- | -------------------- | ---------------------------------- |
+| `OH_SPORT`           | `--sport`            | Sport to scrape                    |
+| `OH_LEAGUES`         | `--league`           | Comma-separated leagues            |
+| `OH_MARKETS`         | `--market`           | Comma-separated markets            |
+| `OH_STORAGE`         | `--storage`          | Storage type (local/remote)        |
+| `OH_FORMAT`          | `--format`           | Output format (json/csv)           |
+| `OH_FILE_PATH`       | `--output`           | Output file path                   |
+| `OH_HEADLESS`        | `--headless`         | Run in headless mode               |
+| `OH_CONCURRENCY`     | `--concurrency`      | Number of concurrent tasks         |
+| `OH_PROXY_URL`       | `--proxy-url`        | Proxy server URL                   |
+| `OH_PROXY_USER`      | `--proxy-user`       | Proxy username                     |
+| `OH_PROXY_PASS`      | `--proxy-pass`       | Proxy password                     |
+| `OH_USER_AGENT`      | `--user-agent`       | Custom browser user agent          |
+| `OH_LOCALE`          | `--locale`           | Browser locale                     |
+| `OH_TIMEZONE`        | `--timezone`         | Browser timezone ID                |
+
+**Example:**
+
+```bash
+export OH_SPORT=football
+export OH_HEADLESS=true
+export OH_PROXY_URL=http://proxy.example.com:8080
+
+oddsharvester upcoming -d 20250301 -m 1x2
+```
 
 ### **🐳 Running Inside a Docker Container**
 
@@ -280,8 +327,20 @@ OddsHarvester is compatible with Docker, allowing you to run the application sea
    Assign a name to the image, such as `odds-harvester`: `docker build -t odds-harvester:local --target local-dev .`
 
 3. **Run the Container**
-   Start a Docker container based on the built image. Map the necessary ports if required and specify any volumes to persist data. Pass any CLI arguments (e.g., `scrape_upcoming`) as part of the Docker run command:
-   `docker run --rm odds-harvester:local python3 -m src.main scrape_upcoming --sport football --date 20250903 --markets 1x2 --storage local --file_path output.json --headless`
+   Start a Docker container based on the built image. Map the necessary ports if required and specify any volumes to persist data. Pass any CLI arguments as part of the Docker run command:
+
+   ```bash
+   docker run --rm odds-harvester:local python3 -m oddsharvester upcoming -s football -d 20250301 -m 1x2 -o output.json --headless
+   ```
+
+   Or using environment variables:
+
+   ```bash
+   docker run --rm \
+     -e OH_SPORT=football \
+     -e OH_HEADLESS=true \
+     odds-harvester:local python3 -m oddsharvester upcoming -d 20250301 -m 1x2
+   ```
 
 4. **Interactive Mode for Debugging**
    If you need to debug or run commands interactively: `docker run --rm -it odds-harvester:latest /bin/bash`
@@ -302,8 +361,8 @@ OddsHarvester can also be deployed on a cloud provider using the **Serverless Fr
 
 2. Playwright's Incompatibility with Lambda Layers:
    Playwright cannot be installed as an AWS Lambda layer because:
-   • Its browser dependencies require system libraries that are unavailable in Lambda's standard runtime environment.
-   • Packaging these libraries within Lambda layers would exceed the layer size limit.
+   - Its browser dependencies require system libraries that are unavailable in Lambda's standard runtime environment.
+   - Packaging these libraries within Lambda layers would exceed the layer size limit.
 
 3. Solution:
    Using a Docker image solves these limitations by bundling the entire runtime environment, including Playwright, its browsers, and all required libraries, into a single package. This ensures a consistent and compatible execution environment.
@@ -342,7 +401,7 @@ To tailor the serverless deployment for your needs:
   - Scheduling rate for the EventBridge trigger.
   - Resource limits (e.g., memory size or timeout).
 
-**Deploying to your prefered Cloud provider:**
+**Deploying to your preferred Cloud provider:**
 
 1. Install the Serverless Framework:
    - Follow the installation guide at [Serverless Framework](https://www.serverless.com/).

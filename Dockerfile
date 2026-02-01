@@ -32,5 +32,4 @@ FROM base AS local-dev
 ENV PATH="${LAMBDA_TASK_ROOT}/.venv/bin:$PATH"
 
 # Set default command for local testing
-CMD ["xvfb-run", "--", "python3", "-m", "src.main"]
-
+CMD ["xvfb-run", "--", "python3", "-m", "oddsharvester"]
