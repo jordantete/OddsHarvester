@@ -1,3 +1,5 @@
-from oddsharvester.cli.cli_argument_handler import CLIArgumentHandler
+"""CLI module for OddsHarvester."""
 
-__all__ = ["CLIArgumentHandler"]
+from oddsharvester.cli.cli import cli, main
+
+__all__ = ["cli", "main"]

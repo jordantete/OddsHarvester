@@ -9,6 +9,7 @@ requires-python = ">=3.12"
 dependencies = [
     "beautifulsoup4>=4.14.3",
     "boto3>=1.42.21",
+    "click>=8.1.0",
     "lxml>=6.0.2",
     "playwright>=1.57.0",
     "pytz>=2025.2"
@@ -24,7 +25,7 @@ dev = [
 ]
 
 [project.scripts]
-oddsharvester = "oddsharvester.main:main"
+oddsharvester = "oddsharvester.cli.cli:main"
 
 [project.urls]
 repository= "https://github.com/jordantete/OddsHarvester"
