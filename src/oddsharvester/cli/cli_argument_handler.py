@@ -1,7 +1,7 @@
 import logging
 
-from src.cli.cli_argument_parser import CLIArgumentParser
-from src.cli.cli_argument_validator import CLIArgumentValidator
+from oddsharvester.cli.cli_argument_parser import CLIArgumentParser
+from oddsharvester.cli.cli_argument_validator import CLIArgumentValidator
 
 
 class CLIArgumentHandler:

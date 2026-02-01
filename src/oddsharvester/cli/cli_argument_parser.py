@@ -1,11 +1,11 @@
 import argparse
 
-from src.cli.cli_help_message_generator import CLIHelpMessageGenerator
-from src.storage.storage_format import StorageFormat
-from src.storage.storage_type import StorageType
-from src.utils.bookies_filter_enum import BookiesFilter
-from src.utils.odds_format_enum import OddsFormat
-from src.utils.period_constants import (
+from oddsharvester.cli.cli_help_message_generator import CLIHelpMessageGenerator
+from oddsharvester.storage.storage_format import StorageFormat
+from oddsharvester.storage.storage_type import StorageType
+from oddsharvester.utils.bookies_filter_enum import BookiesFilter
+from oddsharvester.utils.odds_format_enum import OddsFormat
+from oddsharvester.utils.period_constants import (
     AmericanFootballPeriod,
     BaseballPeriod,
     BasketballPeriod,
@@ -15,7 +15,7 @@ from src.utils.period_constants import (
     RugbyUnionPeriod,
     TennisPeriod,
 )
-from src.utils.sport_market_constants import Sport
+from oddsharvester.utils.sport_market_constants import Sport
 
 
 class CLIArgumentParser:

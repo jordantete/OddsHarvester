@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.utils.period_constants import (
+from oddsharvester.utils.period_constants import (
     AmericanFootballPeriod,
     BaseballPeriod,
     BasketballPeriod,
@@ -12,7 +12,7 @@ from src.utils.period_constants import (
     RugbyUnionPeriod,
     TennisPeriod,
 )
-from src.utils.sport_market_constants import (
+from oddsharvester.utils.sport_market_constants import (
     AmericanFootballAsianHandicapMarket,
     AmericanFootballMarket,
     AmericanFootballOverUnderMarket,
@@ -39,7 +39,12 @@ from src.utils.sport_market_constants import (
     TennisOverUnderGamesMarket,
     TennisOverUnderSetsMarket,
 )
-from src.utils.utils import clean_html_text, get_supported_markets, is_running_in_docker, validate_and_convert_period
+from oddsharvester.utils.utils import (
+    clean_html_text,
+    get_supported_markets,
+    is_running_in_docker,
+    validate_and_convert_period,
+)
 
 EXPECTED_MARKETS = {
     Sport.FOOTBALL: [
@@ -138,7 +143,7 @@ def test_get_supported_markets_case_insensitive(sport_str_mixed_case, expected):
 
 def test_get_supported_markets_unconfigured_sport():
     """Test handling of a sport that is a valid enum but not in the mapping."""
-    with patch("src.utils.utils.SPORT_MARKETS_MAPPING", {}):
+    with patch("oddsharvester.utils.utils.SPORT_MARKETS_MAPPING", {}):
         with pytest.raises(ValueError) as excinfo:
             get_supported_markets(Sport.FOOTBALL)
         assert "Sport FOOTBALL is not configured in the market mapping" in str(excinfo.value)
@@ -146,7 +151,7 @@ def test_get_supported_markets_unconfigured_sport():
 
 def test_sport_markets_mapping_consistency():
     """Test that all sports in Sport enum are included in SPORT_MARKETS_MAPPING."""
-    from src.utils.utils import SPORT_MARKETS_MAPPING
+    from oddsharvester.utils.utils import SPORT_MARKETS_MAPPING
 
     for sport in Sport:
         assert sport in SPORT_MARKETS_MAPPING, f"Sport {sport.name} is missing from SPORT_MARKETS_MAPPING"

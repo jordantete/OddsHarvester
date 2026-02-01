@@ -2,7 +2,7 @@ import logging
 
 from playwright.async_api import Page
 
-from src.core.browser_helper import BrowserHelper
+from oddsharvester.core.browser_helper import BrowserHelper
 
 
 class NavigationManager:

@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.cli.cli_argument_handler import CLIArgumentHandler
+from oddsharvester.cli.cli_argument_handler import CLIArgumentHandler
 
 
 @pytest.fixture

@@ -2,10 +2,10 @@ import asyncio
 import logging
 import sys
 
-from src.cli.cli_argument_handler import CLIArgumentHandler
-from src.core.scraper_app import run_scraper
-from src.storage.storage_manager import store_data
-from src.utils.setup_logging import setup_logger
+from oddsharvester.cli.cli_argument_handler import CLIArgumentHandler
+from oddsharvester.core.scraper_app import run_scraper
+from oddsharvester.storage.storage_manager import store_data
+from oddsharvester.utils.setup_logging import setup_logger
 
 
 def main():

@@ -3,8 +3,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.cli.cli_argument_validator import CLIArgumentValidator
-from src.utils.sport_market_constants import Sport
+from oddsharvester.cli.cli_argument_validator import CLIArgumentValidator
+from oddsharvester.utils.sport_market_constants import Sport
 
 
 @pytest.fixture

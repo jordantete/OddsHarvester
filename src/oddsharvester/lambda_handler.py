@@ -4,7 +4,7 @@ from typing import Any
 
 import pytz
 
-from src.core.scraper_app import run_scraper
+from oddsharvester.core.scraper_app import run_scraper
 
 
 def lambda_handler(event: dict[str, Any], context: Any):

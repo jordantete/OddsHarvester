@@ -4,8 +4,8 @@ import time
 
 from playwright.async_api import Page
 
-from src.core.odds_portal_selectors import OddsPortalSelectors
-from src.utils.bookies_filter_enum import BookiesFilter
+from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
+from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 
 
 class BrowserHelper:

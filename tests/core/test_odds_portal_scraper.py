@@ -3,10 +3,10 @@ from unittest.mock import ANY, AsyncMock, MagicMock, patch
 from playwright.async_api import Browser, BrowserContext, Page
 import pytest
 
-from src.core.browser_helper import BrowserHelper
-from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
-from src.core.odds_portal_scraper import OddsPortalScraper
-from src.core.playwright_manager import PlaywrightManager
+from oddsharvester.core.browser_helper import BrowserHelper
+from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
+from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
+from oddsharvester.core.playwright_manager import PlaywrightManager
 
 
 @pytest.fixture
@@ -98,7 +98,7 @@ async def test_stop_playwright(setup_scraper_mocks):
 
 
 @pytest.mark.asyncio
-@patch("src.core.odds_portal_scraper.URLBuilder")
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
     """Test scraping historic odds data."""
     mocks = setup_scraper_mocks
@@ -155,7 +155,7 @@ async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
 
 
 @pytest.mark.asyncio
-@patch("src.core.odds_portal_scraper.URLBuilder")
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
     """Test scraping upcoming matches odds data."""
     mocks = setup_scraper_mocks
@@ -206,7 +206,7 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
 
 
 @pytest.mark.asyncio
-@patch("src.core.odds_portal_scraper.ODDSPORTAL_BASE_URL", "https://oddsportal.com")
+@patch("oddsharvester.core.odds_portal_scraper.ODDSPORTAL_BASE_URL", "https://oddsportal.com")
 async def test_scrape_matches(setup_scraper_mocks):
     """Test scraping specific match links."""
     mocks = setup_scraper_mocks

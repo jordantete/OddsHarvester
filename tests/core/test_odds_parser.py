@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.market_extraction.odds_parser import OddsParser
+from oddsharvester.core.market_extraction.odds_parser import OddsParser
 
 
 class TestOddsParser:
@@ -167,7 +167,7 @@ class TestOddsParser:
     def test_parse_odds_history_modal_success(self, odds_parser):
         """Test successful parsing of odds history modal."""
         # Arrange
-        with patch("src.core.market_extraction.odds_parser.datetime") as mock_datetime:
+        with patch("oddsharvester.core.market_extraction.odds_parser.datetime") as mock_datetime:
             mock_now = MagicMock()
             mock_now.year = 2025
             mock_datetime.now.return_value = mock_now
@@ -188,7 +188,7 @@ class TestOddsParser:
     def test_parse_odds_history_modal_invalid_html(self, odds_parser):
         """Test parsing odds history from invalid HTML."""
         # Arrange
-        with patch("src.core.market_extraction.odds_parser.datetime") as mock_datetime:
+        with patch("oddsharvester.core.market_extraction.odds_parser.datetime") as mock_datetime:
             mock_now = MagicMock()
             mock_now.year = 2025
             mock_datetime.now.return_value = mock_now
@@ -206,7 +206,7 @@ class TestOddsParser:
     def test_parse_odds_history_modal_invalid_date(self, odds_parser):
         """Test parsing odds history with invalid date format."""
         # Arrange
-        with patch("src.core.market_extraction.odds_parser.datetime") as mock_datetime:
+        with patch("oddsharvester.core.market_extraction.odds_parser.datetime") as mock_datetime:
             mock_now = MagicMock()
             mock_now.year = 2025
             mock_datetime.now.return_value = mock_now

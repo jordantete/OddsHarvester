@@ -3,15 +3,15 @@ from datetime import datetime
 import logging
 import re
 
-from src.core.sport_period_registry import SportPeriodRegistry
-from src.storage.storage_format import StorageFormat
-from src.storage.storage_type import StorageType
-from src.utils.bookies_filter_enum import BookiesFilter
-from src.utils.command_enum import CommandEnum
-from src.utils.odds_format_enum import OddsFormat
-from src.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
-from src.utils.sport_market_constants import Sport
-from src.utils.utils import get_supported_markets
+from oddsharvester.core.sport_period_registry import SportPeriodRegistry
+from oddsharvester.storage.storage_format import StorageFormat
+from oddsharvester.storage.storage_type import StorageType
+from oddsharvester.utils.bookies_filter_enum import BookiesFilter
+from oddsharvester.utils.command_enum import CommandEnum
+from oddsharvester.utils.odds_format_enum import OddsFormat
+from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
+from oddsharvester.utils.sport_market_constants import Sport
+from oddsharvester.utils.utils import get_supported_markets
 
 
 class CLIArgumentValidator:

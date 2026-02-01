@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from src.cli.cli_argument_validator import CLIArgumentValidator
+from oddsharvester.cli.cli_argument_validator import CLIArgumentValidator
 
 
 class TestBookiesFilterValidation:

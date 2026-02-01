@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from src.cli.cli_argument_validator import CLIArgumentValidator
-from src.utils.period_constants import FootballPeriod
+from oddsharvester.cli.cli_argument_validator import CLIArgumentValidator
+from oddsharvester.utils.period_constants import FootballPeriod
 
 
 class TestPeriodValidation:

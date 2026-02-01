@@ -2,7 +2,7 @@ from enum import Enum
 import logging
 from typing import ClassVar
 
-from src.utils.period_constants import (
+from oddsharvester.utils.period_constants import (
     AmericanFootballPeriod,
     BaseballPeriod,
     BasketballPeriod,
@@ -12,7 +12,7 @@ from src.utils.period_constants import (
     RugbyUnionPeriod,
     TennisPeriod,
 )
-from src.utils.sport_market_constants import Sport
+from oddsharvester.utils.sport_market_constants import Sport
 
 logger = logging.getLogger(__name__)
 

@@ -4,8 +4,8 @@ import os
 
 from bs4 import BeautifulSoup
 
-from src.core.sport_period_registry import SportPeriodRegistry
-from src.utils.sport_market_constants import (
+from oddsharvester.core.sport_period_registry import SportPeriodRegistry
+from oddsharvester.utils.sport_market_constants import (
     AmericanFootballAsianHandicapMarket,
     AmericanFootballMarket,
     AmericanFootballOverUnderMarket,

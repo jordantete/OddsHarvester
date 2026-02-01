@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from src.core.market_extraction.submarket_extractor import SubmarketExtractor
+from oddsharvester.core.market_extraction.submarket_extractor import SubmarketExtractor
 
 
 class TestSubmarketExtractor:

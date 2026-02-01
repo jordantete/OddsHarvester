@@ -23,13 +23,16 @@ dev = [
     "ruff>=0.14.10",
 ]
 
+[project.scripts]
+oddsharvester = "oddsharvester.main:main"
+
 [project.urls]
 repository= "https://github.com/jordantete/OddsHarvester"
 issues = "https://github.com/jordantete/OddsHarvester/issues"
 discussions = "https://github.com/jordantete/OddsHarvester/discussions"
 
 [tool.pytest.ini_options]
-pythonpath = "."
+pythonpath = "src"
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
@@ -38,7 +41,7 @@ python_functions = "test_*"
 [tool.ruff]
 line-length = 120
 target-version = "py312"
-src = ["src", "tests"]
+src = ["src/oddsharvester", "tests"]
 
 [tool.ruff.lint]
 # Enable comprehensive rule sets for a production project
@@ -71,23 +74,23 @@ line-ending = "auto"
 docstring-code-format = true
 
 [tool.ruff.lint.isort]
-known-first-party = ["src"]
+known-first-party = ["oddsharvester"]
 force-sort-within-sections = true
 
 [tool.ruff.lint.per-file-ignores]
 # Tests can use more flexible patterns
 "tests/**" = ["S101", "S105", "S106", "S108", "PT011", "SIM117"]
 # Lambda handler may need different patterns
-"src/lambda_handler.py" = ["T201"]
+"src/oddsharvester/lambda_handler.py" = ["T201"]
 # CLI help messages can use unicode characters
-"src/cli/cli_help_message_generator.py" = ["RUF001"]
+"src/oddsharvester/cli/cli_help_message_generator.py" = ["RUF001"]
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 
 [tool.setuptools]
 include-package-data = true

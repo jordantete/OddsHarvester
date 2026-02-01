@@ -1,6 +1,6 @@
 import pytest
 
-from src.cli.cli_argument_parser import CLIArgumentParser
+from oddsharvester.cli.cli_argument_parser import CLIArgumentParser
 
 
 @pytest.fixture

@@ -1,4 +1,4 @@
-from src.utils.period_constants import (
+from oddsharvester.utils.period_constants import (
     AmericanFootballPeriod,
     BaseballPeriod,
     BasketballPeriod,

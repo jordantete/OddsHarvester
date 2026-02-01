@@ -4,8 +4,8 @@ from unittest.mock import mock_open, patch
 
 import pytest
 
-from src.storage.local_data_storage import LocalDataStorage
-from src.storage.storage_format import StorageFormat
+from oddsharvester.storage.local_data_storage import LocalDataStorage
+from oddsharvester.storage.storage_format import StorageFormat
 
 
 @pytest.fixture
