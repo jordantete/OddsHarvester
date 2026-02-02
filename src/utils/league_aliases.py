@@ -32,6 +32,19 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         "serbia-super-liga": {
             2099: "mozzart-bet-super-liga",  # Always use mozzart-bet prefix
         },
+        # Hungary: otp-bank-liga until some season, then different name
+        # Note: Need to verify exact transition year
+        "hungary-nb-i": {
+            2023: "otp-bank-liga",  # 2023-2024 and earlier use otp-bank-liga
+        },
+        # Cyprus: cyta-championship until 2023-2024, then cyprus-league
+        "cyprus-league": {
+            2023: "cyta-championship",  # 2023-2024 and earlier use cyta-championship
+        },
+        # Israel: ligat-ha-al (with hyphen, not ligat-haal)
+        "israel-ligat-ha-al": {
+            2099: "ligat-ha-al",  # Always use ligat-ha-al
+        },
     },
 }
 
