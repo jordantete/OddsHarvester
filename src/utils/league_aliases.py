@@ -9,6 +9,7 @@ This module provides a mapping to resolve the correct slug for a given season.
 """
 
 import re
+
 from .sport_market_constants import Sport
 
 # League Season Aliases
