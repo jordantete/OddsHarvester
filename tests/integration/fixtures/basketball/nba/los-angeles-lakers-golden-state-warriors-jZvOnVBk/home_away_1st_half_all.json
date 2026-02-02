@@ -1,0 +1,30 @@
+[
+    {
+        "scraped_date": "2026-02-02 09:32:42 UTC",
+        "match_date": "2025-02-07 03:00:00 UTC",
+        "match_link": "https://www.oddsportal.com/basketball/usa/nba-2024-2025/los-angeles-lakers-golden-state-warriors-jZvOnVBk/",
+        "home_team": "Los Angeles Lakers",
+        "away_team": "Golden State Warriors",
+        "league_name": "NBA 2024/2025",
+        "home_score": "120",
+        "away_score": "112",
+        "partial_results": "34:21, 35:28, 21:30, 30:33",
+        "venue": "Crypto.com Arena",
+        "venue_town": "Los Angeles, CA",
+        "venue_country": "USA",
+        "home_away_market": [
+            {
+                "1": "1.53",
+                "2": "2.25",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FirstHalf"
+            },
+            {
+                "1": "1.34",
+                "2": "2.20",
+                "bookmaker_name": "bwin.fr",
+                "period": "FirstHalf"
+            }
+        ]
+    }
+]

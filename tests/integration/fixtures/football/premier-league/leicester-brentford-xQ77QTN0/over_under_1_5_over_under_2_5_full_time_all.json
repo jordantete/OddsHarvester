@@ -1,0 +1,80 @@
+[
+    {
+        "scraped_date": "2026-02-02 09:29:12 UTC",
+        "match_date": "2025-02-21 20:00:00 UTC",
+        "match_link": "https://www.oddsportal.com/football/england/premier-league/leicester-brentford-xQ77QTN0",
+        "home_team": "Leicester",
+        "away_team": "Brentford",
+        "league_name": "Premier League 2024/2025",
+        "home_score": "0",
+        "away_score": "4",
+        "partial_results": "0:3, 0:1",
+        "venue": "King Power Stadium",
+        "venue_town": "Leicester",
+        "venue_country": "England",
+        "over_under_1_5_market": [
+            {
+                "odds_over": "1.16",
+                "odds_under": "4.40",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime"
+            },
+            {
+                "odds_over": "1.18",
+                "odds_under": "5.20",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime"
+            },
+            {
+                "odds_over": "1.16",
+                "odds_under": "4.20",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullTime"
+            },
+            {
+                "odds_over": "1.15",
+                "odds_under": "4.15",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime"
+            },
+            {
+                "odds_over": "1.16",
+                "odds_under": "4.40",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime"
+            }
+        ],
+        "over_under_2_5_market": [
+            {
+                "odds_over": "1.55",
+                "odds_under": "2.25",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime"
+            },
+            {
+                "odds_over": "1.60",
+                "odds_under": "2.41",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime"
+            },
+            {
+                "odds_over": "1.52",
+                "odds_under": "2.20",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullTime"
+            },
+            {
+                "odds_over": "1.52",
+                "odds_under": "2.17",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime"
+            },
+            {
+                "odds_over": "1.50",
+                "odds_under": "2.20",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime"
+            }
+        ]
+    }
+]

@@ -1,0 +1,47 @@
+[
+    {
+        "scraped_date": "2026-02-02 09:30:21 UTC",
+        "match_date": "2025-01-12 19:00:00 UTC",
+        "match_link": "https://www.oddsportal.com/football/spain/super-cup-2025/real-madrid-barcelona-bZrHkILa/",
+        "home_team": "Real Madrid",
+        "away_team": "Barcelona",
+        "league_name": "Super Cup 2025",
+        "home_score": "2",
+        "away_score": "5",
+        "partial_results": "1:4, 1:1",
+        "venue": "King Abdullah Sports City",
+        "venue_town": "Jeddah",
+        "venue_country": "Saudi Arabia",
+        "1x2_market": [
+            {
+                "1": "2.33",
+                "X": "3.83",
+                "2": "2.63",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime"
+            },
+            {
+                "1": "2.46",
+                "X": "4.00",
+                "2": "2.60",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime"
+            },
+            {
+                "1": "2.40",
+                "X": "3.95",
+                "2": "2.65",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime"
+            }
+        ],
+        "btts_market": [
+            {
+                "btts_yes": "1.29",
+                "btts_no": "3.05",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime"
+            }
+        ]
+    }
+]

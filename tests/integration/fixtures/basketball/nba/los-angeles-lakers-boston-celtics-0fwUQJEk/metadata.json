@@ -1,0 +1,22 @@
+{
+    "match_id": "0fwUQJEk",
+    "match_url": "https://www.oddsportal.com/basketball/usa/nba/los-angeles-lakers-boston-celtics-0fwUQJEk/",
+    "sport": "basketball",
+    "league": "nba",
+    "home_team": "Los Angeles Lakers",
+    "away_team": "Boston Celtics",
+    "final_score": {
+        "home": "117",
+        "away": "96"
+    },
+    "match_date": "2025-01-24 03:00:00 UTC",
+    "notes": "",
+    "captured_at": "2026-02-02T09:32:18.632881+00:00",
+    "oddsharvester_version": "0.1.0",
+    "available_fixtures": [
+        "1x2_home_away_full_including_ot_all.json",
+        "home_away_1st_half_all.json",
+        "home_away_1st_quarter_all.json",
+        "home_away_full_including_ot_all.json"
+    ]
+}

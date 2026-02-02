@@ -1,0 +1,20 @@
+{
+    "match_id": "jZvOnVBk",
+    "match_url": "https://www.oddsportal.com/basketball/usa/nba-2024-2025/los-angeles-lakers-golden-state-warriors-jZvOnVBk/",
+    "sport": "basketball",
+    "league": "nba",
+    "home_team": "Los Angeles Lakers",
+    "away_team": "Golden State Warriors",
+    "final_score": {
+        "home": "120",
+        "away": "112"
+    },
+    "match_date": "2025-02-07 03:00:00 UTC",
+    "notes": "",
+    "captured_at": "2026-02-02T09:32:53.803952+00:00",
+    "oddsharvester_version": "0.1.0",
+    "available_fixtures": [
+        "home_away_1st_half_all.json",
+        "home_away_full_including_ot_all.json"
+    ]
+}

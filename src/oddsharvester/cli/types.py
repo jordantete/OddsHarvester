@@ -97,7 +97,6 @@ class CommaSeparatedList(click.ParamType):
         return [item.strip() for item in value.split(",") if item.strip()]
 
 
-# Singleton instances for reuse
 SPORT = SportType()
 STORAGE_TYPE = StorageTypeType()
 STORAGE_FORMAT = StorageFormatType()

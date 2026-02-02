@@ -17,7 +17,7 @@ PLAYWRIGHT_BROWSER_ARGS = [
 PLAYWRIGHT_BROWSER_ARGS_DOCKER = [
     "--disable-dev-shm-usage",
     "--no-sandbox",
-    "--headless",  # Ensure headless mode
+    "--headless",
     "--disable-gpu",
     "--disable-background-networking",
     "--disable-popup-blocking",
