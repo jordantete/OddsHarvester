@@ -2,9 +2,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.storage.storage_format import StorageFormat
-from src.storage.storage_manager import store_data
-from src.storage.storage_type import StorageType
+from oddsharvester.storage.storage_format import StorageFormat
+from oddsharvester.storage.storage_manager import store_data
+from oddsharvester.storage.storage_type import StorageType
 
 
 @pytest.fixture
@@ -18,7 +18,7 @@ def mock_storage():
 
 
 def test_store_data_local_storage(sample_data, mock_storage):
-    with patch("src.storage.storage_type.StorageType.get_storage_instance", return_value=mock_storage):
+    with patch("oddsharvester.storage.storage_type.StorageType.get_storage_instance", return_value=mock_storage):
         result = store_data(StorageType.LOCAL.value, sample_data, StorageFormat.JSON, "test.json")
 
         mock_storage.save_data.assert_called_once_with(
@@ -28,7 +28,7 @@ def test_store_data_local_storage(sample_data, mock_storage):
 
 
 def test_store_data_remote_storage(sample_data, mock_storage):
-    with patch("src.storage.storage_type.StorageType.get_storage_instance", return_value=mock_storage):
+    with patch("oddsharvester.storage.storage_type.StorageType.get_storage_instance", return_value=mock_storage):
         result = store_data(StorageType.REMOTE.value, sample_data, StorageFormat.JSON, "test.json")
 
         mock_storage.process_and_upload.assert_called_once_with(data=sample_data, file_path="test.json")
@@ -36,7 +36,7 @@ def test_store_data_remote_storage(sample_data, mock_storage):
 
 
 def test_store_data_invalid_storage(sample_data):
-    with patch("src.storage.storage_manager.logger") as mock_logger:
+    with patch("oddsharvester.storage.storage_manager.logger") as mock_logger:
         result = store_data("INVALID_STORAGE", sample_data, StorageFormat.JSON, "test.json")
 
         mock_logger.error.assert_called_once()
@@ -47,8 +47,8 @@ def test_store_data_exception_handling(sample_data, mock_storage):
     mock_storage.save_data.side_effect = Exception("Storage error")
 
     with (
-        patch("src.storage.storage_type.StorageType.get_storage_instance", return_value=mock_storage),
-        patch("src.storage.storage_manager.logger") as mock_logger,
+        patch("oddsharvester.storage.storage_type.StorageType.get_storage_instance", return_value=mock_storage),
+        patch("oddsharvester.storage.storage_manager.logger") as mock_logger,
     ):
         result = store_data(StorageType.LOCAL.value, sample_data, StorageFormat.JSON, "test.json")
 

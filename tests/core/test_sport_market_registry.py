@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
-from src.core.sport_market_registry import SportMarketRegistrar, SportMarketRegistry
-from src.utils.sport_market_constants import Sport
+from oddsharvester.core.sport_market_registry import SportMarketRegistrar, SportMarketRegistry
+from oddsharvester.utils.sport_market_constants import Sport
 
 
 class TestSportMarketRegistry:

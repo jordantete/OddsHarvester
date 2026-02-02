@@ -1,0 +1,42 @@
+[
+    {
+        "scraped_date": "2026-02-02 09:30:57 UTC",
+        "match_date": "2025-01-24 03:00:00 UTC",
+        "match_link": "https://www.oddsportal.com/basketball/usa/nba/los-angeles-lakers-boston-celtics-0fwUQJEk/",
+        "home_team": "Los Angeles Lakers",
+        "away_team": "Boston Celtics",
+        "league_name": "NBA 2024/2025",
+        "home_score": "117",
+        "away_score": "96",
+        "partial_results": "34:23, 33:25, 16:20, 34:28",
+        "venue": "Crypto.com Arena",
+        "venue_town": "Los Angeles, CA",
+        "venue_country": "USA",
+        "home_away_market": [
+            {
+                "1": "2.80",
+                "2": "1.38",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullIncludingOT"
+            },
+            {
+                "1": "2.50",
+                "2": "1.30",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT"
+            },
+            {
+                "1": "3.05",
+                "2": "1.43",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT"
+            },
+            {
+                "1": "3.00",
+                "2": "1.38",
+                "bookmaker_name": "Winamax",
+                "period": "FullIncludingOT"
+            }
+        ]
+    }
+]

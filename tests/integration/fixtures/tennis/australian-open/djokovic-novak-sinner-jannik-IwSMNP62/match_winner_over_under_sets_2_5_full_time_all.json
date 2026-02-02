@@ -1,0 +1,37 @@
+[
+    {
+        "scraped_date": "2026-02-02 09:33:22 UTC",
+        "match_date": "2024-01-26 03:45:00 UTC",
+        "match_link": "https://www.oddsportal.com/tennis/australia/atp-australian-open-2024/djokovic-novak-sinner-jannik-IwSMNP62/",
+        "home_team": "Djokovic N.",
+        "away_team": "Sinner J.",
+        "league_name": "ATP Australian Open 2024",
+        "home_score": "1",
+        "away_score": "3",
+        "partial_results": "1:6, 2:6, 7:66, 3:6",
+        "venue": "Rod Laver Arena",
+        "venue_town": "Melbourne",
+        "venue_country": "Australia",
+        "match_winner_market": [
+            {
+                "player_1": "1.52",
+                "player_2": "2.67",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime"
+            },
+            {
+                "player_1": "1.45",
+                "player_2": "2.50",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullTime"
+            },
+            {
+                "player_1": "1.52",
+                "player_2": "2.65",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime"
+            }
+        ],
+        "over_under_sets_2_5_market": []
+    }
+]

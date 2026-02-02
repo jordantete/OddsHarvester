@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.core.market_extraction.market_grouping import MarketGrouping
+from oddsharvester.core.market_extraction.market_grouping import MarketGrouping
 
 
 class TestMarketGrouping:

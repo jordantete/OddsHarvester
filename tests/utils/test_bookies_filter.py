@@ -1,6 +1,6 @@
 import pytest
 
-from src.utils.bookies_filter_enum import BookiesFilter
+from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 
 
 class TestBookiesFilter:

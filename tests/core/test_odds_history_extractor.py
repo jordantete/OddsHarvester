@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from src.core.market_extraction.odds_history_extractor import OddsHistoryExtractor
+from oddsharvester.core.market_extraction.odds_history_extractor import OddsHistoryExtractor
 
 
 class TestOddsHistoryExtractor:

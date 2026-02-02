@@ -4,12 +4,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from playwright.async_api import Page, TimeoutError
 import pytest
 
-from src.core.base_scraper import BaseScraper
-from src.core.browser_helper import BrowserHelper
-from src.core.odds_portal_market_extractor import OddsPortalMarketExtractor
-from src.core.playwright_manager import PlaywrightManager
-from src.utils.constants import ODDSPORTAL_BASE_URL
-from src.utils.odds_format_enum import OddsFormat
+from oddsharvester.core.base_scraper import BaseScraper
+from oddsharvester.core.browser_helper import BrowserHelper
+from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
+from oddsharvester.core.playwright_manager import PlaywrightManager
+from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
+from oddsharvester.utils.odds_format_enum import OddsFormat
 
 
 @pytest.fixture
@@ -116,8 +116,8 @@ async def test_set_odds_format_timeout(setup_base_scraper_mocks):
 
 
 @pytest.mark.asyncio
-@patch("src.core.base_scraper.BeautifulSoup")
-@patch("src.core.base_scraper.re")
+@patch("oddsharvester.core.base_scraper.BeautifulSoup")
+@patch("oddsharvester.core.base_scraper.re")
 async def test_extract_match_links(re_mock, bs4_mock, setup_base_scraper_mocks):
     """Test extracting match links from a page."""
     mocks = setup_base_scraper_mocks
@@ -163,7 +163,7 @@ async def test_extract_match_links(re_mock, bs4_mock, setup_base_scraper_mocks):
 
 
 @pytest.mark.asyncio
-@patch("src.core.base_scraper.BeautifulSoup")
+@patch("oddsharvester.core.base_scraper.BeautifulSoup")
 async def test_extract_match_links_error(bs4_mock, setup_base_scraper_mocks):
     """Test handling errors when extracting match links."""
     mocks = setup_base_scraper_mocks
@@ -306,8 +306,8 @@ async def test_scrape_match_data_no_details(setup_base_scraper_mocks):
 
 
 @pytest.mark.asyncio
-@patch("src.core.base_scraper.BeautifulSoup")
-@patch("src.core.base_scraper.json")
+@patch("oddsharvester.core.base_scraper.BeautifulSoup")
+@patch("oddsharvester.core.base_scraper.json")
 async def test_extract_match_details_event_header(json_mock, bs4_mock, setup_base_scraper_mocks):
     """Test extracting match details from the react event header."""
     mocks = setup_base_scraper_mocks
@@ -370,7 +370,7 @@ async def test_extract_match_details_event_header(json_mock, bs4_mock, setup_bas
 
 
 @pytest.mark.asyncio
-@patch("src.core.base_scraper.BeautifulSoup")
+@patch("oddsharvester.core.base_scraper.BeautifulSoup")
 async def test_extract_match_details_missing_div(bs4_mock, setup_base_scraper_mocks):
     """Test extracting match details when the header div is missing."""
     mocks = setup_base_scraper_mocks
@@ -392,8 +392,8 @@ async def test_extract_match_details_missing_div(bs4_mock, setup_base_scraper_mo
 
 
 @pytest.mark.asyncio
-@patch("src.core.base_scraper.BeautifulSoup")
-@patch("src.core.base_scraper.json")
+@patch("oddsharvester.core.base_scraper.BeautifulSoup")
+@patch("oddsharvester.core.base_scraper.json")
 async def test_extract_match_details_invalid_json(json_mock, bs4_mock, setup_base_scraper_mocks):
     """Test extracting match details with invalid JSON data."""
     mocks = setup_base_scraper_mocks

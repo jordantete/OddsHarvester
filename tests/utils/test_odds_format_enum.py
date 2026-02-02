@@ -1,6 +1,6 @@
 import pytest
 
-from src.utils.odds_format_enum import OddsFormat
+from oddsharvester.utils.odds_format_enum import OddsFormat
 
 
 def test_odds_format_enum_values():

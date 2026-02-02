@@ -1,0 +1,19 @@
+{
+    "match_id": "MssXFOD7",
+    "match_url": "https://www.oddsportal.com/tennis/australia/atp-australian-open/humbert-ugo-zverev-alexander-MssXFOD7/",
+    "sport": "tennis",
+    "league": "australian-open",
+    "home_team": "Humbert U.",
+    "away_team": "Zverev A.",
+    "final_score": {
+        "home": "1",
+        "away": "3"
+    },
+    "match_date": "2025-01-19 07:10:00 UTC",
+    "notes": "",
+    "captured_at": "2026-02-02T09:35:40.475868+00:00",
+    "oddsharvester_version": "0.1.0",
+    "available_fixtures": [
+        "match_winner_full_time_all.json"
+    ]
+}

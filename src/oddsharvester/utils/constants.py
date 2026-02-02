@@ -1,0 +1,29 @@
+ODDSPORTAL_BASE_URL = "https://www.oddsportal.com"
+
+PLAYWRIGHT_BROWSER_ARGS = [
+    "--disable-background-networking",
+    "--disable-extensions",
+    "--mute-audio",
+    "--window-size=1280,720",
+    "--disable-popup-blocking",
+    "--disable-translate",
+    "--no-first-run",
+    "--disable-infobars",
+    "--disable-features=IsolateOrigins,site-per-process",
+    "--enable-gpu-rasterization",
+    "--disable-blink-features=AutomationControlled",
+]
+
+PLAYWRIGHT_BROWSER_ARGS_DOCKER = [
+    "--disable-dev-shm-usage",
+    "--no-sandbox",
+    "--headless",
+    "--disable-gpu",
+    "--disable-background-networking",
+    "--disable-popup-blocking",
+    "--disable-extensions",
+    "--disable-blink-features=AutomationControlled",
+    "--disable-features=IsolateOrigins,site-per-process",
+    "--mute-audio",
+    "--window-size=1280,720",
+]
