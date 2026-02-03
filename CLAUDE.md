@@ -121,3 +121,41 @@ CLI Layer (src/oddsharvester/cli/) → Core Layer (src/oddsharvester/core/) → 
   - Retry logic → `src/oddsharvester/core/retry.py`
   - Result handling → create shared helpers rather than copy-pasting
 - **Before adding new constants/utilities**: Search the codebase (`grep`/`rg`) to check if similar functionality already exists
+
+## Release Process
+
+This project uses a tag-based release strategy. Publishing to PyPI is automated via GitHub Actions.
+
+### Creating a new release
+
+```bash
+# 1. Ensure master is up to date and tests pass
+git checkout master
+git pull origin master
+uv run pytest tests/ -q --ignore=tests/integration/
+
+# 2. Update version in pyproject.toml
+# version = "X.Y.Z"
+
+# 3. Update CHANGELOG.md
+# - Rename [Unreleased] to [X.Y.Z] - YYYY-MM-DD
+# - Add a new empty [Unreleased] section
+
+# 4. Commit and tag
+git add pyproject.toml CHANGELOG.md
+git commit -m "chore: release vX.Y.Z"
+git tag vX.Y.Z
+git push origin master --tags
+```
+
+The GitHub Actions workflow (`release.yml`) triggers automatically on tag push and:
+1. Runs tests
+2. Builds the package
+3. Publishes to PyPI
+4. Creates a GitHub Release
+
+### Versioning (SemVer)
+
+- **MAJOR** (`X.0.0`): Breaking changes
+- **MINOR** (`0.X.0`): New backward-compatible features
+- **PATCH** (`0.0.X`): Bug fixes

@@ -4,8 +4,30 @@ version = "0.1.0"
 description = "A Python application to scrape and manage odds data from OddsPortal website."
 authors = [{ name = "Jordan TETE", email = "tetej171@gmail.com" }]
 readme = "README.md"
-license = { file = "LICENSE.txt" }
+license = "MIT"
+license-files = ["LICENSE.txt"]
 requires-python = ">=3.12"
+keywords = [
+    "odds",
+    "oddsportal",
+    "scraper",
+    "betting",
+    "sports-betting",
+    "web-scraping",
+    "playwright",
+    "football",
+    "tennis",
+    "basketball",
+    "bookmaker",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+]
 dependencies = [
     "beautifulsoup4>=4.14.3",
     "boto3>=1.42.21",
