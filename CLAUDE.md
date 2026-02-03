@@ -18,8 +18,11 @@ uv sync
 uv run oddsharvester scrape-upcoming --sport football --date 20250101 --markets 1x2
 uv run oddsharvester scrape-historic --sport football --leagues england-premier-league --season 2022-2023 --markets 1x2
 
-# Run all tests
-uv run pytest tests/ -q
+# Run unit tests
+uv run pytest tests/ -q --ignore=tests/integration/
+
+# Run integration tests (requires internet, slower)
+uv run pytest tests/integration/ -q -m integration
 
 # Run a single test file
 uv run pytest tests/core/test_url_builder.py -q
@@ -28,7 +31,7 @@ uv run pytest tests/core/test_url_builder.py -q
 uv run pytest tests/core/test_url_builder.py::TestUrlBuilder::test_method_name -q
 
 # Coverage report
-uv run pytest --cov=src/oddsharvester --cov-report=term
+uv run pytest --cov=src/oddsharvester --cov-report=term --ignore=tests/integration/
 
 # Lint and format
 uv run ruff format .

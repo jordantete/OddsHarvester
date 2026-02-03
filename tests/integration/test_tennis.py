@@ -53,7 +53,7 @@ class TestTennisBasicMarkets:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="tennis",
             match_link=DJOKOVIC_SINNER["url"],
             markets=["match_winner"],
@@ -95,7 +95,7 @@ class TestTennisBasicMarkets:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="tennis",
             match_link=DJOKOVIC_SINNER["url"],
             markets=["match_winner", "over_under_sets_2_5"],
@@ -137,7 +137,7 @@ class TestTennisBasicMarkets:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="tennis",
             match_link=DJOKOVIC_LEHECKA["url"],
             markets=["match_winner"],
@@ -179,7 +179,7 @@ class TestTennisBasicMarkets:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="tennis",
             match_link=DJOKOVIC_LEHECKA["url"],
             markets=["over_under_games_22_5"],
@@ -221,7 +221,7 @@ class TestTennisBasicMarkets:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="tennis",
             match_link=HUMBERT_ZVEREV["url"],
             markets=["match_winner"],
@@ -268,7 +268,7 @@ class TestTennisPeriods:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="tennis",
             match_link=DJOKOVIC_SINNER["url"],
             markets=["match_winner"],

@@ -46,7 +46,7 @@ class TestBasketballBasicMarkets:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="basketball",
             match_link=LAKERS_CELTICS["url"],
             markets=["home_away"],
@@ -89,7 +89,7 @@ class TestBasketballBasicMarkets:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="basketball",
             match_link=LAKERS_CELTICS["url"],
             markets=["home_away", "1x2"],
@@ -131,7 +131,7 @@ class TestBasketballBasicMarkets:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="basketball",
             match_link=LAKERS_WARRIORS["url"],
             markets=["home_away"],
@@ -178,7 +178,7 @@ class TestBasketballPeriods:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="basketball",
             match_link=LAKERS_CELTICS["url"],
             markets=["home_away"],
@@ -221,7 +221,7 @@ class TestBasketballPeriods:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="basketball",
             match_link=LAKERS_CELTICS["url"],
             markets=["home_away"],
@@ -264,7 +264,7 @@ class TestBasketballPeriods:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="basketball",
             match_link=LAKERS_WARRIORS["url"],
             markets=["home_away"],
