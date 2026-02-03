@@ -32,12 +32,41 @@ jobs:
       - name: Install Playwright Chromium Browser
         run: uv run playwright install chromium
 
-      - name: Run Tests
+      - name: Run Unit Tests
         run: uv run pytest tests/ -q --ignore=tests/integration/
+
+  integration-test:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxml2-dev libxslt-dev python3-dev build-essential
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Install Playwright Chromium Browser
+        run: uv run playwright install chromium
+
+      - name: Run Integration Tests
+        run: uv run pytest tests/integration/ -q -m integration
 
   build:
     name: Build Package
-    needs: test
+    needs: [test, integration-test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
