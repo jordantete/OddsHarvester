@@ -5,8 +5,9 @@ import pytest
 
 from oddsharvester.core.browser_helper import BrowserHelper
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
-from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
+from oddsharvester.core.odds_portal_scraper import LinkCollectionResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
+from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
 
 
 @pytest.fixture
@@ -112,10 +113,21 @@ async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
 
     # Mock the _get_pagination_info and _collect_match_links methods
     scraper._get_pagination_info = AsyncMock(return_value=[1, 2])
-    scraper._collect_match_links = AsyncMock(
-        return_value=["https://oddsportal.com/match1", "https://oddsportal.com/match2"]
+    link_result = LinkCollectionResult(
+        links=["https://oddsportal.com/match1", "https://oddsportal.com/match2"],
+        successful_pages=2,
+        failed_pages=[],
     )
-    scraper.extract_match_odds = AsyncMock(return_value=[{"match": "data1"}, {"match": "data2"}])
+    scraper._collect_match_links = AsyncMock(return_value=link_result)
+
+    # Mock extract_match_odds to return ScrapeResult
+    mock_scrape_result = ScrapeResult(
+        success=[{"match": "data1"}, {"match": "data2"}],
+        failed=[],
+        partial=[],
+        stats=ScrapeStats(total_urls=2, successful=2, failed=0, partial=0),
+    )
+    scraper.extract_match_odds = AsyncMock(return_value=mock_scrape_result)
     scraper._prepare_page_for_scraping = AsyncMock()
 
     # Call the method under test
@@ -150,8 +162,10 @@ async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
         period=ANY,
     )
 
-    # Verify the result
-    assert result == [{"match": "data1"}, {"match": "data2"}]
+    # Verify the result is a ScrapeResult
+    assert isinstance(result, ScrapeResult)
+    assert len(result.success) == 2
+    assert result.stats.successful == 2
 
 
 @pytest.mark.asyncio
@@ -172,7 +186,15 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
     scraper.extract_match_links = AsyncMock(
         return_value=["https://oddsportal.com/match1", "https://oddsportal.com/match2"]
     )
-    scraper.extract_match_odds = AsyncMock(return_value=[{"match": "data1"}, {"match": "data2"}])
+
+    # Mock extract_match_odds to return ScrapeResult
+    mock_scrape_result = ScrapeResult(
+        success=[{"match": "data1"}, {"match": "data2"}],
+        failed=[],
+        partial=[],
+        stats=ScrapeStats(total_urls=2, successful=2, failed=0, partial=0),
+    )
+    scraper.extract_match_odds = AsyncMock(return_value=mock_scrape_result)
 
     # Call the method under test
     result = await scraper.scrape_upcoming(
@@ -201,8 +223,10 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
         period=ANY,
     )
 
-    # Verify the result
-    assert result == [{"match": "data1"}, {"match": "data2"}]
+    # Verify the result is a ScrapeResult
+    assert isinstance(result, ScrapeResult)
+    assert len(result.success) == 2
+    assert result.stats.successful == 2
 
 
 @pytest.mark.asyncio
@@ -215,7 +239,15 @@ async def test_scrape_matches(setup_scraper_mocks):
 
     # Mock methods
     scraper._prepare_page_for_scraping = AsyncMock()
-    scraper.extract_match_odds = AsyncMock(return_value=[{"match": "data1"}, {"match": "data2"}])
+
+    # Mock extract_match_odds to return ScrapeResult
+    mock_scrape_result = ScrapeResult(
+        success=[{"match": "data1"}, {"match": "data2"}],
+        failed=[],
+        partial=[],
+        stats=ScrapeStats(total_urls=2, successful=2, failed=0, partial=0),
+    )
+    scraper.extract_match_odds = AsyncMock(return_value=mock_scrape_result)
 
     match_links = ["https://oddsportal.com/match1", "https://oddsportal.com/match2"]
 
@@ -239,8 +271,10 @@ async def test_scrape_matches(setup_scraper_mocks):
         period=ANY,
     )
 
-    # Verify the result
-    assert result == [{"match": "data1"}, {"match": "data2"}]
+    # Verify the result is a ScrapeResult
+    assert isinstance(result, ScrapeResult)
+    assert len(result.success) == 2
+    assert result.stats.successful == 2
 
 
 @pytest.mark.asyncio
@@ -328,10 +362,13 @@ async def test_collect_match_links(setup_scraper_mocks):
     assert tab_mock.close.call_count == 2
     assert scraper.extract_match_links.call_count == 2
 
-    # Verify the result (should be unique links)
-    assert sorted(result) == sorted(
+    # Verify the result is LinkCollectionResult with unique links
+    assert isinstance(result, LinkCollectionResult)
+    assert sorted(result.links) == sorted(
         ["https://oddsportal.com/match1", "https://oddsportal.com/match2", "https://oddsportal.com/match3"]
     )
+    assert result.successful_pages == 2
+    assert result.failed_pages == []
 
 
 @pytest.mark.asyncio
@@ -357,6 +394,9 @@ async def test_collect_match_links_error_handling(setup_scraper_mocks):
         base_url="https://oddsportal.com/football/england/premier-league-2023", pages_to_scrape=[1, 2]
     )
 
-    # Verify the result still contains successful page links
-    assert result == ["https://oddsportal.com/match1"]
+    # Verify the result is LinkCollectionResult with successful page links and tracked failure
+    assert isinstance(result, LinkCollectionResult)
+    assert result.links == ["https://oddsportal.com/match1"]
+    assert result.successful_pages == 1
+    assert result.failed_pages == [2]
     assert tab_mock.close.call_count == 2  # Should still close tabs even after error

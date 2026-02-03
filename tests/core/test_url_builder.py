@@ -138,7 +138,7 @@ def test_get_historic_matches_url_invalid_league():
     """Test error handling for invalid leagues."""
     with pytest.raises(
         ValueError,
-        match="Invalid league 'random-league' for sport 'football'. Available: england-premier-league, la-liga",
+        match=r"Invalid league 'random-league' for sport 'football'\. Available: england-premier-league, la-liga",
     ):
         URLBuilder.get_historic_matches_url("football", "random-league", "2023-2024")
 
@@ -191,6 +191,6 @@ def test_get_league_url_invalid_league():
     """Test get_league_url raises ValueError for unsupported league."""
     with pytest.raises(
         ValueError,
-        match="Invalid league 'random-league' for sport 'football'. Available: england-premier-league, la-liga",
+        match=r"Invalid league 'random-league' for sport 'football'\. Available: england-premier-league, la-liga",
     ):
         URLBuilder.get_league_url("football", "random-league")

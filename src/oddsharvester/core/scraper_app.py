@@ -5,6 +5,8 @@ from oddsharvester.core.browser_helper import BrowserHelper
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
+from oddsharvester.core.retry import TRANSIENT_ERROR_KEYWORDS
+from oddsharvester.core.scrape_result import ScrapeResult
 from oddsharvester.core.sport_market_registry import SportMarketRegistrar
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.command_enum import CommandEnum
@@ -14,23 +16,6 @@ from oddsharvester.utils.utils import validate_and_convert_period
 logger = logging.getLogger("ScraperApp")
 MAX_RETRIES = 3
 RETRY_DELAY_SECONDS = 20
-TRANSIENT_ERRORS = (
-    "ERR_CONNECTION_RESET",
-    "ERR_CONNECTION_TIMED_OUT",
-    "ERR_NAME_NOT_RESOLVED",
-    "ERR_PROXY_CONNECTION_FAILED",
-    "ERR_SOCKS_CONNECTION_FAILED",
-    "ERR_CERT_AUTHORITY_INVALID",
-    "ERR_TUNNEL_CONNECTION_FAILED",
-    "ERR_NETWORK_CHANGED",
-    "Timeout",  # generic timeout from Playwright
-    "net::ERR_FAILED",
-    "net::ERR_CONNECTION_ABORTED",
-    "net::ERR_INTERNET_DISCONNECTED",
-    "Navigation timeout",
-    "TimeoutError",
-    "Target closed",
-)
 
 
 async def run_scraper(
@@ -54,8 +39,14 @@ async def run_scraper(
     preview_submarkets_only: bool = False,
     bookies_filter: str = BookiesFilter.ALL.value,
     period: str | None = None,
-) -> dict:
-    """Runs the scraping process and handles execution."""
+) -> ScrapeResult | None:
+    """
+    Runs the scraping process and handles execution.
+
+    Returns:
+        ScrapeResult containing successful matches, failed URLs, and statistics.
+        Returns None if a fatal error occurs during initialization.
+    """
 
     bookies_filter_enum = BookiesFilter(bookies_filter)
     period_enum = validate_and_convert_period(period, sport)
@@ -214,7 +205,7 @@ async def run_scraper(
         await scraper.stop_playwright()
 
 
-async def _scrape_multiple_leagues(scraper, scrape_func, leagues: list[str], sport: str, **kwargs) -> list[dict]:
+async def _scrape_multiple_leagues(scraper, scrape_func, leagues: list[str], sport: str, **kwargs) -> ScrapeResult:
     """
     Helper function to handle multi-league scraping with error handling and logging.
 
@@ -226,9 +217,9 @@ async def _scrape_multiple_leagues(scraper, scrape_func, leagues: list[str], spo
         **kwargs: Additional arguments to pass to the scrape function
 
     Returns:
-        List of combined results from all leagues
+        ScrapeResult: Merged results from all leagues with combined statistics.
     """
-    all_results = []
+    combined_result = ScrapeResult()
     failed_leagues = []
 
     logger.info(f"Starting multi-league scraping for {len(leagues)} leagues: {leagues}")
@@ -237,11 +228,18 @@ async def _scrape_multiple_leagues(scraper, scrape_func, leagues: list[str], spo
         try:
             logger.info(f"[{i}/{len(leagues)}] Processing league: {league}")
 
-            league_data = await retry_scrape(scrape_func, sport=sport, league=league, **kwargs)
+            league_result = await retry_scrape(scrape_func, sport=sport, league=league, **kwargs)
 
-            if league_data:
-                all_results.extend(league_data)
-                logger.info(f"Successfully scraped {len(league_data)} matches from league: {league}")
+            if league_result and league_result.success:
+                combined_result.merge(league_result)
+                logger.info(
+                    f"Successfully scraped {league_result.stats.successful} matches from league: {league} "
+                    f"({league_result.stats.failed} failed)"
+                )
+            elif league_result:
+                # Result exists but no successful matches
+                combined_result.merge(league_result)
+                logger.warning(f"No successful matches for league: {league} ({league_result.stats.failed} failed)")
             else:
                 logger.warning(f"No data returned for league: {league}")
 
@@ -250,7 +248,6 @@ async def _scrape_multiple_leagues(scraper, scrape_func, leagues: list[str], spo
             failed_leagues.append(league)
             continue
 
-    total_matches = len(all_results)
     successful_leagues = len(leagues) - len(failed_leagues)
 
     if failed_leagues:
@@ -258,18 +255,30 @@ async def _scrape_multiple_leagues(scraper, scrape_func, leagues: list[str], spo
 
     logger.info(
         f"Multi-league scraping completed: {successful_leagues}/{len(leagues)} leagues successful, "
-        f"{total_matches} total matches scraped"
+        f"{combined_result.stats.successful} total matches scraped, "
+        f"{combined_result.stats.failed} failed ({combined_result.stats.success_rate:.1f}% success rate)"
     )
 
-    return all_results
+    return combined_result
 
 
-async def retry_scrape(scrape_func, *args, **kwargs):
+async def retry_scrape(scrape_func, *args, **kwargs) -> ScrapeResult | None:
+    """
+    Retry a scrape function with exponential backoff for transient errors.
+
+    Args:
+        scrape_func: The async scraping function to execute.
+        *args: Positional arguments for the function.
+        **kwargs: Keyword arguments for the function.
+
+    Returns:
+        ScrapeResult from the scrape function, or None if max retries exceeded.
+    """
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             return await scrape_func(*args, **kwargs)
         except Exception as e:
-            if any(keyword in str(e) for keyword in TRANSIENT_ERRORS):
+            if any(keyword in str(e) for keyword in TRANSIENT_ERROR_KEYWORDS):
                 logger.warning(
                     f"[Attempt {attempt}] Transient error detected: {e}. Retrying in {RETRY_DELAY_SECONDS}s..."
                 )

@@ -1,13 +1,27 @@
+from dataclasses import dataclass, field
 from enum import Enum
 import random
-from typing import Any
 
 from playwright.async_api import Page
 
 from oddsharvester.core.base_scraper import BaseScraper
+from oddsharvester.core.scrape_result import ScrapeResult
 from oddsharvester.core.url_builder import URLBuilder
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
+
+
+@dataclass
+class LinkCollectionResult:
+    """Result of collecting match links from pages."""
+
+    links: list[str] = field(default_factory=list)
+    successful_pages: int = 0
+    failed_pages: list[int] = field(default_factory=list)
+
+    @property
+    def total_pages(self) -> int:
+        return self.successful_pages + len(self.failed_pages)
 
 
 class OddsPortalScraper(BaseScraper):
@@ -53,7 +67,7 @@ class OddsPortalScraper(BaseScraper):
         max_pages: int | None = None,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> ScrapeResult:
         """
         Scrapes historical odds data.
 
@@ -67,7 +81,7 @@ class OddsPortalScraper(BaseScraper):
             max_pages (Optional[int]): Maximum number of pages to scrape (default is None for all pages).
 
         Returns:
-            List[Dict[str, Any]]: A list of dictionaries containing scraped historical match odds data.
+            ScrapeResult: Contains successful results, failed URLs, and statistics.
         """
         current_page = self.playwright_manager.page
         if not current_page:
@@ -89,15 +103,18 @@ class OddsPortalScraper(BaseScraper):
 
         # Collect match links from all pages
         self.logger.info("Step 2: Collecting match links from all pages...")
-        all_links = await self._collect_match_links(base_url=base_url, pages_to_scrape=pages_to_scrape)
+        link_result = await self._collect_match_links(base_url=base_url, pages_to_scrape=pages_to_scrape)
+
+        if link_result.failed_pages:
+            self.logger.warning(f"Failed to collect links from pages: {link_result.failed_pages}")
 
         # Extract odds from all collected links
         self.logger.info("Step 3: Extracting odds from collected match links...")
-        self.logger.info(f"Total unique matches to process: {len(all_links)}")
+        self.logger.info(f"Total unique matches to process: {len(link_result.links)}")
 
         return await self.extract_match_odds(
             sport=sport,
-            match_links=all_links,
+            match_links=link_result.links,
             markets=markets,
             scrape_odds_history=scrape_odds_history,
             target_bookmaker=target_bookmaker,
@@ -116,7 +133,7 @@ class OddsPortalScraper(BaseScraper):
         target_bookmaker: str | None = None,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> ScrapeResult:
         """
         Scrapes upcoming match odds.
 
@@ -129,7 +146,7 @@ class OddsPortalScraper(BaseScraper):
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
 
         Returns:
-            List[Dict[str, Any]]: A List of dictionaries containing upcoming match odds data.
+            ScrapeResult: Contains successful results, failed URLs, and statistics.
         """
         current_page = self.playwright_manager.page
         if not current_page:
@@ -155,7 +172,7 @@ class OddsPortalScraper(BaseScraper):
 
         if not match_links:
             self.logger.warning("No match links found for upcoming matches.")
-            return []
+            return ScrapeResult()
 
         return await self.extract_match_odds(
             sport=sport,
@@ -177,7 +194,7 @@ class OddsPortalScraper(BaseScraper):
         target_bookmaker: str | None = None,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> ScrapeResult:
         """
         Scrapes match odds from a list of specific match URLs.
 
@@ -189,7 +206,7 @@ class OddsPortalScraper(BaseScraper):
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
 
         Returns:
-            List[Dict[str, Any]]: A list containing odds and match details.
+            ScrapeResult: Contains successful results, failed URLs, and statistics.
         """
         current_page = self.playwright_manager.page
         if not current_page:
@@ -310,7 +327,7 @@ class OddsPortalScraper(BaseScraper):
             self.logger.info("No pagination gaps detected")
             return sorted_pages
 
-    async def _collect_match_links(self, base_url: str, pages_to_scrape: list[int]) -> list[str]:
+    async def _collect_match_links(self, base_url: str, pages_to_scrape: list[int]) -> LinkCollectionResult:
         """
         Collects match links from multiple pages.
 
@@ -319,17 +336,17 @@ class OddsPortalScraper(BaseScraper):
             pages_to_scrape (List[int]): Pages to scrape.
 
         Returns:
-            List[str]: List of match links found.
+            LinkCollectionResult: Contains links found and tracking of successful/failed pages.
         """
         self.logger.info(f"Starting collection of match links from {len(pages_to_scrape)} pages")
         self.logger.info(f"Pages to process: {pages_to_scrape}")
 
+        result = LinkCollectionResult()
         all_links = []
-        successful_pages = 0
-        failed_pages = 0
 
         for i, page_number in enumerate(pages_to_scrape, 1):
             self.logger.info(f"Processing page {i}/{len(pages_to_scrape)}: {page_number}")
+            tab = None
 
             try:
                 tab = await self.playwright_manager.context.new_page()
@@ -359,27 +376,27 @@ class OddsPortalScraper(BaseScraper):
                 self.logger.info(f"Extracting match links from page {page_number}...")
                 links = await self.extract_match_links(page=tab)
                 all_links.extend(links)
-                successful_pages += 1
+                result.successful_pages += 1
                 self.logger.info(f"Extracted {len(links)} links from page {page_number}")
 
             except Exception as e:
-                failed_pages += 1
+                result.failed_pages.append(page_number)
                 self.logger.error(f"Error processing page {page_number}: {e}")
 
             finally:
-                if "tab" in locals() and tab:
+                if tab:
                     await tab.close()
                     self.logger.debug(f"Closed tab for page {page_number}")
 
-        unique_links = list(set(all_links))
+        result.links = list(set(all_links))
         self.logger.info("Collection Summary:")
-        self.logger.info(f"   • Total pages processed: {len(pages_to_scrape)}")
-        self.logger.info(f"   • Successful pages: {successful_pages}")
-        self.logger.info(f"   • Failed pages: {failed_pages}")
-        self.logger.info(f"   • Total links found: {len(all_links)}")
-        self.logger.info(f"   • Unique links: {len(unique_links)}")
+        self.logger.info(f"   - Total pages processed: {len(pages_to_scrape)}")
+        self.logger.info(f"   - Successful pages: {result.successful_pages}")
+        self.logger.info(f"   - Failed pages: {len(result.failed_pages)}")
+        self.logger.info(f"   - Total links found: {len(all_links)}")
+        self.logger.info(f"   - Unique links: {len(result.links)}")
 
-        if failed_pages > 0:
-            self.logger.warning(f"{failed_pages} pages failed during link collection")
+        if result.failed_pages:
+            self.logger.warning(f"Failed to collect links from pages: {result.failed_pages}")
 
-        return unique_links
+        return result

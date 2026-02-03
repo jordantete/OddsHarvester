@@ -14,7 +14,7 @@ def lambda_handler(event: dict[str, Any], context: Any):
     formatted_date = next_day.strftime("%Y%m%d")
 
     ## TODO: Parse event to retrieve scraping taks' params - handle exceptions
-    return asyncio.run(
+    result = asyncio.run(
         run_scraper(
             command="scrape_upcoming",
             sport="football",
@@ -25,3 +25,16 @@ def lambda_handler(event: dict[str, Any], context: Any):
             markets=["1x2"],
         )
     )
+
+    if result is None:
+        return {"statusCode": 500, "body": "Scraper failed to return data"}
+
+    return {
+        "statusCode": 200,
+        "body": {
+            "successful": result.stats.successful,
+            "failed": result.stats.failed,
+            "success_rate": f"{result.stats.success_rate:.1f}%",
+            "data": result.success,
+        },
+    }

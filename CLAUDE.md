@@ -56,6 +56,9 @@ CLI Layer (src/oddsharvester/cli/) → Core Layer (src/oddsharvester/core/) → 
 - `sport_market_registry.py` — Registers market name→tab mappings per sport
 - `sport_period_registry.py` — Manages match period selection (full-time, halves, quarters)
 - `odds_portal_selectors.py` — CSS/XPath selectors for the OddsPortal DOM
+- `retry.py` — Retry utilities with exponential backoff; **canonical location for `TRANSIENT_ERROR_KEYWORDS`**
+- `scrape_result.py` — Data structures for scraping results (`ScrapeResult`, `FailedUrl`, `ScrapeStats`)
+- `exceptions.py` — Custom exception hierarchy (`ScraperError`, `NavigationError`, `ParsingError`, etc.)
 - `market_extraction/` — Sub-components: submarket extraction, odds parsing, odds history, navigation, market grouping
 
 **Data Layer** (`src/oddsharvester/utils/`):
@@ -93,3 +96,25 @@ CLI Layer (src/oddsharvester/cli/) → Core Layer (src/oddsharvester/core/) → 
 - Python >=3.12, line length 120, double quotes
 - Linter/formatter: Ruff (pre-commit hooks enforce this)
 - `S101` (assert) and `T201` (print) are allowed
+
+## Development Guidelines
+
+### Testing Requirements
+
+- **Before any code modification**: Run `uv run pytest tests/ -q` to ensure existing tests pass
+- **After code changes**:
+  - If modifying existing code: update related unit tests if behavior changes
+  - If adding new code: create unit tests for new functions/classes
+  - Run `uv run pytest tests/ -q` to validate all tests pass
+- **Minimum coverage**: New code should have test coverage for critical paths
+- **Test location**: Tests mirror the source structure in `tests/` directory
+
+### Code Duplication (DRY Principle)
+
+- **Constants**: Define constants (error patterns, config values, magic strings) in ONE canonical location and import them where needed. Never duplicate tuples/lists of values across files.
+  - Error keywords/patterns → `src/oddsharvester/core/retry.py` (`TRANSIENT_ERROR_KEYWORDS`)
+  - Sport/market constants → `src/oddsharvester/utils/sport_market_constants.py`
+- **Shared logic**: If similar code appears in 2+ places, extract to a utility function. Examples:
+  - Retry logic → `src/oddsharvester/core/retry.py`
+  - Result handling → create shared helpers rather than copy-pasting
+- **Before adding new constants/utilities**: Search the codebase (`grep`/`rg`) to check if similar functionality already exists

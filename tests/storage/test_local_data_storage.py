@@ -24,7 +24,7 @@ def test_initialization(local_data_storage):
 
 
 def test_save_data_invalid_format(local_data_storage):
-    with pytest.raises(ValueError, match="Data must be a dictionary or a list of dictionaries."):
+    with pytest.raises(ValueError, match=r"Data must be a dictionary or a list of dictionaries\."):
         local_data_storage.save_data("invalid_data")
 
 
@@ -59,7 +59,7 @@ def test_save_data_with_existing_extension(local_data_storage, sample_data):
 
 
 def test_save_data_unsupported_format(local_data_storage, sample_data):
-    with pytest.raises(ValueError, match="Invalid storage format. Supported formats are: csv, json."):
+    with pytest.raises(ValueError, match=r"Invalid storage format\. Supported formats are: csv, json\."):
         local_data_storage.save_data(sample_data, storage_format="unsupported")
 
 
@@ -133,7 +133,7 @@ def test_save_as_json_invalid_json_file(local_data_storage, sample_data):
 
 
 def test_save_data_invalid_format_type(local_data_storage, sample_data):
-    with pytest.raises(ValueError, match="Invalid storage format. Supported formats are: csv, json."):
+    with pytest.raises(ValueError, match=r"Invalid storage format\. Supported formats are: csv, json\."):
         local_data_storage.save_data(sample_data, storage_format="xml")
 
 

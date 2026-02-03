@@ -61,14 +61,19 @@ def upcoming(ctx, **kwargs):
             )
         )
 
-        if scraped_data:
+        if scraped_data and scraped_data.success:
             store_data(
                 storage_type=storage.value if storage else "local",
-                data=scraped_data,
+                data=scraped_data.success,
                 storage_format=storage_format.value if storage_format else "json",
                 file_path=kwargs.get("file_path"),
             )
-            click.echo(f"Successfully scraped {len(scraped_data)} matches.")
+            click.echo(
+                f"Successfully scraped {scraped_data.stats.successful} matches "
+                f"({scraped_data.stats.failed} failed, {scraped_data.stats.success_rate:.1f}% success rate)."
+            )
+            if scraped_data.failed:
+                click.echo(f"Failed URLs: {[f.url for f in scraped_data.failed]}", err=True)
         else:
             logger.error("Scraper did not return valid data.")
             sys.exit(1)

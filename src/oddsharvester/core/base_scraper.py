@@ -12,6 +12,8 @@ from playwright.async_api import Page, TimeoutError
 from oddsharvester.core.browser_helper import BrowserHelper
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.playwright_manager import PlaywrightManager
+from oddsharvester.core.retry import RetryConfig, classify_error, is_retryable_error, retry_with_backoff
+from oddsharvester.core.scrape_result import FailedUrl, ScrapeResult, ScrapeStats
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
 from oddsharvester.utils.odds_format_enum import OddsFormat
@@ -130,7 +132,8 @@ class BaseScraper:
         preview_submarkets_only: bool = False,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
-    ) -> list[dict[str, Any]]:
+        retry_config: RetryConfig | None = None,
+    ) -> ScrapeResult:
         """
         Extract odds for a list of match links concurrently.
 
@@ -145,52 +148,114 @@ class BaseScraper:
             individual bookmaker details.
             bookies_filter (BookiesFilter): The bookmaker filter to apply.
             period: The period to scrape odds for.
+            retry_config: Configuration for per-match retry behavior.
 
         Returns:
-            List[Dict[str, Any]]: A list of dictionaries containing scraped odds data.
+            ScrapeResult: Contains successful results, failed URLs with error details, and statistics.
         """
         self.logger.info(f"Starting to scrape odds for {len(match_links)} match links...")
-        semaphore = asyncio.Semaphore(concurrent_scraping_task)
-        failed_links = []
 
-        async def scrape_with_semaphore(link):
+        result = ScrapeResult(stats=ScrapeStats(total_urls=len(match_links)))
+        semaphore = asyncio.Semaphore(concurrent_scraping_task)
+
+        if retry_config is None:
+            retry_config = RetryConfig(max_attempts=2, base_delay=2.0)
+
+        async def scrape_single_match(page: Page, link: str) -> dict[str, Any] | None:
+            """Inner function to scrape a single match (used for retry)."""
+            return await self._scrape_match_data(
+                page=page,
+                sport=sport,
+                match_link=link,
+                markets=markets,
+                scrape_odds_history=scrape_odds_history,
+                target_bookmaker=target_bookmaker,
+                preview_submarkets_only=preview_submarkets_only,
+                bookies_filter=bookies_filter,
+                period=period,
+            )
+
+        async def scrape_with_semaphore(link: str) -> tuple[str, dict[str, Any] | None, FailedUrl | None]:
             async with semaphore:
                 tab = None
 
                 try:
                     tab = await self.playwright_manager.context.new_page()
-                    data = await self._scrape_match_data(
-                        page=tab,
-                        sport=sport,
-                        match_link=link,
-                        markets=markets,
-                        scrape_odds_history=scrape_odds_history,
-                        target_bookmaker=target_bookmaker,
-                        preview_submarkets_only=preview_submarkets_only,
-                        bookies_filter=bookies_filter,
-                        period=period,
+
+                    # Use retry with backoff for each match
+                    retry_result = await retry_with_backoff(
+                        scrape_single_match,
+                        tab,
+                        link,
+                        config=retry_config,
                     )
-                    self.logger.info(f"Successfully scraped match link: {link}")
-                    return data
+
+                    if retry_result.success and retry_result.result is not None:
+                        self.logger.info(f"Successfully scraped match link: {link} (attempts: {retry_result.attempts})")
+                        return (link, retry_result.result, None)
+                    else:
+                        # Scraping failed after retries
+                        error_type = retry_result.error_type or classify_error(retry_result.last_error)
+                        failed_url = FailedUrl(
+                            url=link,
+                            error_type=error_type,
+                            error_message=retry_result.last_error or "Unknown error",
+                            attempts=retry_result.attempts,
+                            is_retryable=is_retryable_error(retry_result.last_error or ""),
+                        )
+                        self.logger.warning(
+                            f"Failed to scrape {link} after {retry_result.attempts} attempts: {retry_result.last_error}"
+                        )
+                        return (link, None, failed_url)
 
                 except Exception as e:
-                    self.logger.error(f"Error scraping link {link}: {e}")
-                    failed_links.append(link)
-                    return None
+                    # Unexpected error outside of retry mechanism
+                    error_message = str(e)
+                    failed_url = FailedUrl(
+                        url=link,
+                        error_type=classify_error(error_message),
+                        error_message=error_message,
+                        attempts=1,
+                        is_retryable=is_retryable_error(error_message),
+                    )
+                    self.logger.error(f"Unexpected error scraping {link}: {e}")
+                    return (link, None, failed_url)
 
                 finally:
                     if tab:
                         await tab.close()
 
+        # Execute all scraping tasks concurrently
         tasks = [scrape_with_semaphore(link) for link in match_links]
         results = await asyncio.gather(*tasks)
-        odds_data = [result for result in results if result is not None]
-        self.logger.info(f"Successfully scraped odds data for {len(odds_data)} matches.")
 
-        if failed_links:
-            self.logger.warning(f"Failed to scrape data for {len(failed_links)} links: {failed_links}")
+        # Process results
+        for _link, data, failed_url in results:
+            if data is not None:
+                result.success.append(data)
+                result.stats.successful += 1
+            elif failed_url is not None:
+                result.failed.append(failed_url)
+                result.stats.failed += 1
 
-        return odds_data
+        # Log summary
+        self.logger.info(
+            f"Scraping complete: {result.stats.successful}/{result.stats.total_urls} successful "
+            f"({result.stats.success_rate:.1f}%)"
+        )
+
+        if result.failed:
+            retryable_count = len(result.get_retryable_urls())
+            self.logger.warning(
+                f"Failed to scrape {result.stats.failed} URLs "
+                f"({retryable_count} retryable, {result.stats.failed - retryable_count} permanent)"
+            )
+            # Log error breakdown
+            error_breakdown = result.get_error_breakdown()
+            for error_type, urls in error_breakdown.items():
+                self.logger.debug(f"  {error_type}: {len(urls)} URLs")
+
+        return result
 
     async def _scrape_match_data(
         self,
