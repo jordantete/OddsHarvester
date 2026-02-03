@@ -46,7 +46,7 @@ class TestFootballBasicMarkets:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="football",
             match_link=LEICESTER_BRENTFORD["url"],
             markets=["1x2"],
@@ -90,7 +90,7 @@ class TestFootballBasicMarkets:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="football",
             match_link=LEICESTER_BRENTFORD["url"],
             markets=["1x2", "btts", "double_chance"],
@@ -132,7 +132,7 @@ class TestFootballBasicMarkets:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="football",
             match_link=LEICESTER_BRENTFORD["url"],
             markets=["over_under_2_5", "over_under_1_5"],
@@ -174,7 +174,7 @@ class TestFootballBasicMarkets:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="football",
             match_link=REAL_MADRID_BARCELONA["url"],
             markets=["1x2", "btts"],
@@ -221,7 +221,7 @@ class TestFootballPeriods:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="football",
             match_link=LEICESTER_BRENTFORD["url"],
             markets=["1x2"],
@@ -269,7 +269,7 @@ class TestFootballBookiesFilter:
 
         output_path = temp_output_dir / "output"
 
-        exit_code, stdout, stderr = run_scraper(
+        exit_code, _stdout, stderr = run_scraper(
             sport="football",
             match_link=LEICESTER_BRENTFORD["url"],
             markets=["1x2"],

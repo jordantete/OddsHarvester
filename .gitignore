@@ -58,3 +58,7 @@ python/
 
 # Claude Code
 .claude/
+
+# Scraper output files
+scraped_data.json
+scraped_data.csv

@@ -7,7 +7,9 @@ from oddsharvester.core.browser_helper import BrowserHelper
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
-from oddsharvester.core.scraper_app import TRANSIENT_ERRORS, _scrape_multiple_leagues, retry_scrape, run_scraper
+from oddsharvester.core.retry import TRANSIENT_ERROR_KEYWORDS
+from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
+from oddsharvester.core.scraper_app import _scrape_multiple_leagues, retry_scrape, run_scraper
 from oddsharvester.utils.command_enum import CommandEnum
 
 
@@ -218,7 +220,7 @@ async def test_retry_scrape_transient_error(mock_sleep):
     mock_func = AsyncMock()
 
     # Fail with a transient error on first call, succeed on second
-    mock_func.side_effect = [Exception(f"Connection failed: {TRANSIENT_ERRORS[0]}"), {"data": "retry_success"}]
+    mock_func.side_effect = [Exception(f"Connection failed: {TRANSIENT_ERROR_KEYWORDS[0]}"), {"data": "retry_success"}]
 
     result = await retry_scrape(mock_func, "arg1")
 
@@ -269,11 +271,20 @@ async def test_scrape_multiple_leagues_success():
     scraper_mock = MagicMock()
     scrape_func_mock = AsyncMock()
 
-    # Mock successful scraping for each league
+    # Mock successful scraping for each league with ScrapeResult
     scrape_func_mock.side_effect = [
-        [{"match1": "data1"}, {"match2": "data2"}],  # premier-league
-        [{"match3": "data3"}],  # primera-division
-        [{"match4": "data4"}, {"match5": "data5"}, {"match6": "data6"}],  # serie-a
+        ScrapeResult(
+            success=[{"match1": "data1"}, {"match2": "data2"}],
+            stats=ScrapeStats(total_urls=2, successful=2),
+        ),
+        ScrapeResult(
+            success=[{"match3": "data3"}],
+            stats=ScrapeStats(total_urls=1, successful=1),
+        ),
+        ScrapeResult(
+            success=[{"match4": "data4"}, {"match5": "data5"}, {"match6": "data6"}],
+            stats=ScrapeStats(total_urls=3, successful=3),
+        ),
     ]
 
     leagues = ["england-premier-league", "spain-primera-division", "italy-serie-a"]
@@ -292,10 +303,12 @@ async def test_scrape_multiple_leagues_success():
     assert scrape_func_mock.call_count == 3
 
     # Verify the combined results
-    assert len(result) == 6  # 2 + 1 + 3 matches
-    assert result[0] == {"match1": "data1"}
-    assert result[2] == {"match3": "data3"}
-    assert result[5] == {"match6": "data6"}
+    assert isinstance(result, ScrapeResult)
+    assert len(result.success) == 6  # 2 + 1 + 3 matches
+    assert result.stats.successful == 6
+    assert result.success[0] == {"match1": "data1"}
+    assert result.success[2] == {"match3": "data3"}
+    assert result.success[5] == {"match6": "data6"}
 
 
 @pytest.mark.asyncio
@@ -304,11 +317,17 @@ async def test_scrape_multiple_leagues_with_failures():
     scraper_mock = MagicMock()
     scrape_func_mock = AsyncMock()
 
-    # Mock mixed success/failure
+    # Mock mixed success/failure with ScrapeResult
     scrape_func_mock.side_effect = [
-        [{"match1": "data1"}],  # premier-league - success
+        ScrapeResult(
+            success=[{"match1": "data1"}],
+            stats=ScrapeStats(total_urls=1, successful=1),
+        ),
         Exception("Network error"),  # primera-division - failure
-        [{"match2": "data2"}],  # serie-a - success
+        ScrapeResult(
+            success=[{"match2": "data2"}],
+            stats=ScrapeStats(total_urls=1, successful=1),
+        ),
     ]
 
     leagues = ["england-premier-league", "spain-primera-division", "italy-serie-a"]
@@ -326,9 +345,11 @@ async def test_scrape_multiple_leagues_with_failures():
     assert scrape_func_mock.call_count == 3
 
     # Verify only successful results are included
-    assert len(result) == 2  # Only 2 successful matches
-    assert result[0] == {"match1": "data1"}
-    assert result[1] == {"match2": "data2"}
+    assert isinstance(result, ScrapeResult)
+    assert len(result.success) == 2  # Only 2 successful matches
+    assert result.stats.successful == 2
+    assert result.success[0] == {"match1": "data1"}
+    assert result.success[1] == {"match2": "data2"}
 
 
 @pytest.mark.asyncio
@@ -337,10 +358,13 @@ async def test_scrape_multiple_leagues_empty_results():
     scraper_mock = MagicMock()
     scrape_func_mock = AsyncMock()
 
-    # Mock mixed results including empty ones
+    # Mock mixed results including empty ones with ScrapeResult
     scrape_func_mock.side_effect = [
-        [{"match1": "data1"}],  # premier-league - has data
-        [],  # primera-division - empty
+        ScrapeResult(
+            success=[{"match1": "data1"}],
+            stats=ScrapeStats(total_urls=1, successful=1),
+        ),
+        ScrapeResult(success=[], stats=ScrapeStats(total_urls=0)),  # primera-division - empty
         None,  # serie-a - None result
     ]
 
@@ -355,8 +379,9 @@ async def test_scrape_multiple_leagues_empty_results():
         )
 
     # Verify only non-empty results are included
-    assert len(result) == 1
-    assert result[0] == {"match1": "data1"}
+    assert isinstance(result, ScrapeResult)
+    assert len(result.success) == 1
+    assert result.success[0] == {"match1": "data1"}
 
 
 @pytest.mark.asyncio

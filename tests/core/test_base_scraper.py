@@ -212,10 +212,13 @@ async def test_extract_match_odds(setup_base_scraper_mocks):
     # Verify new_page was called for each match link
     assert context_mock.new_page.call_count == 2
 
-    # Verify the result
-    assert len(result) == 2
-    assert {"match": "data1"} in result
-    assert {"match": "data2"} in result
+    # Verify the result is a ScrapeResult with successful matches
+    assert len(result.success) == 2
+    assert {"match": "data1"} in result.success
+    assert {"match": "data2"} in result.success
+    assert result.stats.total_urls == 2
+    assert result.stats.successful == 2
+    assert result.stats.failed == 0
 
 
 @pytest.mark.asyncio
