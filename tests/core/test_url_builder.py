@@ -9,6 +9,10 @@ from oddsharvester.utils.sport_market_constants import Sport
 SPORTS_LEAGUES_URLS_MAPPING[Sport.FOOTBALL] = {
     "england-premier-league": f"{ODDSPORTAL_BASE_URL}/football/england/premier-league",
     "la-liga": f"{ODDSPORTAL_BASE_URL}/football/spain/la-liga",
+    "czech-republic-chance-liga": f"{ODDSPORTAL_BASE_URL}/football/czech-republic/chance-liga",
+    "slovakia-nike-liga": f"{ODDSPORTAL_BASE_URL}/football/slovakia/nike-liga",
+    "hungary-nb-i": f"{ODDSPORTAL_BASE_URL}/football/hungary/nb-i",
+    "cyprus-first-division": f"{ODDSPORTAL_BASE_URL}/football/cyprus/1st-division",
 }
 SPORTS_LEAGUES_URLS_MAPPING[Sport.TENNIS] = {
     "atp-tour": f"{ODDSPORTAL_BASE_URL}/tennis/atp-tour",
@@ -179,6 +183,95 @@ def test_get_upcoming_matches_url(sport, date, league, expected_url):
 def test_get_league_url(sport, league, expected_url):
     """Test retrieving league URLs."""
     assert URLBuilder.get_league_url(sport, league) == expected_url
+
+
+@pytest.mark.parametrize(
+    ("sport", "league", "season", "expected_url"),
+    [
+        # Czech Republic: fortuna-liga for old seasons, chance-liga for new
+        (
+            "football",
+            "czech-republic-chance-liga",
+            "2023-2024",
+            f"{ODDSPORTAL_BASE_URL}/football/czech-republic/fortuna-liga-2023-2024/results/",
+        ),
+        (
+            "football",
+            "czech-republic-chance-liga",
+            "2024-2025",
+            f"{ODDSPORTAL_BASE_URL}/football/czech-republic/chance-liga-2024-2025/results/",
+        ),
+        # Slovakia: fortuna-liga for old seasons, nike-liga for new
+        (
+            "football",
+            "slovakia-nike-liga",
+            "2022-2023",
+            f"{ODDSPORTAL_BASE_URL}/football/slovakia/fortuna-liga-2022-2023/results/",
+        ),
+        (
+            "football",
+            "slovakia-nike-liga",
+            "2024-2025",
+            f"{ODDSPORTAL_BASE_URL}/football/slovakia/nike-liga-2024-2025/results/",
+        ),
+        # Hungary: otp-bank-liga for old seasons, nb-i for new
+        (
+            "football",
+            "hungary-nb-i",
+            "2023-2024",
+            f"{ODDSPORTAL_BASE_URL}/football/hungary/otp-bank-liga-2023-2024/results/",
+        ),
+        (
+            "football",
+            "hungary-nb-i",
+            "2024-2025",
+            f"{ODDSPORTAL_BASE_URL}/football/hungary/nb-i-2024-2025/results/",
+        ),
+        # Cyprus: cyta-championship for old seasons, 1st-division for new
+        (
+            "football",
+            "cyprus-first-division",
+            "2023-2024",
+            f"{ODDSPORTAL_BASE_URL}/football/cyprus/cyta-championship-2023-2024/results/",
+        ),
+        (
+            "football",
+            "cyprus-first-division",
+            "2024-2025",
+            f"{ODDSPORTAL_BASE_URL}/football/cyprus/1st-division-2024-2025/results/",
+        ),
+        # No alias - current season uses canonical URL
+        (
+            "football",
+            "czech-republic-chance-liga",
+            None,
+            f"{ODDSPORTAL_BASE_URL}/football/czech-republic/chance-liga/results/",
+        ),
+        # No alias - league without aliases is unaffected
+        (
+            "football",
+            "england-premier-league",
+            "2023-2024",
+            f"{ODDSPORTAL_BASE_URL}/football/england/premier-league-2023-2024/results/",
+        ),
+        # Single year format with alias
+        (
+            "football",
+            "czech-republic-chance-liga",
+            "2023",
+            f"{ODDSPORTAL_BASE_URL}/football/czech-republic/fortuna-liga-2023/results/",
+        ),
+        (
+            "football",
+            "czech-republic-chance-liga",
+            "2024",
+            f"{ODDSPORTAL_BASE_URL}/football/czech-republic/chance-liga-2024/results/",
+        ),
+    ],
+)
+def test_get_historic_matches_url_with_league_aliases(sport, league, season, expected_url):
+    """Test that historic URLs correctly resolve league aliases for sponsor name changes."""
+    assert URLBuilder.get_historic_matches_url(sport, league, season) == expected_url
 
 
 def test_get_league_url_invalid_sport():
