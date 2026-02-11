@@ -1,6 +1,7 @@
 import re
 
 from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
+from oddsharvester.utils.league_aliases import get_league_slug_for_season
 from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from oddsharvester.utils.sport_market_constants import Sport
 
@@ -30,6 +31,11 @@ class URLBuilder:
             ValueError: If the season is provided but does not follow the expected format(s).
         """
         base_url = URLBuilder.get_league_url(sport, league).rstrip("/")
+
+        # Resolve league alias for this season (handles sponsor name changes)
+        alias_slug = get_league_slug_for_season(Sport(sport), league, season)
+        if alias_slug:
+            base_url = base_url.rsplit("/", 1)[0] + "/" + alias_slug
 
         # Treat missing season as current
         if not season:
