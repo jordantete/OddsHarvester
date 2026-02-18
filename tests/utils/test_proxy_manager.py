@@ -65,6 +65,37 @@ class TestProxySchemes:
         assert proxy_manager.get_proxy() is None
 
 
+class TestUrlSanitization:
+    """Test that URLs with embedded credentials are sanitized for logging."""
+
+    def test_sanitize_url_strips_credentials(self):
+        """Test that embedded user:pass is stripped from URL."""
+        sanitized = ProxyManager._sanitize_url_for_logging("http://user:secret@proxy.example.com:8080")
+        assert "user" not in sanitized
+        assert "secret" not in sanitized
+        assert "proxy.example.com:8080" in sanitized
+
+    def test_sanitize_url_preserves_clean_url(self):
+        """Test that a URL without credentials is unchanged."""
+        url = "http://proxy.example.com:8080"
+        assert ProxyManager._sanitize_url_for_logging(url) == url
+
+    def test_embedded_credentials_not_logged(self):
+        """Test that embedded credentials in proxy URL are never logged."""
+        with patch("oddsharvester.utils.proxy_manager.logging.getLogger") as mock_get_logger:
+            mock_logger = mock_get_logger.return_value
+            ProxyManager(proxy_url="http://user:secret@proxy.example.com:8080")
+            for call in mock_logger.info.call_args_list:
+                assert "secret" not in str(call)
+
+    def test_invalid_scheme_does_not_log_url(self):
+        """Test that invalid scheme error does not leak the URL."""
+        with patch("oddsharvester.utils.proxy_manager.logging.getLogger") as mock_get_logger:
+            mock_logger = mock_get_logger.return_value
+            ProxyManager(proxy_url="ftp://user:secret@proxy.example.com:8080")
+            mock_logger.error.assert_called_with("Invalid proxy scheme provided.")
+
+
 class TestProxyLogging:
     """Test proxy logging behavior."""
 
@@ -76,7 +107,7 @@ class TestProxyLogging:
             mock_logger.info.assert_called_with("No proxy provided, running without proxy.")
 
     def test_proxy_with_auth_logs_info(self):
-        """Test that proxy with auth logs appropriate message."""
+        """Test that proxy with auth logs URL without credentials."""
         with patch("oddsharvester.utils.proxy_manager.logging.getLogger") as mock_get_logger:
             mock_logger = mock_get_logger.return_value
             ProxyManager(

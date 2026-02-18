@@ -1,22 +1,26 @@
 import json
 import logging
+import os
 from typing import Any
 
 import boto3
 
+_DEFAULT_S3_BUCKET = "odds-portal-scrapped-odds-cad8822c179f12cg"
+_DEFAULT_AWS_REGION = "eu-west-3"
+
 
 class RemoteDataStorage:
-    S3_BUCKET_NAME = "odds-portal-scrapped-odds-cad8822c179f12cg"
-    AWE_REGION = "eu-west-3"
+    S3_BUCKET_NAME = os.environ.get("OH_S3_BUCKET", _DEFAULT_S3_BUCKET)
+    AWS_REGION = os.environ.get("OH_AWS_REGION", _DEFAULT_AWS_REGION)
 
     def __init__(self):
         """
         Initializes the RemoteDataStorage class with an S3 client and logger.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.s3_client = boto3.client("s3", region_name=self.AWE_REGION)
+        self.s3_client = boto3.client("s3", region_name=self.AWS_REGION)
         self.logger.info(
-            f"RemoteDataStorage initialized for region: {self.AWE_REGION} and bucket: {self.S3_BUCKET_NAME}"
+            f"RemoteDataStorage initialized for region: {self.AWS_REGION} and bucket: {self.S3_BUCKET_NAME}"
         )
 
     def _save_to_json(self, data: list[dict[str, Any]], file_name: str) -> None:
@@ -63,7 +67,7 @@ class RemoteDataStorage:
 
         Args:
             data: The raw scraped data.
-            file_name: The name of the JSON file.
+            file_path: The path of the JSON file.
             object_name: The name of the object in S3. Defaults to the filename.
         """
         try:
