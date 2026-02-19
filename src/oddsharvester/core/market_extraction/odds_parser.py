@@ -5,6 +5,8 @@ from typing import Any
 
 from bs4 import BeautifulSoup
 
+from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
+
 
 class OddsParser:
     """Handles parsing of odds data from HTML content."""
@@ -31,11 +33,11 @@ class OddsParser:
         soup = BeautifulSoup(html_content, "html.parser")
 
         # Try broader "border-black-borders" pattern first as it works better
-        bookmaker_blocks = soup.find_all("div", class_=re.compile(r"border-black-borders"))
+        bookmaker_blocks = soup.find_all("div", class_=re.compile(OddsPortalSelectors.BOOKMAKER_ROW_CLASS))
 
         if not bookmaker_blocks:
             # Fallback to broader selector
-            bookmaker_blocks = soup.find_all("div", class_=re.compile(r"^border-black-borders flex h-9"))
+            bookmaker_blocks = soup.find_all("div", class_=re.compile(OddsPortalSelectors.BOOKMAKER_ROW_FALLBACK_CLASS))
 
         if not bookmaker_blocks:
             self.logger.warning("No bookmaker blocks found.")
@@ -44,13 +46,13 @@ class OddsParser:
         odds_data = []
         for block in bookmaker_blocks:
             try:
-                img_tag = block.find("img", class_="bookmaker-logo")
+                img_tag = block.find("img", class_=OddsPortalSelectors.BOOKMAKER_LOGO_CLASS)
                 bookmaker_name = img_tag["title"] if img_tag and "title" in img_tag.attrs else "Unknown"
 
                 if not bookmaker_name or (target_bookmaker and bookmaker_name.lower() != target_bookmaker.lower()):
                     continue
 
-                odds_blocks = block.find_all("div", class_=re.compile(r"flex-center.*flex-col.*font-bold"))
+                odds_blocks = block.find_all("div", class_=re.compile(OddsPortalSelectors.ODDS_BLOCK_CLASS_PATTERN))
 
                 if len(odds_blocks) < len(odds_labels):
                     self.logger.warning(f"Incomplete odds data for bookmaker: {bookmaker_name}. Skipping...")

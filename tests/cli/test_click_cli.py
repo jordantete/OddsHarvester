@@ -229,3 +229,39 @@ class TestShortOptions:
         result = runner.invoke(cli, ["historic", "-s", "football", "--season", "2024", "-c", "5"])
         assert "positive integer" not in result.output
         assert mock_run_scraper["historic"].called
+
+
+class TestOutputPathValidation:
+    """Test --output path validation."""
+
+    def test_rejects_path_traversal(self, runner):
+        """Test that paths with '..' segments are rejected."""
+        result = runner.invoke(cli, ["historic", "-s", "football", "--season", "2024", "-o", "../../etc/passwd"])
+        assert result.exit_code != 0
+        assert "must not contain '..'" in result.output
+
+    def test_rejects_absolute_path_with_traversal(self, runner):
+        """Test that absolute paths with '..' segments are rejected."""
+        result = runner.invoke(cli, ["historic", "-s", "football", "--season", "2024", "-o", "/tmp/../etc/passwd"])
+        assert result.exit_code != 0
+        assert "must not contain '..'" in result.output
+
+    def test_accepts_valid_relative_path(self, runner, mock_run_scraper):
+        """Test that a valid relative path is accepted."""
+        result = runner.invoke(cli, ["historic", "-s", "football", "--season", "2024", "-o", "output/data.json"])
+        assert "must not contain" not in result.output
+        assert mock_run_scraper["historic"].called
+
+    def test_accepts_absolute_path(self, runner, mock_run_scraper):
+        """Test that a valid absolute path is accepted."""
+        result = runner.invoke(cli, ["historic", "-s", "football", "--season", "2024", "-o", "/tmp/output.json"])
+        assert "must not contain" not in result.output
+        assert mock_run_scraper["historic"].called
+
+    def test_rejects_existing_directory(self, runner, tmp_path):
+        """Test that paths pointing to existing directories are rejected."""
+        existing_dir = tmp_path / "existing_dir"
+        existing_dir.mkdir()
+        result = runner.invoke(cli, ["historic", "-s", "football", "--season", "2024", "-o", str(existing_dir)])
+        assert result.exit_code != 0
+        assert "must not be an existing directory" in result.output

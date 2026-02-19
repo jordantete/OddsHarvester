@@ -6,6 +6,7 @@ import pytest
 from oddsharvester.core.browser_helper import BrowserHelper
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.sport_market_registry import SportMarketRegistry
+from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 from oddsharvester.utils.constants import DEFAULT_MARKET_TIMEOUT_MS
 
 # Sample HTML for testing
@@ -459,3 +460,186 @@ class TestOddsPortalMarketExtractor:
         assert "btts_market" in result
         assert result["1x2_market"] is not None
         assert result["btts_market"] is None
+
+    @pytest.mark.asyncio
+    async def test_scrape_markets_preview_mode_groups_markets(self, extractor, page_mock):
+        """Test that preview mode groups markets by main market and scrapes once."""
+        # Arrange — two markets sharing the same main market
+        main_market = "Over/Under"
+        odds_labels = ["odds_over", "odds_under"]
+
+        def _make_closure(main_market, odds_labels):
+            return lambda self, page, period, hist, bk, preview, sport: (main_market, odds_labels)
+
+        func_a = _make_closure(main_market, odds_labels)
+        func_b = _make_closure(main_market, odds_labels)
+
+        with (
+            patch.object(SportMarketRegistry, "get_market_mapping") as mock_mapping,
+            patch.object(extractor, "extract_market_odds", new_callable=AsyncMock) as mock_extract,
+        ):
+            mock_mapping.return_value = {"over_under_1_5": func_a, "over_under_2_5": func_b}
+            mock_extract.return_value = [{"submarket_name": "Over/Under 1.5", "odds_over": "1.50"}]
+
+            result = await extractor.scrape_markets(
+                page=page_mock,
+                sport="football",
+                markets=["over_under_1_5", "over_under_2_5"],
+                preview_submarkets_only=True,
+            )
+
+        # Both markets should get the same data, extract called once for the group
+        assert "over_under_1_5_market" in result
+        assert "over_under_2_5_market" in result
+        mock_extract.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_scrape_markets_preview_mode_exception_sets_none(self, extractor, page_mock):
+        """Test that grouped market exception in preview mode sets all group entries to None."""
+        main_market = "Over/Under"
+        odds_labels = ["odds_over", "odds_under"]
+
+        def _make_closure(main_market, odds_labels):
+            return lambda self, page, period, hist, bk, preview, sport: (main_market, odds_labels)
+
+        func = _make_closure(main_market, odds_labels)
+
+        with (
+            patch.object(SportMarketRegistry, "get_market_mapping") as mock_mapping,
+            patch.object(extractor, "extract_market_odds", new_callable=AsyncMock, side_effect=Exception("boom")),
+        ):
+            mock_mapping.return_value = {"over_under_1_5": func, "over_under_2_5": func}
+
+            result = await extractor.scrape_markets(
+                page=page_mock,
+                sport="football",
+                markets=["over_under_1_5", "over_under_2_5"],
+                preview_submarkets_only=True,
+            )
+
+        assert result["over_under_1_5_market"] is None
+        assert result["over_under_2_5_market"] is None
+
+    @pytest.mark.asyncio
+    async def test_extract_market_odds_with_period_selection(self, extractor, page_mock, browser_helper_mock):
+        """Test that period selection is performed when sport is provided."""
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_page_load = AsyncMock()
+        extractor.odds_parser.parse_market_odds = MagicMock(return_value=[])
+        browser_helper_mock.ensure_period_selected = AsyncMock()
+
+        mock_period = MagicMock()
+        with patch.object(SportPeriodRegistry, "from_internal_value", return_value=mock_period):
+            await extractor.extract_market_odds(
+                page=page_mock, main_market="1X2", odds_labels=["1", "X", "2"], sport="football", period="FullTime"
+            )
+
+        browser_helper_mock.ensure_period_selected.assert_called_once_with(page=page_mock, desired_period=mock_period)
+
+    @pytest.mark.asyncio
+    async def test_extract_market_odds_period_not_found_skips(self, extractor, page_mock, browser_helper_mock):
+        """Test that period selection is skipped when period enum is not found."""
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_page_load = AsyncMock()
+        extractor.odds_parser.parse_market_odds = MagicMock(return_value=[])
+        browser_helper_mock.ensure_period_selected = AsyncMock()
+
+        with patch.object(SportPeriodRegistry, "from_internal_value", return_value=None):
+            await extractor.extract_market_odds(
+                page=page_mock, main_market="1X2", odds_labels=["1", "X", "2"], sport="football", period="FullTime"
+            )
+
+        browser_helper_mock.ensure_period_selected.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_extract_market_odds_preview_mode_passive(self, extractor, page_mock, browser_helper_mock):
+        """Test preview mode uses passive submarket extraction."""
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.submarket_extractor.extract_visible_submarkets_passive = AsyncMock(
+            return_value=[{"submarket_name": "Over/Under 2.5", "odds_over": "1.80", "odds_under": "2.00"}]
+        )
+
+        result = await extractor.extract_market_odds(
+            page=page_mock,
+            main_market="Over/Under",
+            odds_labels=["odds_over", "odds_under"],
+            preview_submarkets_only=True,
+        )
+
+        extractor.submarket_extractor.extract_visible_submarkets_passive.assert_called_once()
+        assert len(result) == 1
+        assert result[0]["submarket_name"] == "Over/Under 2.5"
+
+    @pytest.mark.asyncio
+    async def test_extract_market_odds_preview_mode_fallback_to_active(self, extractor, page_mock, browser_helper_mock):
+        """Test preview mode falls back to normal scraping when passive returns no data."""
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_page_load = AsyncMock()
+        extractor.submarket_extractor.extract_visible_submarkets_passive = AsyncMock(return_value=[])
+        extractor.odds_parser.parse_market_odds = MagicMock(
+            return_value=[{"bookmaker_name": "Bookmaker1", "1": "1.90"}]
+        )
+        page_mock.content = AsyncMock(return_value="<div>test</div>")
+
+        result = await extractor.extract_market_odds(
+            page=page_mock,
+            main_market="1X2",
+            odds_labels=["1", "X", "2"],
+            preview_submarkets_only=True,
+        )
+
+        extractor.submarket_extractor.extract_visible_submarkets_passive.assert_called_once()
+        extractor.odds_parser.parse_market_odds.assert_called_once()
+        assert len(result) == 1
+
+    @pytest.mark.asyncio
+    async def test_extract_market_odds_preview_fallback_specific_market_not_found(
+        self, extractor, page_mock, browser_helper_mock
+    ):
+        """Test preview fallback returns [] when specific market can't be selected."""
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.submarket_extractor.extract_visible_submarkets_passive = AsyncMock(return_value=[])
+        extractor.navigation_manager.select_specific_market = AsyncMock(return_value=False)
+
+        result = await extractor.extract_market_odds(
+            page=page_mock,
+            main_market="Over/Under",
+            specific_market="Over/Under +9.5",
+            odds_labels=["odds_over", "odds_under"],
+            preview_submarkets_only=True,
+        )
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_extract_market_odds_history_skips_filtered_bk(self, extractor, page_mock, browser_helper_mock):
+        """Test that odds history is skipped for bookmakers not matching target."""
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_page_load = AsyncMock()
+        extractor.odds_parser.parse_market_odds = MagicMock(
+            return_value=[
+                {"bookmaker_name": "Bookmaker1", "1": "1.90", "period": "FullTime"},
+                {"bookmaker_name": "Bookmaker2", "1": "1.85", "period": "FullTime"},
+            ]
+        )
+        extractor.odds_history_extractor.extract_odds_history_for_bookmaker = AsyncMock()
+        page_mock.content = AsyncMock(return_value="<div>test</div>")
+
+        await extractor.extract_market_odds(
+            page=page_mock,
+            main_market="1X2",
+            odds_labels=["1"],
+            scrape_odds_history=True,
+            target_bookmaker="Bookmaker1",
+        )
+
+        # Only called for Bookmaker1, not Bookmaker2
+        extractor.odds_history_extractor.extract_odds_history_for_bookmaker.assert_called_once_with(
+            page_mock, "Bookmaker1"
+        )

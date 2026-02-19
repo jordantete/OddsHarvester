@@ -170,3 +170,23 @@ def validate_max_pages(ctx, param, value):
     if value is not None and value <= 0:
         raise click.BadParameter("Max pages must be a positive integer.")
     return value
+
+
+def validate_file_path(ctx, param, value):
+    """Validate output file path to prevent path traversal and other unsafe patterns."""
+    if value is None:
+        return None
+
+    from pathlib import Path
+
+    path = Path(value)
+
+    # Reject '..' path segments (no traversal)
+    if ".." in path.parts:
+        raise click.BadParameter(f"Output path must not contain '..' segments: '{value}'")
+
+    # Reject paths pointing to existing directories
+    if path.exists() and path.is_dir():
+        raise click.BadParameter(f"Output path must not be an existing directory: '{value}'")
+
+    return value

@@ -5,6 +5,7 @@ from typing import Any
 from bs4 import BeautifulSoup
 from playwright.async_api import Page
 
+from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import SCROLL_PAUSE_TIME_MS
 
 
@@ -36,7 +37,7 @@ class SubmarketExtractor:
             soup = BeautifulSoup(html_content, "html.parser")
 
             # Look for submarket containers
-            submarket_containers = soup.find_all("div", class_="border-black-borders")
+            submarket_containers = soup.find_all("div", class_=OddsPortalSelectors.BOOKMAKER_ROW_CLASS)
 
             if submarket_containers:
                 visible_submarkets_count = len(submarket_containers)
@@ -98,7 +99,7 @@ class SubmarketExtractor:
             soup = BeautifulSoup(html_content, "html.parser")
 
             # Find all submarket rows (these contain the handicap names and odds)
-            submarket_rows = soup.find_all("div", class_=re.compile(r"border-black-borders"))
+            submarket_rows = soup.find_all("div", class_=re.compile(OddsPortalSelectors.BOOKMAKER_ROW_CLASS))
 
             if not submarket_rows:
                 self.logger.warning("No submarket rows found in passive mode")
@@ -186,7 +187,7 @@ class SubmarketExtractor:
 
         if submarket_name_element:
             # For markets like Over/Under, look for the clean name in max-sm:!hidden class
-            clean_name_p = submarket_name_element.find("p", class_="max-sm:!hidden")
+            clean_name_p = submarket_name_element.find("p", class_=OddsPortalSelectors.SUBMARKET_CLEAN_NAME_CLASS)
             if clean_name_p:
                 return clean_name_p.get_text(strip=True)
             else:
@@ -199,7 +200,7 @@ class SubmarketExtractor:
         flex_div = row.find("div", class_=re.compile(r"flex.*items-center.*justify-start"))
         if flex_div:
             # Look for the clean name in max-sm:!hidden class first
-            clean_name_p = flex_div.find("p", class_="max-sm:!hidden")
+            clean_name_p = flex_div.find("p", class_=OddsPortalSelectors.SUBMARKET_CLEAN_NAME_CLASS)
             if clean_name_p:
                 return clean_name_p.get_text(strip=True)
             else:

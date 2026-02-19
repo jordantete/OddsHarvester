@@ -12,6 +12,7 @@ from playwright.async_api import Page, TimeoutError
 
 from oddsharvester.core.browser_helper import BrowserHelper
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
+from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.retry import RetryConfig, classify_error, is_retryable_error, retry_with_backoff
 from oddsharvester.core.scrape_result import FailedUrl, ScrapeResult, ScrapeStats
@@ -117,7 +118,7 @@ class BaseScraper:
         try:
             html_content = await page.content()
             soup = BeautifulSoup(html_content, "lxml")
-            event_rows = soup.find_all(class_=re.compile("^eventRow"))
+            event_rows = soup.find_all(class_=re.compile(OddsPortalSelectors.EVENT_ROW_CLASS_PATTERN))
             self.logger.info(f"Found {len(event_rows)} event rows.")
 
             match_links = {
