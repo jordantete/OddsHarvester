@@ -5,6 +5,8 @@ from typing import Any
 from bs4 import BeautifulSoup
 from playwright.async_api import Page
 
+from oddsharvester.utils.constants import SCROLL_PAUSE_TIME_MS
+
 
 class SubmarketExtractor:
     """Handles extraction of visible submarkets in passive mode."""
@@ -89,7 +91,7 @@ class SubmarketExtractor:
         self.logger.info(f"Extracting visible submarkets for {main_market} in passive mode")
 
         try:
-            await page.wait_for_timeout(2000)  # SCROLL_PAUSE_TIME
+            await page.wait_for_timeout(SCROLL_PAUSE_TIME_MS)
             html_content = await page.content()
             if not isinstance(html_content, str):
                 html_content = ""

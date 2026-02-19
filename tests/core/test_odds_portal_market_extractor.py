@@ -6,6 +6,7 @@ import pytest
 from oddsharvester.core.browser_helper import BrowserHelper
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.sport_market_registry import SportMarketRegistry
+from oddsharvester.utils.constants import DEFAULT_MARKET_TIMEOUT_MS
 
 # Sample HTML for testing
 SAMPLE_HTML_ODDS = """
@@ -225,7 +226,7 @@ class TestOddsPortalMarketExtractor:
 
         # Assert
         browser_helper_mock.navigate_to_market_tab.assert_called_once_with(
-            page=page_mock, market_tab_name=main_market, timeout=extractor.DEFAULT_TIMEOUT
+            page=page_mock, market_tab_name=main_market, timeout=DEFAULT_MARKET_TIMEOUT_MS
         )
         extractor.odds_parser.parse_market_odds.assert_called_once()
         assert len(result) == 1

@@ -59,6 +59,7 @@ class TestCLIBasics:
         assert "--sport" in result.output
         assert "--date" in result.output
         assert "--league" in result.output
+        assert "--request-delay" in result.output
 
     def test_historic_help(self, runner):
         """Test historic command help."""

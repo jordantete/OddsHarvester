@@ -23,10 +23,6 @@ class OddsPortalMarketExtractor:
     for specific match periods and bookmaker odds.
     """
 
-    DEFAULT_TIMEOUT = 5000
-    SCROLL_PAUSE_TIME = 2000
-    MARKET_SWITCH_WAIT_TIME = 3000
-
     def __init__(self, browser_helper: BrowserHelper):
         """
         Initialize OddsPortalMarketExtractor.

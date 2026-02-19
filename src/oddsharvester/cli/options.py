@@ -191,6 +191,13 @@ def common_options(func):
         callback=validate_period,
         help="Match period to scrape (sport-specific).",
     )
+    @click.option(
+        "--request-delay",
+        type=float,
+        default=1.0,
+        envvar="OH_REQUEST_DELAY",
+        help="Delay in seconds between match requests (default: 1.0).",
+    )
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)

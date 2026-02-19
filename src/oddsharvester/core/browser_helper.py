@@ -6,6 +6,21 @@ from playwright.async_api import Page
 
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
+from oddsharvester.utils.constants import (
+    BOOKIES_FILTER_TIMEOUT_MS,
+    COOKIE_BANNER_TIMEOUT_MS,
+    DEFAULT_MARKET_TIMEOUT_MS,
+    DROPDOWN_WAIT_MS,
+    FALLBACK_VERIFY_WAIT_MS,
+    MARKET_TAB_TIMEOUT_MS,
+    MAX_SCROLL_ATTEMPTS,
+    PERIOD_SELECTOR_TIMEOUT_MS,
+    SCROLL_PAUSE_S,
+    SCROLL_TIMEOUT_S,
+    SCROLL_UNTIL_CLICK_PAUSE_S,
+    SCROLL_UNTIL_CLICK_TIMEOUT_S,
+    TAB_SWITCH_WAIT_MS,
+)
 
 
 class BrowserHelper:
@@ -29,7 +44,9 @@ class BrowserHelper:
     # COOKIE BANNER MANAGEMENT
     # =============================================================================
 
-    async def dismiss_cookie_banner(self, page: Page, selector: str | None = None, timeout: int = 10000):
+    async def dismiss_cookie_banner(
+        self, page: Page, selector: str | None = None, timeout: int = COOKIE_BANNER_TIMEOUT_MS
+    ):
         """
         Dismiss the cookie banner if it appears on the page.
 
@@ -127,7 +144,7 @@ class BrowserHelper:
                         return activeElement.getAttribute('data-testid') === '{desired_filter.value}';
                     }}
                     """,
-                    timeout=5000,
+                    timeout=BOOKIES_FILTER_TIMEOUT_MS,
                 )
                 display_label = BookiesFilter.get_display_label(desired_filter)
                 self.logger.info(f"Successfully set bookmaker filter to: {display_label}")
@@ -137,7 +154,7 @@ class BrowserHelper:
                 self.logger.warning(f"Wait condition failed: {wait_error}. Verifying selection...")
 
                 # Fallback: verify the selection after a short delay
-                await page.wait_for_timeout(1000)
+                await page.wait_for_timeout(FALLBACK_VERIFY_WAIT_MS)
                 new_filter = await self._get_current_bookies_filter(page)
                 if new_filter == desired_filter.value:
                     self.logger.info(f"Bookmaker filter successfully set to: {desired_filter.value}")
@@ -248,7 +265,7 @@ class BrowserHelper:
                         return activeElement.textContent.trim() === '{display_label}';
                     }}
                     """,
-                    timeout=5000,
+                    timeout=PERIOD_SELECTOR_TIMEOUT_MS,
                 )
                 self.logger.info(f"Successfully set match period to: {display_label}")
                 return True
@@ -257,7 +274,7 @@ class BrowserHelper:
                 self.logger.warning(f"Wait condition failed: {wait_error}. Verifying selection...")
 
                 # Fallback: verify the selection after a short delay
-                await page.wait_for_timeout(1000)
+                await page.wait_for_timeout(FALLBACK_VERIFY_WAIT_MS)
                 new_period = await self._get_current_period(page)
                 if new_period == display_label:
                     self.logger.info(f"Match period successfully set to: {display_label}")
@@ -302,7 +319,7 @@ class BrowserHelper:
     # MARKET NAVIGATION
     # =============================================================================
 
-    async def navigate_to_market_tab(self, page: Page, market_tab_name: str, timeout=10000):
+    async def navigate_to_market_tab(self, page: Page, market_tab_name: str, timeout=MARKET_TAB_TIMEOUT_MS):
         """
         Navigate to a specific market tab by its name.
         Now supports hidden markets under the "More" dropdown.
@@ -354,9 +371,9 @@ class BrowserHelper:
     async def scroll_until_loaded(
         self,
         page: Page,
-        timeout=30,
-        scroll_pause_time=3,
-        max_scroll_attempts=5,
+        timeout=SCROLL_TIMEOUT_S,
+        scroll_pause_time=SCROLL_PAUSE_S,
+        max_scroll_attempts=MAX_SCROLL_ATTEMPTS,
         content_check_selector: str | None = None,
     ):
         """
@@ -434,7 +451,12 @@ class BrowserHelper:
         return False
 
     async def scroll_until_visible_and_click_parent(
-        self, page, selector, text: str | None = None, timeout=20, scroll_pause_time=3
+        self,
+        page,
+        selector,
+        text: str | None = None,
+        timeout=SCROLL_UNTIL_CLICK_TIMEOUT_S,
+        scroll_pause_time=SCROLL_UNTIL_CLICK_PAUSE_S,
     ):
         """
         Scrolls the page until an element matching the selector and text is visible, then clicks its parent element.
@@ -487,7 +509,9 @@ class BrowserHelper:
     # PRIVATE HELPER METHODS
     # =============================================================================
 
-    async def _wait_and_click(self, page: Page, selector: str, text: str | None = None, timeout: float = 5000):
+    async def _wait_and_click(
+        self, page: Page, selector: str, text: str | None = None, timeout: float = DEFAULT_MARKET_TIMEOUT_MS
+    ):
         """
         Waits for a selector and optionally clicks an element based on its text.
 
@@ -551,7 +575,9 @@ class BrowserHelper:
             self.logger.error(f"Error clicking element with text '{text}': {e}")
             return False
 
-    async def _click_more_if_market_hidden(self, page: Page, market_tab_name: str, timeout: int = 10000):
+    async def _click_more_if_market_hidden(
+        self, page: Page, market_tab_name: str, timeout: int = MARKET_TAB_TIMEOUT_MS
+    ):
         """
         Attempts to find and click a market tab hidden in the "More" dropdown.
 
@@ -583,7 +609,7 @@ class BrowserHelper:
                 self.logger.warning("Could not find or click 'More' button")
                 return False
 
-            await page.wait_for_timeout(1000)
+            await page.wait_for_timeout(DROPDOWN_WAIT_MS)
 
             dropdown_selectors = OddsPortalSelectors.get_dropdown_selectors_for_market(market_tab_name)
             for selector in dropdown_selectors:
@@ -632,7 +658,7 @@ class BrowserHelper:
         """
         try:
             # Wait a bit for the tab switch to complete
-            await page.wait_for_timeout(500)
+            await page.wait_for_timeout(TAB_SWITCH_WAIT_MS)
 
             # Check for active tab indicators
             active_selectors = ["li.active", "li[class*='active']", ".active", "[class*='active']"]

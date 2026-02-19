@@ -4,6 +4,7 @@ import pytest
 
 from oddsharvester.core.browser_helper import BrowserHelper
 from oddsharvester.core.market_extraction.navigation_manager import NavigationManager
+from oddsharvester.utils.constants import DEFAULT_MARKET_TIMEOUT_MS, MARKET_SWITCH_WAIT_TIME_MS, SCROLL_PAUSE_TIME_MS
 
 
 class TestNavigationManager:
@@ -39,7 +40,7 @@ class TestNavigationManager:
         # Assert
         assert result is True
         browser_helper_mock.navigate_to_market_tab.assert_called_once_with(
-            page=page_mock, market_tab_name=market_tab_name, timeout=NavigationManager.DEFAULT_TIMEOUT
+            page=page_mock, market_tab_name=market_tab_name, timeout=DEFAULT_MARKET_TIMEOUT_MS
         )
 
     @pytest.mark.asyncio
@@ -69,7 +70,7 @@ class TestNavigationManager:
 
         # Assert
         assert result is True
-        page_mock.wait_for_timeout.assert_called_with(NavigationManager.MARKET_SWITCH_WAIT_TIME)
+        page_mock.wait_for_timeout.assert_called_with(MARKET_SWITCH_WAIT_TIME_MS)
 
     @pytest.mark.asyncio
     async def test_wait_for_market_switch_wrong_market(self, navigation_manager, page_mock):
@@ -181,10 +182,10 @@ class TestNavigationManager:
         await navigation_manager.wait_for_page_load(page_mock)
 
         # Assert
-        page_mock.wait_for_timeout.assert_called_once_with(NavigationManager.SCROLL_PAUSE_TIME)
+        page_mock.wait_for_timeout.assert_called_once_with(SCROLL_PAUSE_TIME_MS)
 
-    def test_constants(self, navigation_manager):
-        """Test that constants are properly defined."""
-        assert NavigationManager.DEFAULT_TIMEOUT == 5000
-        assert NavigationManager.SCROLL_PAUSE_TIME == 2000
-        assert NavigationManager.MARKET_SWITCH_WAIT_TIME == 3000
+    def test_constants(self):
+        """Test that centralized constants have expected values."""
+        assert DEFAULT_MARKET_TIMEOUT_MS == 5000
+        assert SCROLL_PAUSE_TIME_MS == 2000
+        assert MARKET_SWITCH_WAIT_TIME_MS == 3000

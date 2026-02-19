@@ -8,6 +8,7 @@ from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtr
 from oddsharvester.core.odds_portal_scraper import LinkCollectionResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
+from oddsharvester.utils.constants import GOTO_TIMEOUT_LONG_MS, MAX_PAGINATION_PAGES
 
 
 @pytest.fixture
@@ -160,6 +161,7 @@ async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
         preview_submarkets_only=False,
         bookies_filter=ANY,
         period=ANY,
+        request_delay=ANY,
     )
 
     # Verify the result is a ScrapeResult
@@ -221,6 +223,7 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
         preview_submarkets_only=False,
         bookies_filter=ANY,
         period=ANY,
+        request_delay=ANY,
     )
 
     # Verify the result is a ScrapeResult
@@ -257,7 +260,9 @@ async def test_scrape_matches(setup_scraper_mocks):
     )
 
     # Verify the interactions
-    page_mock.goto.assert_called_once_with("https://oddsportal.com", timeout=20000, wait_until="domcontentloaded")
+    page_mock.goto.assert_called_once_with(
+        "https://oddsportal.com", timeout=GOTO_TIMEOUT_LONG_MS, wait_until="domcontentloaded"
+    )
     scraper._prepare_page_for_scraping.assert_called_once_with(page=page_mock)
     scraper.extract_match_odds.assert_called_once_with(
         sport="tennis",
@@ -269,6 +274,7 @@ async def test_scrape_matches(setup_scraper_mocks):
         preview_submarkets_only=False,
         bookies_filter=ANY,
         period=ANY,
+        request_delay=ANY,
     )
 
     # Verify the result is a ScrapeResult
@@ -400,3 +406,45 @@ async def test_collect_match_links_error_handling(setup_scraper_mocks):
     assert result.successful_pages == 1
     assert result.failed_pages == [2]
     assert tab_mock.close.call_count == 2  # Should still close tabs even after error
+
+
+class TestFillPaginationGaps:
+    """Tests for _fill_pagination_gaps behavior."""
+
+    @pytest.fixture
+    def scraper(self, setup_scraper_mocks):
+        return setup_scraper_mocks["scraper"]
+
+    def test_single_page(self, scraper):
+        """Single page returns as-is."""
+        assert scraper._fill_pagination_gaps([1]) == [1]
+
+    def test_empty_list(self, scraper):
+        """Empty list returns as-is."""
+        assert scraper._fill_pagination_gaps([]) == []
+
+    def test_consecutive_pages(self, scraper):
+        """Consecutive pages are returned sorted."""
+        assert scraper._fill_pagination_gaps([3, 1, 2]) == [1, 2, 3]
+
+    def test_no_gap_filling(self, scraper):
+        """Pages with gaps are NOT filled — trusts discovered pages."""
+        result = scraper._fill_pagination_gaps([1, 2, 3, 27])
+        assert result == [1, 2, 3, 27]
+
+    def test_deduplication(self, scraper):
+        """Duplicate pages are removed."""
+        assert scraper._fill_pagination_gaps([1, 2, 2, 3, 3]) == [1, 2, 3]
+
+    def test_safety_cap(self, scraper):
+        """Pages exceeding MAX_PAGINATION_PAGES are capped."""
+        pages = list(range(1, MAX_PAGINATION_PAGES + 20))
+        result = scraper._fill_pagination_gaps(pages)
+        assert len(result) == MAX_PAGINATION_PAGES
+        assert result == list(range(1, MAX_PAGINATION_PAGES + 1))
+
+    def test_under_safety_cap(self, scraper):
+        """Pages under the safety cap are returned in full."""
+        pages = list(range(1, 11))
+        result = scraper._fill_pagination_gaps(pages)
+        assert result == list(range(1, 11))

@@ -164,6 +164,7 @@ oddsharvester upcoming [OPTIONS]
 | `--output`                | `-o`  | Output file path                                                 | No                                    | `scraped_data` |
 | `--headless`              |       | Run browser in headless mode                                     | No                                    | `False`        |
 | `--concurrency`           | `-c`  | Number of concurrent scraping tasks                              | No                                    | `3`            |
+| `--request-delay`         |       | Delay in seconds between match requests (with jitter)            | No                                    | `1.0`          |
 | `--proxy-url`             |       | Proxy URL (e.g., `http://proxy:8080` or `socks5://proxy:1080`)   | No                                    | None           |
 | `--proxy-user`            |       | Proxy username                                                   | No                                    | None           |
 | `--proxy-pass`            |       | Proxy password                                                   | No                                    | None           |
@@ -229,6 +230,7 @@ oddsharvester historic [OPTIONS]
 | `--output`                | `-o`  | Output file path                                                 | No       | `scraped_data` |
 | `--headless`              |       | Run browser in headless mode                                     | No       | `False`        |
 | `--concurrency`           | `-c`  | Number of concurrent scraping tasks                              | No       | `3`            |
+| `--request-delay`         |       | Delay in seconds between match requests (with jitter)            | No       | `1.0`          |
 | `--proxy-url`             |       | Proxy URL (e.g., `http://proxy:8080` or `socks5://proxy:1080`)   | No       | None           |
 | `--proxy-user`            |       | Proxy username                                                   | No       | None           |
 | `--proxy-pass`            |       | Proxy password                                                   | No       | None           |
@@ -297,6 +299,7 @@ All CLI options can also be configured via environment variables. This is useful
 | `OH_FILE_PATH`       | `--output`           | Output file path                   |
 | `OH_HEADLESS`        | `--headless`         | Run in headless mode               |
 | `OH_CONCURRENCY`     | `--concurrency`      | Number of concurrent tasks         |
+| `OH_REQUEST_DELAY`   | `--request-delay`    | Delay between match requests (sec) |
 | `OH_PROXY_URL`       | `--proxy-url`        | Proxy server URL                   |
 | `OH_PROXY_USER`      | `--proxy-user`       | Proxy username                     |
 | `OH_PROXY_PASS`      | `--proxy-pass`       | Proxy password                     |

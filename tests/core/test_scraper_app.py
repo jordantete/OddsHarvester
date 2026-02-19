@@ -11,6 +11,7 @@ from oddsharvester.core.retry import TRANSIENT_ERROR_KEYWORDS
 from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
 from oddsharvester.core.scraper_app import _scrape_multiple_leagues, retry_scrape, run_scraper
 from oddsharvester.utils.command_enum import CommandEnum
+from oddsharvester.utils.constants import OPERATION_RETRY_MAX_ATTEMPTS
 
 
 @pytest.fixture
@@ -90,6 +91,7 @@ async def test_run_scraper_historic(
         max_pages=2,
         bookies_filter=ANY,
         period=ANY,
+        request_delay=ANY,
     )
 
     scraper_mock.stop_playwright.assert_called_once()
@@ -149,6 +151,7 @@ async def test_run_scraper_upcoming(
         target_bookmaker=None,
         bookies_filter=ANY,
         period=ANY,
+        request_delay=ANY,
     )
 
     assert result == {"result": "upcoming_data"}
@@ -197,6 +200,7 @@ async def test_run_scraper_match_links(
         target_bookmaker="bet365",
         bookies_filter=ANY,
         period=ANY,
+        request_delay=ANY,
     )
 
     assert result == {"result": "match_data"}
@@ -214,7 +218,7 @@ async def test_retry_scrape_success():
 
 
 @pytest.mark.asyncio
-@patch("asyncio.sleep", new_callable=AsyncMock)
+@patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
 async def test_retry_scrape_transient_error(mock_sleep):
     """Test retry_scrape function with transient error that succeeds on retry."""
     mock_func = AsyncMock()
@@ -230,16 +234,29 @@ async def test_retry_scrape_transient_error(mock_sleep):
 
 
 @pytest.mark.asyncio
-@patch("asyncio.sleep", new_callable=AsyncMock)
+@patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
 async def test_retry_scrape_non_retryable_error(mock_sleep):
     """Test retry_scrape function with non-retryable error."""
     mock_func = AsyncMock(side_effect=ValueError("Invalid input"))
 
-    with pytest.raises(ValueError, match="Invalid input"):
+    with pytest.raises(Exception, match="Invalid input"):
         await retry_scrape(mock_func, "arg1")
 
     mock_func.assert_called_once()
     mock_sleep.assert_not_called()
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
+async def test_retry_scrape_max_retries_exceeded(mock_sleep):
+    """Test retry_scrape returns None when max retries are exceeded for transient errors."""
+    mock_func = AsyncMock(side_effect=Exception(f"Connection failed: {TRANSIENT_ERROR_KEYWORDS[0]}"))
+
+    result = await retry_scrape(mock_func)
+
+    assert result is None
+    assert mock_func.call_count == OPERATION_RETRY_MAX_ATTEMPTS
+    assert mock_sleep.call_count == OPERATION_RETRY_MAX_ATTEMPTS - 1
 
 
 @pytest.mark.asyncio

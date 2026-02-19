@@ -2,6 +2,12 @@ import logging
 
 from playwright.async_api import Page
 
+from oddsharvester.utils.constants import (
+    ODDS_HISTORY_HOVER_WAIT_MS,
+    ODDS_HISTORY_PRE_WAIT_MS,
+    ODDS_MOVEMENT_SELECTOR_TIMEOUT_MS,
+)
+
 
 class OddsHistoryExtractor:
     """Handles extraction of odds history data by hovering over bookmaker odds."""
@@ -21,7 +27,7 @@ class OddsHistoryExtractor:
             List[str]: List of raw HTML content from modals triggered by hovering over matched odds blocks.
         """
         self.logger.info(f"Extracting odds history for bookmaker: {bookmaker_name}")
-        await page.wait_for_timeout(2000)
+        await page.wait_for_timeout(ODDS_HISTORY_PRE_WAIT_MS)
 
         modals_data = []
 
@@ -42,10 +48,10 @@ class OddsHistoryExtractor:
 
                             for odds in odds_blocks:
                                 await odds.hover()
-                                await page.wait_for_timeout(2000)
+                                await page.wait_for_timeout(ODDS_HISTORY_HOVER_WAIT_MS)
 
                                 odds_movement_element = await page.wait_for_selector(
-                                    "h3:text('Odds movement')", timeout=3000
+                                    "h3:text('Odds movement')", timeout=ODDS_MOVEMENT_SELECTOR_TIMEOUT_MS
                                 )
                                 modal_wrapper = await odds_movement_element.evaluate_handle(
                                     "node => node.parentElement"
