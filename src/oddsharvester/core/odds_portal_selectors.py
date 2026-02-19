@@ -64,5 +64,23 @@ class OddsPortalSelectors:
         """
         return f"div[data-testid='bookies-filter-nav'] div[data-testid='{filter_value}']"
 
+    # Bookmaker elements — BeautifulSoup class patterns
+    BOOKMAKER_ROW_CLASS = "border-black-borders"
+    BOOKMAKER_ROW_FALLBACK_CLASS = r"^border-black-borders flex h-9"
+    BOOKMAKER_LOGO_CLASS = "bookmaker-logo"
+    ODDS_BLOCK_CLASS_PATTERN = r"flex-center.*flex-col.*font-bold"
+
+    # Bookmaker elements — Playwright CSS selectors
+    BOOKMAKER_ROW_CSS = "div.border-black-borders.flex.h-9"
+    BOOKMAKER_LOGO_CSS = "img.bookmaker-logo"
+    ODDS_BLOCK_CSS = "div.flex-center.flex-col.font-bold"
+    ODDS_MOVEMENT_HEADER = "h3:text('Odds movement')"
+
+    # Event listing — BeautifulSoup class pattern
+    EVENT_ROW_CLASS_PATTERN = "^eventRow"
+
+    # Submarket name — BeautifulSoup class
+    SUBMARKET_CLEAN_NAME_CLASS = "max-sm:!hidden"
+
     # Debug selectors
     DROPDOWN_DEBUG_ELEMENTS = "li, a, button, div, span"

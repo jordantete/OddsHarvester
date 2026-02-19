@@ -8,7 +8,7 @@ from oddsharvester.core.base_scraper import BaseScraper
 from oddsharvester.core.browser_helper import BrowserHelper
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.playwright_manager import PlaywrightManager
-from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
+from oddsharvester.utils.constants import NAVIGATION_TIMEOUT_MS, ODDSPORTAL_BASE_URL
 from oddsharvester.utils.odds_format_enum import OddsFormat
 
 
@@ -256,7 +256,9 @@ async def test_scrape_match_data(setup_base_scraper_mocks):
 
     # Verify interactions
     page_mock.goto.assert_called_once_with(
-        "https://oddsportal.com/football/england/arsenal-chelsea/123456", timeout=15000, wait_until="domcontentloaded"
+        "https://oddsportal.com/football/england/arsenal-chelsea/123456",
+        timeout=NAVIGATION_TIMEOUT_MS,
+        wait_until="domcontentloaded",
     )
 
     scraper._extract_match_details_event_header.assert_called_once_with(
@@ -422,3 +424,57 @@ async def test_extract_match_details_invalid_json(json_mock, bs4_mock, setup_bas
 
     # Verify result is None when JSON is invalid
     assert result is None
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.base_scraper.asyncio.sleep", new_callable=AsyncMock)
+async def test_extract_match_odds_rate_limiting(mock_sleep, setup_base_scraper_mocks):
+    """Test that rate limiting delay is applied between match requests."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+
+    # Mock _scrape_match_data to return data directly
+    scraper._scrape_match_data = AsyncMock(side_effect=[{"match": "data1"}, {"match": "data2"}, {"match": "data3"}])
+
+    match_links = [
+        "https://oddsportal.com/match1",
+        "https://oddsportal.com/match2",
+        "https://oddsportal.com/match3",
+    ]
+
+    # Use concurrent_scraping_task=1 to force sequential execution for predictable test behavior
+    result = await scraper.extract_match_odds(
+        sport="football",
+        match_links=match_links,
+        markets=["1x2"],
+        concurrent_scraping_task=1,
+        request_delay=2.0,
+    )
+
+    # First request should not have a delay, subsequent ones should
+    # With concurrency=1, requests are sequential so we expect 2 sleep calls (for 2nd and 3rd requests)
+    assert mock_sleep.call_count == 2
+    assert len(result.success) == 3
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.base_scraper.asyncio.sleep", new_callable=AsyncMock)
+async def test_extract_match_odds_no_delay_when_zero(mock_sleep, setup_base_scraper_mocks):
+    """Test that no delay is applied when request_delay is 0."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+
+    scraper._scrape_match_data = AsyncMock(side_effect=[{"match": "data1"}, {"match": "data2"}])
+
+    match_links = ["https://oddsportal.com/match1", "https://oddsportal.com/match2"]
+
+    result = await scraper.extract_match_odds(
+        sport="football",
+        match_links=match_links,
+        markets=["1x2"],
+        concurrent_scraping_task=1,
+        request_delay=0,
+    )
+
+    mock_sleep.assert_not_called()
+    assert len(result.success) == 2

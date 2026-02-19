@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import urlparse, urlunparse
 
 
 class ProxyManager:
@@ -20,6 +21,15 @@ class ProxyManager:
         """
         self.logger = logging.getLogger(self.__class__.__name__)
         self.proxy = self._build_proxy_config(proxy_url, proxy_user, proxy_pass)
+
+    @staticmethod
+    def _sanitize_url_for_logging(url: str) -> str:
+        """Strip embedded credentials from a URL for safe logging."""
+        parsed = urlparse(url)
+        if parsed.username or parsed.password:
+            safe = parsed._replace(netloc=f"{parsed.hostname}:{parsed.port}" if parsed.port else parsed.hostname)
+            return urlunparse(safe)
+        return url
 
     def _build_proxy_config(
         self,
@@ -44,20 +54,21 @@ class ProxyManager:
 
         valid_schemes = ("http://", "https://", "socks4://", "socks5://")
         if not any(proxy_url.startswith(scheme) for scheme in valid_schemes):
-            self.logger.error(f"Invalid proxy scheme in: {proxy_url}")
+            self.logger.error("Invalid proxy scheme provided.")
             return None
 
+        safe_url = self._sanitize_url_for_logging(proxy_url)
         proxy_config = {"server": proxy_url}
 
         if proxy_user and proxy_pass:
             proxy_config["username"] = proxy_user
             proxy_config["password"] = proxy_pass
-            self.logger.info(f"Configured proxy with authentication: {proxy_url}")
+            self.logger.info(f"Configured proxy with authentication: {safe_url}")
         elif proxy_user or proxy_pass:
             self.logger.warning("Both proxy_user and proxy_pass must be provided for authentication. Ignoring auth.")
-            self.logger.info(f"Configured proxy without authentication: {proxy_url}")
+            self.logger.info(f"Configured proxy without authentication: {safe_url}")
         else:
-            self.logger.info(f"Configured proxy without authentication: {proxy_url}")
+            self.logger.info(f"Configured proxy without authentication: {safe_url}")
 
         return proxy_config
 

@@ -7,6 +7,7 @@ import click
 from oddsharvester.cli.types import BOOKIES_FILTER, COMMA_LIST, ODDS_FORMAT, SPORT, STORAGE_FORMAT, STORAGE_TYPE
 from oddsharvester.cli.validators import (
     validate_concurrency,
+    validate_file_path,
     validate_leagues,
     validate_markets,
     validate_match_links,
@@ -94,6 +95,7 @@ def common_options(func):
         "-o",
         "file_path",
         type=click.Path(),
+        callback=validate_file_path,
         envvar="OH_FILE_PATH",
         help="Output file path.",
     )
@@ -190,6 +192,13 @@ def common_options(func):
         type=click.Choice(_get_all_periods(), case_sensitive=False),
         callback=validate_period,
         help="Match period to scrape (sport-specific).",
+    )
+    @click.option(
+        "--request-delay",
+        type=float,
+        default=1.0,
+        envvar="OH_REQUEST_DELAY",
+        help="Delay in seconds between match requests (default: 1.0).",
     )
     @functools.wraps(func)
     def wrapper(*args, **kwargs):

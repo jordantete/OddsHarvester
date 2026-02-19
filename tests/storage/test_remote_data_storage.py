@@ -21,7 +21,34 @@ def test_initialization(remote_data_storage):
     assert remote_data_storage.s3_client is not None
     assert remote_data_storage.logger is not None
     assert remote_data_storage.S3_BUCKET_NAME == "odds-portal-scrapped-odds-cad8822c179f12cg"
-    assert remote_data_storage.AWE_REGION == "eu-west-3"
+    assert remote_data_storage.AWS_REGION == "eu-west-3"
+
+
+def test_env_var_override_bucket():
+    with patch.dict("os.environ", {"OH_S3_BUCKET": "my-custom-bucket"}):
+        # Re-import to pick up the new env var at class-definition time
+        import importlib
+
+        import oddsharvester.storage.remote_data_storage as mod
+
+        importlib.reload(mod)
+        assert mod.RemoteDataStorage.S3_BUCKET_NAME == "my-custom-bucket"
+
+        # Restore defaults
+        importlib.reload(mod)
+
+
+def test_env_var_override_region():
+    with patch.dict("os.environ", {"OH_AWS_REGION": "us-east-1"}):
+        import importlib
+
+        import oddsharvester.storage.remote_data_storage as mod
+
+        importlib.reload(mod)
+        assert mod.RemoteDataStorage.AWS_REGION == "us-east-1"
+
+        # Restore defaults
+        importlib.reload(mod)
 
 
 def test_save_to_json(remote_data_storage, sample_data):

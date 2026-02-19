@@ -8,7 +8,15 @@ from oddsharvester.core.base_scraper import BaseScraper
 from oddsharvester.core.scrape_result import ScrapeResult
 from oddsharvester.core.url_builder import URLBuilder
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
-from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
+from oddsharvester.utils.constants import (
+    DEFAULT_REQUEST_DELAY_S,
+    GOTO_TIMEOUT_LONG_MS,
+    GOTO_TIMEOUT_MS,
+    MAX_PAGINATION_PAGES,
+    ODDSPORTAL_BASE_URL,
+    PAGE_COLLECTION_DELAY_MAX_MS,
+    PAGE_COLLECTION_DELAY_MIN_MS,
+)
 
 
 @dataclass
@@ -67,6 +75,7 @@ class OddsPortalScraper(BaseScraper):
         max_pages: int | None = None,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
+        request_delay: float = DEFAULT_REQUEST_DELAY_S,
     ) -> ScrapeResult:
         """
         Scrapes historical odds data.
@@ -121,6 +130,7 @@ class OddsPortalScraper(BaseScraper):
             preview_submarkets_only=self.preview_submarkets_only,
             bookies_filter=bookies_filter,
             period=period,
+            request_delay=request_delay,
         )
 
     async def scrape_upcoming(
@@ -133,6 +143,7 @@ class OddsPortalScraper(BaseScraper):
         target_bookmaker: str | None = None,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
+        request_delay: float = DEFAULT_REQUEST_DELAY_S,
     ) -> ScrapeResult:
         """
         Scrapes upcoming match odds.
@@ -155,7 +166,7 @@ class OddsPortalScraper(BaseScraper):
         url = URLBuilder.get_upcoming_matches_url(sport=sport, date=date, league=league)
         self.logger.info(f"Fetching upcoming odds from {url}")
 
-        await current_page.goto(url, timeout=10000, wait_until="domcontentloaded")
+        await current_page.goto(url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
         await self._prepare_page_for_scraping(page=current_page)
 
         # Scroll to load all matches due to lazy loading
@@ -183,6 +194,7 @@ class OddsPortalScraper(BaseScraper):
             preview_submarkets_only=self.preview_submarkets_only,
             bookies_filter=bookies_filter,
             period=period,
+            request_delay=request_delay,
         )
 
     async def scrape_matches(
@@ -194,6 +206,7 @@ class OddsPortalScraper(BaseScraper):
         target_bookmaker: str | None = None,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
+        request_delay: float = DEFAULT_REQUEST_DELAY_S,
     ) -> ScrapeResult:
         """
         Scrapes match odds from a list of specific match URLs.
@@ -212,7 +225,7 @@ class OddsPortalScraper(BaseScraper):
         if not current_page:
             raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
 
-        await current_page.goto(ODDSPORTAL_BASE_URL, timeout=20000, wait_until="domcontentloaded")
+        await current_page.goto(ODDSPORTAL_BASE_URL, timeout=GOTO_TIMEOUT_LONG_MS, wait_until="domcontentloaded")
         await self._prepare_page_for_scraping(page=current_page)
         return await self.extract_match_odds(
             sport=sport,
@@ -224,6 +237,7 @@ class OddsPortalScraper(BaseScraper):
             preview_submarkets_only=self.preview_submarkets_only,
             bookies_filter=bookies_filter,
             period=period,
+            request_delay=request_delay,
         )
 
     async def _prepare_page_for_scraping(self, page: Page):
@@ -290,42 +304,34 @@ class OddsPortalScraper(BaseScraper):
 
     def _fill_pagination_gaps(self, raw_pages: list[int]) -> list[int]:
         """
-        Fills gaps in pagination when there are "..." between page numbers.
+        Sort, deduplicate, and cap discovered pagination pages.
+
+        Trusts the pages discovered in the pagination HTML rather than generating
+        phantom pages to fill gaps (e.g., [1, 2, 3, 27] stays as-is instead of
+        becoming [1..27]).
 
         Args:
             raw_pages (List[int]): Raw page numbers found in pagination.
 
         Returns:
-            List[int]: Complete list of pages with gaps filled.
+            List[int]: Sorted, deduplicated list of pages capped at MAX_PAGINATION_PAGES.
         """
         if len(raw_pages) <= 1:
             return raw_pages
 
-        # Sort pages to ensure order
-        sorted_pages = sorted(raw_pages)
-        self.logger.info(f"Analyzing pagination gaps in: {sorted_pages}")
+        # Sort and deduplicate
+        unique_pages = sorted(set(raw_pages))
+        self.logger.info(f"Discovered {len(unique_pages)} unique pagination pages: {unique_pages}")
 
-        # Find the maximum page number
-        max_page = max(sorted_pages)
-        self.logger.info(f"Maximum page number detected: {max_page}")
+        # Apply safety cap
+        if len(unique_pages) > MAX_PAGINATION_PAGES:
+            self.logger.warning(
+                f"Pagination exceeds safety cap ({len(unique_pages)} > {MAX_PAGINATION_PAGES}). "
+                f"Limiting to first {MAX_PAGINATION_PAGES} pages."
+            )
+            unique_pages = unique_pages[:MAX_PAGINATION_PAGES]
 
-        # Check if there are gaps (missing pages between min and max)
-        min_page = min(sorted_pages)
-        expected_pages = list(range(min_page, max_page + 1))
-
-        # Find missing pages
-        missing_pages = [p for p in expected_pages if p not in sorted_pages]
-
-        if missing_pages:
-            self.logger.warning(f"Detected pagination gaps! Missing pages: {missing_pages}")
-            self.logger.info(f"Filling gaps to create complete pagination from {min_page} to {max_page}")
-
-            complete_pages = list(range(min_page, max_page + 1))
-            self.logger.info(f"Complete pagination created: {complete_pages}")
-            return complete_pages
-        else:
-            self.logger.info("No pagination gaps detected")
-            return sorted_pages
+        return unique_pages
 
     async def _collect_match_links(self, base_url: str, pages_to_scrape: list[int]) -> LinkCollectionResult:
         """
@@ -354,8 +360,8 @@ class OddsPortalScraper(BaseScraper):
 
                 page_url = f"{base_url}#/page/{page_number}"
                 self.logger.info(f"Navigating to: {page_url}")
-                await tab.goto(page_url, timeout=10000, wait_until="domcontentloaded")
-                delay = random.randint(6000, 8000)  # noqa: S311
+                await tab.goto(page_url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
+                delay = random.randint(PAGE_COLLECTION_DELAY_MIN_MS, PAGE_COLLECTION_DELAY_MAX_MS)  # noqa: S311
                 self.logger.debug(f"Waiting {delay}ms before processing...")
                 await tab.wait_for_timeout(delay)
 

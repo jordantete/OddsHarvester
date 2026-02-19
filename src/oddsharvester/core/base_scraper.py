@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from enum import Enum
 import json
 import logging
+import random
 import re
 from typing import Any
 
@@ -11,11 +12,24 @@ from playwright.async_api import Page, TimeoutError
 
 from oddsharvester.core.browser_helper import BrowserHelper
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
+from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.retry import RetryConfig, classify_error, is_retryable_error, retry_with_backoff
 from oddsharvester.core.scrape_result import FailedUrl, ScrapeResult, ScrapeStats
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
-from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
+from oddsharvester.utils.constants import (
+    DEFAULT_REQUEST_DELAY_S,
+    DYNAMIC_CONTENT_WAIT_MS,
+    MATCH_RETRY_BASE_DELAY,
+    MATCH_RETRY_MAX_ATTEMPTS,
+    MATCH_RETRY_MAX_DELAY,
+    NAVIGATION_TIMEOUT_MS,
+    ODDS_FORMAT_SELECTOR_TIMEOUT_MS,
+    ODDS_FORMAT_WAIT_MS,
+    ODDSPORTAL_BASE_URL,
+    REQUEST_DELAY_JITTER_FACTOR,
+    SELECTOR_TIMEOUT_MS,
+)
 from oddsharvester.utils.odds_format_enum import OddsFormat
 from oddsharvester.utils.utils import clean_html_text
 
@@ -57,7 +71,7 @@ class BaseScraper:
         try:
             self.logger.info(f"Setting odds format: {odds_format.value}")
             button_selector = "div.group > button.gap-2"
-            await page.wait_for_selector(button_selector, state="attached", timeout=8000)
+            await page.wait_for_selector(button_selector, state="attached", timeout=ODDS_FORMAT_SELECTOR_TIMEOUT_MS)
             dropdown_button = await page.query_selector(button_selector)
 
             # Check if the desired format is already selected
@@ -69,7 +83,7 @@ class BaseScraper:
                 return
 
             await dropdown_button.click()
-            await page.wait_for_timeout(10000)
+            await page.wait_for_timeout(ODDS_FORMAT_WAIT_MS)
             format_option_selector = "div.group > div.dropdown-content > ul > li > a"
             format_options = await page.query_selector_all(format_option_selector)
 
@@ -79,7 +93,7 @@ class BaseScraper:
                 if odds_format.value.lower() in option_text.lower():
                     self.logger.info(f"Selecting odds format: {option_text}")
                     await option.click()
-                    await page.wait_for_timeout(10000)
+                    await page.wait_for_timeout(ODDS_FORMAT_WAIT_MS)
                     self.logger.info(f"Odds format changed to '{odds_format.value}'.")
                     return
 
@@ -104,7 +118,7 @@ class BaseScraper:
         try:
             html_content = await page.content()
             soup = BeautifulSoup(html_content, "lxml")
-            event_rows = soup.find_all(class_=re.compile("^eventRow"))
+            event_rows = soup.find_all(class_=re.compile(OddsPortalSelectors.EVENT_ROW_CLASS_PATTERN))
             self.logger.info(f"Found {len(event_rows)} event rows.")
 
             match_links = {
@@ -133,6 +147,7 @@ class BaseScraper:
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
         retry_config: RetryConfig | None = None,
+        request_delay: float = DEFAULT_REQUEST_DELAY_S,
     ) -> ScrapeResult:
         """
         Extract odds for a list of match links concurrently.
@@ -159,7 +174,11 @@ class BaseScraper:
         semaphore = asyncio.Semaphore(concurrent_scraping_task)
 
         if retry_config is None:
-            retry_config = RetryConfig(max_attempts=2, base_delay=2.0)
+            retry_config = RetryConfig(
+                max_attempts=MATCH_RETRY_MAX_ATTEMPTS,
+                base_delay=MATCH_RETRY_BASE_DELAY,
+                max_delay=MATCH_RETRY_MAX_DELAY,
+            )
 
         async def scrape_single_match(page: Page, link: str) -> dict[str, Any] | None:
             """Inner function to scrape a single match (used for retry)."""
@@ -175,8 +194,19 @@ class BaseScraper:
                 period=period,
             )
 
+        request_counter = {"count": 0}
+
         async def scrape_with_semaphore(link: str) -> tuple[str, dict[str, Any] | None, FailedUrl | None]:
             async with semaphore:
+                # Apply rate limiting delay (skip for the first request)
+                current_count = request_counter["count"]
+                request_counter["count"] += 1
+                if current_count > 0 and request_delay > 0:
+                    jitter = request_delay * REQUEST_DELAY_JITTER_FACTOR * random.random()  # noqa: S311
+                    total_delay = request_delay + jitter
+                    self.logger.debug(f"Rate limiting: waiting {total_delay:.2f}s before request")
+                    await asyncio.sleep(total_delay)
+
                 tab = None
 
                 try:
@@ -291,10 +321,10 @@ class BaseScraper:
 
         try:
             # Navigate to the match page with extended timeout
-            await page.goto(match_link, timeout=15000, wait_until="domcontentloaded")
+            await page.goto(match_link, timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded")
 
             # Wait a bit for dynamic content to load
-            await page.wait_for_timeout(2000)
+            await page.wait_for_timeout(DYNAMIC_CONTENT_WAIT_MS)
 
             # Apply bookmaker filter before extracting odds
             await self.browser_helper.ensure_bookies_filter_selected(page=page, desired_filter=bookies_filter)
@@ -350,7 +380,7 @@ class BaseScraper:
         try:
             # Wait for the react event header to be loaded
             try:
-                await page.wait_for_selector("#react-event-header", timeout=10000)
+                await page.wait_for_selector("#react-event-header", timeout=SELECTOR_TIMEOUT_MS)
             except Exception:
                 # If we can't find the selector, try to get the content anyway
                 self.logger.warning("React event header selector not found, attempting to parse existing content")

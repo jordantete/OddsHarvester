@@ -3,14 +3,11 @@ import logging
 from playwright.async_api import Page
 
 from oddsharvester.core.browser_helper import BrowserHelper
+from oddsharvester.utils.constants import DEFAULT_MARKET_TIMEOUT_MS, MARKET_SWITCH_WAIT_TIME_MS, SCROLL_PAUSE_TIME_MS
 
 
 class NavigationManager:
     """Handles browser navigation for market extraction."""
-
-    DEFAULT_TIMEOUT = 5000
-    SCROLL_PAUSE_TIME = 2000
-    MARKET_SWITCH_WAIT_TIME = 3000
 
     def __init__(self, browser_helper: BrowserHelper):
         """Initialize NavigationManager."""
@@ -20,7 +17,7 @@ class NavigationManager:
     async def navigate_to_market_tab(self, page: Page, market_tab_name: str) -> bool:
         """Navigate to a specific market tab."""
         return await self.browser_helper.navigate_to_market_tab(
-            page=page, market_tab_name=market_tab_name, timeout=self.DEFAULT_TIMEOUT
+            page=page, market_tab_name=market_tab_name, timeout=DEFAULT_MARKET_TIMEOUT_MS
         )
 
     async def wait_for_market_switch(self, page: Page, market_name: str, max_attempts: int = 3) -> bool:
@@ -40,7 +37,7 @@ class NavigationManager:
         for attempt in range(max_attempts):
             try:
                 # Wait for the market switch animation to complete
-                await page.wait_for_timeout(self.MARKET_SWITCH_WAIT_TIME)
+                await page.wait_for_timeout(MARKET_SWITCH_WAIT_TIME_MS)
 
                 # Check if the market tab is active
                 active_tab = await page.query_selector("li.active, li[class*='active'], .active")
@@ -75,4 +72,4 @@ class NavigationManager:
 
     async def wait_for_page_load(self, page: Page) -> None:
         """Wait for page content to load."""
-        await page.wait_for_timeout(self.SCROLL_PAUSE_TIME)
+        await page.wait_for_timeout(SCROLL_PAUSE_TIME_MS)

@@ -1,21 +1,24 @@
-import asyncio
 import logging
 
 from oddsharvester.core.browser_helper import BrowserHelper
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
-from oddsharvester.core.retry import TRANSIENT_ERROR_KEYWORDS
+from oddsharvester.core.retry import RetryConfig, is_retryable_error, retry_with_backoff
 from oddsharvester.core.scrape_result import ScrapeResult
 from oddsharvester.core.sport_market_registry import SportMarketRegistrar
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.command_enum import CommandEnum
+from oddsharvester.utils.constants import (
+    DEFAULT_REQUEST_DELAY_S,
+    OPERATION_RETRY_BASE_DELAY,
+    OPERATION_RETRY_MAX_ATTEMPTS,
+    OPERATION_RETRY_MAX_DELAY,
+)
 from oddsharvester.utils.proxy_manager import ProxyManager
 from oddsharvester.utils.utils import validate_and_convert_period
 
 logger = logging.getLogger("ScraperApp")
-MAX_RETRIES = 3
-RETRY_DELAY_SECONDS = 20
 
 
 async def run_scraper(
@@ -39,6 +42,7 @@ async def run_scraper(
     preview_submarkets_only: bool = False,
     bookies_filter: str = BookiesFilter.ALL.value,
     period: str | None = None,
+    request_delay: float = DEFAULT_REQUEST_DELAY_S,
 ) -> ScrapeResult | None:
     """
     Runs the scraping process and handles execution.
@@ -99,6 +103,7 @@ async def run_scraper(
                 target_bookmaker=target_bookmaker,
                 bookies_filter=bookies_filter_enum,
                 period=period_enum,
+                request_delay=request_delay,
             )
 
         if command == CommandEnum.HISTORIC:
@@ -125,6 +130,7 @@ async def run_scraper(
                     max_pages=max_pages,
                     bookies_filter=bookies_filter_enum,
                     period=period_enum,
+                    request_delay=request_delay,
                 )
             else:
                 return await _scrape_multiple_leagues(
@@ -139,6 +145,7 @@ async def run_scraper(
                     max_pages=max_pages,
                     bookies_filter=bookies_filter_enum,
                     period=period_enum,
+                    request_delay=request_delay,
                 )
 
         elif command == CommandEnum.UPCOMING_MATCHES:
@@ -162,6 +169,7 @@ async def run_scraper(
                         target_bookmaker=target_bookmaker,
                         bookies_filter=bookies_filter_enum,
                         period=period_enum,
+                        request_delay=request_delay,
                     )
                 else:
                     return await _scrape_multiple_leagues(
@@ -175,6 +183,7 @@ async def run_scraper(
                         target_bookmaker=target_bookmaker,
                         bookies_filter=bookies_filter_enum,
                         period=period_enum,
+                        request_delay=request_delay,
                     )
             else:
                 logger.info(f"""
@@ -192,6 +201,7 @@ async def run_scraper(
                     target_bookmaker=target_bookmaker,
                     bookies_filter=bookies_filter_enum,
                     period=period_enum,
+                    request_delay=request_delay,
                 )
 
         else:
@@ -266,6 +276,9 @@ async def retry_scrape(scrape_func, *args, **kwargs) -> ScrapeResult | None:
     """
     Retry a scrape function with exponential backoff for transient errors.
 
+    Uses the unified retry_with_backoff mechanism with operation-level retry config
+    (larger delays suitable for full scraping operations).
+
     Args:
         scrape_func: The async scraping function to execute.
         *args: Positional arguments for the function.
@@ -273,18 +286,25 @@ async def retry_scrape(scrape_func, *args, **kwargs) -> ScrapeResult | None:
 
     Returns:
         ScrapeResult from the scrape function, or None if max retries exceeded.
+
+    Raises:
+        Exception: Re-raises non-retryable errors immediately.
     """
-    for attempt in range(1, MAX_RETRIES + 1):
-        try:
-            return await scrape_func(*args, **kwargs)
-        except Exception as e:
-            if any(keyword in str(e) for keyword in TRANSIENT_ERROR_KEYWORDS):
-                logger.warning(
-                    f"[Attempt {attempt}] Transient error detected: {e}. Retrying in {RETRY_DELAY_SECONDS}s..."
-                )
-                await asyncio.sleep(RETRY_DELAY_SECONDS)
-            else:
-                logger.error(f"Non-retryable error encountered: {e}")
-                raise
-    logger.error("Max retries exceeded.")
+    config = RetryConfig(
+        max_attempts=OPERATION_RETRY_MAX_ATTEMPTS,
+        base_delay=OPERATION_RETRY_BASE_DELAY,
+        max_delay=OPERATION_RETRY_MAX_DELAY,
+    )
+
+    retry_result = await retry_with_backoff(scrape_func, *args, config=config, **kwargs)
+
+    if retry_result.success:
+        return retry_result.result
+
+    # Preserve existing contract: non-retryable errors are re-raised
+    if retry_result.last_error and not is_retryable_error(retry_result.last_error):
+        logger.error(f"Non-retryable error encountered: {retry_result.last_error}")
+        raise Exception(retry_result.last_error)
+
+    logger.error(f"Max retries exceeded after {retry_result.attempts} attempts.")
     return None
