@@ -304,34 +304,37 @@ class OddsPortalScraper(BaseScraper):
 
     def _fill_pagination_gaps(self, raw_pages: list[int]) -> list[int]:
         """
-        Sort, deduplicate, and cap discovered pagination pages.
+        Sort, deduplicate, fill gaps, and cap discovered pagination pages.
 
-        Trusts the pages discovered in the pagination HTML rather than generating
-        phantom pages to fill gaps (e.g., [1, 2, 3, 27] stays as-is instead of
-        becoming [1..27]).
+        OddsPortal renders pagination with an ellipsis for large page ranges
+        (e.g. ``[1,2,3,...,28]``), so the HTML only contains the endpoints.
+        This method fills the gap so all intermediate pages are scraped.
 
         Args:
             raw_pages (List[int]): Raw page numbers found in pagination.
 
         Returns:
-            List[int]: Sorted, deduplicated list of pages capped at MAX_PAGINATION_PAGES.
+            List[int]: Contiguous list of pages from 1..max, capped at MAX_PAGINATION_PAGES.
         """
         if len(raw_pages) <= 1:
             return raw_pages
 
-        # Sort and deduplicate
-        unique_pages = sorted(set(raw_pages))
-        self.logger.info(f"Discovered {len(unique_pages)} unique pagination pages: {unique_pages}")
+        max_page = max(raw_pages)
+        all_pages = list(range(1, max_page + 1))
+        self.logger.info(
+            f"Pagination HTML showed {sorted(set(raw_pages))}, "
+            f"filling to contiguous range 1..{max_page} ({len(all_pages)} pages)"
+        )
 
         # Apply safety cap
-        if len(unique_pages) > MAX_PAGINATION_PAGES:
+        if len(all_pages) > MAX_PAGINATION_PAGES:
             self.logger.warning(
-                f"Pagination exceeds safety cap ({len(unique_pages)} > {MAX_PAGINATION_PAGES}). "
+                f"Pagination exceeds safety cap ({len(all_pages)} > {MAX_PAGINATION_PAGES}). "
                 f"Limiting to first {MAX_PAGINATION_PAGES} pages."
             )
-            unique_pages = unique_pages[:MAX_PAGINATION_PAGES]
+            all_pages = all_pages[:MAX_PAGINATION_PAGES]
 
-        return unique_pages
+        return all_pages
 
     async def _collect_match_links(self, base_url: str, pages_to_scrape: list[int]) -> LinkCollectionResult:
         """
