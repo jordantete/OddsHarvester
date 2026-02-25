@@ -277,6 +277,22 @@ class TestOddsParser:
         assert len(result) == 1
         assert result[0]["bookmaker_name"] == "Betfred"
 
+    def test_parse_market_odds_bookmaker_name_cta_normalised(self, odds_parser):
+        """Test that CTA-style <a title> values are normalised to clean bookmaker names."""
+        html = """
+        <div class="border-black-borders flex h-9">
+            <a title="Go to Betfair Exchange website!">
+                <img src="logo.png">
+            </a>
+            <div class="flex-center flex-col font-bold">1.90</div>
+            <div class="flex-center flex-col font-bold">2.10</div>
+        </div>
+        """
+        result = odds_parser.parse_market_odds(html, "FullTime", ["home", "away"])
+
+        assert len(result) == 1
+        assert result[0]["bookmaker_name"] == "Betfair Exchange"
+
     def test_parse_market_odds_bookmaker_name_fallback_img_alt(self, odds_parser):
         """Test bookmaker name resolution via img[alt] as last resort."""
         html = """
