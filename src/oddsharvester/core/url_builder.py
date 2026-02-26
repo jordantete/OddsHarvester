@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, timezone
 
 from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
 from oddsharvester.utils.league_aliases import get_league_slug_for_season
@@ -57,6 +58,11 @@ class URLBuilder:
             # Special handling for baseball leagues
             if sport.lower() == "baseball":
                 return f"{base_url}-{start_year}/results/"
+
+            # OddsPortal serves the current season at the base URL (no year suffix)
+            current_year = datetime.now(timezone.utc).year
+            if end_year == current_year:
+                return f"{base_url}/results/"
 
             return f"{base_url}-{season}/results/"
 

@@ -408,9 +408,18 @@ class BrowserHelper:
 
         self.logger.info(f"Initial page height: {last_height}")
 
+        scroll_step = 500
+        current_scroll_pos = 0
+
         while time.time() < end_time:
-            # Scroll to bottom
-            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            # Scroll incrementally to trigger lazy-loading content
+            page_height = await page.evaluate("document.body.scrollHeight")
+            if current_scroll_pos < page_height:
+                current_scroll_pos = min(current_scroll_pos + scroll_step, page_height)
+                await page.evaluate(f"window.scrollTo(0, {current_scroll_pos})")
+            else:
+                # Already at bottom, nudge to trigger any remaining loads
+                await page.evaluate(f"window.scrollTo(0, {page_height})")
             await page.wait_for_timeout(scroll_pause_time * 1000)
 
             new_height = await page.evaluate("document.body.scrollHeight")
