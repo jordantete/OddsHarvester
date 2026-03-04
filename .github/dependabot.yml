@@ -9,3 +9,11 @@ updates:
       - dependency-name: "playwright"
     labels:
       - "pip-dependencies"
+
+  # Disable npm scanning - npm manifests are transient artifacts from Playwright, not part of this Python project
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "*"
