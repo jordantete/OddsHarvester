@@ -253,7 +253,7 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "vtb-united-league": "https://www.oddsportal.com/basketball/russia/vtb-united-league/",
         "nbl-australia": "https://www.oddsportal.com/basketball/australia/nbl/",
         "cba-china": "https://www.oddsportal.com/basketball/china/cba/",
-        "greek-super-league": "https://www.oddsportal.com/football/greece/super-league/",
+        "greek-basket-league": "https://www.oddsportal.com/basketball/greece/basket-league/",
         "liga-nacional-argentina": "https://www.oddsportal.com/basketball/argentina/liga-nacional/",
         "liga-aba": "https://www.oddsportal.com/basketball/europe/aba-league/",
         "bnxt-league": "https://www.oddsportal.com/basketball/europe/bnxt-league/",
