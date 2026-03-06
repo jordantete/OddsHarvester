@@ -159,7 +159,7 @@ class OddsParser:
             name = a_tag["title"]
             # Normalise CTA-style titles like "Go to Betfair Exchange website!"
             if name.lower().startswith("go to ") and name.endswith("!"):
-                name = name[len("go to "):-1].strip()
+                name = name[len("go to ") : -1].strip()
                 # Strip trailing "website" if present
                 if name.lower().endswith(" website"):
                     name = name[: -len(" website")].strip()

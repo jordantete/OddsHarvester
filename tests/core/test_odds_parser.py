@@ -257,9 +257,9 @@ class TestOddsParser:
 
             assert "odds_history" in result
             assert len(result["odds_history"]) == 2
-            assert result["odds_history"][0]["odds"] == pytest.approx(1.8)   # 4/5 + 1
+            assert result["odds_history"][0]["odds"] == pytest.approx(1.8)  # 4/5 + 1
             assert result["odds_history"][1]["odds"] == pytest.approx(2.05)  # 21/20 + 1
-            assert result["opening_odds"]["odds"] == pytest.approx(5.5)     # 9/2 + 1
+            assert result["opening_odds"]["odds"] == pytest.approx(5.5)  # 9/2 + 1
 
     def test_parse_market_odds_bookmaker_name_fallback_a_tag(self, odds_parser):
         """Test bookmaker name resolution via <a title> when img.bookmaker-logo is absent."""
