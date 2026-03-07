@@ -427,13 +427,13 @@ class TestFillPaginationGaps:
         """Consecutive pages are returned sorted."""
         assert scraper._fill_pagination_gaps([3, 1, 2]) == [1, 2, 3]
 
-    def test_no_gap_filling(self, scraper):
-        """Pages with gaps are NOT filled — trusts discovered pages."""
+    def test_gap_filling(self, scraper):
+        """Gaps between discovered pages are filled (OddsPortal ellipsis)."""
         result = scraper._fill_pagination_gaps([1, 2, 3, 27])
-        assert result == [1, 2, 3, 27]
+        assert result == list(range(1, 28))
 
     def test_deduplication(self, scraper):
-        """Duplicate pages are removed."""
+        """Duplicate pages are deduplicated via max()."""
         assert scraper._fill_pagination_gaps([1, 2, 2, 3, 3]) == [1, 2, 3]
 
     def test_safety_cap(self, scraper):
