@@ -25,6 +25,11 @@ class TestGetLeagueSlugForSeason:
             # Cyprus: cyta-championship until 2023-2024, then 1st-division
             (Sport.FOOTBALL, "cyprus-first-division", "2023-2024", "cyta-championship"),
             (Sport.FOOTBALL, "cyprus-first-division", "2024-2025", None),
+            # Brazil: serie-a until 2023, then serie-a-betano
+            (Sport.FOOTBALL, "brazil-serie-a", "2022", "serie-a"),
+            (Sport.FOOTBALL, "brazil-serie-a", "2023", "serie-a"),
+            (Sport.FOOTBALL, "brazil-serie-a", "2024", None),
+            (Sport.FOOTBALL, "brazil-serie-a", "2025", None),
             # Single year format
             (Sport.FOOTBALL, "czech-republic-chance-liga", "2023", "fortuna-liga"),
             (Sport.FOOTBALL, "czech-republic-chance-liga", "2024", None),

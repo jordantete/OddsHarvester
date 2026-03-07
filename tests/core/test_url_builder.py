@@ -13,6 +13,7 @@ SPORTS_LEAGUES_URLS_MAPPING[Sport.FOOTBALL] = {
     "slovakia-nike-liga": f"{ODDSPORTAL_BASE_URL}/football/slovakia/nike-liga",
     "hungary-nb-i": f"{ODDSPORTAL_BASE_URL}/football/hungary/nb-i",
     "cyprus-first-division": f"{ODDSPORTAL_BASE_URL}/football/cyprus/1st-division",
+    "brazil-serie-a": f"{ODDSPORTAL_BASE_URL}/football/brazil/serie-a-betano",
 }
 SPORTS_LEAGUES_URLS_MAPPING[Sport.TENNIS] = {
     "atp-tour": f"{ODDSPORTAL_BASE_URL}/tennis/atp-tour",
@@ -239,6 +240,25 @@ def test_get_league_url(sport, league, expected_url):
             "cyprus-first-division",
             "2024-2025",
             f"{ODDSPORTAL_BASE_URL}/football/cyprus/1st-division-2024-2025/results/",
+        ),
+        # Brazil: serie-a for old seasons, serie-a-betano for new (single year format)
+        (
+            "football",
+            "brazil-serie-a",
+            "2023",
+            f"{ODDSPORTAL_BASE_URL}/football/brazil/serie-a-2023/results/",
+        ),
+        (
+            "football",
+            "brazil-serie-a",
+            "2024",
+            f"{ODDSPORTAL_BASE_URL}/football/brazil/serie-a-betano-2024/results/",
+        ),
+        (
+            "football",
+            "brazil-serie-a",
+            "2025",
+            f"{ODDSPORTAL_BASE_URL}/football/brazil/serie-a-betano-2025/results/",
         ),
         # No alias - current season uses canonical URL
         (

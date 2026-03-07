@@ -37,6 +37,10 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         "cyprus-first-division": {
             2023: "cyta-championship",
         },
+        # Brazil: serie-a until 2023, then serie-a-betano from 2024
+        "brazil-serie-a": {
+            2023: "serie-a",
+        },
     },
 }
 

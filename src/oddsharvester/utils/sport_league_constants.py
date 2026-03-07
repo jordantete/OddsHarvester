@@ -18,7 +18,7 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "italy-serie-b": "https://www.oddsportal.com/football/italy/serie-b/",
         "italy-coppa-italia": "https://www.oddsportal.com/football/italy/coppa-italia",
         "usa-mls": "https://www.oddsportal.com/football/usa/mls",
-        "brazil-serie-a": "https://www.oddsportal.com/football/brazil/serie-a",
+        "brazil-serie-a": "https://www.oddsportal.com/football/brazil/serie-a-betano",
         "mexico-liga-mx": "https://www.oddsportal.com/football/mexico/liga-mx",
         "liga-portugal": "https://www.oddsportal.com/football/portugal/liga-portugal",
         "liga-portugal-2": "https://www.oddsportal.com/football/portugal/liga-portugal-2/",
