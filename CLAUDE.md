@@ -137,12 +137,8 @@ uv run pytest tests/ -q --ignore=tests/integration/
 # 2. Update version in pyproject.toml
 # version = "X.Y.Z"
 
-# 3. Update CHANGELOG.md
-# - Rename [Unreleased] to [X.Y.Z] - YYYY-MM-DD
-# - Add a new empty [Unreleased] section
-
-# 4. Commit and tag
-git add pyproject.toml CHANGELOG.md
+# 3. Commit and tag
+git add pyproject.toml
 git commit -m "chore: release vX.Y.Z"
 git tag vX.Y.Z
 git push origin master --tags
