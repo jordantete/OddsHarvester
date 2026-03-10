@@ -33,13 +33,18 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         "hungary-nb-i": {
             2023: "otp-bank-liga",
         },
-        # Cyprus: cyta-championship until 2023-2024, then 1st-division
-        "cyprus-first-division": {
-            2023: "cyta-championship",
-        },
         # Brazil: serie-a until 2023, then serie-a-betano from 2024
         "brazil-serie-a": {
             2023: "serie-a",
+        },
+        # South Africa: premier-league until 2023-2024, then betway-premiership
+        "south-africa-premiership": {
+            2023: "premier-league",
+        },
+        # Bulgaria: parva-liga until 2024-2025, then efbet-league from 2025-2026
+        # (also a-pfg until 2015-2016, but parva-liga alias covers the more recent range)
+        "bulgaria-parva-liga": {
+            2024: "parva-liga",
         },
     },
 }

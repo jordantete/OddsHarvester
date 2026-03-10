@@ -3,6 +3,7 @@ import logging
 import time
 
 from playwright.async_api import Page
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
@@ -68,7 +69,7 @@ class BrowserHelper:
             await page.click(selector)
             return True
 
-        except TimeoutError:
+        except PlaywrightTimeoutError:
             self.logger.info("No cookie banner detected.")
             return False
 

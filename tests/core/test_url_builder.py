@@ -12,8 +12,9 @@ SPORTS_LEAGUES_URLS_MAPPING[Sport.FOOTBALL] = {
     "czech-republic-chance-liga": f"{ODDSPORTAL_BASE_URL}/football/czech-republic/chance-liga",
     "slovakia-nike-liga": f"{ODDSPORTAL_BASE_URL}/football/slovakia/nike-liga",
     "hungary-nb-i": f"{ODDSPORTAL_BASE_URL}/football/hungary/nb-i",
-    "cyprus-first-division": f"{ODDSPORTAL_BASE_URL}/football/cyprus/1st-division",
     "brazil-serie-a": f"{ODDSPORTAL_BASE_URL}/football/brazil/serie-a-betano",
+    "south-africa-premiership": f"{ODDSPORTAL_BASE_URL}/football/south-africa/betway-premiership",
+    "bulgaria-parva-liga": f"{ODDSPORTAL_BASE_URL}/football/bulgaria/efbet-league",
 }
 SPORTS_LEAGUES_URLS_MAPPING[Sport.TENNIS] = {
     "atp-tour": f"{ODDSPORTAL_BASE_URL}/tennis/atp-tour",
@@ -228,19 +229,6 @@ def test_get_league_url(sport, league, expected_url):
             "2024-2025",
             f"{ODDSPORTAL_BASE_URL}/football/hungary/nb-i-2024-2025/results/",
         ),
-        # Cyprus: cyta-championship for old seasons, 1st-division for new
-        (
-            "football",
-            "cyprus-first-division",
-            "2023-2024",
-            f"{ODDSPORTAL_BASE_URL}/football/cyprus/cyta-championship-2023-2024/results/",
-        ),
-        (
-            "football",
-            "cyprus-first-division",
-            "2024-2025",
-            f"{ODDSPORTAL_BASE_URL}/football/cyprus/1st-division-2024-2025/results/",
-        ),
         # Brazil: serie-a for old seasons, serie-a-betano for new (single year format)
         (
             "football",
@@ -259,6 +247,33 @@ def test_get_league_url(sport, league, expected_url):
             "brazil-serie-a",
             "2025",
             f"{ODDSPORTAL_BASE_URL}/football/brazil/serie-a-betano-2025/results/",
+        ),
+        # South Africa: premier-league for old seasons, betway-premiership for new
+        (
+            "football",
+            "south-africa-premiership",
+            "2023-2024",
+            f"{ODDSPORTAL_BASE_URL}/football/south-africa/premier-league-2023-2024/results/",
+        ),
+        (
+            "football",
+            "south-africa-premiership",
+            "2024-2025",
+            f"{ODDSPORTAL_BASE_URL}/football/south-africa/betway-premiership-2024-2025/results/",
+        ),
+        # Bulgaria: parva-liga for old seasons, efbet-league for new
+        (
+            "football",
+            "bulgaria-parva-liga",
+            "2024-2025",
+            f"{ODDSPORTAL_BASE_URL}/football/bulgaria/parva-liga-2024-2025/results/",
+        ),
+        # 2025-2026 is the current season (end_year == current_year), so no season suffix
+        (
+            "football",
+            "bulgaria-parva-liga",
+            "2025-2026",
+            f"{ODDSPORTAL_BASE_URL}/football/bulgaria/efbet-league/results/",
         ),
         # No alias - current season uses canonical URL
         (

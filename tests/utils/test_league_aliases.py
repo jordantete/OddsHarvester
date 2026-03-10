@@ -22,14 +22,19 @@ class TestGetLeagueSlugForSeason:
             # Hungary: otp-bank-liga until 2023-2024, then nb-i
             (Sport.FOOTBALL, "hungary-nb-i", "2023-2024", "otp-bank-liga"),
             (Sport.FOOTBALL, "hungary-nb-i", "2024-2025", None),
-            # Cyprus: cyta-championship until 2023-2024, then 1st-division
-            (Sport.FOOTBALL, "cyprus-first-division", "2023-2024", "cyta-championship"),
-            (Sport.FOOTBALL, "cyprus-first-division", "2024-2025", None),
             # Brazil: serie-a until 2023, then serie-a-betano
             (Sport.FOOTBALL, "brazil-serie-a", "2022", "serie-a"),
             (Sport.FOOTBALL, "brazil-serie-a", "2023", "serie-a"),
             (Sport.FOOTBALL, "brazil-serie-a", "2024", None),
             (Sport.FOOTBALL, "brazil-serie-a", "2025", None),
+            # South Africa: premier-league until 2023-2024, then betway-premiership
+            (Sport.FOOTBALL, "south-africa-premiership", "2022-2023", "premier-league"),
+            (Sport.FOOTBALL, "south-africa-premiership", "2023-2024", "premier-league"),
+            (Sport.FOOTBALL, "south-africa-premiership", "2024-2025", None),
+            # Bulgaria: parva-liga until 2024-2025, then efbet-league
+            (Sport.FOOTBALL, "bulgaria-parva-liga", "2023-2024", "parva-liga"),
+            (Sport.FOOTBALL, "bulgaria-parva-liga", "2024-2025", "parva-liga"),
+            (Sport.FOOTBALL, "bulgaria-parva-liga", "2025-2026", None),
             # Single year format
             (Sport.FOOTBALL, "czech-republic-chance-liga", "2023", "fortuna-liga"),
             (Sport.FOOTBALL, "czech-republic-chance-liga", "2024", None),
