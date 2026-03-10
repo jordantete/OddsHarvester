@@ -1,6 +1,6 @@
 [project]
 name = "oddsharvester"
-version = "0.1.0"
+version = "0.2.0"
 description = "A Python application to scrape and manage odds data from OddsPortal website."
 authors = [{ name = "Jordan TETE", email = "tetej171@gmail.com" }]
 readme = "README.md"
