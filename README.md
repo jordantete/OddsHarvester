@@ -18,10 +18,9 @@ OddsHarvester is an application designed to scrape and process sports betting od
    - [🐳 Running Inside a Docker Container](#-running-inside-a-docker-container)
    - [☁️ Cloud Deployment](#-cloud-deployment)
 4. [🤝 Contributing](#-contributing)
-5. [☕ Donations](#-donations)
-6. [📜 License](#-license)
-7. [💬 Feedback](#-feedback)
-8. [❗ Disclaimer](#-disclaimer)
+5. [📜 License](#-license)
+6. [💬 Feedback](#-feedback)
+7. [❗ Disclaimer](#-disclaimer)
 
 ## **✨ Features**
 
@@ -417,12 +416,6 @@ To tailor the serverless deployment for your needs:
 ## **🤝 Contributing**
 
 Contributions are welcome! If you have ideas, improvements, or bug fixes, feel free to submit an issue or a pull request. Please ensure that your contributions follow the project's coding standards and include clear descriptions for any changes.
-
-## **☕ Donations**
-
-If you find this project useful and would like to support its development, consider buying me a coffee! Your support helps keep this project maintained and improved.
-
-[![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/pownedj)
 
 ## **📜 License**
 

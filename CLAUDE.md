@@ -36,6 +36,10 @@ uv run pytest --cov=src/oddsharvester --cov-report=term --ignore=tests/integrati
 # Lint and format
 uv run ruff format .
 uv run ruff check --fix src/
+
+# Validate league URLs (diagnostic tool, requires internet)
+uv run python scripts/validate_league.py -s football -l brazil-serie-a --season 2024
+uv run python scripts/validate_league.py -s football --all
 ```
 
 ## Architecture
