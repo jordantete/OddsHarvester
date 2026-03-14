@@ -21,21 +21,73 @@ from .sport_market_constants import Sport
 # Seasons after max_year use the canonical (default) slug from SPORTS_LEAGUES_URLS_MAPPING
 LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
     Sport.FOOTBALL: {
-        # Czech Republic: fortuna-liga until 2023-2024, then chance-liga
+        # Czech Republic: synot-liga until 2015/2016 ,1-liga for 2016/2018, then fortuna-liga until 2023-2024, and chance-liga
         "czech-republic-chance-liga": {
             2023: "fortuna-liga",
+            2017: "1-liga",
+            2015: "synot-liga",
         },
-        # Slovakia: fortuna-liga until 2023-2024, then nike-liga
+        # Slovakia: fortuna-liga until 2022-2023, then nike-liga
         "slovakia-nike-liga": {
-            2023: "fortuna-liga",
+            2022: "fortuna-liga",
+        },
+        # Romania: liga-1 until 2023-2024, then superliga
+        "romania-superliga": {
+            2023: "liga-1",
+        },
+        # Norway: tippeligaen until 2016, then eliteserien
+        "norway-eliteserien": {
+            2016: "tippeligaen",
         },
         # Hungary: otp-bank-liga until 2023-2024, then nb-i
         "hungary-nb-i": {
             2023: "otp-bank-liga",
         },
-        # Cyprus: cyta-championship until 2023-2024, then 1st-division
-        "cyprus-first-division": {
-            2023: "cyta-championship",
+        # Chile: primera-division until 2024, then liga-de-primera from 2025
+        "chile-primera-division": {
+            2024: "primera-division",
+        },
+        # Brazil: serie-a until 2023, then serie-a-betano from 2024
+        "brazil-serie-a": {
+            2023: "serie-a",
+        },
+        # Brazil: serie-b until 2024, then serie-b-superbet from 2025
+        "brazil-serie-b": {
+            2024: "serie-b",
+        },
+        # Spain: primera-division until 2015, then laliga from 2016
+        "spain-laliga": {
+            2015: "primera-division",
+        },
+        # Spain2: segunda-division until 2015, then laliga2 from 2016
+        "spain-laliga2": {
+            2015: "segunda-division",
+        },
+        # Mexico: primera-division until 2018, then liga-mx from 2019
+        "mexico-liga-mx": {
+            2018: "primera-division",
+        },
+        # Europe: europa-conference-league until 2023, then conference-league from 2024
+        "conference-league": {
+            2023: "europa-conference-league",
+        },
+        # Portugal: primeira-liga until 2020, then liga-portugal from 2021
+        "liga-portugal": {
+            2020: "primeira-liga",
+        },
+        # Colombia: primera-liga until 2020, then liga-aguila up to 2019, then liga-postobon from 2014
+        "colombia-primera-a": {
+            2019: "liga-aguila",
+            2014: "liga-postobon",
+        },
+        # South Africa: premier-league until 2023-2024, then betway-premiership
+        "south-africa-premiership": {
+            2023: "premier-league",
+        },
+        # Bulgaria: parva-liga until 2024-2025, then efbet-league from 2025-2026
+        # (also a-pfg until 2015-2016, but parva-liga alias covers the more recent range)
+        "bulgaria-parva-liga": {
+            2024: "parva-liga",
         },
     },
 }
