@@ -41,7 +41,7 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "turkey-super-lig": "https://www.oddsportal.com/football/turkey/super-lig/",
         "world-cup": "https://www.oddsportal.com/football/world/world-cup",
         "croatia-hnl": "https://www.oddsportal.com/football/croatia/hnl/",
-        "czech-republic-chance-liga": "https://www.oddsportal.com/football/czech-republic/chnl/",
+        "czech-republic-chance-liga": "https://www.oddsportal.com/football/czech-republic/change-liga/",
         "slovakia-nike-liga": "https://www.oddsportal.com/football/slovakia/nike-liga/",
         "hungary-nb-i": "https://www.oddsportal.com/football/hungary/nb-i/",
         "serbia-super-liga": "https://www.oddsportal.com/football/serbia/mozzart-bet-super-liga/",
@@ -319,6 +319,7 @@ SPORTS_LEAGUES_URLS_MAPPING = {
     },
     Sport.ICE_HOCKEY: {
         "nhl": "https://www.oddsportal.com/hockey/usa/nhl/",
+        "ahl": "https://www.oddsportal.com/hockey/usa/ahl/",
         "khl": "https://www.oddsportal.com/hockey/russia/khl/",
         "shl": "https://www.oddsportal.com/hockey/sweden/shl/",
         "liiga": "https://www.oddsportal.com/hockey/finland/liiga/",

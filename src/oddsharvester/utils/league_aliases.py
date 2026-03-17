@@ -21,14 +21,13 @@ from .sport_market_constants import Sport
 # Seasons after max_year use the canonical (default) slug from SPORTS_LEAGUES_URLS_MAPPING
 LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
     Sport.FOOTBALL: {
-        # Czech Republic: division-2 until 2016/2017, then fnl until 2023-2024, and now chnl
+        # Czech Republic: fortuna-liga until 2016-2017, then change-liga
         "czech-republic-chance-liga": {
-            2023: "fnl",
-            2016: "division-2",
+            2023: "fortuna-liga",
         },
-        # Slovakia: fortuna-liga until 2022-2023, then nike-liga
+        # Slovakia: fortuna-liga until 2023-2024, then nike-liga
         "slovakia-nike-liga": {
-            2022: "fortuna-liga",
+            2023: "fortuna-liga",
         },
         # Romania: liga-1 until 2023-2024, then superliga
         "romania-superliga": {
@@ -46,7 +45,7 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         "hungary-nb-i": {
             2023: "otp-bank-liga",
         },
-        # Chile: primera-division until 2024, then liga-de-primera from 2025
+        # Chile: primera-division until 2024, then liga-de-primera
         "chile-primera-division": {
             2024: "primera-division",
         },
@@ -58,38 +57,37 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         "brazil-serie-b": {
             2024: "serie-b",
         },
-        # Spain: primera-division until 2015, then laliga from 2016
+        # Spain: primera-division until 2015-2016, then laliga
         "spain-laliga": {
             2015: "primera-division",
         },
-        # Spain2: segunda-division until 2015, then laliga2 from 2016
+        # Spain2: segunda-division until 2015-2016, then laliga2
         "spain-laliga2": {
             2015: "segunda-division",
         },
-        # England: capital-one-cup until 2015, then efl-cup from 2016
+        # England: capital-one-cup until 2015-2016, then efl-cup
         "england-efl-cup": {
             2015: "capital-one-cup",
         },
-        # Mexico: primera-division until 2018, then liga-mx from 2019
+        # Mexico: primera-division until 2018-2019, then liga-mx
         "mexico-liga-mx": {
             2018: "primera-division",
         },
-        # Europe: europa-conference-league until 2023, then conference-league from 2024
+        # Europe: europa-conference-league until 2023-2024, then conference-league
         "conference-league": {
             2023: "europa-conference-league",
         },
-        # Portugal: primeira-liga until 2020, then liga-portugal from 2021
+        # Portugal: primeira-liga until 2020-2021, then liga-portugal
         "liga-portugal": {
             2020: "primeira-liga",
         },
-        # Ukraine: pari-match-league until 2015, then premier-league from 2024
+        # Ukraine: pari-match-league until 2015-2016, then premier-league
         "ukraine-premier-league": {
             2016: "pari-match-league",
         },
-        # Colombia: primera-liga until 2020, then liga-aguila up to 2019, then liga-postobon from 2014
+        # Colombia: liga-aguila until 2019, then primera-a
         "colombia-primera-a": {
             2019: "liga-aguila",
-            2014: "liga-postobon",
         },
         # South Africa: premier-league until 2023-2024, then betway-premiership
         "south-africa-premiership": {
@@ -99,8 +97,13 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         # (also a-pfg until 2015-2016, but parva-liga alias covers the more recent range)
         "bulgaria-parva-liga": {
             2024: "parva-liga",
-            2015: "a-pfg",
         },
+    },
+    Sport.RUGBY_UNION: {
+        # England: aviva-premiership-rugby until 2017-2018, then premiership-rugby
+        "england-premiership": {
+            2017: "aviva-premiership-rugby",
+        }
     },
 }
 
