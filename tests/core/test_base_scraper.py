@@ -331,7 +331,16 @@ async def test_extract_match_details_event_header(json_mock, bs4_mock, setup_bas
         '"venueCountry": "England"}, "eventData": {"home": "Arsenal", "away": "Chelsea", '
         '"tournamentName": "Premier League"}}'
     )
-    soup_mock.find.return_value = event_header_div
+
+    # Mock game time div
+    game_time_div_mock = MagicMock()
+    paragraphs = [MagicMock(), MagicMock(), MagicMock()]
+    paragraphs[1].text.strip.return_value.rstrip.return_value = "17 Apr 2023"
+    paragraphs[2].text.strip.return_value = "17:40"
+    game_time_div_mock.find_all.return_value = paragraphs
+
+    # Finds both div
+    soup_mock.find.side_effect = [event_header_div, game_time_div_mock]
 
     # Mock JSON parsing
     parsed_data = {
@@ -356,7 +365,8 @@ async def test_extract_match_details_event_header(json_mock, bs4_mock, setup_bas
     # Verify interactions
     page_mock.content.assert_called_once()
     bs4_mock.assert_called_once_with(page_mock.content.return_value, "html.parser")
-    soup_mock.find.assert_called_once_with("div", id="react-event-header")
+    soup_mock.find.assert_any_call("div", id="react-event-header")
+    soup_mock.find.assert_any_call("div", attrs={"data-testid": "game-time-item"})
     json_mock.loads.assert_called_once()
 
     # Verify the result has expected fields

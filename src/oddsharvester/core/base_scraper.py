@@ -6,9 +6,11 @@ import logging
 import random
 import re
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError
+import tzlocal
 
 from oddsharvester.core.browser_helper import BrowserHelper
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
@@ -388,6 +390,7 @@ class BaseScraper:
             html_content = await page.content()
             soup = BeautifulSoup(html_content, "html.parser")
             event_header_div = soup.find("div", id="react-event-header")
+            game_time_div = soup.find("div", attrs={"data-testid": "game-time-item"})
 
             if not event_header_div:
                 self.logger.warning("React event header div not found in page content")
@@ -407,13 +410,25 @@ class BaseScraper:
 
             event_body = json_data.get("eventBody", {})
             event_data = json_data.get("eventData", {})
-            unix_timestamp = event_body.get("startDate")
 
-            match_date = (
-                datetime.fromtimestamp(unix_timestamp, tz=UTC).strftime("%Y-%m-%d %H:%M:%S %Z")
-                if unix_timestamp
-                else None
-            )
+            if game_time_div:
+                date_paragraphs = game_time_div.find_all("p")
+
+                date_str = f"{date_paragraphs[1].text.strip().rstrip(',')} {date_paragraphs[2].text.strip()}"
+                match_date_local = datetime.strptime(date_str, "%d %b %Y %H:%M").replace(tzinfo=tzlocal.get_localzone())
+
+                # Modify date from local timezone to UTC
+                match_date = match_date_local.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%d %H:%M:%S %Z")
+            else:
+                self.logger.warning("Game time div not found in page content")
+
+                unix_timestamp = event_body.get("startDate")
+
+                match_date = (
+                    datetime.fromtimestamp(unix_timestamp, tz=UTC).strftime("%Y-%m-%d %H:%M:%S %Z")
+                    if unix_timestamp
+                    else None
+                )
 
             return {
                 "scraped_date": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S %Z"),

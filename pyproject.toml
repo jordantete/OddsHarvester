@@ -34,7 +34,8 @@ dependencies = [
     "click>=8.1.0",
     "lxml>=6.0.2",
     "playwright>=1.57.0",
-    "pytz>=2025.2"
+    "pytz>=2025.2",
+    "tzlocal>=5.0"
 ]
 
 [project.optional-dependencies]
@@ -116,6 +117,11 @@ force-sort-within-sections = true
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.1",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
