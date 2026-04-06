@@ -319,36 +319,62 @@ async def test_extract_match_details_event_header(json_mock, bs4_mock, setup_bas
     scraper = mocks["scraper"]
     page_mock = mocks["page_mock"]
 
-    # Mock BeautifulSoup and its find method
     soup_mock = MagicMock()
     bs4_mock.return_value = soup_mock
 
-    # Mock the div with event header data
+    # Mock event header div — now uses .get("data") not __getitem__
     event_header_div = MagicMock()
-    event_header_div.__getitem__.return_value = (
-        '{"eventBody": {"startDate": 1681753200, "homeResult": 2, "awayResult": 1, '
-        '"partialresult": "1-0", "venue": "Emirates Stadium", "venueTown": "London", '
-        '"venueCountry": "England"}, "eventData": {"home": "Arsenal", "away": "Chelsea", '
-        '"tournamentName": "Premier League"}}'
-    )
+    event_header_div.get.return_value = '{"eventBody": {...}, "eventData": {...}}'
 
-    # Mock game time div
+    # Mock game_time_div with date paragraphs
     game_time_div_mock = MagicMock()
     paragraphs = [MagicMock(), MagicMock(), MagicMock()]
     paragraphs[1].text.strip.return_value.rstrip.return_value = "17 Apr 2023"
     paragraphs[2].text.strip.return_value = "17:40"
     game_time_div_mock.find_all.return_value = paragraphs
 
-    # Finds both div
-    soup_mock.find.side_effect = [event_header_div, game_time_div_mock]
+    # Mock result_div — accessed via sibling traversal from game_time_div
+    result_inner_div = MagicMock()
+    result_inner_div.text = "Final\xa0result\xa02:1\xa0(1:0,\xa01:1)"
 
-    # Mock JSON parsing
+    result_container = MagicMock()
+    result_container.find.return_value = result_inner_div
+
+    sibling2 = MagicMock()
+    sibling2.find.return_value = result_inner_div
+
+    sibling1 = MagicMock()
+    sibling1.find_next_sibling.return_value = sibling2
+
+    game_time_div_mock.find_next_sibling.return_value = sibling1
+
+    # Mock breadcrumb navigation for league_name
+    league_link_mock = MagicMock()
+    league_link_mock.text.strip.return_value = "Premier League 2022/2023"
+    breadcrumbs_mock = MagicMock()
+    breadcrumbs_mock.find.return_value = league_link_mock
+
+    # Mock home/away team divs
+    home_team_div = MagicMock()
+    home_team_div.find.return_value.text.strip.return_value = "Arsenal"
+    away_team_div = MagicMock()
+    away_team_div.find.return_value.text.strip.return_value = "Chelsea"
+
+    # Find each div
+    soup_mock.find.side_effect = [
+        event_header_div,
+        game_time_div_mock,
+        breadcrumbs_mock,
+        home_team_div,
+        away_team_div,
+    ]
+
     parsed_data = {
         "eventBody": {
             "startDate": 1681753200,
             "homeResult": 2,
             "awayResult": 1,
-            "partialresult": "1-0",
+            "partialresult": "(1:0, 1:1)",
             "venue": "Emirates Stadium",
             "venueTown": "London",
             "venueCountry": "England",
@@ -357,32 +383,28 @@ async def test_extract_match_details_event_header(json_mock, bs4_mock, setup_bas
     }
     json_mock.loads.return_value = parsed_data
 
-    # Call the method under test
     result = await scraper._extract_match_details_event_header(
         page=page_mock, match_link="https://www.oddsportal.com/football/england/arsenal-chelsea-123456"
     )
 
-    # Verify interactions
     page_mock.content.assert_called_once()
     bs4_mock.assert_called_once_with(page_mock.content.return_value, "html.parser")
     soup_mock.find.assert_any_call("div", id="react-event-header")
     soup_mock.find.assert_any_call("div", attrs={"data-testid": "game-time-item"})
     json_mock.loads.assert_called_once()
 
-    # Verify the result has expected fields
     assert result["match_link"] == "https://www.oddsportal.com/football/england/arsenal-chelsea-123456"
     assert result["home_team"] == "Arsenal"
     assert result["away_team"] == "Chelsea"
+    assert result["home_score"] == "2"
+    assert result["away_score"] == "1"
+    assert result["partial_results"] == "(1:0, 1:1)"
     assert result["league_name"] == "Premier League"
-    assert result["home_score"] == 2
-    assert result["away_score"] == 1
-    assert result["partial_results"] == "1-0"
     assert result["venue"] == "Emirates Stadium"
     assert result["venue_town"] == "London"
     assert result["venue_country"] == "England"
     assert "match_date" in result
     assert "scraped_date" in result
-
 
 @pytest.mark.asyncio
 @patch("oddsharvester.core.base_scraper.BeautifulSoup")
@@ -422,7 +444,7 @@ async def test_extract_match_details_invalid_json(json_mock, bs4_mock, setup_bas
     # Mock the div with invalid data
     event_header_div = MagicMock()
     event_header_div.__getitem__.return_value = "invalid JSON"
-    soup_mock.find.return_value = event_header_div
+    soup_mock.find.return_value = [event_header_div, None] # header div, then game_time_div
 
     # Mock JSON parsing error
     json_mock.loads.side_effect = json.JSONDecodeError("Invalid JSON", "invalid JSON", 0)

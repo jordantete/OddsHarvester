@@ -413,12 +413,15 @@ class BaseScraper:
 
             if game_time_div:
                 date_paragraphs = game_time_div.find_all("p")
-
                 date_str = f"{date_paragraphs[1].text.strip().rstrip(',')} {date_paragraphs[2].text.strip()}"
                 match_date_local = datetime.strptime(date_str, "%d %b %Y %H:%M").replace(tzinfo=tzlocal.get_localzone())
 
                 # Modify date from local timezone to UTC
                 match_date = match_date_local.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%d %H:%M:%S %Z")
+
+                # Get the result div, dependent on game_time_div
+                # Game time div and result div is in the same parent container, result_div does not have an id and it's classes are ambiguous
+                result_div = game_time_div.find_next_sibling("div").find_next_sibling("div").find("div", class_="flex flex-wrap")
             else:
                 self.logger.warning("Game time div not found in page content")
 
@@ -430,16 +433,48 @@ class BaseScraper:
                     else None
                 )
 
+            # Get league name from breadcrumb navigation
+            breadcrumbs = soup.find("div", attrs={"data-testid": "breadcrumbs-line"})
+            league_link = breadcrumbs.find("a", attrs={"data-testid": "3"}) if breadcrumbs else None
+
+            # Fallback on event data
+            league_name_raw = league_link.text.strip() if league_link else event_data.get("tournamentName")
+
+            # Remove season tag from league name if exists (Premier League 2022/2023 --> Premier League)
+            league_name = league_name_raw[:-10] if re.search("\d\d\d\d/\d\d\d\d$", league_name_raw) else league_name_raw
+
+            # Parse the new way of getting results and fallback on the old
+            result_parts = result_div.text.strip().split("\xa0") if result_div else None
+
+            home_result = result_parts[2].split(":")[0] if result_parts else event_body.get("homeResult")
+            away_result = result_parts[2].split(":")[1] if result_parts else event_body.get("awayResult")
+            partial_results = (
+                "({} {})".format(
+                    result_parts[3].split("(")[1],
+                    result_parts[4].split(")")[0]
+                )
+                if result_parts
+                else clean_html_text(event_body.get("partialresult"))
+            )
+
+            # Home and away team divs with their name, score and image
+            home_team_div = soup.find("div", attrs={"data-testid": "game-host"})
+            away_team_div = soup.find("div", attrs={"data-testid": "game-guest"})
+
+            home_team = home_team_div.find("p").text.strip() if home_team_div else event_data.get("home")
+            away_team = away_team_div.find("p").text.strip() if away_team_div else event_data.get("away")
+            
+
             return {
                 "scraped_date": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S %Z"),
                 "match_date": match_date,
                 "match_link": match_link,
-                "home_team": event_data.get("home"),
-                "away_team": event_data.get("away"),
-                "league_name": event_data.get("tournamentName"),
-                "home_score": event_body.get("homeResult"),
-                "away_score": event_body.get("awayResult"),
-                "partial_results": clean_html_text(event_body.get("partialresult")),
+                "home_team": home_team,
+                "away_team": away_team,
+                "league_name": league_name,
+                "home_score": home_result,
+                "away_score": away_result,
+                "partial_results": partial_results,
                 "venue": event_body.get("venue").encode("ascii", "ignore").decode("ascii")
                 if event_body.get("venue")
                 else None,
