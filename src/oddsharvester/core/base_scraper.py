@@ -131,6 +131,22 @@ def _parse_date_header(header_text: str, tz_name: str | None = None) -> date | N
     return None
 
 
+_OFFSCREEN_STYLE_MARKERS = (
+    "left:-9999px",
+    "top:-9999px",
+    "display:none",
+    "visibility:hidden",
+)
+
+
+def _is_offscreen_row(row) -> bool:
+    """OddsPortal sometimes ships duplicate event rows in the DOM: a real
+    visible one and a CSS-hidden twin whose href points to a corrupted slug
+    that 301-redirects to an unrelated match. Skip the hidden twin."""
+    style = (row.get("style") or "").lower().replace(" ", "")
+    return any(marker in style for marker in _OFFSCREEN_STYLE_MARKERS)
+
+
 class BaseScraper:
     """
     Base class for scraping match data from OddsPortal.
@@ -241,8 +257,13 @@ class BaseScraper:
             current_row_date: date | None = None
             filtered_out_count = 0
             unparseable_header_count = 0
+            offscreen_skipped_count = 0
 
             for row in event_rows:
+                if _is_offscreen_row(row):
+                    offscreen_skipped_count += 1
+                    continue
+
                 if date_filter is not None:
                     header_el = row.find(attrs={"data-testid": "date-header"})
                     if header_el is not None:
@@ -272,10 +293,14 @@ class BaseScraper:
                 self.logger.info(
                     f"Extracted {len(match_links)} unique match links after date filtering "
                     f"(filter={date_filter.isoformat()}, filtered out {filtered_out_count} rows, "
-                    f"{unparseable_header_count} unparseable headers)."
+                    f"{unparseable_header_count} unparseable headers, "
+                    f"{offscreen_skipped_count} offscreen rows skipped)."
                 )
             else:
-                self.logger.info(f"Extracted {len(match_links)} unique match links.")
+                self.logger.info(
+                    f"Extracted {len(match_links)} unique match links "
+                    f"({offscreen_skipped_count} offscreen rows skipped)."
+                )
 
             return match_links
 
