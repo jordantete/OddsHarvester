@@ -6,6 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 OddsHarvester is a Python web scraper that extracts sports betting odds from oddsportal.com. It uses Playwright for browser automation and BeautifulSoup/lxml for HTML parsing. Supports multiple sports (football, tennis, basketball, rugby, ice hockey, baseball, American football), various betting markets, and stores output locally (JSON/CSV) or remotely (AWS S3).
 
+## Before You Code — Read This
+
+**`docs/agentic-gotchas.md`** documents recurring OddsPortal-specific traps that are not deducible from the code alone — stale/phantom SSR data, silent truncation by client-side rendering (pagination ellipsis, lazy-load, URL conventions), per-bookmaker data format variation, league sponsor renames, CLI normalization layering, and anti-bot detection symptoms. Read it before:
+
+- Adding or modifying any DOM/JSON parsing in `base_scraper.py` or `market_extraction/`
+- Iterating over rendered DOM collections (pagination, listings, scroll, market dropdowns)
+- Parsing or extracting bookmaker odds, names, or any per-row attribute
+- Adding a new league or modifying `sport_league_constants.py` / `league_aliases.py`
+- Adding a CLI option or modifying option-validation logic in `cli/commands/`
+- Changing Playwright browser args, stealth scripts, or anti-detection config in `playwright_manager.py`
+- Triaging a "0 results returned" symptom before assuming it's a parsing bug
+
+When a fix exposes a new OddsPortal behaviour worth remembering, append it to `docs/agentic-gotchas.md` (criteria are listed at the bottom of that file).
+
 ## Commands
 
 **Package manager**: uv
