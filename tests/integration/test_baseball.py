@@ -13,9 +13,7 @@ ROYALS_MARINERS = {
     "sport": "baseball",
     "league": "mlb",
     "match_id": "kansas-city-royals-IL2QbgJ4-seattle-mariners-txYPhSac",
-    "url": (
-        "https://www.oddsportal.com/baseball/h2h/" "kansas-city-royals-IL2QbgJ4/seattle-mariners-txYPhSac/#WbDmMwm1"
-    ),
+    "url": ("https://www.oddsportal.com/baseball/h2h/kansas-city-royals-IL2QbgJ4/seattle-mariners-txYPhSac/#WbDmMwm1"),
 }
 
 
@@ -73,9 +71,9 @@ class TestBaseballH2HFragment:
 
         # Hard guard against the issue regressing: the buggy upcoming-match date
         # must never appear, regardless of fixture freshness.
-        assert "2026-05-22 23:40:00" not in (
-            actual[0].get("match_date") or ""
-        ), f"Issue #60 regressed: match_date is the upcoming-match date: {actual[0]['match_date']}"
+        assert "2026-05-22 23:40:00" not in (actual[0].get("match_date") or ""), (
+            f"Issue #60 regressed: match_date is the upcoming-match date: {actual[0]['match_date']}"
+        )
 
         result = compare_match_data(actual[0], expected[0])
         assert result.passed, str(result)
