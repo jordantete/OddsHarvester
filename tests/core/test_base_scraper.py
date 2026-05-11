@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+import json as _json
 from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
 
@@ -1143,3 +1144,83 @@ def test_extract_fragment_match_id_returns_none_when_fragment_has_slash():
 def test_extract_fragment_match_id_strips_whitespace():
     # Some scrapers can produce trailing whitespace from raw href
     assert _extract_fragment_match_id("https://www.oddsportal.com/x/#abc   ") == "abc"
+
+
+def _make_react_event_header_html(event_id: str, start_date: int = 1681753200) -> str:
+    payload = {
+        "eventBody": {"startDate": start_date},
+        "eventData": {
+            "id": event_id,
+            "home": "Royals",
+            "away": "Mariners",
+            "tournamentName": "MLB",
+        },
+    }
+    return f"<html><body><div id=\"react-event-header\" data='{_json.dumps(payload)}'>" f"</div></body></html>"
+
+
+@pytest.mark.asyncio
+async def test_resolve_h2h_fragment_mismatch_success_returns_updated_payload(setup_base_scraper_mocks):
+    """When wait_for_function succeeds, re-parsed soup + json reflect the requested match id."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    page_mock.evaluate = AsyncMock()
+    page_mock.wait_for_function = AsyncMock()
+    page_mock.content = AsyncMock(return_value=_make_react_event_header_html("WbDmMwm1"))
+
+    result = await scraper._resolve_h2h_fragment_mismatch(
+        page=page_mock,
+        fragment="WbDmMwm1",
+    )
+
+    assert result is not None
+    _soup, json_data = result
+    assert json_data["eventData"]["id"] == "WbDmMwm1"
+    page_mock.evaluate.assert_awaited_once()
+    page_mock.wait_for_function.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_resolve_h2h_fragment_mismatch_timeout_returns_none(setup_base_scraper_mocks, caplog):
+    """When wait_for_function times out, the resolver returns None and logs ERROR."""
+    import logging
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    page_mock.evaluate = AsyncMock()
+    page_mock.wait_for_function = AsyncMock(side_effect=TimeoutError("timeout"))
+
+    with caplog.at_level(logging.ERROR):
+        result = await scraper._resolve_h2h_fragment_mismatch(
+            page=page_mock,
+            fragment="WbDmMwm1",
+        )
+
+    assert result is None
+    assert any("H2H fragment resolution failed" in rec.message for rec in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_resolve_h2h_fragment_mismatch_passes_fragment_to_evaluate(setup_base_scraper_mocks):
+    """The hashchange trigger must receive the fragment as the JS argument, not interpolated."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    page_mock.evaluate = AsyncMock()
+    page_mock.wait_for_function = AsyncMock()
+    page_mock.content = AsyncMock(return_value=_make_react_event_header_html("abc"))
+
+    await scraper._resolve_h2h_fragment_mismatch(page=page_mock, fragment="abc")
+
+    args, kwargs = page_mock.evaluate.await_args
+    # The fragment is the second positional arg to page.evaluate(expression, arg)
+    # Accept either positional or keyword form, but the value must equal "abc"
+    if len(args) >= 2:
+        assert args[1] == "abc"
+    else:
+        assert kwargs.get("arg") == "abc"

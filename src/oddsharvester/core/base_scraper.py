@@ -26,6 +26,7 @@ from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import (
     DEFAULT_REQUEST_DELAY_S,
     DYNAMIC_CONTENT_WAIT_MS,
+    H2H_FRAGMENT_RESOLVE_TIMEOUT_MS,
     MATCH_RETRY_BASE_DELAY,
     MATCH_RETRY_MAX_ATTEMPTS,
     MATCH_RETRY_MAX_DELAY,
@@ -675,6 +676,76 @@ class BaseScraper:
         except Exception as e:
             self.logger.warning(f"DOM parse failed for results: {e}")
             return None, None, None
+
+    async def _resolve_h2h_fragment_mismatch(
+        self,
+        page: Page,
+        fragment: str,
+    ) -> tuple[BeautifulSoup, dict[str, Any]] | None:
+        """
+        Force the OddsPortal React SPA to swap to the fragment-targeted match
+        and re-read the page payload.
+
+        OddsPortal `/<sport>/h2h/<home>/<away>/#<id>` URLs are H2H aggregates:
+        the SSR HTML always contains data for the next upcoming match between
+        the two teams, regardless of the requested fragment. The JS SPA reads
+        `location.hash` and refetches the correct match data. Under Playwright
+        the swap is unreliable, so we explicitly clear and re-dispatch the hash
+        to nudge it, then wait until `react-event-header`'s `eventData.id`
+        matches the requested fragment.
+
+        Returns the updated (soup, json_data) on success, or None if the wait
+        times out (the page would not show the requested match).
+        """
+        trigger_js = """
+        (desired) => {
+            if (window.location.hash !== '#' + desired) {
+                window.location.hash = '';
+                window.location.hash = '#' + desired;
+            }
+            window.dispatchEvent(new HashChangeEvent('hashchange', { newURL: window.location.href }));
+        }
+        """
+        predicate_js = """
+        (desired) => {
+            const el = document.getElementById('react-event-header');
+            if (!el) return false;
+            try {
+                const data = JSON.parse(el.getAttribute('data'));
+                return !!(data && data.eventData && data.eventData.id === desired);
+            } catch (e) { return false; }
+        }
+        """
+        try:
+            await page.evaluate(trigger_js, fragment)
+            await page.wait_for_function(
+                predicate_js,
+                arg=fragment,
+                timeout=H2H_FRAGMENT_RESOLVE_TIMEOUT_MS,
+            )
+        except TimeoutError:
+            self.logger.error(
+                f"H2H fragment resolution failed after retry: requested={fragment}; "
+                f"page never updated eventData.id to match the fragment"
+            )
+            return None
+        except Exception as e:
+            self.logger.error(f"H2H fragment resolution raised unexpected error for fragment={fragment}: {e}")
+            return None
+
+        html_content = await page.content()
+        soup = BeautifulSoup(html_content, "html.parser")
+        header_div = soup.find("div", id="react-event-header")
+        if not header_div:
+            return None
+        data_attribute = header_div.get("data")
+        if not data_attribute:
+            return None
+        try:
+            json_data = json.loads(data_attribute)
+        except (TypeError, json.JSONDecodeError):
+            return None
+        return soup, json_data
 
     async def _extract_match_details_event_header(self, page: Page, match_link: str) -> dict[str, Any] | None:
         """
