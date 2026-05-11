@@ -1224,3 +1224,73 @@ async def test_resolve_h2h_fragment_mismatch_passes_fragment_to_evaluate(setup_b
         assert args[1] == "abc"
     else:
         assert kwargs.get("arg") == "abc"
+
+
+@pytest.mark.asyncio
+async def test_extract_match_details_h2h_fragment_match_skips_resync(setup_base_scraper_mocks):
+    """When URL fragment equals eventData.id, no resync attempt is made."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    page_mock.content = AsyncMock(return_value=_make_react_event_header_html("WbDmMwm1"))
+    page_mock.evaluate = AsyncMock()
+    page_mock.wait_for_function = AsyncMock()
+
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/baseball/h2h/a/b/#WbDmMwm1",
+    )
+
+    assert result is not None
+    page_mock.evaluate.assert_not_awaited()
+    page_mock.wait_for_function.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_extract_match_details_h2h_fragment_mismatch_resolved(setup_base_scraper_mocks):
+    """Initial SSR has wrong id; after resync, the corrected payload is used."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    # First content() call returns the wrong-match SSR (eventData.id = "WRONG_4t78m9X0",
+    # startDate = 2026-05-22 23:40 UTC). After resync, the second call returns the
+    # correct match (eventData.id = "WbDmMwm1", startDate = 2025-04-15 17:00 UTC).
+    wrong_html = _make_react_event_header_html("WRONG_4t78m9X0", start_date=1779493200)
+    correct_html = _make_react_event_header_html("WbDmMwm1", start_date=1744736400)
+    page_mock.content = AsyncMock(side_effect=[wrong_html, correct_html])
+    page_mock.evaluate = AsyncMock()
+    page_mock.wait_for_function = AsyncMock()
+
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/baseball/h2h/a/b/#WbDmMwm1",
+    )
+
+    assert result is not None
+    # The wrong upcoming-match date must not leak through
+    assert "2026-05-22" not in (result["match_date"] or "")
+    # The corrected match's date should be present
+    assert "2025-04-15" in (result["match_date"] or "")
+    page_mock.evaluate.assert_awaited_once()
+    page_mock.wait_for_function.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_extract_match_details_h2h_fragment_resync_timeout_returns_none(setup_base_scraper_mocks):
+    """When resync times out, the method returns None instead of emitting wrong data."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    page_mock.content = AsyncMock(return_value=_make_react_event_header_html("WRONG_4t78m9X0"))
+    page_mock.evaluate = AsyncMock()
+    page_mock.wait_for_function = AsyncMock(side_effect=TimeoutError("timeout"))
+
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/baseball/h2h/a/b/#WbDmMwm1",
+    )
+
+    assert result is None

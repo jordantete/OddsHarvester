@@ -788,6 +788,25 @@ class BaseScraper:
             event_body = json_data.get("eventBody", {})
             event_data = json_data.get("eventData", {})
 
+            # Detect H2H fragment vs eventData.id mismatch. OddsPortal's SSR for
+            # /<sport>/h2h/<home>/<away>/#<id> always contains data for the next
+            # upcoming match between the two teams, not the fragment-targeted one.
+            # If we detect a mismatch, force the SPA to resync via hashchange; if
+            # that fails, drop the match rather than emit a wrong match_date.
+            fragment = _extract_fragment_match_id(match_link)
+            event_id = event_data.get("id")
+            if fragment and event_id and fragment != event_id:
+                self.logger.warning(
+                    f"H2H fragment mismatch detected: requested={fragment} "
+                    f"page={event_id} url={match_link}; attempting hash-resync"
+                )
+                resolved = await self._resolve_h2h_fragment_mismatch(page=page, fragment=fragment)
+                if resolved is None:
+                    return None
+                soup, json_data = resolved
+                event_body = json_data.get("eventBody", {})
+                event_data = json_data.get("eventData", {})
+
             json_match_date = (
                 datetime.fromtimestamp(event_body["startDate"], tz=UTC).strftime("%Y-%m-%d %H:%M:%S %Z")
                 if event_body.get("startDate")
