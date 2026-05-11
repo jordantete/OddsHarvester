@@ -158,6 +158,7 @@ async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
         markets=["1x2"],
         scrape_odds_history=True,
         target_bookmaker="bet365",
+        concurrent_scraping_task=ANY,
         preview_submarkets_only=False,
         bookies_filter=ANY,
         period=ANY,
@@ -223,6 +224,7 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
         markets=["1x2", "over_under"],
         scrape_odds_history=False,
         target_bookmaker=None,
+        concurrent_scraping_task=ANY,
         preview_submarkets_only=False,
         bookies_filter=ANY,
         period=ANY,
@@ -273,7 +275,7 @@ async def test_scrape_matches(setup_scraper_mocks):
         markets=["1x2"],
         scrape_odds_history=True,
         target_bookmaker="bwin",
-        concurrent_scraping_task=2,
+        concurrent_scraping_task=3,
         preview_submarkets_only=False,
         bookies_filter=ANY,
         period=ANY,
@@ -284,6 +286,43 @@ async def test_scrape_matches(setup_scraper_mocks):
     assert isinstance(result, ScrapeResult)
     assert len(result.success) == 2
     assert result.stats.successful == 2
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_upcoming_forwards_concurrent_scraping_task(url_builder_mock, setup_scraper_mocks):
+    """scrape_upcoming must forward concurrent_scraping_task to extract_match_odds (issue #64)."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/football/matches/20260601"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.extract_match_links = AsyncMock(return_value=["https://oddsportal.com/m1"])
+    scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
+
+    await scraper.scrape_upcoming(sport="football", date="20260601", concurrent_scraping_task=10)
+
+    assert scraper.extract_match_odds.call_args.kwargs.get("concurrent_scraping_task") == 10
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_historic_forwards_concurrent_scraping_task(url_builder_mock, setup_scraper_mocks):
+    """scrape_historic must forward concurrent_scraping_task to extract_match_odds (issue #64)."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    url_builder_mock.get_historic_matches_url.return_value = "https://oddsportal.com/football/england/premier-league"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._get_pagination_info = AsyncMock(return_value=[1])
+    scraper._collect_match_links = AsyncMock(
+        return_value=LinkCollectionResult(links=["https://oddsportal.com/m1"], successful_pages=1, failed_pages=[])
+    )
+    scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
+
+    await scraper.scrape_historic(sport="football", league="premier-league", season="2024", concurrent_scraping_task=7)
+
+    assert scraper.extract_match_odds.call_args.kwargs.get("concurrent_scraping_task") == 7
 
 
 @pytest.mark.asyncio

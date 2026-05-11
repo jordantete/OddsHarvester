@@ -77,6 +77,7 @@ class OddsPortalScraper(BaseScraper):
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
         request_delay: float = DEFAULT_REQUEST_DELAY_S,
+        concurrent_scraping_task: int = 3,
     ) -> ScrapeResult:
         """
         Scrapes historical odds data.
@@ -128,6 +129,7 @@ class OddsPortalScraper(BaseScraper):
             markets=markets,
             scrape_odds_history=scrape_odds_history,
             target_bookmaker=target_bookmaker,
+            concurrent_scraping_task=concurrent_scraping_task,
             preview_submarkets_only=self.preview_submarkets_only,
             bookies_filter=bookies_filter,
             period=period,
@@ -145,6 +147,7 @@ class OddsPortalScraper(BaseScraper):
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
         request_delay: float = DEFAULT_REQUEST_DELAY_S,
+        concurrent_scraping_task: int = 3,
     ) -> ScrapeResult:
         """
         Scrapes upcoming match odds.
@@ -202,6 +205,7 @@ class OddsPortalScraper(BaseScraper):
             markets=markets,
             scrape_odds_history=scrape_odds_history,
             target_bookmaker=target_bookmaker,
+            concurrent_scraping_task=concurrent_scraping_task,
             preview_submarkets_only=self.preview_submarkets_only,
             bookies_filter=bookies_filter,
             period=period,
@@ -218,6 +222,7 @@ class OddsPortalScraper(BaseScraper):
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
         request_delay: float = DEFAULT_REQUEST_DELAY_S,
+        concurrent_scraping_task: int = 3,
     ) -> ScrapeResult:
         """
         Scrapes match odds from a list of specific match URLs.
@@ -244,7 +249,7 @@ class OddsPortalScraper(BaseScraper):
             markets=markets,
             scrape_odds_history=scrape_odds_history,
             target_bookmaker=target_bookmaker,
-            concurrent_scraping_task=len(match_links),
+            concurrent_scraping_task=concurrent_scraping_task,
             preview_submarkets_only=self.preview_submarkets_only,
             bookies_filter=bookies_filter,
             period=period,

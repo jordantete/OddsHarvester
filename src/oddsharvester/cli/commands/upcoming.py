@@ -59,6 +59,7 @@ def upcoming(ctx, **kwargs):
                 bookies_filter=bookies_filter.value if bookies_filter else "all",
                 period=kwargs.get("period"),
                 request_delay=kwargs.get("request_delay", 1.0),
+                concurrency_tasks=kwargs.get("concurrency_tasks", 3),
             )
         )
 

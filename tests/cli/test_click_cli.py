@@ -174,6 +174,20 @@ class TestCommonOptions:
         assert result.exit_code != 0
         assert "positive integer" in result.output.lower()
 
+    def test_upcoming_concurrency_flag_forwarded_to_run_scraper(self, runner, mock_run_scraper):
+        """`--concurrency N` on `upcoming` must reach run_scraper as concurrency_tasks=N (issue #64)."""
+        runner.invoke(cli, ["upcoming", "-s", "football", "-d", FUTURE_DATE, "-c", "10"])
+        assert mock_run_scraper["upcoming"].called
+        assert mock_run_scraper["upcoming"].call_args.kwargs.get("concurrency_tasks") == 10
+
+    def test_historic_concurrency_flag_forwarded_to_run_scraper(self, runner, mock_run_scraper):
+        """`--concurrency N` on `historic` must reach run_scraper as concurrency_tasks=N (issue #64)."""
+        runner.invoke(
+            cli, ["historic", "-s", "football", "-l", "england-premier-league", "--season", "2024", "-c", "7"]
+        )
+        assert mock_run_scraper["historic"].called
+        assert mock_run_scraper["historic"].call_args.kwargs.get("concurrency_tasks") == 7
+
     def test_invalid_proxy_url_format(self, runner, mock_run_scraper):
         """Test invalid proxy URL format."""
         result = runner.invoke(cli, ["upcoming", "-s", "football", "-d", FUTURE_DATE, "--proxy-url", "invalid"])
