@@ -1,0 +1,54 @@
+[
+    {
+        "scraped_date": "2026-05-11 09:14:05 UTC",
+        "match_date": "2026-05-02 03:45:00 UTC",
+        "match_link": "https://www.oddsportal.com/baseball/h2h/kansas-city-royals-IL2QbgJ4/seattle-mariners-txYPhSac/#WbDmMwm1",
+        "home_team": "Seattle Mariners",
+        "away_team": "Kansas City Royals",
+        "league_name": "MLB",
+        "home_score": "6",
+        "away_score": "7",
+        "partial_results": "(2:4, 0:0, 0:0, 0:0, 1:0, 1:2, 2:0, 0:1, 0:0)",
+        "venue": "Kauffman Stadium",
+        "venue_town": "Kansas City, MO",
+        "venue_country": "USA",
+        "home_away_market": [
+            {
+                "1": "1.71",
+                "2": "2.16",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime"
+            },
+            {
+                "1": "1.56",
+                "2": "1.98",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullTime"
+            },
+            {
+                "1": "1.69",
+                "2": "2.12",
+                "bookmaker_name": "Roobet",
+                "period": "FullTime"
+            },
+            {
+                "1": "1.70",
+                "2": "2.05",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime"
+            },
+            {
+                "1": "1.69",
+                "2": "2.20",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime"
+            },
+            {
+                "1": "1.70",
+                "2": "2.10",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime"
+            }
+        ]
+    }
+]

@@ -1,0 +1,19 @@
+{
+    "match_id": "txYPhSac",
+    "match_url": "https://www.oddsportal.com/baseball/h2h/kansas-city-royals-IL2QbgJ4/seattle-mariners-txYPhSac/#WbDmMwm1",
+    "sport": "baseball",
+    "league": "mlb",
+    "home_team": "Seattle Mariners",
+    "away_team": "Kansas City Royals",
+    "final_score": {
+        "home": "6",
+        "away": "7"
+    },
+    "match_date": "2026-05-02 03:45:00 UTC",
+    "notes": "",
+    "captured_at": "2026-05-11T09:14:17.930674+00:00",
+    "oddsharvester_version": "0.1.0",
+    "available_fixtures": [
+        "home_away_full_time_all.json"
+    ]
+}
