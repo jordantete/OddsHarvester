@@ -1156,7 +1156,7 @@ def _make_react_event_header_html(event_id: str, start_date: int = 1681753200) -
             "tournamentName": "MLB",
         },
     }
-    return f"<html><body><div id=\"react-event-header\" data='{_json.dumps(payload)}'>" f"</div></body></html>"
+    return f"<html><body><div id=\"react-event-header\" data='{_json.dumps(payload)}'></div></body></html>"
 
 
 @pytest.mark.asyncio

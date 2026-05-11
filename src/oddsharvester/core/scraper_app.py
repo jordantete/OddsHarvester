@@ -46,6 +46,7 @@ async def run_scraper(
     bookies_filter: str = BookiesFilter.ALL.value,
     period: str | None = None,
     request_delay: float = DEFAULT_REQUEST_DELAY_S,
+    concurrency_tasks: int = 3,
 ) -> ScrapeResult | None:
     """
     Runs the scraping process and handles execution.
@@ -117,6 +118,7 @@ async def run_scraper(
                 bookies_filter=bookies_filter_enum,
                 period=period_enum,
                 request_delay=request_delay,
+                concurrent_scraping_task=concurrency_tasks,
             )
 
         if command == CommandEnum.HISTORIC:
@@ -144,6 +146,7 @@ async def run_scraper(
                     bookies_filter=bookies_filter_enum,
                     period=period_enum,
                     request_delay=request_delay,
+                    concurrent_scraping_task=concurrency_tasks,
                 )
             else:
                 return await _scrape_multiple_leagues(
@@ -159,6 +162,7 @@ async def run_scraper(
                     bookies_filter=bookies_filter_enum,
                     period=period_enum,
                     request_delay=request_delay,
+                    concurrent_scraping_task=concurrency_tasks,
                 )
 
         elif command == CommandEnum.UPCOMING_MATCHES:
@@ -183,6 +187,7 @@ async def run_scraper(
                         bookies_filter=bookies_filter_enum,
                         period=period_enum,
                         request_delay=request_delay,
+                        concurrent_scraping_task=concurrency_tasks,
                     )
                 else:
                     return await _scrape_multiple_leagues(
@@ -197,6 +202,7 @@ async def run_scraper(
                         bookies_filter=bookies_filter_enum,
                         period=period_enum,
                         request_delay=request_delay,
+                        concurrent_scraping_task=concurrency_tasks,
                     )
             else:
                 logger.info(f"""
@@ -215,6 +221,7 @@ async def run_scraper(
                     bookies_filter=bookies_filter_enum,
                     period=period_enum,
                     request_delay=request_delay,
+                    concurrent_scraping_task=concurrency_tasks,
                 )
 
         else:
