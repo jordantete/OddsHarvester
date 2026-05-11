@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError
 import pytest
 
-from oddsharvester.core.base_scraper import BaseScraper, _parse_date_header
+from oddsharvester.core.base_scraper import BaseScraper, _is_offscreen_row, _parse_date_header
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.utils.constants import NAVIGATION_TIMEOUT_MS, ODDSPORTAL_BASE_URL
@@ -395,6 +395,139 @@ async def test_extract_match_links_uses_playwright_manager_timezone(setup_base_s
 
     result = await scraper.extract_match_links(page=page_mock, date_filter=tokyo_today)
     assert len(result) == 1
+
+
+# -- _is_offscreen_row + offscreen filtering (regression: issue #61) ---------
+
+
+class TestIsOffscreenRow:
+    """Unit tests for the _is_offscreen_row helper."""
+
+    def test_no_style_attr_is_visible(self):
+        row = BeautifulSoup('<div class="eventRow"></div>', "lxml").div
+        assert _is_offscreen_row(row) is False
+
+    def test_empty_style_is_visible(self):
+        row = BeautifulSoup('<div class="eventRow" style=""></div>', "lxml").div
+        assert _is_offscreen_row(row) is False
+
+    def test_left_minus_9999_marks_offscreen(self):
+        row = BeautifulSoup(
+            '<div class="eventRow" style="position: absolute; left: -9999px;"></div>',
+            "lxml",
+        ).div
+        assert _is_offscreen_row(row) is True
+
+    def test_top_minus_9999_marks_offscreen(self):
+        row = BeautifulSoup('<div class="eventRow" style="top:-9999px"></div>', "lxml").div
+        assert _is_offscreen_row(row) is True
+
+    def test_display_none_marks_offscreen(self):
+        row = BeautifulSoup('<div class="eventRow" style="display: none;"></div>', "lxml").div
+        assert _is_offscreen_row(row) is True
+
+    def test_visibility_hidden_marks_offscreen(self):
+        row = BeautifulSoup('<div class="eventRow" style="visibility:hidden"></div>', "lxml").div
+        assert _is_offscreen_row(row) is True
+
+    def test_uppercase_style_normalized(self):
+        row = BeautifulSoup('<div class="eventRow" style="DISPLAY: NONE"></div>', "lxml").div
+        assert _is_offscreen_row(row) is True
+
+    def test_unrelated_style_is_visible(self):
+        row = BeautifulSoup(
+            '<div class="eventRow" style="color: red; padding-left: 9999px;"></div>',
+            "lxml",
+        ).div
+        assert _is_offscreen_row(row) is False
+
+
+@pytest.mark.asyncio
+async def test_extract_match_links_skips_offscreen_phantom_row(setup_base_scraper_mocks):
+    """Regression for issue #61: OddsPortal sometimes duplicates an event row
+    in the DOM — one visible, one CSS-hidden offscreen with a corrupted href
+    that 301-redirects to an unrelated match. Only the visible row should
+    be kept.
+
+    Captured from the live Super Lig listing (2026-05-11): both rows share
+    the same OddsPortal row id; the phantom carries the live IDs of an
+    unrelated 2017 Czech 2.Liga match.
+    """
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(
+        return_value="""
+        <html><body>
+          <div class="eventRow" id="4CyOBFbK" set="92939"
+               style="position: absolute; left: -9999px; height: 0px; overflow: hidden;">
+            <a href="/football/h2h/galatasaray-0j2eUlMC/kasimpasa-EXCPojim/#Aonqhgqt">phantom</a>
+          </div>
+          <div class="eventRow" id="4CyOBFbK" set="92939">
+            <a href="/football/h2h/galatasaray-riaqqurF/kasimpasa-dOlaIG4l/#4CyOBFbK">real</a>
+          </div>
+        </body></html>
+        """
+    )
+
+    result = await scraper.extract_match_links(page=page_mock)
+
+    assert result == [
+        f"{ODDSPORTAL_BASE_URL}/football/h2h/galatasaray-riaqqurF/kasimpasa-dOlaIG4l/#4CyOBFbK",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_extract_match_links_offscreen_skipped_before_date_filter(setup_base_scraper_mocks):
+    """An offscreen row must be skipped even if its inherited date-header
+    matches the filter — otherwise the phantom URL leaks into the results."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(
+        return_value="""
+        <html><body>
+          <div class="eventRow">
+            <div data-testid="date-header">17 May 2026</div>
+            <a href="/football/h2h/real-aaa/match-bbb/#x1">real</a>
+          </div>
+          <div class="eventRow" style="position:absolute;left:-9999px;">
+            <a href="/football/h2h/phantom-ccc/match-ddd/#x2">phantom</a>
+          </div>
+        </body></html>
+        """
+    )
+
+    result = await scraper.extract_match_links(page=page_mock, date_filter=date(2026, 5, 17))
+
+    assert result == [f"{ODDSPORTAL_BASE_URL}/football/h2h/real-aaa/match-bbb/#x1"]
+
+
+@pytest.mark.asyncio
+async def test_extract_match_links_offscreen_row_does_not_carry_date_header(setup_base_scraper_mocks):
+    """If a phantom row carries the only date-header on the page, skipping it
+    should not strip the header inheritance for following visible rows."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(
+        return_value="""
+        <html><body>
+          <div class="eventRow" style="display:none;">
+            <div data-testid="date-header">17 May 2026</div>
+            <a href="/football/h2h/phantom-ccc/match-ddd/#x2">phantom</a>
+          </div>
+          <div class="eventRow">
+            <div data-testid="date-header">17 May 2026</div>
+            <a href="/football/h2h/real-aaa/match-bbb/#x1">real</a>
+          </div>
+        </body></html>
+        """
+    )
+
+    result = await scraper.extract_match_links(page=page_mock, date_filter=date(2026, 5, 17))
+
+    assert result == [f"{ODDSPORTAL_BASE_URL}/football/h2h/real-aaa/match-bbb/#x1"]
 
 
 @pytest.mark.asyncio
