@@ -6,7 +6,12 @@ from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError
 import pytest
 
-from oddsharvester.core.base_scraper import BaseScraper, _is_offscreen_row, _parse_date_header
+from oddsharvester.core.base_scraper import (
+    BaseScraper,
+    _extract_fragment_match_id,
+    _is_offscreen_row,
+    _parse_date_header,
+)
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.utils.constants import NAVIGATION_TIMEOUT_MS, ODDSPORTAL_BASE_URL
@@ -1115,3 +1120,26 @@ async def test_extract_match_details_full_json_fallback_when_dom_absent(setup_ba
     assert result["partial_results"] == "1-0"
     assert result["match_date"] == "2023-04-17 17:40:00 UTC"
     assert result["venue"] == "Emirates"
+
+
+def test_extract_fragment_match_id_returns_fragment_when_present():
+    url = "https://www.oddsportal.com/baseball/h2h/a-team/b-team/#WbDmMwm1"
+    assert _extract_fragment_match_id(url) == "WbDmMwm1"
+
+
+def test_extract_fragment_match_id_returns_none_when_no_fragment():
+    assert _extract_fragment_match_id("https://www.oddsportal.com/baseball/h2h/a/b/") is None
+
+
+def test_extract_fragment_match_id_returns_none_when_fragment_is_empty():
+    assert _extract_fragment_match_id("https://www.oddsportal.com/baseball/h2h/a/b/#") is None
+
+
+def test_extract_fragment_match_id_returns_none_when_fragment_has_slash():
+    # Defensive: a stray slash means it isn't a match-id fragment
+    assert _extract_fragment_match_id("https://www.oddsportal.com/x/#a/b") is None
+
+
+def test_extract_fragment_match_id_strips_whitespace():
+    # Some scrapers can produce trailing whitespace from raw href
+    assert _extract_fragment_match_id("https://www.oddsportal.com/x/#abc   ") == "abc"

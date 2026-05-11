@@ -147,6 +147,24 @@ def _is_offscreen_row(row) -> bool:
     return any(marker in style for marker in _OFFSCREEN_STYLE_MARKERS)
 
 
+def _extract_fragment_match_id(match_link: str) -> str | None:
+    """
+    Extract the URL fragment as a match id from a match link.
+
+    OddsPortal H2H pages encode the requested historic match via the URL
+    fragment, e.g. `.../h2h/<home>/<away>/#<match_id>`. Returns the fragment
+    string if it looks like a match id (non-empty, no slash). Returns None
+    when no fragment is present, the fragment is empty, or it contains a
+    slash (which would indicate it isn't a bare match id).
+    """
+    if "#" not in match_link:
+        return None
+    fragment = match_link.split("#", 1)[1].strip()
+    if not fragment or "/" in fragment:
+        return None
+    return fragment
+
+
 class BaseScraper:
     """
     Base class for scraping match data from OddsPortal.
