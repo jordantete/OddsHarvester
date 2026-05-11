@@ -26,6 +26,7 @@ from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import (
     DEFAULT_REQUEST_DELAY_S,
     DYNAMIC_CONTENT_WAIT_MS,
+    H2H_FRAGMENT_RESOLVE_TIMEOUT_MS,
     MATCH_RETRY_BASE_DELAY,
     MATCH_RETRY_MAX_ATTEMPTS,
     MATCH_RETRY_MAX_DELAY,
@@ -145,6 +146,24 @@ def _is_offscreen_row(row) -> bool:
     that 301-redirects to an unrelated match. Skip the hidden twin."""
     style = (row.get("style") or "").lower().replace(" ", "")
     return any(marker in style for marker in _OFFSCREEN_STYLE_MARKERS)
+
+
+def _extract_fragment_match_id(match_link: str) -> str | None:
+    """
+    Extract the URL fragment as a match id from a match link.
+
+    OddsPortal H2H pages encode the requested historic match via the URL
+    fragment, e.g. `.../h2h/<home>/<away>/#<match_id>`. Returns the fragment
+    string if it looks like a match id (non-empty, no slash). Returns None
+    when no fragment is present, the fragment is empty, or it contains a
+    slash (which would indicate it isn't a bare match id).
+    """
+    if "#" not in match_link:
+        return None
+    fragment = match_link.split("#", 1)[1].strip()
+    if not fragment or "/" in fragment:
+        return None
+    return fragment
 
 
 class BaseScraper:
@@ -658,6 +677,76 @@ class BaseScraper:
             self.logger.warning(f"DOM parse failed for results: {e}")
             return None, None, None
 
+    async def _resolve_h2h_fragment_mismatch(
+        self,
+        page: Page,
+        fragment: str,
+    ) -> tuple[BeautifulSoup, dict[str, Any]] | None:
+        """
+        Force the OddsPortal React SPA to swap to the fragment-targeted match
+        and re-read the page payload.
+
+        OddsPortal `/<sport>/h2h/<home>/<away>/#<id>` URLs are H2H aggregates:
+        the SSR HTML always contains data for the next upcoming match between
+        the two teams, regardless of the requested fragment. The JS SPA reads
+        `location.hash` and refetches the correct match data. Under Playwright
+        the swap is unreliable, so we explicitly clear and re-dispatch the hash
+        to nudge it, then wait until `react-event-header`'s `eventData.id`
+        matches the requested fragment.
+
+        Returns the updated (soup, json_data) on success, or None if the wait
+        times out (the page would not show the requested match).
+        """
+        trigger_js = """
+        (desired) => {
+            if (window.location.hash !== '#' + desired) {
+                window.location.hash = '';
+                window.location.hash = '#' + desired;
+            }
+            window.dispatchEvent(new HashChangeEvent('hashchange', { newURL: window.location.href }));
+        }
+        """
+        predicate_js = """
+        (desired) => {
+            const el = document.getElementById('react-event-header');
+            if (!el) return false;
+            try {
+                const data = JSON.parse(el.getAttribute('data'));
+                return !!(data && data.eventData && data.eventData.id === desired);
+            } catch (e) { return false; }
+        }
+        """
+        try:
+            await page.evaluate(trigger_js, fragment)
+            await page.wait_for_function(
+                predicate_js,
+                arg=fragment,
+                timeout=H2H_FRAGMENT_RESOLVE_TIMEOUT_MS,
+            )
+        except TimeoutError:
+            self.logger.error(
+                f"H2H fragment resolution failed after retry: requested={fragment}; "
+                f"page never updated eventData.id to match the fragment"
+            )
+            return None
+        except Exception as e:
+            self.logger.error(f"H2H fragment resolution raised unexpected error for fragment={fragment}: {e}")
+            return None
+
+        html_content = await page.content()
+        soup = BeautifulSoup(html_content, "html.parser")
+        header_div = soup.find("div", id="react-event-header")
+        if not header_div:
+            return None
+        data_attribute = header_div.get("data")
+        if not data_attribute:
+            return None
+        try:
+            json_data = json.loads(data_attribute)
+        except (TypeError, json.JSONDecodeError):
+            return None
+        return soup, json_data
+
     async def _extract_match_details_event_header(self, page: Page, match_link: str) -> dict[str, Any] | None:
         """
         Extract match details (date, teams, league, scores, venue) from the
@@ -698,6 +787,25 @@ class BaseScraper:
 
             event_body = json_data.get("eventBody", {})
             event_data = json_data.get("eventData", {})
+
+            # Detect H2H fragment vs eventData.id mismatch. OddsPortal's SSR for
+            # /<sport>/h2h/<home>/<away>/#<id> always contains data for the next
+            # upcoming match between the two teams, not the fragment-targeted one.
+            # If we detect a mismatch, force the SPA to resync via hashchange; if
+            # that fails, drop the match rather than emit a wrong match_date.
+            fragment = _extract_fragment_match_id(match_link)
+            event_id = event_data.get("id")
+            if fragment and event_id and fragment != event_id:
+                self.logger.warning(
+                    f"H2H fragment mismatch detected: requested={fragment} "
+                    f"page={event_id} url={match_link}; attempting hash-resync"
+                )
+                resolved = await self._resolve_h2h_fragment_mismatch(page=page, fragment=fragment)
+                if resolved is None:
+                    return None
+                soup, json_data = resolved
+                event_body = json_data.get("eventBody", {})
+                event_data = json_data.get("eventData", {})
 
             json_match_date = (
                 datetime.fromtimestamp(event_body["startDate"], tz=UTC).strftime("%Y-%m-%d %H:%M:%S %Z")

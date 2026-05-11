@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+import json as _json
 from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
 
@@ -6,7 +7,12 @@ from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError
 import pytest
 
-from oddsharvester.core.base_scraper import BaseScraper, _is_offscreen_row, _parse_date_header
+from oddsharvester.core.base_scraper import (
+    BaseScraper,
+    _extract_fragment_match_id,
+    _is_offscreen_row,
+    _parse_date_header,
+)
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.utils.constants import NAVIGATION_TIMEOUT_MS, ODDSPORTAL_BASE_URL
@@ -1115,3 +1121,176 @@ async def test_extract_match_details_full_json_fallback_when_dom_absent(setup_ba
     assert result["partial_results"] == "1-0"
     assert result["match_date"] == "2023-04-17 17:40:00 UTC"
     assert result["venue"] == "Emirates"
+
+
+def test_extract_fragment_match_id_returns_fragment_when_present():
+    url = "https://www.oddsportal.com/baseball/h2h/a-team/b-team/#WbDmMwm1"
+    assert _extract_fragment_match_id(url) == "WbDmMwm1"
+
+
+def test_extract_fragment_match_id_returns_none_when_no_fragment():
+    assert _extract_fragment_match_id("https://www.oddsportal.com/baseball/h2h/a/b/") is None
+
+
+def test_extract_fragment_match_id_returns_none_when_fragment_is_empty():
+    assert _extract_fragment_match_id("https://www.oddsportal.com/baseball/h2h/a/b/#") is None
+
+
+def test_extract_fragment_match_id_returns_none_when_fragment_has_slash():
+    # Defensive: a stray slash means it isn't a match-id fragment
+    assert _extract_fragment_match_id("https://www.oddsportal.com/x/#a/b") is None
+
+
+def test_extract_fragment_match_id_strips_whitespace():
+    # Some scrapers can produce trailing whitespace from raw href
+    assert _extract_fragment_match_id("https://www.oddsportal.com/x/#abc   ") == "abc"
+
+
+def _make_react_event_header_html(event_id: str, start_date: int = 1681753200) -> str:
+    payload = {
+        "eventBody": {"startDate": start_date},
+        "eventData": {
+            "id": event_id,
+            "home": "Royals",
+            "away": "Mariners",
+            "tournamentName": "MLB",
+        },
+    }
+    return f"<html><body><div id=\"react-event-header\" data='{_json.dumps(payload)}'>" f"</div></body></html>"
+
+
+@pytest.mark.asyncio
+async def test_resolve_h2h_fragment_mismatch_success_returns_updated_payload(setup_base_scraper_mocks):
+    """When wait_for_function succeeds, re-parsed soup + json reflect the requested match id."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    page_mock.evaluate = AsyncMock()
+    page_mock.wait_for_function = AsyncMock()
+    page_mock.content = AsyncMock(return_value=_make_react_event_header_html("WbDmMwm1"))
+
+    result = await scraper._resolve_h2h_fragment_mismatch(
+        page=page_mock,
+        fragment="WbDmMwm1",
+    )
+
+    assert result is not None
+    _soup, json_data = result
+    assert json_data["eventData"]["id"] == "WbDmMwm1"
+    page_mock.evaluate.assert_awaited_once()
+    page_mock.wait_for_function.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_resolve_h2h_fragment_mismatch_timeout_returns_none(setup_base_scraper_mocks, caplog):
+    """When wait_for_function times out, the resolver returns None and logs ERROR."""
+    import logging
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    page_mock.evaluate = AsyncMock()
+    page_mock.wait_for_function = AsyncMock(side_effect=TimeoutError("timeout"))
+
+    with caplog.at_level(logging.ERROR):
+        result = await scraper._resolve_h2h_fragment_mismatch(
+            page=page_mock,
+            fragment="WbDmMwm1",
+        )
+
+    assert result is None
+    assert any("H2H fragment resolution failed" in rec.message for rec in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_resolve_h2h_fragment_mismatch_passes_fragment_to_evaluate(setup_base_scraper_mocks):
+    """The hashchange trigger must receive the fragment as the JS argument, not interpolated."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    page_mock.evaluate = AsyncMock()
+    page_mock.wait_for_function = AsyncMock()
+    page_mock.content = AsyncMock(return_value=_make_react_event_header_html("abc"))
+
+    await scraper._resolve_h2h_fragment_mismatch(page=page_mock, fragment="abc")
+
+    args, kwargs = page_mock.evaluate.await_args
+    # The fragment is the second positional arg to page.evaluate(expression, arg)
+    # Accept either positional or keyword form, but the value must equal "abc"
+    if len(args) >= 2:
+        assert args[1] == "abc"
+    else:
+        assert kwargs.get("arg") == "abc"
+
+
+@pytest.mark.asyncio
+async def test_extract_match_details_h2h_fragment_match_skips_resync(setup_base_scraper_mocks):
+    """When URL fragment equals eventData.id, no resync attempt is made."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    page_mock.content = AsyncMock(return_value=_make_react_event_header_html("WbDmMwm1"))
+    page_mock.evaluate = AsyncMock()
+    page_mock.wait_for_function = AsyncMock()
+
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/baseball/h2h/a/b/#WbDmMwm1",
+    )
+
+    assert result is not None
+    page_mock.evaluate.assert_not_awaited()
+    page_mock.wait_for_function.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_extract_match_details_h2h_fragment_mismatch_resolved(setup_base_scraper_mocks):
+    """Initial SSR has wrong id; after resync, the corrected payload is used."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    # First content() call returns the wrong-match SSR (eventData.id = "WRONG_4t78m9X0",
+    # startDate = 2026-05-22 23:40 UTC). After resync, the second call returns the
+    # correct match (eventData.id = "WbDmMwm1", startDate = 2025-04-15 17:00 UTC).
+    wrong_html = _make_react_event_header_html("WRONG_4t78m9X0", start_date=1779493200)
+    correct_html = _make_react_event_header_html("WbDmMwm1", start_date=1744736400)
+    page_mock.content = AsyncMock(side_effect=[wrong_html, correct_html])
+    page_mock.evaluate = AsyncMock()
+    page_mock.wait_for_function = AsyncMock()
+
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/baseball/h2h/a/b/#WbDmMwm1",
+    )
+
+    assert result is not None
+    # The wrong upcoming-match date must not leak through
+    assert "2026-05-22" not in (result["match_date"] or "")
+    # The corrected match's date should be present
+    assert "2025-04-15" in (result["match_date"] or "")
+    page_mock.evaluate.assert_awaited_once()
+    page_mock.wait_for_function.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_extract_match_details_h2h_fragment_resync_timeout_returns_none(setup_base_scraper_mocks):
+    """When resync times out, the method returns None instead of emitting wrong data."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    page_mock.content = AsyncMock(return_value=_make_react_event_header_html("WRONG_4t78m9X0"))
+    page_mock.evaluate = AsyncMock()
+    page_mock.wait_for_function = AsyncMock(side_effect=TimeoutError("timeout"))
+
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/baseball/h2h/a/b/#WbDmMwm1",
+    )
+
+    assert result is None
