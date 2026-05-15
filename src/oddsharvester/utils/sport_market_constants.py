@@ -12,6 +12,7 @@ class Sport(Enum):
     ICE_HOCKEY = "ice-hockey"
     BASEBALL = "baseball"
     AMERICAN_FOOTBALL = "american-football"
+    HANDBALL = "handball"
 
 
 class FootballMarket(Enum):
@@ -834,3 +835,73 @@ class AmericanFootballAsianHandicapMarket(Enum):
     HANDICAP_PLUS_20_5 = "asian_handicap_+20_5"
     HANDICAP_PLUS_21_0 = "asian_handicap_+21_0"
     HANDICAP_PLUS_21_5 = "asian_handicap_+21_5"
+
+
+class HandballMarket(Enum):
+    """Handball-specific markets."""
+
+    ONE_X_TWO = "1x2"
+    HOME_AWAY = "home_away"
+    DOUBLE_CHANCE = "double_chance"
+    DNB = "dnb"
+
+
+class HandballOverUnderMarket(Enum):
+    """Over/Under total goals betting markets for handball."""
+
+    OVER_UNDER_40_5 = "over_under_40_5"
+    OVER_UNDER_41_5 = "over_under_41_5"
+    OVER_UNDER_42_5 = "over_under_42_5"
+    OVER_UNDER_43_5 = "over_under_43_5"
+    OVER_UNDER_44_5 = "over_under_44_5"
+    OVER_UNDER_45_5 = "over_under_45_5"
+    OVER_UNDER_46_5 = "over_under_46_5"
+    OVER_UNDER_47_5 = "over_under_47_5"
+    OVER_UNDER_48_5 = "over_under_48_5"
+    OVER_UNDER_49_5 = "over_under_49_5"
+    OVER_UNDER_50_5 = "over_under_50_5"
+    OVER_UNDER_51_5 = "over_under_51_5"
+    OVER_UNDER_52_5 = "over_under_52_5"
+    OVER_UNDER_53_5 = "over_under_53_5"
+    OVER_UNDER_54_5 = "over_under_54_5"
+    OVER_UNDER_55_5 = "over_under_55_5"
+    OVER_UNDER_56_5 = "over_under_56_5"
+    OVER_UNDER_57_5 = "over_under_57_5"
+    OVER_UNDER_58_5 = "over_under_58_5"
+    OVER_UNDER_59_5 = "over_under_59_5"
+    OVER_UNDER_60_5 = "over_under_60_5"
+    OVER_UNDER_61_5 = "over_under_61_5"
+    OVER_UNDER_62_5 = "over_under_62_5"
+    OVER_UNDER_63_5 = "over_under_63_5"
+    OVER_UNDER_64_5 = "over_under_64_5"
+    OVER_UNDER_65_5 = "over_under_65_5"
+    OVER_UNDER_66_5 = "over_under_66_5"
+    OVER_UNDER_67_5 = "over_under_67_5"
+    OVER_UNDER_68_5 = "over_under_68_5"
+    OVER_UNDER_69_5 = "over_under_69_5"
+    OVER_UNDER_70_5 = "over_under_70_5"
+
+
+class HandballHandicapMarket(Enum):
+    """Handicap (goals) betting markets for handball."""
+
+    HANDICAP_MINUS_9_5 = "handicap_-9_5"
+    HANDICAP_MINUS_8_5 = "handicap_-8_5"
+    HANDICAP_MINUS_7_5 = "handicap_-7_5"
+    HANDICAP_MINUS_6_5 = "handicap_-6_5"
+    HANDICAP_MINUS_5_5 = "handicap_-5_5"
+    HANDICAP_MINUS_4_5 = "handicap_-4_5"
+    HANDICAP_MINUS_3_5 = "handicap_-3_5"
+    HANDICAP_MINUS_2_5 = "handicap_-2_5"
+    HANDICAP_MINUS_1_5 = "handicap_-1_5"
+    HANDICAP_MINUS_0_5 = "handicap_-0_5"
+    HANDICAP_PLUS_0_5 = "handicap_+0_5"
+    HANDICAP_PLUS_1_5 = "handicap_+1_5"
+    HANDICAP_PLUS_2_5 = "handicap_+2_5"
+    HANDICAP_PLUS_3_5 = "handicap_+3_5"
+    HANDICAP_PLUS_4_5 = "handicap_+4_5"
+    HANDICAP_PLUS_5_5 = "handicap_+5_5"
+    HANDICAP_PLUS_6_5 = "handicap_+6_5"
+    HANDICAP_PLUS_7_5 = "handicap_+7_5"
+    HANDICAP_PLUS_8_5 = "handicap_+8_5"
+    HANDICAP_PLUS_9_5 = "handicap_+9_5"

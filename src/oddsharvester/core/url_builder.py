@@ -104,7 +104,9 @@ class URLBuilder:
         sport_enum = Sport(sport)
 
         if sport_enum not in SPORTS_LEAGUES_URLS_MAPPING:
-            raise ValueError(f"Unsupported sport '{sport}'. Available: {', '.join(SPORTS_LEAGUES_URLS_MAPPING.keys())}")
+            raise ValueError(
+                f"Unsupported sport '{sport}'. Available: {', '.join(k.value for k in SPORTS_LEAGUES_URLS_MAPPING)}"
+            )
 
         leagues = SPORTS_LEAGUES_URLS_MAPPING[sport_enum]
 

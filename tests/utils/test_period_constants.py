@@ -3,6 +3,7 @@ from oddsharvester.utils.period_constants import (
     BaseballPeriod,
     BasketballPeriod,
     FootballPeriod,
+    HandballPeriod,
     IceHockeyPeriod,
     RugbyLeaguePeriod,
     RugbyUnionPeriod,
@@ -176,3 +177,22 @@ class TestBaseballPeriod:
         assert BaseballPeriod.get_internal_value(BaseballPeriod.FULL_INCLUDING_OT) == "FullIncludingOT"
         assert BaseballPeriod.get_internal_value(BaseballPeriod.FULL_TIME) == "FullTime"
         assert BaseballPeriod.get_internal_value(BaseballPeriod.FIRST_HALF) == "FirstHalf"
+
+
+class TestHandballPeriod:
+    """Tests for the HandballPeriod enum."""
+
+    def test_enum_values(self):
+        assert HandballPeriod.FULL_TIME.value == "full_time"
+        assert HandballPeriod.FIRST_HALF.value == "1st_half"
+        assert HandballPeriod.SECOND_HALF.value == "2nd_half"
+
+    def test_get_display_label(self):
+        assert HandballPeriod.get_display_label(HandballPeriod.FULL_TIME) == "Full Time"
+        assert HandballPeriod.get_display_label(HandballPeriod.FIRST_HALF) == "1st Half"
+        assert HandballPeriod.get_display_label(HandballPeriod.SECOND_HALF) == "2nd Half"
+
+    def test_get_internal_value(self):
+        assert HandballPeriod.get_internal_value(HandballPeriod.FULL_TIME) == "FullTime"
+        assert HandballPeriod.get_internal_value(HandballPeriod.FIRST_HALF) == "FirstHalf"
+        assert HandballPeriod.get_internal_value(HandballPeriod.SECOND_HALF) == "SecondHalf"

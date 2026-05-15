@@ -4,6 +4,7 @@ from oddsharvester.utils.period_constants import (
     BaseballPeriod,
     BasketballPeriod,
     FootballPeriod,
+    HandballPeriod,
     IceHockeyPeriod,
     RugbyLeaguePeriod,
     RugbyUnionPeriod,
@@ -61,6 +62,12 @@ class TestSportPeriodRegistry:
         assert SportPeriodRegistry.is_sport_registered("baseball")
         assert SportPeriodRegistry.get_period_enum("baseball") == BaseballPeriod
         assert SportPeriodRegistry.get_default_period("baseball") == BaseballPeriod.FULL_INCLUDING_OT
+
+    def test_handball_is_registered(self):
+        """Test that handball is auto-registered."""
+        assert SportPeriodRegistry.is_sport_registered("handball")
+        assert SportPeriodRegistry.get_period_enum("handball") == HandballPeriod
+        assert SportPeriodRegistry.get_default_period("handball") == HandballPeriod.FULL_TIME
 
     def test_all_sports_registered(self):
         """Test that all sports are auto-registered."""
@@ -188,6 +195,12 @@ class TestSportPeriodRegistryConversion:
         )
         assert SportPeriodRegistry.from_internal_value("FullTime", "baseball") == BaseballPeriod.FULL_TIME
         assert SportPeriodRegistry.from_internal_value("FirstHalf", "baseball") == BaseballPeriod.FIRST_HALF
+
+    def test_from_internal_value_handball(self):
+        """Test converting internal values to handball enum."""
+        assert SportPeriodRegistry.from_internal_value("FullTime", "handball") == HandballPeriod.FULL_TIME
+        assert SportPeriodRegistry.from_internal_value("FirstHalf", "handball") == HandballPeriod.FIRST_HALF
+        assert SportPeriodRegistry.from_internal_value("SecondHalf", "handball") == HandballPeriod.SECOND_HALF
 
     def test_from_internal_value_invalid(self):
         """Test that invalid internal values return None."""

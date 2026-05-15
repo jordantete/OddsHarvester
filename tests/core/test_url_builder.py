@@ -165,8 +165,8 @@ def test_get_historic_matches_url_invalid_season_range(sport, league, season, er
 
 def test_get_historic_matches_url_invalid_sport():
     """Test error handling for invalid sports."""
-    with pytest.raises(ValueError, match="'handball' is not a valid Sport"):
-        URLBuilder.get_historic_matches_url("handball", "champions-league", "2023-2024")
+    with pytest.raises(ValueError, match="'cricket' is not a valid Sport"):
+        URLBuilder.get_historic_matches_url("cricket", "champions-league", "2023-2024")
 
 
 def test_get_historic_matches_url_invalid_league():
@@ -340,8 +340,8 @@ def test_get_historic_matches_url_with_league_aliases(sport, league, season, exp
 
 def test_get_league_url_invalid_sport():
     """Test get_league_url raises ValueError for unsupported sport."""
-    with pytest.raises(ValueError, match="'handball' is not a valid Sport"):
-        URLBuilder.get_league_url("handball", "champions-league")
+    with pytest.raises(ValueError, match="'cricket' is not a valid Sport"):
+        URLBuilder.get_league_url("cricket", "champions-league")
 
 
 def test_get_league_url_invalid_league():

@@ -18,6 +18,9 @@ from oddsharvester.utils.sport_market_constants import (
     FootballEuropeanHandicapMarket,
     FootballMarket,
     FootballOverUnderMarket,
+    HandballHandicapMarket,
+    HandballMarket,
+    HandballOverUnderMarket,
     IceHockeyMarket,
     IceHockeyOverUnderMarket,
     RugbyHandicapMarket,
@@ -60,6 +63,7 @@ SPORT_MARKETS_MAPPING: dict[Sport, list[type[Enum]]] = {
         AmericanFootballOverUnderMarket,
         AmericanFootballAsianHandicapMarket,
     ],
+    Sport.HANDBALL: [HandballMarket, HandballOverUnderMarket, HandballHandicapMarket],
 }
 
 

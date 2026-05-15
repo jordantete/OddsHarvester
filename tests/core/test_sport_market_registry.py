@@ -253,6 +253,19 @@ class TestSportMarketRegistrar:
         assert "over_under_25_5" in american_football_markets
         assert "over_under_60_5" in american_football_markets
 
+    def test_register_handball_markets(self):
+        """Test registering markets for handball (regression guard: market registry was empty for handball)."""
+        SportMarketRegistrar.register_handball_markets()
+
+        handball_markets = SportMarketRegistry.get_market_mapping(Sport.HANDBALL.value)
+
+        assert "1x2" in handball_markets
+        assert "home_away" in handball_markets
+        assert "dnb" in handball_markets
+        assert "double_chance" in handball_markets
+        assert "over_under_40_5" in handball_markets
+        assert "handicap_-9_5" in handball_markets
+
     def test_register_all_markets(self):
         """Test registering all markets for all sports."""
         # Act
@@ -266,7 +279,10 @@ class TestSportMarketRegistrar:
                                     with patch.object(
                                         SportMarketRegistrar, "register_american_football_markets"
                                     ) as mock_american_football:
-                                        SportMarketRegistrar.register_all_markets()
+                                        with patch.object(
+                                            SportMarketRegistrar, "register_handball_markets"
+                                        ) as mock_handball:
+                                            SportMarketRegistrar.register_all_markets()
 
         # Assert
         mock_football.assert_called_once()
@@ -277,6 +293,7 @@ class TestSportMarketRegistrar:
         mock_ice_hockey.assert_called_once()
         mock_baseball.assert_called_once()
         mock_american_football.assert_called_once()
+        mock_handball.assert_called_once()
 
     def test_register_all_markets_integration(self):
         """Test registering all markets in an integration test"""
@@ -297,3 +314,4 @@ class TestSportMarketRegistrar:
         assert "btts" in SportMarketRegistry.get_market_mapping(Sport.ICE_HOCKEY.value)
         assert "home_away" in SportMarketRegistry.get_market_mapping(Sport.BASEBALL.value)
         assert "home_away" in SportMarketRegistry.get_market_mapping(Sport.AMERICAN_FOOTBALL.value)
+        assert "1x2" in SportMarketRegistry.get_market_mapping(Sport.HANDBALL.value)

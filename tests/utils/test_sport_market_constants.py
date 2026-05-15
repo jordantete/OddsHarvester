@@ -11,6 +11,9 @@ from oddsharvester.utils.sport_market_constants import (
     FootballEuropeanHandicapMarket,
     FootballMarket,
     FootballOverUnderMarket,
+    HandballHandicapMarket,
+    HandballMarket,
+    HandballOverUnderMarket,
     IceHockeyMarket,
     IceHockeyOverUnderMarket,
     RugbyHandicapMarket,
@@ -169,3 +172,18 @@ class TestSportEnums:
         assert "asian_handicap_0" in handicap_values
         assert "asian_handicap_+21_5" in handicap_values
         assert len(handicap_values) >= 86  # Should have handicaps from -21.5 to +21.5
+
+    def test_handball_market_enums(self):
+        """Verify handball markets."""
+        market_values = [market.value for market in HandballMarket]
+        over_under_values = [market.value for market in HandballOverUnderMarket]
+        handicap_values = [market.value for market in HandballHandicapMarket]
+
+        assert "1x2" in market_values
+        assert "home_away" in market_values
+        assert "double_chance" in market_values
+        assert "dnb" in market_values
+        assert "over_under_40_5" in over_under_values
+        assert "over_under_70_5" in over_under_values
+        assert "handicap_-9_5" in handicap_values
+        assert "handicap_+9_5" in handicap_values
