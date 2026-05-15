@@ -208,7 +208,13 @@ class BaseScraper:
         """
         try:
             self.logger.info(f"Setting odds format: {odds_format.value}")
-            button_selector = "div.group > button.gap-2"
+            # Text-based selector: OddsPortal's React build periodically reshuffles
+            # Tailwind utility classes on this control (issue #68: the old
+            # `div.group > button.gap-2` stopped matching when it became
+            # `button.flex gap-3`). The button label is always the current odds
+            # format ("Decimal Odds", "Fractional Odds", ...), so matching on the
+            # "Odds" text survives class refactors. Verified live 2026-05-15.
+            button_selector = "button:has-text('Odds')"
             await page.wait_for_selector(button_selector, state="attached", timeout=ODDS_FORMAT_SELECTOR_TIMEOUT_MS)
             dropdown_button = await page.query_selector(button_selector)
 

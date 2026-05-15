@@ -109,6 +109,30 @@ async def test_set_odds_format(setup_base_scraper_mocks):
 
 
 @pytest.mark.asyncio
+async def test_set_odds_format_uses_text_based_button_selector(setup_base_scraper_mocks):
+    """Regression for issue #68.
+
+    OddsPortal's React build dropped the `div.group > button.gap-2` class combo
+    (it became `button.flex gap-3`), silently breaking `set_odds_format`. The
+    selector must be text-based so it survives Tailwind class refactors. This
+    test pins the exact selector string passed to `wait_for_selector`.
+    """
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    dropdown_button_mock = AsyncMock()
+    dropdown_button_mock.inner_text = AsyncMock(return_value="Decimal Odds")
+    page_mock.query_selector.return_value = dropdown_button_mock
+
+    await scraper.set_odds_format(page=page_mock, odds_format=OddsFormat.DECIMAL_ODDS)
+
+    selector_arg = page_mock.wait_for_selector.call_args[0][0]
+    assert selector_arg == "button:has-text('Odds')"
+    assert "gap-2" not in selector_arg
+
+
+@pytest.mark.asyncio
 async def test_set_odds_format_timeout(setup_base_scraper_mocks):
     """Test handling timeout when setting odds format."""
     mocks = setup_base_scraper_mocks
