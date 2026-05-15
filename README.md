@@ -273,11 +273,16 @@ oddsharvester --help
 
 ```bash
 # Build
-docker build -t odds-harvester:local --target local-dev .
+docker build -t odds-harvester:local .
 
 # Run
 docker run --rm odds-harvester:local \
   python3 -m oddsharvester upcoming -s football -d 20250301 -m 1x2 --headless
+
+# Run and keep the JSON output on the host (mount a volume + use -o)
+docker run --rm -v "$PWD/_docker_out:/out" odds-harvester:local \
+  xvfb-run -- python3 -m oddsharvester upcoming \
+  -s football -d 20250301 -m 1x2 --headless -o /out/result.json
 
 # Or with environment variables
 docker run --rm \
@@ -285,31 +290,6 @@ docker run --rm \
   -e OH_HEADLESS=true \
   odds-harvester:local python3 -m oddsharvester upcoming -d 20250301 -m 1x2
 ```
-
----
-
-<details>
-<summary><strong>Cloud Deployment (AWS Lambda + Serverless)</strong></summary>
-<br>
-
-OddsHarvester can be deployed on AWS Lambda using the **Serverless Framework** with a Docker image (Playwright exceeds Lambda's 50MB deployment limit).
-
-**Setup:**
-
-1. Build the Docker image and push to ECR
-2. Configure `serverless.yaml` at the project root:
-   - Set your AWS region, S3 bucket ARN, and IAM permissions
-   - Default function: `scanAndStoreOddsPortalDataV2` (2048MB, 360s timeout)
-   - Triggers via EventBridge every 2 hours by default
-3. Deploy:
-
-```bash
-sls deploy
-```
-
-Refer to the [Serverless Framework docs](https://www.serverless.com/) for detailed setup instructions.
-
-</details>
 
 ---
 

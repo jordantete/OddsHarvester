@@ -67,7 +67,7 @@ Four-layer architecture:
 CLI Layer (src/oddsharvester/cli/) → Core Layer (src/oddsharvester/core/) → Data Layer (src/oddsharvester/utils/) → Storage Layer (src/oddsharvester/storage/)
 ```
 
-**Entry points**: `oddsharvester` CLI command (or `python -m oddsharvester`), `src/oddsharvester/lambda_handler.py` (AWS Lambda)
+**Entry points**: `oddsharvester` CLI command (or `python -m oddsharvester`)
 
 **Core Layer** (`src/oddsharvester/core/`):
 
