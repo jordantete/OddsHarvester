@@ -789,23 +789,50 @@ class BaseScraper:
             event_data = json_data.get("eventData", {})
 
             # Detect H2H fragment vs eventData.id mismatch. OddsPortal's SSR for
-            # /<sport>/h2h/<home>/<away>/#<id> always contains data for the next
-            # upcoming match between the two teams, not the fragment-targeted one.
-            # If we detect a mismatch, force the SPA to resync via hashchange; if
-            # that fails, drop the match rather than emit a wrong match_date.
+            # /<sport>/h2h/<home>/<away>/#<id> carries data for a different match
+            # than the fragment-targeted one. Two distinct cases must be told
+            # apart, because they require opposite handling:
+            #
+            #   * issue #60: the SSR is the *next upcoming* matchup between the
+            #     two teams and the SPA has not swapped yet, so the DOM shows
+            #     that same wrong match too. We must force a resync, or drop the
+            #     match rather than emit the wrong (upcoming) match_date.
+            #   * PR #54: the SSR JSON is a stale *recent* match, but the SPA
+            #     *did* hydrate the DOM to the requested historic match. The
+            #     DOM-first dispatcher below already yields the correct values;
+            #     resyncing is impossible here (the embedded JSON id never
+            #     updates to the fragment) and dropping would regress PR #54.
+            #
+            # Discriminate deterministically by whether the DOM has resolved to
+            # a match different from the stale JSON: DOM-resolved => PR #54 path
+            # (trust DOM), DOM == stale JSON or absent => issue #60 path (resync
+            # or drop). This avoids any wall-clock dependency.
             fragment = _extract_fragment_match_id(match_link)
             event_id = event_data.get("id")
             if fragment and event_id and fragment != event_id:
-                self.logger.warning(
-                    f"H2H fragment mismatch detected: requested={fragment} "
-                    f"page={event_id} url={match_link}; attempting hash-resync"
+                ssr_json_date = (
+                    datetime.fromtimestamp(event_body["startDate"], tz=UTC).strftime("%Y-%m-%d %H:%M:%S %Z")
+                    if event_body.get("startDate")
+                    else None
                 )
-                resolved = await self._resolve_h2h_fragment_mismatch(page=page, fragment=fragment)
-                if resolved is None:
-                    return None
-                soup, json_data = resolved
-                event_body = json_data.get("eventBody", {})
-                event_data = json_data.get("eventData", {})
+                ssr_dom_date = self._parse_match_date_from_dom(soup)
+                dom_resolved_independently = ssr_dom_date is not None and ssr_dom_date != ssr_json_date
+                if dom_resolved_independently:
+                    self.logger.info(
+                        f"H2H fragment mismatch (requested={fragment} page={event_id}) but the DOM "
+                        f"resolved to the fragment match independently; using DOM-first (PR #54 path)"
+                    )
+                else:
+                    self.logger.warning(
+                        f"H2H fragment mismatch detected: requested={fragment} "
+                        f"page={event_id} url={match_link}; DOM not resolved, attempting hash-resync"
+                    )
+                    resolved = await self._resolve_h2h_fragment_mismatch(page=page, fragment=fragment)
+                    if resolved is None:
+                        return None
+                    soup, json_data = resolved
+                    event_body = json_data.get("eventBody", {})
+                    event_data = json_data.get("eventData", {})
 
             json_match_date = (
                 datetime.fromtimestamp(event_body["startDate"], tz=UTC).strftime("%Y-%m-%d %H:%M:%S %Z")

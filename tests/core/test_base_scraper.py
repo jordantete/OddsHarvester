@@ -1294,3 +1294,60 @@ async def test_extract_match_details_h2h_fragment_resync_timeout_returns_none(se
     )
 
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_extract_match_details_h2h_fragment_mismatch_dom_resolved_no_resync(setup_base_scraper_mocks):
+    """Regression guard for PR #54 vs issue #60 conflict.
+
+    When the URL fragment mismatches the SSR eventData.id BUT the DOM has
+    already hydrated to the fragment-targeted historic match (DOM date differs
+    from the stale JSON date), the scraper must take the PR #54 DOM-first path:
+    NO hash-resync is attempted and the match is NOT dropped. Resyncing here is
+    impossible (the embedded JSON id never updates to the fragment) so the
+    issue #60 resync-or-drop logic must not regress these matches.
+    """
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    mocks["playwright_manager_mock"].timezone_id = "UTC"
+
+    # SSR JSON = stale recent match (id "STALE_recent7", 2025-04 startDate),
+    # while the DOM is hydrated to the requested 2020 historic match.
+    stale_json = (
+        '{"eventBody": {"startDate": 1745000000, "homeResult": 0, "awayResult": 1, '
+        '"partialresult": "0:0, 0:1", "venue": "Camp Nou", "venueTown": "Barcelona", '
+        '"venueCountry": "Spain"}, "eventData": {"id": "STALE_recent7", '
+        '"home": "Leganes", "away": "Barcelona", "tournamentName": "LaLiga 2024/2025"}}'
+    )
+    page_mock.content = AsyncMock(
+        return_value=f"""
+        <html><body>
+          <div id="react-event-header" data='{stale_json}'></div>
+          <section>
+            <div data-testid="game-time-item"><p>Tue</p><p>16 Jun 2020,</p><p>20:00</p></div>
+            <div data-testid="game-host"><p>Barcelona</p></div>
+            <div data-testid="game-guest"><p>Leganes</p></div>
+            <div data-testid="breadcrumbs-line"><a data-testid="3">LaLiga 2019/2020</a></div>
+            <div><div class="flex flex-wrap">Final result 2:0 (1:0, 1:0)</div></div>
+          </section>
+        </body></html>
+        """
+    )
+    page_mock.evaluate = AsyncMock()
+    page_mock.wait_for_function = AsyncMock()
+
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/football/h2h/barcelona-x/leganes-y/#hYV97ShC",
+    )
+
+    # PR #54 path taken: match kept, DOM (2020) values win, no resync attempted.
+    assert result is not None
+    assert result["match_date"] == "2020-06-16 20:00:00 UTC"
+    assert result["home_team"] == "Barcelona"
+    assert result["away_team"] == "Leganes"
+    assert result["home_score"] == "2"
+    assert result["away_score"] == "0"
+    page_mock.evaluate.assert_not_awaited()
+    page_mock.wait_for_function.assert_not_awaited()

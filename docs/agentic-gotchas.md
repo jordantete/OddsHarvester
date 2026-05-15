@@ -33,7 +33,7 @@ match, a phantom hidden duplicate, etc.).
 | Shape | Where | Symptom | Fix commit |
 |---|---|---|---|
 | **a.** Embedded `react-event-header` JSON returns the most-recent matchup, not the requested historic match | `<div id="react-event-header" data='…'>` on H2H detail pages | All fields (teams, date, scores) belong to a different match | `cef2bf3` — DOM-first extraction with per-field JSON fallback |
-| **b.** DOM **and** JSON both wrong because the SSR for `/sport/h2h/home/away/#fragment` always renders the *upcoming* matchup, not the fragment-targeted one | H2H pages where teams play each other repeatedly (MLB, NBA, ATP) | `match_date` is in the future on a historic scrape | Issue #60 — force `hashchange` via `page.evaluate`, wait for `eventData.id === fragment` |
+| **b.** DOM **and** JSON both wrong because the SSR for `/sport/h2h/home/away/#fragment` renders the *upcoming* matchup, the SPA hasn't swapped yet | H2H pages where teams play each other repeatedly (MLB, NBA, ATP) | `match_date` is in the future on a historic scrape | Issue #60 — force `hashchange` via `page.evaluate`, wait for `eventData.id === fragment` |
 | **c.** League listings include duplicate "phantom" event rows hidden in CSS, whose href points to a corrupted slug that 301-redirects to an unrelated match | `<tr style="left:-9999px">` (also `display:none`, `visibility:hidden`, `top:-9999px`) on `/results/` listings | Random unrelated matches scraped from a league listing | `f7c6ee4` — `_is_offscreen_row` helper, skip before processing |
 
 ### Detection signal (general rule)
@@ -41,8 +41,18 @@ match, a phantom hidden duplicate, etc.).
 **Never trust the first thing you parse.** Cross-reference with at least one
 independent signal:
 
-- **URL fragment vs `eventData.id`** — if both exist, they must match. If they
-  don't, the SPA hasn't reconciled yet and the page content is the wrong match.
+- **URL fragment vs `eventData.id`** — if both exist and differ, the embedded
+  JSON is *not* the requested match. But this signal alone is **necessary, not
+  sufficient**: cases **a** and **b** both trip it yet need opposite handling.
+  In case **a** (PR #54: stale *recent* match) the SPA *has* hydrated the DOM to
+  the correct fragment match and `eventData.id` **never** updates — resyncing is
+  impossible and dropping regresses PR #54. In case **b** (issue #60: *upcoming*
+  match) the DOM is still the wrong match too. **Discriminate by DOM-vs-JSON
+  date**, not by `eventData.id` alone: if the DOM date differs from the JSON
+  date, the DOM resolved independently → trust DOM (case a); if DOM date equals
+  the stale JSON date or is absent → SPA not reconciled → resync or drop
+  (case b). Gating purely on `fragment != eventData.id` shipped a regression
+  that dropped every PR #54-class historic H2H match (see issue #60 follow-up).
 - **CSS visibility** — for any row/element you iterate over on a listing page,
   check `style` for `left:-9999px`, `top:-9999px`, `display:none`,
   `visibility:hidden` (markers live in `_OFFSCREEN_STYLE_MARKERS` in
