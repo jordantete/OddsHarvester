@@ -340,4 +340,13 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "nfl": "https://www.oddsportal.com/american-football/usa/nfl/",
         "ncaa": "https://www.oddsportal.com/american-football/usa/ncaa/",
     },
+    Sport.HANDBALL: {
+        "ehf-champions-league": "https://www.oddsportal.com/handball/europe/ehf-champions-league/",
+        "ehf-european-league": "https://www.oddsportal.com/handball/europe/ehf-european-league/",
+        "germany-bundesliga": "https://www.oddsportal.com/handball/germany/bundesliga/",
+        "france-lnh": "https://www.oddsportal.com/handball/france/lnh/",
+        "spain-liga-asobal": "https://www.oddsportal.com/handball/spain/liga-asobal/",
+        "denmark-handboldligaen": "https://www.oddsportal.com/handball/denmark/handboldligaen/",
+        "hungary-nb-i": "https://www.oddsportal.com/handball/hungary/nb-i/",
+    },
 }
