@@ -446,14 +446,16 @@ class SportMarketRegistrar:
             )
 
         # Handicap Markets
+        # OddsPortal labels handball handicap as "Asian Handicap" (not plain "Handicap"
+        # like rugby). Verified live against Bundesliga match page, May 2026.
         for handicap in HandballHandicapMarket:
             numeric_part = handicap.value.replace("handicap_", "").replace("_", ".")
             SportMarketRegistry.register(
                 Sport.HANDBALL,
                 {
                     handicap.value: cls.create_market_lambda(
-                        main_market="Handicap",
-                        specific_market=f"Handicap {numeric_part}",
+                        main_market="Asian Handicap",
+                        specific_market=f"Asian Handicap {numeric_part}",
                         odds_labels=["handicap_team_1", "handicap_team_2"],
                     )
                 },

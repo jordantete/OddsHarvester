@@ -323,6 +323,49 @@ Quick checks (in order):
 
 ---
 
+## §7 — Sport-specific market tab names differ between sports with the same market concept
+
+**Severity:** High — tab navigation silently fails (0 odds stored) when the `main_market` string does not exactly match what OddsPortal renders for that sport.
+
+OddsPortal uses **different tab names for the same market concept** depending on the sport. The canonical example:
+
+| Sport | Market concept | Actual OddsPortal tab label |
+|---|---|---|
+| Rugby League / Rugby Union | Handicap | `Handicap` |
+| Handball | Handicap | `Asian Handicap` |
+| Basketball / Football | Handicap | `Asian Handicap` |
+
+Handball's handicap market is labelled **"Asian Handicap"** in the tab row (verified live against German Bundesliga, May 2026), not the plain `"Handicap"` used by rugby. Both the `main_market` passed to `MarketTabNavigator` and the `specific_market` prefix must match: `"Asian Handicap"` and `"Asian Handicap {numeric}"`, not `"Handicap"` and `"Handicap {numeric}"`.
+
+The same discrepancy almost certainly affects any new sport added to the codebase by copying from rugby — rugby is the exception; most handball-like sports use "Asian Handicap".
+
+### Detection signal
+
+```
+Market tab navigation: "Failed to find or click the Handicap tab (searched visible tabs and 'More' dropdown)"
+```
+
+Combined with 0 odds for the handicap market but non-zero odds for other markets on the same page.
+
+### Fix pattern
+
+1. Before finalising `main_market` strings for a new sport, open a live match page in a headless Playwright script and dump the `<li>` texts in the primary market tab row.
+2. Cross-check against what the registration code sends to `MarketTabNavigator`.
+3. Both `main_market` (tab click) and `specific_market` prefix must be identical strings.
+
+### Verified labels for handball (German Bundesliga, May 2026)
+
+| Label type | Observed |
+|---|---|
+| Primary market tabs | `1X2`, `Home/Away`, `Over/Under`, `Asian Handicap`, `Double Chance`, `DNB` (primary row), `Draw No Bet` (More dropdown) |
+| Period selector | `Full Time` (default active), `1st Half`, `2nd Half` |
+| Over/Under submarket | `Over/Under +{N.N}` (e.g. `Over/Under +54.5`) |
+| Handicap submarket | `Asian Handicap {signed-N.N}` (e.g. `Asian Handicap -2.5`) |
+
+**Reference:** Task 5 live verification, feat/handball-support branch.
+
+---
+
 ## Adding a new gotcha
 
 When a fix lands that exposes an OddsPortal-specific behaviour an agent
