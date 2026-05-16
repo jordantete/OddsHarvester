@@ -4,7 +4,7 @@
 
 ### Scrape sports betting odds from OddsPortal.com with ease
 
-Extract upcoming & historical odds across 8 sports, 100+ leagues, and dozens of betting markets.
+Extract upcoming & historical odds across 9 sports, 100+ leagues, and dozens of betting markets.
 <br>Powered by Playwright browser automation. Output to JSON, CSV, or S3.
 
 <br>
@@ -64,6 +64,7 @@ oddsharvester historic -s football -l england-premier-league --season 2024-2025 
 | 🏒 Ice Hockey | `1x2` `home_away` `double_chance` `draw_no_bet` `btts` `over/under` |
 | ⚾ Baseball | `moneyline` `over/under` |
 | 🏈 American Football | `1x2` `moneyline` `over/under` `asian_handicap` |
+| 🤾 Handball | `1x2` `home_away` `double_chance` `draw_no_bet` `over/under` `handicap` |
 
 100+ leagues supported across all sports — Premier League, La Liga, Serie A, NBA, NFL, MLB, NHL, ATP/WTA Grand Slams, and [many more](src/oddsharvester/utils/sport_league_constants.py).
 
