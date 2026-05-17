@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import urlsplit
 
 from oddsharvester.core.browser.cookies import CookieDismisser
 from oddsharvester.core.browser.market_navigation import MarketTabNavigator
@@ -69,6 +70,16 @@ async def run_scraper(
         f"headless={headless}, preview_submarkets_only={preview_submarkets_only}, "
         f"bookies_filter={bookies_filter}, period={period}, base_url={base_url}"
     )
+
+    if base_url:
+        host = urlsplit(base_url).netloc.lower()
+        if not host.endswith("oddsportal.com") and not browser_locale_timezone and not browser_timezone_id:
+            logger.warning(
+                "Regional base URL '%s' is set but no --locale/--timezone provided. "
+                "OddsPortal mirrors localise content; pass --locale and --timezone matching "
+                "the region (see GitHub issue #45) for consistent results.",
+                base_url,
+            )
 
     proxy_manager = ProxyManager(proxy_url=proxy_url, proxy_user=proxy_user, proxy_pass=proxy_pass)
     SportMarketRegistrar.register_all_markets()
