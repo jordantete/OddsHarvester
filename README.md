@@ -152,6 +152,7 @@ oddsharvester historic -s football -l england-premier-league --season 2024-2025 
 | `--user-agent`    |       | Custom browser user agent                 | —       |
 | `--locale`        |       | Browser locale (e.g. `fr-BE`)             | —       |
 | `--timezone`      |       | Browser timezone (e.g. `Europe/Brussels`) | —       |
+| `--base-url`      |       | Scrape a regional OddsPortal mirror instead of `www.oddsportal.com` (e.g. `https://www.centroquote.it`). Page structure is identical; only the domain changes. Regional mirrors may expose a different/larger set of bookmakers. Recommended: pair with `--locale`/`--timezone` matching the region. Env var: `OH_BASE_URL`. | —       |
 
 #### Proxy Options
 
@@ -217,6 +218,7 @@ All CLI options can be set via environment variables — useful for Docker or CI
 | `OH_USER_AGENT`    | `--user-agent`    | Custom browser user agent    |
 | `OH_LOCALE`        | `--locale`        | Browser locale               |
 | `OH_TIMEZONE`      | `--timezone`      | Browser timezone ID          |
+| `OH_BASE_URL`      | `--base-url`      | Regional OddsPortal mirror base URL |
 
 </details>
 

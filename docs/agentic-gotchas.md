@@ -14,6 +14,7 @@ The gotchas are grouped by theme:
 - **§4** — OddsPortal renames things over time (league slugs).
 - **§5** — Our own code architecture (where logic belongs).
 - **§6** — Operational: anti-bot detection symptoms.
+- **§7** — Regional mirror domains and the `--base-url` option.
 
 ---
 
@@ -360,6 +361,55 @@ Quick checks (in order):
 
 **Reference:** `7e199bd` (PR #38 — Docker anti-detection args), issues #29,
 #45.
+
+---
+
+## §7 — Regional OddsPortal mirrors: domain swap, not a different site
+
+**Severity:** Low (informational) — relevant when extending `--base-url` support
+or debugging region-specific bookmaker availability.
+
+OddsPortal serves region-specific mirror domains (e.g. `centroquote.it` for
+Italy) whose page structure is **byte-identical** to `www.oddsportal.com`;
+only the scheme + host differ. The motivation is that the bookmaker set exposed
+per region varies — users previously worked around this with a VPN (issue #45).
+
+### How `--base-url` works
+
+`--base-url` accepts a mirror root (e.g. `https://www.centroquote.it`) and
+swaps the scheme + host at runtime via `rebase_url()` in `url_builder.py`. The
+100+ league URLs stored in `sport_league_constants.py` remain absolute
+`.com` addresses (canonical default); the swap is applied just before each
+network request. No changes to league constants are needed when targeting a
+mirror.
+
+### Detection signal
+
+If results return 0 bookmakers or fewer bookmakers than expected from a given
+region, and the scraper is pointing at `www.oddsportal.com`, the user may be
+hitting the `.com` bookmaker set instead of their regional set. The fix is
+`--base-url <regional-mirror>` paired with `--locale`/`--timezone` matching
+that region.
+
+### HAR-replay limitation
+
+Integration tests under `tests/integration/` record against `www.oddsportal.com`
+and replay against `.com` URLs only. `--base-url` is therefore a **live-only
+feature**: there are no HAR fixtures for any mirror domain, and running the
+integration suite in replay mode will not exercise this code path. Do not add
+HAR fixtures for mirror domains — replay them as `.com` and test the
+`rebase_url` logic unit-level instead.
+
+### Fix pattern / when extending this feature
+
+1. Validate the mirror's page structure manually before adding support for a
+   new domain: confirm CSS selectors and JSON shapes match `.com`.
+2. Keep `sport_league_constants.py` `.com`-canonical — never store mirror URLs
+   there.
+3. Unit-test `rebase_url()` in `test_url_builder.py` for any new URL shape
+   (trailing slash, path-only, etc.).
+
+**Reference:** PR implementing `--base-url` (`feat/regional-base-url`), issue #45.
 
 ---
 
