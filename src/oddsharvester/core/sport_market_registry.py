@@ -9,7 +9,7 @@ from oddsharvester.utils.sport_market_constants import (
     FootballAsianHandicapMarket,
     FootballEuropeanHandicapMarket,
     FootballOverUnderMarket,
-    HandballHandicapMarket,
+    HandballAsianHandicapMarket,
     HandballOverUnderMarket,
     IceHockeyOverUnderMarket,
     RugbyHandicapMarket,
@@ -445,15 +445,13 @@ class SportMarketRegistrar:
                 },
             )
 
-        # Handicap Markets
-        # OddsPortal labels handball handicap as "Asian Handicap" (not plain "Handicap"
-        # like rugby). Verified live against Bundesliga match page, May 2026.
-        for handicap in HandballHandicapMarket:
-            numeric_part = handicap.value.replace("handicap_", "").replace("_", ".")
+        # Asian Handicap Markets
+        for asian_handicap in HandballAsianHandicapMarket:
+            numeric_part = asian_handicap.value.replace("handicap_", "").replace("_", ".")
             SportMarketRegistry.register(
                 Sport.HANDBALL,
                 {
-                    handicap.value: cls.create_market_lambda(
+                    asian_handicap.value: cls.create_market_lambda(
                         main_market="Asian Handicap",
                         specific_market=f"Asian Handicap {numeric_part}",
                         odds_labels=["handicap_team_1", "handicap_team_2"],

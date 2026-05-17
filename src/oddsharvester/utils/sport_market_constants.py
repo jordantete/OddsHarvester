@@ -882,8 +882,8 @@ class HandballOverUnderMarket(Enum):
     OVER_UNDER_70_5 = "over_under_70_5"
 
 
-class HandballHandicapMarket(Enum):
-    """Handicap (goals) betting markets for handball."""
+class HandballAsianHandicapMarket(Enum):
+    """Asian Handicap (goals) betting markets for handball."""
 
     HANDICAP_MINUS_9_5 = "handicap_-9_5"
     HANDICAP_MINUS_8_5 = "handicap_-8_5"

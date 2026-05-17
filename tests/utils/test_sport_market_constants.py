@@ -11,7 +11,7 @@ from oddsharvester.utils.sport_market_constants import (
     FootballEuropeanHandicapMarket,
     FootballMarket,
     FootballOverUnderMarket,
-    HandballHandicapMarket,
+    HandballAsianHandicapMarket,
     HandballMarket,
     HandballOverUnderMarket,
     IceHockeyMarket,
@@ -178,7 +178,7 @@ class TestSportEnums:
         """Verify handball markets."""
         market_values = [market.value for market in HandballMarket]
         over_under_values = [market.value for market in HandballOverUnderMarket]
-        handicap_values = [market.value for market in HandballHandicapMarket]
+        handicap_values = [market.value for market in HandballAsianHandicapMarket]
 
         assert "1x2" in market_values
         assert "home_away" in market_values
