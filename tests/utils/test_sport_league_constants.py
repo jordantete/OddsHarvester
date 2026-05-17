@@ -39,7 +39,10 @@ class TestHandballLeagueConstants:
             assert url.endswith("/"), f"{slug} URL must end with '/': {url}"
 
     def test_ehf_champions_league_url(self, fresh_mapping):
+        # Canonical OddsPortal slug for the men's EHF Champions League is
+        # `champions-league` (the `ehf-champions-league` slug is dead and
+        # renders no match links). See docs/agentic-gotchas.md.
         assert (
             fresh_mapping[Sport.HANDBALL]["ehf-champions-league"]
-            == "https://www.oddsportal.com/handball/europe/ehf-champions-league/"
+            == "https://www.oddsportal.com/handball/europe/champions-league/"
         )

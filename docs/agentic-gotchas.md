@@ -223,8 +223,48 @@ oddsportal.com (e.g., `…/serie-a-2021-2022/results/`). If the slug differs
 from the current season, set up the alias *immediately* — don't wait for the
 first user to file an issue.
 
+### Renames are not always sponsor-driven (handball, May 2026)
+
+Slug drift also happens without a title sponsor, and the OddsPortal
+**localized results listing lies about the real slug**. While validating the
+7 configured handball leagues against `https://www.oddsportal.com/results/#handball`:
+
+| Configured slug (key kept) | Old/dead URL | Correct canonical URL |
+|---|---|---|
+| `ehf-champions-league` | `…/handball/europe/ehf-champions-league/` | `…/handball/europe/champions-league/` |
+| `ehf-european-league` | `…/handball/europe/ehf-european-league/` | `…/handball/europe/european-league/` |
+| `france-lnh` | `…/handball/france/lnh/` | `…/handball/france/starligue/` |
+| `denmark-handboldligaen` | `…/handball/denmark/handboldligaen/` | `…/handball/denmark/herre-handbold-ligaen/` |
+
+Two non-obvious traps here:
+
+1. **Localized listing alias ≠ real slug.** The `/results/#handball` page is
+   served Italian-localized; its href for the men's EHF Champions League was
+   `…/europe/champions-league-uomini/…`, but that slug renders **0 match
+   links**. The actual working slug is the un-suffixed `champions-league`.
+   Always confirm a slug harvested from the listing by loading
+   `<url>results/` and checking for match links — never trust the listing
+   href alone.
+2. **HTTP 200 is not validation.** Every dead URL above still returned 200
+   with a valid-looking `<title>`; only the absence of `eventRow` match
+   links revealed they were dead. Off-season leagues legitimately have no
+   *upcoming* fixtures, so the canonical validation target is the
+   `<league>/results/` sub-page (past matches), exactly what
+   `validate_league.py` checks.
+
+Dictionary **keys were intentionally left unchanged** (`france-lnh`,
+`denmark-handboldligaen`, `ehf-champions-league`) to preserve backward-compatible
+CLI slugs and existing tests — only the URL *values* were corrected. No
+`LEAGUE_SEASON_ALIASES` entries were added because handball historic seasons
+were not in scope; if a user reports historic-season breakage, add aliases
+per the fix pattern above.
+
+Validate handball slugs with `uv run python scripts/validate_league.py -s
+handball --all` (the project's hardened `PlaywrightManager` gets past the
+anti-bot layer that blocks a vanilla browser).
+
 **Reference commits/PRs:** `708a8cf` (Brazil Serie A → Betano), PR #43
-(Czech / Mexico / Serbia aliases).
+(Czech / Mexico / Serbia aliases). Handball URL audit: this change.
 
 ---
 
@@ -320,49 +360,6 @@ Quick checks (in order):
 
 **Reference:** `7e199bd` (PR #38 — Docker anti-detection args), issues #29,
 #45.
-
----
-
-## §7 — Sport-specific market tab names differ between sports with the same market concept
-
-**Severity:** High — tab navigation silently fails (0 odds stored) when the `main_market` string does not exactly match what OddsPortal renders for that sport.
-
-OddsPortal uses **different tab names for the same market concept** depending on the sport. The canonical example:
-
-| Sport | Market concept | Actual OddsPortal tab label |
-|---|---|---|
-| Rugby League / Rugby Union | Handicap | `Handicap` |
-| Handball | Handicap | `Asian Handicap` |
-| Basketball / Football | Handicap | `Asian Handicap` |
-
-Handball's handicap market is labelled **"Asian Handicap"** in the tab row (verified live against German Bundesliga, May 2026), not the plain `"Handicap"` used by rugby. Both the `main_market` passed to `MarketTabNavigator` and the `specific_market` prefix must match: `"Asian Handicap"` and `"Asian Handicap {numeric}"`, not `"Handicap"` and `"Handicap {numeric}"`.
-
-The same discrepancy almost certainly affects any new sport added to the codebase by copying from rugby — rugby is the exception; most handball-like sports use "Asian Handicap".
-
-### Detection signal
-
-```
-Market tab navigation: "Failed to find or click the Handicap tab (searched visible tabs and 'More' dropdown)"
-```
-
-Combined with 0 odds for the handicap market but non-zero odds for other markets on the same page.
-
-### Fix pattern
-
-1. Before finalising `main_market` strings for a new sport, open a live match page in a headless Playwright script and dump the `<li>` texts in the primary market tab row.
-2. Cross-check against what the registration code sends to `MarketTabNavigator`.
-3. Both `main_market` (tab click) and `specific_market` prefix must be identical strings.
-
-### Verified labels for handball (German Bundesliga, May 2026)
-
-| Label type | Observed |
-|---|---|
-| Primary market tabs | `1X2`, `Home/Away`, `Over/Under`, `Asian Handicap`, `Double Chance`, `DNB` (primary row), `Draw No Bet` (More dropdown) |
-| Period selector | `Full Time` (default active), `1st Half`, `2nd Half` |
-| Over/Under submarket | `Over/Under +{N.N}` (e.g. `Over/Under +54.5`) |
-| Handicap submarket | `Asian Handicap {signed-N.N}` (e.g. `Asian Handicap -2.5`) |
-
-**Reference:** Task 5 live verification, feat/handball-support branch.
 
 ---
 
