@@ -52,6 +52,7 @@ def upcoming(ctx, **kwargs):
                 browser_user_agent=kwargs.get("browser_user_agent"),
                 browser_locale_timezone=kwargs.get("browser_locale_timezone"),
                 browser_timezone_id=kwargs.get("browser_timezone_id"),
+                base_url=kwargs.get("base_url"),
                 target_bookmaker=kwargs.get("target_bookmaker"),
                 scrape_odds_history=kwargs.get("scrape_odds_history", False),
                 headless=kwargs.get("headless", False),

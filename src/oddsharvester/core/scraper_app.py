@@ -39,6 +39,7 @@ async def run_scraper(
     browser_user_agent: str | None = None,
     browser_locale_timezone: str | None = None,
     browser_timezone_id: str | None = None,
+    base_url: str | None = None,
     target_bookmaker: str | None = None,
     scrape_odds_history: bool = False,
     headless: bool = True,
@@ -66,7 +67,7 @@ async def run_scraper(
         f"browser_locale_timezone={browser_locale_timezone}, browser_timezone_id={browser_timezone_id}, "
         f"scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}, "
         f"headless={headless}, preview_submarkets_only={preview_submarkets_only}, "
-        f"bookies_filter={bookies_filter}, period={period}"
+        f"bookies_filter={bookies_filter}, period={period}, base_url={base_url}"
     )
 
     proxy_manager = ProxyManager(proxy_url=proxy_url, proxy_user=proxy_user, proxy_pass=proxy_pass)
@@ -90,6 +91,7 @@ async def run_scraper(
         cookie_dismisser=cookie_dismisser,
         selection_manager=selection_manager,
         preview_submarkets_only=preview_submarkets_only,
+        base_url=base_url,
     )
 
     try:
