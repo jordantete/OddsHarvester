@@ -1,10 +1,27 @@
 from datetime import UTC, datetime
 import re
+from urllib.parse import urlsplit, urlunsplit
 
 from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
 from oddsharvester.utils.league_aliases import get_league_slug_for_season
 from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from oddsharvester.utils.sport_market_constants import Sport
+
+
+def rebase_url(url: str, base_url: str | None) -> str:
+    """
+    Swap the scheme and host of ``url`` with those of ``base_url``.
+
+    Path, query, and fragment are preserved exactly. When ``base_url`` is None
+    or empty, ``url`` is returned unchanged (the default oddsportal.com path).
+    Idempotent. ``base_url`` is expected to be host-only (validated upstream).
+    """
+    if not base_url:
+        return url
+
+    base = urlsplit(base_url)
+    parts = urlsplit(url)
+    return urlunsplit((base.scheme, base.netloc, parts.path, parts.query, parts.fragment))
 
 
 class URLBuilder:

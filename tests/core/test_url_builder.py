@@ -1,6 +1,6 @@
 import pytest
 
-from oddsharvester.core.url_builder import URLBuilder
+from oddsharvester.core.url_builder import URLBuilder, rebase_url
 from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
 from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from oddsharvester.utils.sport_market_constants import Sport
@@ -355,3 +355,32 @@ def test_get_league_url_invalid_league():
         match=r"Invalid league 'random-league' for sport 'football'\. Available: england-premier-league, la-liga",
     ):
         URLBuilder.get_league_url("football", "random-league")
+
+
+class TestRebaseUrl:
+    def test_none_base_url_returns_unchanged(self):
+        url = "https://www.oddsportal.com/football/england/premier-league/results/"
+        assert rebase_url(url, None) == url
+
+    def test_empty_base_url_returns_unchanged(self):
+        url = "https://www.oddsportal.com/football/england/premier-league/results/"
+        assert rebase_url(url, "") == url
+
+    def test_swaps_scheme_and_host_preserving_path_query_fragment(self):
+        url = "https://www.oddsportal.com/football/italy/serie-a/results/?foo=1#bar"
+        assert rebase_url(url, "https://www.centroquote.it") == (
+            "https://www.centroquote.it/football/italy/serie-a/results/?foo=1#bar"
+        )
+
+    def test_preserves_http_scheme_from_base_url(self):
+        url = "https://www.oddsportal.com/tennis/atp-tour/"
+        assert rebase_url(url, "http://mirror.example.com") == "http://mirror.example.com/tennis/atp-tour/"
+
+    def test_trailing_slash_on_base_url_does_not_double(self):
+        url = "https://www.oddsportal.com/football/spain/laliga"
+        assert rebase_url(url, "https://www.centroquote.it/") == "https://www.centroquote.it/football/spain/laliga"
+
+    def test_idempotent(self):
+        url = "https://www.oddsportal.com/football/france/ligue-1/results/"
+        once = rebase_url(url, "https://www.centroquote.it")
+        assert rebase_url(once, "https://www.centroquote.it") == once
