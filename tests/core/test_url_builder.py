@@ -384,3 +384,48 @@ class TestRebaseUrl:
         url = "https://www.oddsportal.com/football/france/ligue-1/results/"
         once = rebase_url(url, "https://www.centroquote.it")
         assert rebase_url(once, "https://www.centroquote.it") == once
+
+
+class TestUrlBuilderBaseUrl:
+    BASE = "https://www.centroquote.it"
+
+    def test_get_league_url_default_unchanged(self):
+        url = URLBuilder.get_league_url("football", "england-premier-league")
+        assert url.startswith("https://www.oddsportal.com/")
+
+    def test_get_league_url_rebased(self):
+        url = URLBuilder.get_league_url("football", "england-premier-league", base_url=self.BASE)
+        assert url == f"{self.BASE}/football/england/premier-league"
+
+    def test_get_historic_matches_url_rebased_with_season(self):
+        url = URLBuilder.get_historic_matches_url(
+            sport="football", league="england-premier-league", season="2021-2022", base_url=self.BASE
+        )
+        assert url == f"{self.BASE}/football/england/premier-league-2021-2022/results/"
+
+    def test_get_historic_matches_url_rebased_current_season(self):
+        url = URLBuilder.get_historic_matches_url(
+            sport="football", league="england-premier-league", season="current", base_url=self.BASE
+        )
+        assert url == f"{self.BASE}/football/england/premier-league/results/"
+
+    def test_get_historic_matches_url_baseball_special_case_rebased(self):
+        url = URLBuilder.get_historic_matches_url(
+            sport="baseball", league="mlb", season="2022-2023", base_url=self.BASE
+        )
+        assert url == f"{self.BASE}/baseball/usa/mlb-2022/results/"
+
+    def test_get_upcoming_matches_url_no_league_rebased(self):
+        url = URLBuilder.get_upcoming_matches_url(sport="football", date="2025-01-15", base_url=self.BASE)
+        assert url == f"{self.BASE}/matches/football/2025-01-15/"
+
+    def test_get_upcoming_matches_url_with_league_rebased(self):
+        url = URLBuilder.get_upcoming_matches_url(
+            sport="football", date="2025-01-15", league="england-premier-league", base_url=self.BASE
+        )
+        assert url == f"{self.BASE}/football/england/premier-league"
+
+    def test_default_calls_have_no_regression(self):
+        assert URLBuilder.get_upcoming_matches_url(sport="football", date="2025-01-15").startswith(
+            "https://www.oddsportal.com/"
+        )
