@@ -47,3 +47,12 @@ def test_url_with_query_rejected():
 def test_empty_host_rejected():
     with pytest.raises(click.BadParameter):
         validate_base_url(None, None, "https://")
+
+
+def test_url_with_fragment_rejected():
+    with pytest.raises(click.BadParameter):
+        validate_base_url(None, None, "https://www.centroquote.it#section")
+
+
+def test_valid_host_with_port():
+    assert validate_base_url(None, None, "https://www.centroquote.it:8080") == "https://www.centroquote.it:8080"

@@ -209,7 +209,7 @@ def validate_base_url(ctx, param, value):
         raise click.BadParameter(f"Invalid base URL '{value}'. Missing host (e.g. https://www.centroquote.it).")
     if parts.path or parts.query or parts.fragment:
         raise click.BadParameter(
-            f"Invalid base URL '{value}'. Provide host only, no path/query (e.g. https://www.centroquote.it)."
+            f"Invalid base URL '{value}'. Provide host only, no path, query, or fragment (e.g. https://www.centroquote.it)."
         )
 
     return normalized
