@@ -47,6 +47,7 @@ class TestSportEnums:
         assert "ice-hockey" in sport_values
         assert "baseball" in sport_values
         assert "american-football" in sport_values
+        assert "handball" in sport_values
 
     def test_football_market_enum(self):
         """Verify football markets."""
