@@ -14,6 +14,7 @@ from oddsharvester.core.base_scraper import (
     _parse_date_header,
 )
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
+from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.utils.constants import NAVIGATION_TIMEOUT_MS, ODDSPORTAL_BASE_URL
 from oddsharvester.utils.odds_format_enum import OddsFormat
@@ -1440,3 +1441,97 @@ class TestBaseScraperBaseUrl:
         result = await regional_scraper.extract_match_links(page=page_mock)
 
         assert result == [f"https://www.centroquote.it{_SERIE_A_HREF}"]
+
+
+# -- OddsPortalScraper URL wiring --------------------------------------------
+
+
+def _build_odds_portal_scraper(setup_base_scraper_mocks, base_url=None):
+    """Construct an OddsPortalScraper with the same mocked collaborators used in
+    the setup_base_scraper_mocks fixture. Mirrors the pattern used in
+    TestBaseScraperBaseUrl.test_base_url_stored_when_provided.
+
+    playwright_manager_mock.page is set explicitly because PlaywrightManager.page is
+    an instance attribute (not a class-level method), so MagicMock(spec=...) doesn't
+    include it automatically. Setting it to page_mock makes the truthy guard in
+    scrape_historic / scrape_upcoming pass before the URLBuilder call fires.
+    """
+    mocks = setup_base_scraper_mocks
+    mocks["playwright_manager_mock"].page = mocks["page_mock"]
+    return OddsPortalScraper(
+        playwright_manager=mocks["playwright_manager_mock"],
+        market_extractor=mocks["market_extractor_mock"],
+        scroller=AsyncMock(),
+        cookie_dismisser=AsyncMock(),
+        selection_manager=mocks["selection_manager_mock"],
+        base_url=base_url,
+    )
+
+
+class TestOddsPortalScraperUrlWiring:
+    @pytest.mark.asyncio
+    async def test_scrape_historic_forwards_base_url_to_url_builder(self, setup_base_scraper_mocks, monkeypatch):
+        from oddsharvester.core import odds_portal_scraper as ops
+
+        scraper = _build_odds_portal_scraper(setup_base_scraper_mocks, base_url="https://www.centroquote.it")
+
+        captured = {}
+
+        class _StopError(Exception):
+            pass
+
+        def fake_get_historic(*, sport, league, season=None, base_url=None):
+            captured["base_url"] = base_url
+            raise _StopError
+
+        monkeypatch.setattr(ops.URLBuilder, "get_historic_matches_url", staticmethod(fake_get_historic))
+
+        with pytest.raises(_StopError):
+            await scraper.scrape_historic(
+                sport="football", league="england-premier-league", season="current", markets=["1x2"]
+            )
+        assert captured["base_url"] == "https://www.centroquote.it"
+
+    @pytest.mark.asyncio
+    async def test_scrape_upcoming_forwards_base_url_to_url_builder(self, setup_base_scraper_mocks, monkeypatch):
+        from oddsharvester.core import odds_portal_scraper as ops
+
+        scraper = _build_odds_portal_scraper(setup_base_scraper_mocks, base_url="https://www.centroquote.it")
+
+        captured = {}
+
+        class _StopError(Exception):
+            pass
+
+        def fake_get_upcoming(*, sport, date, league=None, base_url=None):
+            captured["base_url"] = base_url
+            raise _StopError
+
+        monkeypatch.setattr(ops.URLBuilder, "get_upcoming_matches_url", staticmethod(fake_get_upcoming))
+
+        with pytest.raises(_StopError):
+            await scraper.scrape_upcoming(sport="football", date="2025-01-15", markets=["1x2"])
+        assert captured["base_url"] == "https://www.centroquote.it"
+
+    @pytest.mark.asyncio
+    async def test_scrape_historic_default_base_url_is_none(self, setup_base_scraper_mocks, monkeypatch):
+        from oddsharvester.core import odds_portal_scraper as ops
+
+        scraper = _build_odds_portal_scraper(setup_base_scraper_mocks)
+
+        captured = {}
+
+        class _StopError(Exception):
+            pass
+
+        def fake_get_historic(*, sport, league, season=None, base_url=None):
+            captured["base_url"] = base_url
+            raise _StopError
+
+        monkeypatch.setattr(ops.URLBuilder, "get_historic_matches_url", staticmethod(fake_get_historic))
+
+        with pytest.raises(_StopError):
+            await scraper.scrape_historic(
+                sport="football", league="england-premier-league", season="current", markets=["1x2"]
+            )
+        assert captured["base_url"] is None

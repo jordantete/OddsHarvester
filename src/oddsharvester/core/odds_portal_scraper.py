@@ -98,7 +98,9 @@ class OddsPortalScraper(BaseScraper):
         if not current_page:
             raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
 
-        base_url = URLBuilder.get_historic_matches_url(sport=sport, league=league, season=season)
+        base_url = URLBuilder.get_historic_matches_url(
+            sport=sport, league=league, season=season, base_url=self.base_url
+        )
         self.logger.info(f"Starting historic scraping for {sport} - {league} - {season}")
         self.logger.info(f"Base URL: {base_url}")
         self.logger.info(f"Max pages parameter: {max_pages}")
@@ -167,7 +169,7 @@ class OddsPortalScraper(BaseScraper):
         if not current_page:
             raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
 
-        url = URLBuilder.get_upcoming_matches_url(sport=sport, date=date, league=league)
+        url = URLBuilder.get_upcoming_matches_url(sport=sport, date=date, league=league, base_url=self.base_url)
         self.logger.info(f"Fetching upcoming odds from {url}")
 
         await current_page.goto(url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
