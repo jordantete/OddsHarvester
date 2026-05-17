@@ -77,3 +77,15 @@ def test_no_warning_for_oddsportal_subdomain(monkeypatch, caplog):
     with caplog.at_level(logging.WARNING, logger="ScraperApp"):
         _run_until_start(monkeypatch, base_url="https://es.oddsportal.com")
     assert not any("base url" in r.message.lower() for r in caplog.records)
+
+
+def test_no_warning_when_timezone_set(monkeypatch, caplog):
+    with caplog.at_level(logging.WARNING, logger="ScraperApp"):
+        _run_until_start(monkeypatch, base_url="https://www.centroquote.it", browser_timezone_id="Europe/Rome")
+    assert not any("base url" in r.message.lower() for r in caplog.records)
+
+
+def test_warns_for_lookalike_host(monkeypatch, caplog):
+    with caplog.at_level(logging.WARNING, logger="ScraperApp"):
+        _run_until_start(monkeypatch, base_url="https://www.notoddsportal.com")
+    assert any("base url" in r.message.lower() for r in caplog.records)

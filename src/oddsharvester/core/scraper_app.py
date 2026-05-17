@@ -73,7 +73,12 @@ async def run_scraper(
 
     if base_url:
         host = urlsplit(base_url).netloc.lower()
-        if not host.endswith("oddsportal.com") and not browser_locale_timezone and not browser_timezone_id:
+        if (
+            host != "oddsportal.com"
+            and not host.endswith(".oddsportal.com")
+            and not browser_locale_timezone
+            and not browser_timezone_id
+        ):
             logger.warning(
                 "Regional base URL '%s' is set but no --locale/--timezone provided. "
                 "OddsPortal mirrors localise content; pass --locale and --timezone matching "
