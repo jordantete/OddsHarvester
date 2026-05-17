@@ -144,7 +144,7 @@ async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
 
     # Verify the interactions
     url_builder_mock.get_historic_matches_url.assert_called_once_with(
-        sport="football", league="premier-league", season="2023"
+        sport="football", league="premier-league", season="2023", base_url=None
     )
     page_mock.goto.assert_called_once()
     scraper._prepare_page_for_scraping.assert_called_once_with(page=page_mock)
@@ -210,7 +210,7 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
 
     # Verify the interactions
     url_builder_mock.get_upcoming_matches_url.assert_called_once_with(
-        sport="football", date="20260601", league="premier-league"
+        sport="football", date="20260601", league="premier-league", base_url=None
     )
     page_mock.goto.assert_called_once()
     scraper._prepare_page_for_scraping.assert_called_once_with(page=page_mock)
