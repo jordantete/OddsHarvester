@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import re
+from urllib.parse import urlsplit
 
 import click
 
@@ -190,3 +191,25 @@ def validate_file_path(ctx, param, value):
         raise click.BadParameter(f"Output path must not be an existing directory: '{value}'")
 
     return value
+
+
+def validate_base_url(ctx, param, value):
+    """Validate --base-url: host-only http(s) URL (no path/query/fragment)."""
+    if not value:
+        return None
+
+    normalized = value.rstrip("/")
+    parts = urlsplit(normalized)
+
+    if parts.scheme not in ("http", "https"):
+        raise click.BadParameter(
+            f"Invalid base URL '{value}'. Must start with http:// or https:// (e.g. https://www.centroquote.it)."
+        )
+    if not parts.netloc:
+        raise click.BadParameter(f"Invalid base URL '{value}'. Missing host (e.g. https://www.centroquote.it).")
+    if parts.path or parts.query or parts.fragment:
+        raise click.BadParameter(
+            f"Invalid base URL '{value}'. Provide host only, no path/query (e.g. https://www.centroquote.it)."
+        )
+
+    return normalized
