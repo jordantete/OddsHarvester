@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 from click.testing import CliRunner
 import pytest
 
+from oddsharvester import __version__
 from oddsharvester.cli.cli import cli
 
 # Use a far future date to avoid date validation issues
@@ -50,7 +51,7 @@ class TestCLIBasics:
         """Test that --version works."""
         result = runner.invoke(cli, ["--version"])
         assert result.exit_code == 0
-        assert "0.1.0" in result.output
+        assert __version__ in result.output
 
     def test_upcoming_help(self, runner):
         """Test upcoming command help."""
