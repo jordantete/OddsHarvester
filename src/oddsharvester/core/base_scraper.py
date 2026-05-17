@@ -179,6 +179,7 @@ class BaseScraper:
         cookie_dismisser: CookieDismisser,
         selection_manager: SelectionManager,
         preview_submarkets_only: bool = False,
+        base_url: str | None = None,
     ):
         """
         Args:
@@ -189,6 +190,8 @@ class BaseScraper:
             selection_manager (SelectionManager): Manages bookies filter and period selection.
             preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading
             individual bookmaker details.
+            base_url (str | None): Regional OddsPortal domain override (scheme+host). When None, the canonical
+            https://www.oddsportal.com is used.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
         self.playwright_manager = playwright_manager
@@ -197,6 +200,7 @@ class BaseScraper:
         self.cookie_dismisser = cookie_dismisser
         self.selection_manager = selection_manager
         self.preview_submarkets_only = preview_submarkets_only
+        self.base_url = base_url
 
     async def set_odds_format(self, page: Page, odds_format: OddsFormat = OddsFormat.DECIMAL_ODDS):
         """
@@ -309,7 +313,7 @@ class BaseScraper:
                     href = link["href"]
                     if len(href.strip("/").split("/")) <= 3:
                         continue
-                    full_url = f"{ODDSPORTAL_BASE_URL}{href}"
+                    full_url = f"{self.base_url or ODDSPORTAL_BASE_URL}{href}"
                     if full_url not in seen:
                         seen.add(full_url)
                         match_links.append(full_url)

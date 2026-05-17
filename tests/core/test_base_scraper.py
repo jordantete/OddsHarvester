@@ -1375,3 +1375,68 @@ async def test_extract_match_details_h2h_fragment_mismatch_dom_resolved_no_resyn
     assert result["away_score"] == "0"
     page_mock.evaluate.assert_not_awaited()
     page_mock.wait_for_function.assert_not_awaited()
+
+
+# -- base_url storage and match-link join -------------------------------------
+
+_SERIE_A_HREF = "/football/italy/serie-a/match-xyz/"
+_SERIE_A_HTML = f"""
+<html><body>
+  <div class="eventRow">
+    <a href="{_SERIE_A_HREF}">Serie A match</a>
+  </div>
+</body></html>
+"""
+
+
+class TestBaseScraperBaseUrl:
+    """Tests that BaseScraper stores base_url and applies it when building match links."""
+
+    def test_base_url_defaults_to_none(self, setup_base_scraper_mocks):
+        """A scraper constructed without base_url has scraper.base_url is None."""
+        scraper = setup_base_scraper_mocks["scraper"]
+        assert scraper.base_url is None
+
+    def test_base_url_stored_when_provided(self, setup_base_scraper_mocks):
+        """A scraper constructed with base_url stores it verbatim."""
+        mocks = setup_base_scraper_mocks
+        scraper = BaseScraper(
+            playwright_manager=mocks["playwright_manager_mock"],
+            market_extractor=mocks["market_extractor_mock"],
+            scroller=AsyncMock(),
+            cookie_dismisser=AsyncMock(),
+            selection_manager=mocks["selection_manager_mock"],
+            base_url="https://www.centroquote.it",
+        )
+        assert scraper.base_url == "https://www.centroquote.it"
+
+    @pytest.mark.asyncio
+    async def test_extract_match_links_default_uses_oddsportal_base(self, setup_base_scraper_mocks):
+        """With no base_url, extract_match_links prefixes with the canonical OddsPortal domain."""
+        mocks = setup_base_scraper_mocks
+        scraper = mocks["scraper"]
+        page_mock = mocks["page_mock"]
+        page_mock.content = AsyncMock(return_value=_SERIE_A_HTML)
+
+        result = await scraper.extract_match_links(page=page_mock)
+
+        assert result == [f"{ODDSPORTAL_BASE_URL}{_SERIE_A_HREF}"]
+
+    @pytest.mark.asyncio
+    async def test_extract_match_links_regional_base_url_applied(self, setup_base_scraper_mocks):
+        """With base_url set, extract_match_links prefixes with the regional domain instead."""
+        mocks = setup_base_scraper_mocks
+        regional_scraper = BaseScraper(
+            playwright_manager=mocks["playwright_manager_mock"],
+            market_extractor=mocks["market_extractor_mock"],
+            scroller=AsyncMock(),
+            cookie_dismisser=AsyncMock(),
+            selection_manager=mocks["selection_manager_mock"],
+            base_url="https://www.centroquote.it",
+        )
+        page_mock = mocks["page_mock"]
+        page_mock.content = AsyncMock(return_value=_SERIE_A_HTML)
+
+        result = await regional_scraper.extract_match_links(page=page_mock)
+
+        assert result == [f"https://www.centroquote.it{_SERIE_A_HREF}"]
