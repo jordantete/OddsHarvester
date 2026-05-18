@@ -280,3 +280,20 @@ class TestOutputPathValidation:
         result = runner.invoke(cli, ["historic", "-s", "football", "--season", "2024", "-o", str(existing_dir)])
         assert result.exit_code != 0
         assert "must not be an existing directory" in result.output
+
+
+def test_all_registered_sport_periods_are_cli_selectable():
+    """Every period of every registered sport must be a valid --period CLI choice.
+
+    Regression guard: handball and volleyball periods (e.g. 3rd_set..5th_set)
+    were missing from the CLI choice list because _get_all_periods() used a
+    hardcoded enum list that omitted those sports. This test fails if a new
+    sport's periods are added to the registry but not exposed via the CLI.
+    """
+    from oddsharvester.cli.options import _get_all_periods
+    from oddsharvester.core.sport_period_registry import SportPeriodRegistry
+
+    cli_periods = set(_get_all_periods())
+    for sport, config in SportPeriodRegistry._registry.items():
+        for period in config["enum"]:
+            assert period.value in cli_periods, f"{sport} period {period.value!r} not selectable via --period CLI"

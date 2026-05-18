@@ -22,10 +22,12 @@ from oddsharvester.utils.period_constants import (
     BaseballPeriod,
     BasketballPeriod,
     FootballPeriod,
+    HandballPeriod,
     IceHockeyPeriod,
     RugbyLeaguePeriod,
     RugbyUnionPeriod,
     TennisPeriod,
+    VolleyballPeriod,
 )
 
 
@@ -41,6 +43,8 @@ def _get_all_periods():
         AmericanFootballPeriod,
         IceHockeyPeriod,
         BaseballPeriod,
+        HandballPeriod,
+        VolleyballPeriod,
     ]:
         periods.update(p.value for p in period_enum)
     return sorted(periods)
