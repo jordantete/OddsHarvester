@@ -4,7 +4,7 @@
 
 ### Scrape sports betting odds from OddsPortal.com with ease
 
-Extract upcoming & historical odds across 9 sports, 100+ leagues, and dozens of betting markets.
+Extract upcoming & historical odds across 10 sports, 100+ leagues, and dozens of betting markets.
 <br>Powered by Playwright browser automation. Output to JSON, CSV, or S3.
 
 <br>
