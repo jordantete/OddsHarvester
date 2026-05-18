@@ -8,6 +8,7 @@ from oddsharvester.utils.period_constants import (
     RugbyLeaguePeriod,
     RugbyUnionPeriod,
     TennisPeriod,
+    VolleyballPeriod,
 )
 
 
@@ -196,3 +197,22 @@ class TestHandballPeriod:
         assert HandballPeriod.get_internal_value(HandballPeriod.FULL_TIME) == "FullTime"
         assert HandballPeriod.get_internal_value(HandballPeriod.FIRST_HALF) == "FirstHalf"
         assert HandballPeriod.get_internal_value(HandballPeriod.SECOND_HALF) == "SecondHalf"
+
+
+class TestVolleyballPeriod:
+    """Tests for the VolleyballPeriod enum."""
+
+    def test_enum_values(self):
+        assert VolleyballPeriod.FULL_TIME.value == "full_time"
+        assert VolleyballPeriod.FIRST_SET.value == "1st_set"
+        assert VolleyballPeriod.FIFTH_SET.value == "5th_set"
+
+    def test_get_display_label(self):
+        assert VolleyballPeriod.get_display_label(VolleyballPeriod.FULL_TIME) == "Full Time"
+        assert VolleyballPeriod.get_display_label(VolleyballPeriod.FIRST_SET) == "1st Set"
+        assert VolleyballPeriod.get_display_label(VolleyballPeriod.FIFTH_SET) == "5th Set"
+
+    def test_get_internal_value(self):
+        assert VolleyballPeriod.get_internal_value(VolleyballPeriod.FULL_TIME) == "FullTime"
+        assert VolleyballPeriod.get_internal_value(VolleyballPeriod.FIRST_SET) == "FirstSet"
+        assert VolleyballPeriod.get_internal_value(VolleyballPeriod.FIFTH_SET) == "FifthSet"

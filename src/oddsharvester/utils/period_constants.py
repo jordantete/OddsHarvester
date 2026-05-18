@@ -272,3 +272,40 @@ class HandballPeriod(Enum):
             cls.SECOND_HALF: "SecondHalf",
         }
         return internal_values[period]
+
+
+class VolleyballPeriod(Enum):
+    """Periods available for volleyball matches (best-of-5 sets)."""
+
+    FULL_TIME = "full_time"
+    FIRST_SET = "1st_set"
+    SECOND_SET = "2nd_set"
+    THIRD_SET = "3rd_set"
+    FOURTH_SET = "4th_set"
+    FIFTH_SET = "5th_set"
+
+    @classmethod
+    def get_display_label(cls, period: "VolleyballPeriod") -> str:
+        """Get the display label for OddsPortal UI."""
+        labels = {
+            cls.FULL_TIME: "Full Time",
+            cls.FIRST_SET: "1st Set",
+            cls.SECOND_SET: "2nd Set",
+            cls.THIRD_SET: "3rd Set",
+            cls.FOURTH_SET: "4th Set",
+            cls.FIFTH_SET: "5th Set",
+        }
+        return labels[period]
+
+    @classmethod
+    def get_internal_value(cls, period: "VolleyballPeriod") -> str:
+        """Get the internal value used in scraper functions."""
+        internal_values = {
+            cls.FULL_TIME: "FullTime",
+            cls.FIRST_SET: "FirstSet",
+            cls.SECOND_SET: "SecondSet",
+            cls.THIRD_SET: "ThirdSet",
+            cls.FOURTH_SET: "FourthSet",
+            cls.FIFTH_SET: "FifthSet",
+        }
+        return internal_values[period]
