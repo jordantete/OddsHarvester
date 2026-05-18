@@ -15,6 +15,7 @@ The gotchas are grouped by theme:
 - **§5** — Our own code architecture (where logic belongs).
 - **§6** — Operational: anti-bot detection symptoms.
 - **§7** — Regional mirror domains and the `--base-url` option.
+- **§8** — Volleyball O/U and AH each split into a Sets axis and a Points axis.
 
 ---
 
