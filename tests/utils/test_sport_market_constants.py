@@ -26,6 +26,12 @@ from oddsharvester.utils.sport_market_constants import (
     TennisMarket,
     TennisOverUnderGamesMarket,
     TennisOverUnderSetsMarket,
+    VolleyballAsianHandicapPointsMarket,
+    VolleyballAsianHandicapSetsMarket,
+    VolleyballCorrectScoreMarket,
+    VolleyballMarket,
+    VolleyballOverUnderPointsMarket,
+    VolleyballOverUnderSetsMarket,
 )
 
 
@@ -188,3 +194,31 @@ class TestSportEnums:
         assert "over_under_70_5" in over_under_values
         assert "handicap_-9_5" in handicap_values
         assert "handicap_+9_5" in handicap_values
+
+    def test_volleyball_market_enums(self):
+        """Verify volleyball markets (Home/Away, O/U Sets+Points, AH Sets+Points, Correct Score)."""
+        assert Sport.VOLLEYBALL.value == "volleyball"
+
+        market_values = [m.value for m in VolleyballMarket]
+        ou_sets = [m.value for m in VolleyballOverUnderSetsMarket]
+        ou_points = [m.value for m in VolleyballOverUnderPointsMarket]
+        ah_sets = [m.value for m in VolleyballAsianHandicapSetsMarket]
+        ah_points = [m.value for m in VolleyballAsianHandicapPointsMarket]
+        cs = [m.value for m in VolleyballCorrectScoreMarket]
+
+        assert "home_away" in market_values
+        assert "over_under_sets_3_5" in ou_sets
+        assert "over_under_sets_4_5" in ou_sets
+        assert "over_under_points_184_5" in ou_points
+        assert "asian_handicap_-2_5_sets" in ah_sets
+        assert "asian_handicap_+2_5_sets" in ah_sets
+        assert "asian_handicap_+2_5_points" in ah_points
+        assert "asian_handicap_-9_5_points" in ah_points
+        assert set(cs) == {
+            "correct_score_3_0",
+            "correct_score_3_1",
+            "correct_score_3_2",
+            "correct_score_0_3",
+            "correct_score_1_3",
+            "correct_score_2_3",
+        }
