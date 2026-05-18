@@ -86,6 +86,7 @@ class TestSportPeriodRegistry:
         assert SportPeriodRegistry.is_sport_registered("american-football")
         assert SportPeriodRegistry.is_sport_registered("ice-hockey")
         assert SportPeriodRegistry.is_sport_registered("baseball")
+        assert SportPeriodRegistry.is_sport_registered("volleyball")
 
     def test_football_cli_values(self):
         """Test that football has the correct CLI values."""
