@@ -266,6 +266,19 @@ class TestSportMarketRegistrar:
         assert "over_under_40_5" in handball_markets
         assert "handicap_-9_5" in handball_markets
 
+    def test_register_volleyball_markets(self):
+        """Test registering markets for volleyball (Home/Away, O/U+AH Sets/Points, Correct Score)."""
+        SportMarketRegistrar.register_volleyball_markets()
+
+        m = SportMarketRegistry.get_market_mapping(Sport.VOLLEYBALL.value)
+
+        assert "home_away" in m
+        assert "over_under_sets_3_5" in m
+        assert "over_under_points_184_5" in m
+        assert "asian_handicap_+2_5_sets" in m
+        assert "asian_handicap_+2_5_points" in m
+        assert "correct_score_3_0" in m
+
     def test_register_all_markets(self):
         """Test registering all markets for all sports."""
         # Act
@@ -282,7 +295,10 @@ class TestSportMarketRegistrar:
                                         with patch.object(
                                             SportMarketRegistrar, "register_handball_markets"
                                         ) as mock_handball:
-                                            SportMarketRegistrar.register_all_markets()
+                                            with patch.object(
+                                                SportMarketRegistrar, "register_volleyball_markets"
+                                            ) as mock_volleyball:
+                                                SportMarketRegistrar.register_all_markets()
 
         # Assert
         mock_football.assert_called_once()
@@ -294,6 +310,7 @@ class TestSportMarketRegistrar:
         mock_baseball.assert_called_once()
         mock_american_football.assert_called_once()
         mock_handball.assert_called_once()
+        mock_volleyball.assert_called_once()
 
     def test_register_all_markets_integration(self):
         """Test registering all markets in an integration test"""
@@ -315,3 +332,4 @@ class TestSportMarketRegistrar:
         assert "home_away" in SportMarketRegistry.get_market_mapping(Sport.BASEBALL.value)
         assert "home_away" in SportMarketRegistry.get_market_mapping(Sport.AMERICAN_FOOTBALL.value)
         assert "1x2" in SportMarketRegistry.get_market_mapping(Sport.HANDBALL.value)
+        assert "home_away" in SportMarketRegistry.get_market_mapping(Sport.VOLLEYBALL.value)

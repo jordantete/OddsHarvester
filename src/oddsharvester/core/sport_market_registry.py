@@ -20,6 +20,11 @@ from oddsharvester.utils.sport_market_constants import (
     TennisCorrectScoreMarket,
     TennisOverUnderGamesMarket,
     TennisOverUnderSetsMarket,
+    VolleyballAsianHandicapPointsMarket,
+    VolleyballAsianHandicapSetsMarket,
+    VolleyballCorrectScoreMarket,
+    VolleyballOverUnderPointsMarket,
+    VolleyballOverUnderSetsMarket,
 )
 
 
@@ -460,6 +465,92 @@ class SportMarketRegistrar:
             )
 
     @classmethod
+    def register_volleyball_markets(cls):
+        """Registers all volleyball betting markets.
+
+        Modelled on register_tennis_markets: Home/Away winner, Over/Under and
+        Asian Handicap each on a Sets axis and a Points axis, plus Correct Score.
+        OddsPortal labels the handicap tab "Asian Handicap" and suffixes the
+        submarket with " Sets" / " Points" (verified live, May 2026).
+        """
+        SportMarketRegistry.register(
+            Sport.VOLLEYBALL,
+            {
+                "home_away": cls.create_market_lambda("Home/Away", odds_labels=["1", "2"]),
+            },
+        )
+
+        # Over/Under Sets
+        for over_under in VolleyballOverUnderSetsMarket:
+            numeric_part = over_under.value.replace("over_under_sets_", "").replace("_", ".")
+            SportMarketRegistry.register(
+                Sport.VOLLEYBALL,
+                {
+                    over_under.value: cls.create_market_lambda(
+                        main_market="Over/Under",
+                        specific_market=f"Over/Under +{numeric_part} Sets",
+                        odds_labels=["odds_over", "odds_under"],
+                    )
+                },
+            )
+
+        # Over/Under Points
+        for over_under in VolleyballOverUnderPointsMarket:
+            numeric_part = over_under.value.replace("over_under_points_", "").replace("_", ".")
+            SportMarketRegistry.register(
+                Sport.VOLLEYBALL,
+                {
+                    over_under.value: cls.create_market_lambda(
+                        main_market="Over/Under",
+                        specific_market=f"Over/Under +{numeric_part} Points",
+                        odds_labels=["odds_over", "odds_under"],
+                    )
+                },
+            )
+
+        # Asian Handicap Sets
+        for handicap in VolleyballAsianHandicapSetsMarket:
+            numeric_part = handicap.value.replace("asian_handicap_", "").replace("_sets", "").replace("_", ".")
+            SportMarketRegistry.register(
+                Sport.VOLLEYBALL,
+                {
+                    handicap.value: cls.create_market_lambda(
+                        main_market="Asian Handicap",
+                        specific_market=f"Asian Handicap {numeric_part} Sets",
+                        odds_labels=["sets_handicap_team_1", "sets_handicap_team_2"],
+                    )
+                },
+            )
+
+        # Asian Handicap Points
+        for handicap in VolleyballAsianHandicapPointsMarket:
+            numeric_part = handicap.value.replace("asian_handicap_", "").replace("_points", "").replace("_", ".")
+            SportMarketRegistry.register(
+                Sport.VOLLEYBALL,
+                {
+                    handicap.value: cls.create_market_lambda(
+                        main_market="Asian Handicap",
+                        specific_market=f"Asian Handicap {numeric_part} Points",
+                        odds_labels=["points_handicap_team_1", "points_handicap_team_2"],
+                    )
+                },
+            )
+
+        # Correct Score
+        for correct_score in VolleyballCorrectScoreMarket:
+            numeric_part = correct_score.value.replace("correct_score_", "").replace("_", ":")
+            SportMarketRegistry.register(
+                Sport.VOLLEYBALL,
+                {
+                    correct_score.value: cls.create_market_lambda(
+                        main_market="Correct Score",
+                        specific_market=f"{numeric_part}",
+                        odds_labels=["correct_score"],
+                    )
+                },
+            )
+
+    @classmethod
     def register_all_markets(cls):
         """Registers all sports markets."""
         cls.register_football_markets()
@@ -471,3 +562,4 @@ class SportMarketRegistrar:
         cls.register_baseball_markets()
         cls.register_american_football_markets()
         cls.register_handball_markets()
+        cls.register_volleyball_markets()
