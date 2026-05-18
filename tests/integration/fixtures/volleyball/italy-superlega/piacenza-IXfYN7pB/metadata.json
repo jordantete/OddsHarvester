@@ -1,0 +1,19 @@
+{
+    "match_id": "IXfYN7pB",
+    "match_url": "https://www.oddsportal.com/volleyball/h2h/perugia-EJS1lfOD/piacenza-IXfYN7pB/#I9QUfUfB",
+    "sport": "volleyball",
+    "league": "italy-superlega",
+    "home_team": "Piacenza",
+    "away_team": "Perugia",
+    "final_score": {
+        "home": "2",
+        "away": "3"
+    },
+    "match_date": "2025-05-03 20:30:00 UTC",
+    "notes": "",
+    "captured_at": "2026-05-18T12:51:36.646371+00:00",
+    "oddsharvester_version": "0.2.1",
+    "available_fixtures": [
+        "home_away_full_time_all.json"
+    ]
+}

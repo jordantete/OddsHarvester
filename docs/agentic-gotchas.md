@@ -441,9 +441,13 @@ outcomes are exactly `3:0 3:1 3:2 0:3 1:3 2:3` and exist only at `Full Time`.
 ### HAR-replay consequence
 
 All volleyball league match pages use the H2H fragment URL pattern
-(`/volleyball/h2h/<t1-id>/<t2-id>/#<hash>`). Like NBA/baseball/handball, the
-integration test (`tests/integration/test_volleyball.py`) is marked
-`@pytest.mark.live_only` and skipped in default HAR-replay mode.
+(`/volleyball/h2h/<t1-id>/<t2-id>/#<hash>`). Unlike the NBA/real-madrid-barcelona
+H2H pages, a *historic finished* volleyball match captured via `--match-link`
++ `--season` replays cleanly from its HAR (no runtime-cache-buster redirect
+chain), so `tests/integration/test_volleyball.py` runs deterministically in
+default HAR-replay mode — it is NOT marked `live_only`. The H2H fragment is
+still why a fixture must be *captured* (not hand-written): only a real capture
+resolves the fragment to the intended match.
 
 ---
 
