@@ -30,6 +30,9 @@ SPORTS_LEAGUES_URLS_MAPPING[Sport.AMERICAN_FOOTBALL] = {
 SPORTS_LEAGUES_URLS_MAPPING[Sport.HANDBALL] = {
     "ehf-champions-league": f"{ODDSPORTAL_BASE_URL}/handball/europe/champions-league",
 }
+SPORTS_LEAGUES_URLS_MAPPING[Sport.VOLLEYBALL] = {
+    "italy-superlega": f"{ODDSPORTAL_BASE_URL}/volleyball/italy/superlega",
+}
 
 
 @pytest.mark.parametrize(
@@ -213,6 +216,7 @@ def test_get_upcoming_matches_url(sport, date, league, expected_url):
         ("baseball", "mlb", f"{ODDSPORTAL_BASE_URL}/baseball/usa/mlb"),
         ("american-football", "nfl", f"{ODDSPORTAL_BASE_URL}/american-football/usa/nfl"),
         ("handball", "ehf-champions-league", f"{ODDSPORTAL_BASE_URL}/handball/europe/champions-league"),
+        ("volleyball", "italy-superlega", f"{ODDSPORTAL_BASE_URL}/volleyball/italy/superlega"),
     ],
 )
 def test_get_league_url(sport, league, expected_url):
