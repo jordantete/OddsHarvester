@@ -332,3 +332,14 @@ def test_get_supported_markets_handball():
     assert "dnb" in markets
     assert "over_under_40_5" in markets
     assert "handicap_+9_5" in markets
+
+
+def test_get_supported_markets_volleyball():
+    """Volleyball returns its full market union (Home/Away, O/U+AH Sets/Points, Correct Score)."""
+    markets = get_supported_markets("volleyball")
+    assert "home_away" in markets
+    assert "over_under_sets_3_5" in markets
+    assert "over_under_points_184_5" in markets
+    assert "asian_handicap_+2_5_sets" in markets
+    assert "asian_handicap_+2_5_points" in markets
+    assert "correct_score_3_0" in markets
