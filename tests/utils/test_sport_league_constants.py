@@ -46,3 +46,37 @@ class TestHandballLeagueConstants:
             fresh_mapping[Sport.HANDBALL]["ehf-champions-league"]
             == "https://www.oddsportal.com/handball/europe/champions-league/"
         )
+
+
+class TestVolleyballLeagueConstants:
+    """Guards the production volleyball league mapping."""
+
+    def test_volleyball_sport_present(self, fresh_mapping):
+        assert Sport.VOLLEYBALL in fresh_mapping
+
+    def test_volleyball_expected_leagues(self, fresh_mapping):
+        leagues = fresh_mapping[Sport.VOLLEYBALL]
+        expected = {
+            "italy-superlega",
+            "poland-plusliga",
+            "france-ligue-a",
+            "germany-1-bundesliga",
+            "turkey-efeler-ligi",
+            "brazil-superliga",
+            "japan-sv-league",
+            "cev-champions-league",
+            "nations-league",
+        }
+        assert expected.issubset(set(leagues.keys()))
+
+    def test_volleyball_urls_well_formed(self, fresh_mapping):
+        leagues = fresh_mapping[Sport.VOLLEYBALL]
+        for slug, url in leagues.items():
+            assert url.startswith("https://www.oddsportal.com/volleyball/"), f"{slug}: {url}"
+            assert url.endswith("/"), f"{slug} URL must end with '/': {url}"
+
+    def test_italy_superlega_url(self, fresh_mapping):
+        assert (
+            fresh_mapping[Sport.VOLLEYBALL]["italy-superlega"]
+            == "https://www.oddsportal.com/volleyball/italy/superlega/"
+        )
