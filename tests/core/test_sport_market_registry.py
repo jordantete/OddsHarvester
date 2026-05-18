@@ -276,7 +276,9 @@ class TestSportMarketRegistrar:
         assert "over_under_sets_3_5" in m
         assert "over_under_points_184_5" in m
         assert "asian_handicap_+2_5_sets" in m
+        assert "asian_handicap_-2_5_sets" in m
         assert "asian_handicap_+2_5_points" in m
+        assert "asian_handicap_-9_5_points" in m
         assert "correct_score_3_0" in m
 
     def test_register_all_markets(self):
