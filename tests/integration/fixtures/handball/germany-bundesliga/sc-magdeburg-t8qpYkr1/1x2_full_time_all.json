@@ -1,0 +1,67 @@
+[
+    {
+        "scraped_date": "2026-05-18 13:17:43 UTC",
+        "match_date": "2026-05-10 16:30:00 UTC",
+        "match_link": "https://www.oddsportal.com/handball/h2h/hsv-hamburg-2XSOzhbr/sc-magdeburg-t8qpYkr1/#vglQ4eEN",
+        "home_team": "SC Magdeburg",
+        "away_team": "Hamburg",
+        "league_name": "Bundesliga",
+        "home_score": "41",
+        "away_score": "28",
+        "partial_results": "(21:12, 20:16)",
+        "venue": null,
+        "venue_town": null,
+        "venue_country": "",
+        "1x2_market": [
+            {
+                "1": "1.08",
+                "X": "12.50",
+                "2": "8.35",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime"
+            },
+            {
+                "1": "1.09",
+                "X": "15.00",
+                "2": "11.00",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime"
+            },
+            {
+                "1": "1.07",
+                "X": "11.00",
+                "2": "6.50",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullTime"
+            },
+            {
+                "1": "1.11",
+                "X": "14.00",
+                "2": "8.50",
+                "bookmaker_name": "Roobet",
+                "period": "FullTime"
+            },
+            {
+                "1": "1.08",
+                "X": "23.00",
+                "2": "11.00",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime"
+            },
+            {
+                "1": "1.06",
+                "X": "13.50",
+                "2": "8.20",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime"
+            },
+            {
+                "1": "1.05",
+                "X": "14.00",
+                "2": "8.50",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime"
+            }
+        ]
+    }
+]

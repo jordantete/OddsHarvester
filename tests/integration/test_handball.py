@@ -1,20 +1,24 @@
 """Integration tests for handball scraping.
 
 Regression guard for the Reddit 'Bettet' issue: handball must STORE ODDS,
-not just match results. The 1x2 odds field must be non-empty.
+not just match results. The 1x2_market field must be non-empty.
 
-NOTE: fixture not yet captured — all handball leagues on OddsPortal use
-H2H fragment URLs (/handball/h2h/<team1-id>/<team2-id>/#<match-id>), which
-cannot be replayed deterministically from HAR (same limitation as NBA/baseball
-H2H tests, marked live_only). Capture with a direct match URL once OddsPortal
-exposes one, or run with --live against an H2H URL:
+A real fixture + HAR were captured from the Bundesliga 2025/2026
+SC Magdeburg vs Hamburg match (see BUNDESLIGA_MATCH). The match URL is an
+H2H fragment URL (/handball/h2h/<team1-id>/<team2-id>/#<match-id>), but unlike
+the NBA/real-madrid-barcelona H2H pages this historic match replays cleanly
+from its HAR (no runtime-cache-buster redirect chain), so this test runs
+deterministically in default HAR-replay mode — it is NOT marked live_only.
+Run with --live to exercise it against the real site, or refresh the
+fixture with:
 
     uv run python -m tests.integration.helpers.capture --sport handball \
-        --league ehf-champions-league \
-        --match-url "<MATCH_URL>" \
+        --league germany-bundesliga \
+        --match-url "https://www.oddsportal.com/handball/h2h/hsv-hamburg-2XSOzhbr/sc-magdeburg-t8qpYkr1/#vglQ4eEN" \
         --markets "1x2" \
         --period "full_time" \
         --bookies-filter "all" \
+        --season 2024-2025 \
         --capture-har
 """
 
@@ -24,14 +28,11 @@ import pytest
 
 from tests.integration.helpers.comparison import compare_match_data
 
-# NOTE: fixture not yet captured — see module docstring for capture instructions.
-# The fixture_exists guard below makes this test SKIP (not fail) until a fixture
-# is available.
-EHF_MATCH = {
+BUNDESLIGA_MATCH = {
     "sport": "handball",
-    "league": "ehf-champions-league",
-    "match_id": "PLACEHOLDER_CAPTURE_PENDING",
-    "url": "https://www.oddsportal.com/handball/europe/ehf-champions-league/",
+    "league": "germany-bundesliga",
+    "match_id": "sc-magdeburg-t8qpYkr1",
+    "url": "https://www.oddsportal.com/handball/h2h/hsv-hamburg-2XSOzhbr/sc-magdeburg-t8qpYkr1/#vglQ4eEN",
 }
 
 
@@ -39,8 +40,8 @@ EHF_MATCH = {
 class TestHandballBasicMarkets:
     """Regression tests for handball odds extraction.
 
-    Guards the 'Bettet' regression: handball scraping must produce non-empty
-    1x2 odds, not just match metadata.
+    Guards the 'Bettet' regression: handball scraping must produce a non-empty
+    1x2_market, not just match metadata.
     """
 
     def test_hb_001_1x2_full_time(
@@ -55,26 +56,26 @@ class TestHandballBasicMarkets:
         fixture_name = "1x2_full_time_all.json"
 
         if not fixture_exists(
-            EHF_MATCH["sport"],
-            EHF_MATCH["league"],
-            EHF_MATCH["match_id"],
+            BUNDESLIGA_MATCH["sport"],
+            BUNDESLIGA_MATCH["league"],
+            BUNDESLIGA_MATCH["match_id"],
             fixture_name,
         ):
-            pytest.skip(f"Fixture not yet captured: {fixture_name} — see module docstring")
+            pytest.skip(f"Fixture not available: {fixture_name} — see module docstring")
 
         output_path = temp_output_dir / "output"
 
         exit_code, _stdout, stderr = run_scraper(
             sport="handball",
-            match_link=EHF_MATCH["url"],
+            match_link=BUNDESLIGA_MATCH["url"],
             markets=["1x2"],
             output_path=output_path,
             period="full_time",
             bookies_filter="all",
             har_path=har_for_match(
-                EHF_MATCH["sport"],
-                EHF_MATCH["league"],
-                EHF_MATCH["match_id"],
+                BUNDESLIGA_MATCH["sport"],
+                BUNDESLIGA_MATCH["league"],
+                BUNDESLIGA_MATCH["match_id"],
                 fixture_name,
             ),
         )
@@ -85,14 +86,13 @@ class TestHandballBasicMarkets:
             actual = json.load(f)
 
         # Regression guard: handball must store odds, not just match metadata.
-        assert actual[0].get("1x2") or (actual[0].get("odds") or {}).get(
-            "1x2"
-        ), "Handball regression: 1x2 odds missing — scraper stored metadata only"
+        one_x_two = actual[0].get("1x2_market")
+        assert one_x_two, "Handball regression: 1x2_market missing — scraper stored metadata only"
 
         expected = load_fixture(
-            EHF_MATCH["sport"],
-            EHF_MATCH["league"],
-            EHF_MATCH["match_id"],
+            BUNDESLIGA_MATCH["sport"],
+            BUNDESLIGA_MATCH["league"],
+            BUNDESLIGA_MATCH["match_id"],
             fixture_name,
         )
 

@@ -1,0 +1,19 @@
+{
+    "match_id": "t8qpYkr1",
+    "match_url": "https://www.oddsportal.com/handball/h2h/hsv-hamburg-2XSOzhbr/sc-magdeburg-t8qpYkr1/#vglQ4eEN",
+    "sport": "handball",
+    "league": "germany-bundesliga",
+    "home_team": "SC Magdeburg",
+    "away_team": "Hamburg",
+    "final_score": {
+        "home": "41",
+        "away": "28"
+    },
+    "match_date": "2026-05-10 16:30:00 UTC",
+    "notes": "",
+    "captured_at": "2026-05-18T13:17:55.913712+00:00",
+    "oddsharvester_version": "0.2.1",
+    "available_fixtures": [
+        "1x2_full_time_all.json"
+    ]
+}
