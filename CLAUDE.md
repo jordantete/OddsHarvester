@@ -167,6 +167,29 @@ Recapture when scraper parsing changes, after a Playwright upgrade, or quarterly
   - Result handling → create shared helpers rather than copy-pasting
 - **Before adding new constants/utilities**: Search the codebase (`grep`/`rg`) to check if similar functionality already exists
 
+### Branch & Merge Workflow (linear history)
+
+`master` history must stay **linear** — no `--no-ff` merge bubbles. The repo is
+configured locally with `merge.ff = only` and `pull.ff = only`, so a non-fast-forward
+merge or pull will fail by design. Workflow for any feature/fix branch:
+
+```bash
+git switch -c feat/my-thing            # work on a branch (never commit straight to master)
+# ... commits ...
+git fetch origin
+git rebase origin/master               # replay branch on top of latest master
+git switch master
+git merge --ff-only feat/my-thing      # fast-forward only; refuses if not linear
+git branch -d feat/my-thing
+```
+
+- Never use `git merge --no-ff` and never resolve a divergence with a merge commit.
+- If `git merge --ff-only` is rejected, rebase the branch onto `master` first — do
+  not work around it with a merge commit.
+- **Never rewrite/`push --force` published `master`** — it is a public repo with forks
+  and external PRs. The pre-`v0.2.1` and existing merge-bubble history stays as-is;
+  this policy only governs new work.
+
 ## Release Process
 
 This project uses a tag-based release strategy. Publishing to PyPI is automated via GitHub Actions.
