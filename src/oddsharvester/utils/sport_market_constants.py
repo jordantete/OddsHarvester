@@ -923,7 +923,12 @@ class VolleyballOverUnderSetsMarket(Enum):
 
 
 class VolleyballOverUnderPointsMarket(Enum):
-    """Over/Under total points betting markets for volleyball."""
+    """Over/Under total points betting markets for volleyball.
+
+    Band 150.5-230.5 covers the lines observed live (OddsPortal, May 2026);
+    lines outside this range for unusually high/low-scoring matches are
+    silently dropped. Widen here if such a gap is reported.
+    """
 
     OVER_UNDER_150_5 = "over_under_points_150_5"
     OVER_UNDER_151_5 = "over_under_points_151_5"
