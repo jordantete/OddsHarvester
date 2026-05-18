@@ -350,6 +350,7 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "hungary-nb-i": "https://www.oddsportal.com/handball/hungary/nb-i/",
     },
     Sport.VOLLEYBALL: {
+        # russia-superliga intentionally omitted: live validation returned no match data (post-2022)
         "italy-superlega": "https://www.oddsportal.com/volleyball/italy/superlega/",
         "poland-plusliga": "https://www.oddsportal.com/volleyball/poland/plusliga/",
         "france-ligue-a": "https://www.oddsportal.com/volleyball/france/ligue-a/",

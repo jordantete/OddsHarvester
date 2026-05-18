@@ -80,3 +80,11 @@ class TestVolleyballLeagueConstants:
             fresh_mapping[Sport.VOLLEYBALL]["italy-superlega"]
             == "https://www.oddsportal.com/volleyball/italy/superlega/"
         )
+
+    def test_cev_champions_league_url(self, fresh_mapping):
+        # Slug intentionally differs from the URL path segment (champions-league),
+        # mirroring the handball EHF case — pin it so a refactor can't silently break it.
+        assert (
+            fresh_mapping[Sport.VOLLEYBALL]["cev-champions-league"]
+            == "https://www.oddsportal.com/volleyball/europe/champions-league/"
+        )
