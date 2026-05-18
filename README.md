@@ -65,6 +65,7 @@ oddsharvester historic -s football -l england-premier-league --season 2024-2025 
 | ⚾ Baseball          | `moneyline` `over/under`                                                                       |
 | 🏈 American Football | `1x2` `moneyline` `over/under` `asian_handicap`                                                |
 | 🤾 Handball          | `1x2` `home_away` `double_chance` `draw_no_bet` `over/under` `handicap`                        |
+| 🏐 Volleyball        | `home_away` `total_sets_over/under` `total_points_over/under` `asian_handicap` `correct_score` |
 
 100+ leagues supported across all sports: Premier League, La Liga, Serie A, NBA, NFL, MLB, NHL, ATP/WTA Grand Slams, and [many more](src/oddsharvester/utils/sport_league_constants.py).
 

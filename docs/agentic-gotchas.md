@@ -413,6 +413,39 @@ HAR fixtures for mirror domains — replay them as `.com` and test the
 
 ---
 
+## §8 — Volleyball Over/Under and Asian Handicap each split into a Sets axis and a Points axis
+
+**Severity:** High — registering only one axis silently drops half the volleyball O/U and AH submarkets.
+
+Unlike handball (single goals axis), volleyball's `Over/Under` and `Asian Handicap`
+tabs each contain TWO independent submarket families, disambiguated only by a
+suffix word in the row label:
+
+| Tab | Submarket label form | Example |
+|---|---|---|
+| Over/Under | `Over/Under +{N}.5 Sets` | `Over/Under +3.5 Sets` |
+| Over/Under | `Over/Under +{N}.5 Points` | `Over/Under +184.5 Points` |
+| Asian Handicap | `Asian Handicap {±N}.5 Sets` | `Asian Handicap -2.5 Sets` |
+| Asian Handicap | `Asian Handicap {±N}.5 Points` | `Asian Handicap +5.5 Points` |
+
+The `specific_market` string passed to the extractor MUST include the trailing
+` Sets` / ` Points` word or the wrong family is matched. This mirrors tennis
+(`Games` vs `Sets`), not handball. Verified live against Italian SuperLega,
+May 2026.
+
+Volleyball also has NO draw-based markets (no `1X2`, `DNB`, `Double Chance`) —
+only `Home/Away`. Periods are `Full Time` + `1st`–`5th Set`. `Correct Score`
+outcomes are exactly `3:0 3:1 3:2 0:3 1:3 2:3` and exist only at `Full Time`.
+
+### HAR-replay consequence
+
+All volleyball league match pages use the H2H fragment URL pattern
+(`/volleyball/h2h/<t1-id>/<t2-id>/#<hash>`). Like NBA/baseball/handball, the
+integration test (`tests/integration/test_volleyball.py`) is marked
+`@pytest.mark.live_only` and skipped in default HAR-replay mode.
+
+---
+
 ## Adding a new gotcha
 
 When a fix lands that exposes an OddsPortal-specific behaviour an agent
