@@ -57,7 +57,7 @@ oddsharvester historic -s football -l england-premier-league --season 2024-2025 
 | Sport                | Markets                                                                                        |
 | -------------------- | ---------------------------------------------------------------------------------------------- |
 | ⚽ Football          | `1x2` `btts` `double_chance` `draw_no_bet` `over/under` `european_handicap` `asian_handicap`   |
-| 🎾 Tennis            | `match_winner` `total_sets_over/under` `total_games_over/under` `asian_handicap` `exact_score` |
+| 🎾 Tennis            | `match_winner` `total_sets_over/under` `total_games_over/under` `asian_handicap` `correct_score` |
 | 🏀 Basketball        | `1x2` `moneyline` `asian_handicap` `over/under`                                                |
 | 🏉 Rugby League      | `1x2` `home_away` `double_chance` `draw_no_bet` `over/under` `handicap`                        |
 | 🏉 Rugby Union       | `1x2` `home_away` `double_chance` `draw_no_bet` `over/under` `handicap`                        |
