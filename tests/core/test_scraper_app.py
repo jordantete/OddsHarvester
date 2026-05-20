@@ -147,6 +147,7 @@ async def test_run_scraper_upcoming(
         period=ANY,
         request_delay=ANY,
         concurrent_scraping_task=ANY,
+        include_started=False,
     )
 
     assert result == {"result": "upcoming_data"}
@@ -229,6 +230,36 @@ async def test_run_scraper_upcoming_forwards_concurrency(
     )
 
     assert scraper_mock.scrape_upcoming.call_args.kwargs.get("concurrent_scraping_task") == 10
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.scraper_app.OddsPortalScraper")
+@patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
+@patch("oddsharvester.core.scraper_app.PlaywrightManager")
+@patch("oddsharvester.core.scraper_app.ProxyManager")
+@patch("oddsharvester.core.scraper_app.SportMarketRegistrar")
+async def test_run_scraper_upcoming_forwards_include_started(
+    sport_market_registrar_mock,
+    proxy_manager_mock,
+    playwright_manager_mock,
+    market_extractor_mock,
+    scraper_cls_mock,
+    setup_mocks,
+):
+    """run_scraper(include_started=True) must forward include_started=True to scrape_upcoming (issue #58)."""
+    scraper_mock = setup_mocks["scraper_mock"]
+    scraper_cls_mock.return_value = scraper_mock
+    proxy_manager_mock.return_value.get_current_proxy.return_value = None
+
+    await run_scraper(
+        command=CommandEnum.UPCOMING_MATCHES,
+        sport="football",
+        date="20260601",
+        markets=["1x2"],
+        include_started=True,
+    )
+
+    assert scraper_mock.scrape_upcoming.call_args.kwargs.get("include_started") is True
 
 
 @pytest.mark.asyncio

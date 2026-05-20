@@ -22,6 +22,13 @@ logger = logging.getLogger(__name__)
     callback=validate_date,
     help="Date for upcoming matches (format: YYYYMMDD).",
 )
+@click.option(
+    "--include-started/--no-include-started",
+    "include_started",
+    default=False,
+    envvar="OH_INCLUDE_STARTED",
+    help="Also return matches that have already started or finished (default: upcoming-only).",
+)
 @click.pass_context
 def upcoming(ctx, **kwargs):
     """Scrape odds for upcoming matches."""
@@ -61,6 +68,7 @@ def upcoming(ctx, **kwargs):
                 period=kwargs.get("period"),
                 request_delay=kwargs.get("request_delay", 1.0),
                 concurrency_tasks=kwargs.get("concurrency_tasks", 3),
+                include_started=kwargs.get("include_started", False),
             )
         )
 

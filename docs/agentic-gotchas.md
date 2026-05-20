@@ -451,6 +451,60 @@ resolves the fragment to the intended match.
 
 ---
 
+## §9 — Listing pages return started/finished matches under "upcoming"
+
+**Severity:** Medium — `upcoming -d <today>` historically returned matches
+already in play or finished, polluting the "upcoming" semantics promised by
+the CLI (GitHub issue #58, point 2).
+
+`/matches/<sport>/<date>/` returns *every* match scheduled for that day, in
+all three states: upcoming, live, finished. **Per-row state is split across
+two elements** — there is no single source-of-truth field:
+
+| Match state | `[data-testid="time-item"]` `<p>` text | `[data-testid="game-status-box"]` text |
+|---|---|---|
+| Upcoming (not yet started) | `HH:MM` (kick-off clock) | **empty** (`<!---->` placeholders only) |
+| Live | period marker (`1S`, `4S`, `HT`, `1H`, `65'`) — note the live `<p>` carries class `text-red-dark` | **empty** (still!) |
+| Finished | unchanged kick-off clock (or empty) | `FinishedFIN` |
+| Postponed / Cancelled | unchanged kick-off clock | `Postponed` / `Canceled` |
+
+### Why both signals are needed
+
+The first wrong hypothesis to avoid: **`game-status-box` does not flip when
+a match goes live.** It only flips at FT (or for postponed/cancelled). During
+play, OddsPortal mutates `time-item` instead (the kick-off clock is replaced
+by a period marker, with `text-red-dark` class for visual emphasis).
+
+A status-box-only check passes live matches through — exactly the bug
+verified on volleyball 2026-05-20 (live `4S` and `1S` rows leaked through
+until the helper was extended to also check `time-item`).
+
+### Detection signal
+
+- `game-status-box` non-empty → finished/postponed/cancelled → drop.
+- `time-item` `<p>` text does **not** match `^\d{1,2}:\d{2}$` → live → drop.
+- Both empty/match `HH:MM` → upcoming → keep.
+
+Don't match on the `text-red-dark` Tailwind class for live state — class
+names churn on React rebuilds (see §1 / set_odds_format). Match on the
+text content shape, which is what OddsPortal renders for users to read.
+
+### Fix pattern
+
+`base_scraper._row_has_started(row)` combines both checks. Wired through
+`extract_match_links(skip_started=…)` → `scrape_upcoming(include_started=…)`
+→ CLI `--include-started/--no-include-started` (default no = filter out
+started/finished). The helper is fail-safe: a row missing both elements
+(future DOM rename) is kept rather than silently dropped.
+
+### When OddsPortal renames either testid
+
+The filter degrades open: missing testid → helper returns False → started
+rows leak through. Symptom mirrors the original issue #58 bug. Recapture
+listing HAR fixtures and inspect the DOM before touching the helper.
+
+---
+
 ## Adding a new gotcha
 
 When a fix lands that exposes an OddsPortal-specific behaviour an agent

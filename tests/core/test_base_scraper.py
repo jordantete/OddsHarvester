@@ -12,6 +12,7 @@ from oddsharvester.core.base_scraper import (
     _extract_fragment_match_id,
     _is_offscreen_row,
     _parse_date_header,
+    _row_has_started,
 )
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
@@ -213,6 +214,127 @@ async def test_extract_match_links_error(bs4_mock, setup_base_scraper_mocks):
 
     # Verify error handling
     assert result == []
+
+
+# -- skip_started filter (GitHub issue #58) ---------------------------------
+
+# Minimal listing HTML mirroring the OddsPortal DOM verified live 2026-05-20
+# on football + volleyball listings:
+# - Upcoming row: game-status-box empty + time-item shows "HH:MM"
+# - Live row: game-status-box still empty + time-item shows a period marker
+#   ("1S", "4S", "HT", "1H"); OddsPortal flips only the time-item during play
+# - Finished row: game-status-box filled ("FinishedFIN")
+# - Edge: row missing both elements (DOM drift fail-safe -> keep)
+_LISTING_HTML = """
+<html><body>
+<div class="eventRow row-a">
+  <div data-testid="time-item"><p>21:00</p></div>
+  <div data-testid="game-status-box"></div>
+  <a href="/football/england/premier-league/upcoming-match/aaaa1111">link</a>
+</div>
+<div class="eventRow row-b">
+  <div data-testid="time-item"><p>18:00</p></div>
+  <div data-testid="game-status-box">FinishedFIN</div>
+  <a href="/football/england/premier-league/finished-match/bbbb2222">link</a>
+</div>
+<div class="eventRow row-c">
+  <a href="/football/england/premier-league/no-status-box/cccc3333">link</a>
+</div>
+<div class="eventRow row-d">
+  <div data-testid="time-item"><p class="text-red-dark">1S</p></div>
+  <div data-testid="game-status-box"></div>
+  <a href="/volleyball/world/friendly/live-match/dddd4444">link</a>
+</div>
+</body></html>
+"""
+
+
+@pytest.mark.asyncio
+async def test_extract_match_links_skips_started_rows_when_requested(setup_base_scraper_mocks):
+    """With skip_started=True, finished AND live rows are dropped; upcoming
+    and the no-status-box fail-safe row are kept."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(return_value=_LISTING_HTML)
+
+    result = await scraper.extract_match_links(page=page_mock, skip_started=True)
+
+    assert any("upcoming-match/aaaa1111" in url for url in result)
+    assert any("no-status-box/cccc3333" in url for url in result)
+    assert not any("finished-match/bbbb2222" in url for url in result)
+    assert not any("live-match/dddd4444" in url for url in result)
+    assert len(result) == 2
+
+
+@pytest.mark.asyncio
+async def test_extract_match_links_default_keeps_started_rows(setup_base_scraper_mocks):
+    """Default (skip_started=False) preserves prior behaviour: all rows are
+    kept regardless of status."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(return_value=_LISTING_HTML)
+
+    result = await scraper.extract_match_links(page=page_mock)
+
+    assert len(result) == 4
+    assert any("finished-match/bbbb2222" in url for url in result)
+    assert any("live-match/dddd4444" in url for url in result)
+
+
+class TestRowHasStarted:
+    """Unit tests for the _row_has_started helper (GitHub issue #58)."""
+
+    def _row(self, html: str):
+        return BeautifulSoup(f"<div class='eventRow'>{html}</div>", "lxml").find(class_="eventRow")
+
+    def test_upcoming_clock_time_means_not_started(self):
+        assert (
+            _row_has_started(
+                self._row('<div data-testid="time-item"><p>21:00</p></div><div data-testid="game-status-box"></div>')
+            )
+            is False
+        )
+
+    def test_single_digit_hour_clock_time_means_not_started(self):
+        assert _row_has_started(self._row('<div data-testid="time-item"><p>9:00</p></div>')) is False
+
+    def test_finished_status_box_means_started(self):
+        assert (
+            _row_has_started(
+                self._row(
+                    '<div data-testid="time-item"><p>18:00</p></div>'
+                    '<div data-testid="game-status-box">FinishedFIN</div>'
+                )
+            )
+            is True
+        )
+
+    def test_live_period_marker_means_started(self):
+        """Live volleyball: status-box empty, time-item shows a set marker."""
+        assert (
+            _row_has_started(
+                self._row(
+                    '<div data-testid="time-item"><p class="text-red-dark">4S</p></div>'
+                    '<div data-testid="game-status-box"></div>'
+                )
+            )
+            is True
+        )
+
+    def test_live_football_half_marker_means_started(self):
+        assert _row_has_started(self._row('<div data-testid="time-item"><p class="text-red-dark">HT</p></div>')) is True
+
+    def test_missing_both_elements_is_failsafe_keep(self):
+        """Row without status-box AND without time-item (DOM drift) is treated
+        as upcoming so we don't silently drop everything when OddsPortal
+        renames things."""
+        assert _row_has_started(self._row("<span>no markers here</span>")) is False
+
+    def test_empty_time_item_is_failsafe_keep(self):
+        """Time-item present but empty: don't guess; keep the row."""
+        assert _row_has_started(self._row('<div data-testid="time-item"></div>')) is False
 
 
 # -- Date header parser ---------------------------------------------------

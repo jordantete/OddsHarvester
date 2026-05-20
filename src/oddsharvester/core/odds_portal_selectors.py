@@ -90,6 +90,11 @@ class OddsPortalSelectors:
 
     # Event listing — BeautifulSoup class pattern
     EVENT_ROW_CLASS_PATTERN = "^eventRow"
+    # Per-row status indicators on the listing page (issue #58 / gotchas §9).
+    # Both are required to detect started matches: live flips only time-item,
+    # finished fills only game-status-box.
+    EVENT_ROW_TIME_ITEM_TESTID = "time-item"
+    EVENT_ROW_GAME_STATUS_BOX_TESTID = "game-status-box"
 
     # Submarket name — BeautifulSoup class
     SUBMARKET_CLEAN_NAME_CLASS = "max-sm:!hidden"

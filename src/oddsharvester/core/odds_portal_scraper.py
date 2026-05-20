@@ -150,6 +150,7 @@ class OddsPortalScraper(BaseScraper):
         period: Enum | None = None,
         request_delay: float = DEFAULT_REQUEST_DELAY_S,
         concurrent_scraping_task: int = 3,
+        include_started: bool = False,
     ) -> ScrapeResult:
         """
         Scrapes upcoming match odds.
@@ -161,6 +162,9 @@ class OddsPortalScraper(BaseScraper):
             markets (Optional[List[str]]): List of markets.
             scrape_odds_history (bool): Whether to scrape and attach odds history.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
+            include_started (bool): If True, also return matches that have
+                already started or finished. Default False keeps the listing
+                page's true "upcoming" semantics (GitHub issue #58).
 
         Returns:
             ScrapeResult: Contains successful results, failed URLs, and statistics.
@@ -195,7 +199,11 @@ class OddsPortalScraper(BaseScraper):
             except ValueError:
                 self.logger.warning(f"Could not parse date '{date}' for filtering; returning all league matches.")
 
-        match_links = await self.extract_match_links(page=current_page, date_filter=date_filter)
+        match_links = await self.extract_match_links(
+            page=current_page,
+            date_filter=date_filter,
+            skip_started=not include_started,
+        )
 
         if not match_links:
             self.logger.warning("No match links found for upcoming matches.")

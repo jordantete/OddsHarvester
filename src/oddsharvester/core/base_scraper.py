@@ -148,6 +148,31 @@ def _is_offscreen_row(row) -> bool:
     return any(marker in style for marker in _OFFSCREEN_STYLE_MARKERS)
 
 
+_KICKOFF_TIME_RE = re.compile(r"^\d{1,2}:\d{2}$")
+
+
+def _row_has_started(row) -> bool:
+    """Return True if a listing-page event row is live or finished.
+
+    Two signals are needed because OddsPortal splits "started" state:
+    live flips `time-item` from HH:MM to a period marker; finished fills
+    `game-status-box`. See `docs/agentic-gotchas.md` §9. Fail-safe:
+    missing markers → False so DOM drift degrades open.
+    """
+    box = row.find(attrs={"data-testid": OddsPortalSelectors.EVENT_ROW_GAME_STATUS_BOX_TESTID})
+    if box and box.get_text(strip=True):
+        return True
+
+    time_el = row.find(attrs={"data-testid": OddsPortalSelectors.EVENT_ROW_TIME_ITEM_TESTID})
+    if time_el is None:
+        return False
+    p = time_el.find("p")
+    text = p.get_text(strip=True) if p else time_el.get_text(strip=True)
+    if not text:
+        return False
+    return not _KICKOFF_TIME_RE.match(text)
+
+
 def _extract_fragment_match_id(match_link: str) -> str | None:
     """
     Extract the URL fragment as a match id from a match link.
@@ -253,7 +278,12 @@ class BaseScraper:
         except Exception as e:
             self.logger.error(f"Error while setting odds format: {e}", exc_info=True)
 
-    async def extract_match_links(self, page: Page, date_filter: date | None = None) -> list[str]:
+    async def extract_match_links(
+        self,
+        page: Page,
+        date_filter: date | None = None,
+        skip_started: bool = False,
+    ) -> list[str]:
         """
         Extract and parse match links from the current page.
 
@@ -269,6 +299,8 @@ class BaseScraper:
             date_filter (Optional[date]): If provided, keep only match links
                 whose surrounding date-header matches this date. Rows under a
                 date-header that cannot be parsed are kept (fail-safe).
+            skip_started (bool): If True, drop rows that are live or finished
+                (see `_row_has_started` for detection). Fail-safe on DOM drift.
 
         Returns:
             List[str]: A list of unique match links found on the page.
@@ -287,6 +319,7 @@ class BaseScraper:
             filtered_out_count = 0
             unparseable_header_count = 0
             offscreen_skipped_count = 0
+            started_filtered_out_count = 0
 
             for row in event_rows:
                 if _is_offscreen_row(row):
@@ -309,6 +342,10 @@ class BaseScraper:
                         filtered_out_count += 1
                         continue
 
+                if skip_started and _row_has_started(row):
+                    started_filtered_out_count += 1
+                    continue
+
                 for link in row.find_all("a", href=True):
                     href = link["href"]
                     if len(href.strip("/").split("/")) <= 3:
@@ -318,17 +355,20 @@ class BaseScraper:
                         seen.add(full_url)
                         match_links.append(full_url)
 
+            started_suffix = f", {started_filtered_out_count} started/finished rows skipped" if skip_started else ""
             if date_filter is not None:
                 self.logger.info(
                     f"Extracted {len(match_links)} unique match links after date filtering "
                     f"(filter={date_filter.isoformat()}, filtered out {filtered_out_count} rows, "
                     f"{unparseable_header_count} unparseable headers, "
-                    f"{offscreen_skipped_count} offscreen rows skipped)."
+                    f"{offscreen_skipped_count} offscreen rows skipped"
+                    f"{started_suffix})."
                 )
             else:
                 self.logger.info(
                     f"Extracted {len(match_links)} unique match links "
-                    f"({offscreen_skipped_count} offscreen rows skipped)."
+                    f"({offscreen_skipped_count} offscreen rows skipped"
+                    f"{started_suffix})."
                 )
 
             return match_links
