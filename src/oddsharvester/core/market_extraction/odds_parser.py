@@ -48,12 +48,20 @@ class OddsParser:
         self.logger.info("Parsing odds from HTML content.")
         soup = BeautifulSoup(html_content, "html.parser")
 
-        # Try broader "border-black-borders" pattern first as it works better
-        bookmaker_blocks = soup.find_all("div", class_=re.compile(OddsPortalSelectors.BOOKMAKER_ROW_CLASS))
+        # Scope to the bookmaker table container if present — its parent holds only
+        # the real bookmaker rows. Without scoping, peripheral sections
+        # (Previous Matches, H2H) leak in: their rows share `border-black-borders`
+        # and their team logos get picked up as bookmaker names.
+        header = soup.find("div", attrs={"data-testid": OddsPortalSelectors.BOOKMAKER_TABLE_HEADER_TESTID})
+        search_root = header.parent if header and header.parent else soup
+
+        bookmaker_blocks = search_root.find_all("div", class_=re.compile(OddsPortalSelectors.BOOKMAKER_ROW_CLASS))
 
         if not bookmaker_blocks:
             # Fallback to broader selector
-            bookmaker_blocks = soup.find_all("div", class_=re.compile(OddsPortalSelectors.BOOKMAKER_ROW_FALLBACK_CLASS))
+            bookmaker_blocks = search_root.find_all(
+                "div", class_=re.compile(OddsPortalSelectors.BOOKMAKER_ROW_FALLBACK_CLASS)
+            )
 
         if not bookmaker_blocks:
             self.logger.warning("No bookmaker blocks found.")

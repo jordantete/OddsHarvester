@@ -319,6 +319,59 @@ class TestOddsParser:
 
         assert len(result) == 0
 
+    def test_parse_market_odds_ignores_previous_matches_rows(self, odds_parser, caplog):
+        """Real OddsPortal pages embed a 'Previous Matches' section whose rows reuse
+        `border-black-borders` and carry team logos with `<img alt="<team>">`. Without
+        scoping, the parser used to pick those team names as bookmaker names and
+        emit `Incomplete odds data for bookmaker: <team>` warnings. The fix scopes
+        the search to the bookmaker table container (parent of the header testid).
+        """
+        # Structure mirrors the live DOM: a wrapper containing the bookmaker table
+        # (header + 2 real rows) and, as a sibling outside that wrapper, a
+        # "Previous Matches" row whose team-logo alt would otherwise be parsed.
+        html = """
+        <div class="event-container">
+            <div class="flex flex-col">
+                <div data-testid="bookmaker-table-header-line" class="border-black-borders bg-gray-med_light">
+                    Bookmakers 1 X 2 Payout
+                </div>
+                <div class="border-black-borders flex h-9">
+                    <img class="bookmaker-logo" title="Betclic.fr">
+                    <div class="flex-center flex-col font-bold">1.10</div>
+                    <div class="flex-center flex-col font-bold">14.00</div>
+                    <div class="flex-center flex-col font-bold">7.05</div>
+                </div>
+                <div class="border-black-borders flex h-9">
+                    <img class="bookmaker-logo" title="Winamax">
+                    <div class="flex-center flex-col font-bold">1.09</div>
+                    <div class="flex-center flex-col font-bold">11.00</div>
+                    <div class="flex-center flex-col font-bold">6.50</div>
+                </div>
+            </div>
+        </div>
+        <div class="last-matches-section">
+            <div class="border-black-borders flex h-9">
+                <img alt="Kiel" src="kiel-logo.png">
+                <img alt="Fuchse Berlin" src="berlin-logo.png">
+                <div class="flex-center flex-col font-bold">4.00</div>
+                <div class="flex-center flex-col font-bold">9.50</div>
+                <div class="flex-center flex-col font-bold">1.38</div>
+            </div>
+        </div>
+        """
+
+        with caplog.at_level("WARNING", logger="OddsParser"):
+            result = odds_parser.parse_market_odds(html, "FullTime", ["1", "X", "2"])
+
+        bookmakers = [r["bookmaker_name"] for r in result]
+        assert bookmakers == ["Betclic.fr", "Winamax"]
+        assert "Kiel" not in bookmakers
+        assert "Fuchse Berlin" not in bookmakers
+        # No team-name warning should leak through (the Previous Matches row sits
+        # outside the scoped search root and must not be inspected).
+        team_warnings = [r for r in caplog.records if "Kiel" in r.message or "Fuchse Berlin" in r.message]
+        assert team_warnings == []
+
     def test_logger_initialization(self, odds_parser):
         """Test that logger is properly initialized."""
         assert odds_parser.logger is not None

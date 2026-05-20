@@ -77,6 +77,10 @@ class OddsPortalSelectors:
     BOOKMAKER_ROW_FALLBACK_CLASS = r"^border-black-borders flex h-9"
     BOOKMAKER_LOGO_CLASS = "bookmaker-logo"
     ODDS_BLOCK_CLASS_PATTERN = r"flex-center.*flex-col.*font-bold"
+    # Scope marker: the bookmaker table header sits inside the container that holds
+    # only the real bookmaker rows. Used to scope row search and skip peripheral
+    # sections (Previous Matches, H2H, etc.) whose rows share `border-black-borders`.
+    BOOKMAKER_TABLE_HEADER_TESTID = "bookmaker-table-header-line"
 
     # Bookmaker elements — Playwright CSS selectors
     BOOKMAKER_ROW_CSS = "div.border-black-borders.flex.h-9"
