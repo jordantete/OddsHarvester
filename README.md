@@ -279,20 +279,19 @@ oddsharvester --help
 # Build
 docker build -t odds-harvester:local .
 
-# Run
-docker run --rm odds-harvester:local \
-  python3 -m oddsharvester upcoming -s football -d 20250301 -m 1x2 --headless
+# Run (CLI args are appended to the ENTRYPOINT `python3 -m oddsharvester`)
+docker run --rm odds-harvester:local upcoming -s football -d 20250301 -m 1x2 --headless
 
 # Run and keep the JSON output on the host (mount a volume + use -o)
+# On macOS+colima, prefer a path under $HOME (e.g. $PWD); /tmp is not shared by default.
 docker run --rm -v "$PWD/_docker_out:/out" odds-harvester:local \
-  xvfb-run -- python3 -m oddsharvester upcoming \
-  -s football -d 20250301 -m 1x2 --headless -o /out/result.json
+  upcoming -s football -d 20250301 -m 1x2 --headless -o /out/result.json
 
 # Or with environment variables
 docker run --rm \
   -e OH_SPORT=football \
   -e OH_HEADLESS=true \
-  odds-harvester:local python3 -m oddsharvester upcoming -d 20250301 -m 1x2
+  odds-harvester:local upcoming -d 20250301 -m 1x2
 ```
 
 ---

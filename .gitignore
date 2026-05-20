@@ -63,3 +63,4 @@ docs/superpowers/
 # Scraper output files
 scraped_data.json
 scraped_data.csv
+_docker_out/

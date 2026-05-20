@@ -22,6 +22,8 @@ RUN uv sync --frozen
 # Activate the virtual environment
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Default command: OddsHarvester CLI (xvfb-run keeps a display available
-# even in --headless mode, matching prior behaviour)
-CMD ["xvfb-run", "--", "python3", "-m", "oddsharvester"]
+# CLI entrypoint: lets `docker run odds-harvester upcoming ...` append CLI
+# args directly. Playwright runs with --headless from the CLI, so no virtual
+# display (xvfb) is required — wrapping the entrypoint with xvfb-run hangs
+# the container on macOS/colima before python ever starts.
+ENTRYPOINT ["python3", "-m", "oddsharvester"]
