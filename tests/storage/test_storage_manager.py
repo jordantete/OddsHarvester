@@ -22,7 +22,17 @@ def test_store_data_local_storage(sample_data, mock_storage):
         result = store_data(StorageType.LOCAL.value, sample_data, StorageFormat.JSON, "test.json")
 
         mock_storage.save_data.assert_called_once_with(
-            data=sample_data, file_path="test.json", storage_format=StorageFormat.JSON
+            data=sample_data, file_path="test.json", storage_format=StorageFormat.JSON, append=False
+        )
+        assert result is True
+
+
+def test_store_data_local_storage_append(sample_data, mock_storage):
+    with patch("oddsharvester.storage.storage_type.StorageType.get_storage_instance", return_value=mock_storage):
+        result = store_data(StorageType.LOCAL.value, sample_data, StorageFormat.JSON, "test.json", append=True)
+
+        mock_storage.save_data.assert_called_once_with(
+            data=sample_data, file_path="test.json", storage_format=StorageFormat.JSON, append=True
         )
         assert result is True
 

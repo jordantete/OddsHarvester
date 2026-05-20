@@ -26,16 +26,21 @@ class LocalDataStorage:
         self.default_storage_format = default_storage_format
 
     def save_data(
-        self, data: dict | list[dict], file_path: str | None = None, storage_format: StorageFormat | None = None
+        self,
+        data: dict | list[dict],
+        file_path: str | None = None,
+        storage_format: StorageFormat | None = None,
+        append: bool = False,
     ):
         """
-        Save scraped data to a local CSV file.
+        Save scraped data to a local CSV or JSON file.
 
         Args:
             data (Union[Dict, List[Dict]]): The data to save, either as a dictionary or a list of dictionaries.
             file_path (str, optional): The file path to save the data. Defaults to `self.default_file_path`.
             storage_format (StorageFormat, optional): The format to save the data in ("csv" or "json").
             Defaults to `self.default_storage_format`.
+            append (bool): When True, append to the existing file; when False (default), overwrite it.
 
         Raises:
             ValueError: If the data is not in the correct format (dict or list of dicts).
@@ -61,20 +66,22 @@ class LocalDataStorage:
         self._ensure_directory_exists(target_file_path)
 
         if format_to_use == StorageFormat.CSV.value:
-            self._save_as_csv(data, target_file_path)
+            self._save_as_csv(data, target_file_path, append=append)
         elif format_to_use == StorageFormat.JSON.value:
-            self._save_as_json(data, target_file_path)
+            self._save_as_json(data, target_file_path, append=append)
         else:
             raise ValueError("Unsupported file format.")
 
-    def _save_as_csv(self, data: list[dict], file_path: str):
-        """Save data in CSV format."""
+    def _save_as_csv(self, data: list[dict], file_path: str, append: bool = False):
+        """Save data in CSV format. Overwrites by default; appends when append=True."""
         try:
-            with open(file_path, mode="a", newline="", encoding="utf-8") as file:
+            mode = "a" if append else "w"
+            with open(file_path, mode=mode, newline="", encoding="utf-8") as file:
                 writer = csv.DictWriter(file, fieldnames=data[0].keys())
 
-                # Write header only if the file is newly created
-                if os.path.getsize(file_path) == 0:
+                # In append mode, only write a header if the file is newly created (empty).
+                # In overwrite mode, the header is always written.
+                if not append or os.path.getsize(file_path) == 0:
                     writer.writeheader()
 
                 writer.writerows(data)
@@ -85,23 +92,20 @@ class LocalDataStorage:
             self.logger.error(f"Error saving data to {file_path}: {e!s}", exc_info=True)
             raise
 
-    def _save_as_json(self, data: list[dict], file_path: str):
-        """Save data in JSON format."""
+    def _save_as_json(self, data: list[dict], file_path: str, append: bool = False):
+        """Save data in JSON format. Overwrites by default; appends when append=True."""
         try:
-            # Load existing data if the file already exists
-            existing_data = []
-
-            if os.path.exists(file_path):
+            if append and os.path.exists(file_path):
+                existing_data = []
                 with open(file_path, encoding="utf-8") as file:
                     try:
                         existing_data = json.load(file)
                     except json.JSONDecodeError:
                         self.logger.warning(f"File {file_path} exists but is empty or invalid JSON.")
-
-            combined_data = existing_data + data
+                data = existing_data + data
 
             with open(file_path, "w", encoding="utf-8") as file:
-                json.dump(combined_data, file, indent=4)
+                json.dump(data, file, indent=4)
 
             self.logger.info(f"Successfully saved {len(data)} record(s) to {file_path}")
 

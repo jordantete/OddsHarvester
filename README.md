@@ -137,11 +137,12 @@ oddsharvester historic -s football -l england-premier-league --season 2024-2025 
 
 #### Output Options
 
-| Option      | Short | Description              | Default        |
-| ----------- | ----- | ------------------------ | -------------- |
-| `--storage` |       | `local` or `remote` (S3) | `local`        |
-| `--format`  | `-f`  | `json` or `csv`          | `json`         |
-| `--output`  | `-o`  | Output file path         | `scraped_data` |
+| Option      | Short | Description                                                                | Default        |
+| ----------- | ----- | -------------------------------------------------------------------------- | -------------- |
+| `--storage` |       | `local` or `remote` (S3)                                                   | `local`        |
+| `--format`  | `-f`  | `json` or `csv`                                                            | `json`         |
+| `--output`  | `-o`  | Output file path                                                           | `scraped_data` |
+| `--append`  |       | Append to the output file instead of overwriting it (`--no-append` to opt out explicitly) | `--no-append`  |
 
 #### Browser & Scraping Options
 
@@ -210,6 +211,7 @@ All CLI options can be set via environment variables — useful for Docker or CI
 | `OH_STORAGE`       | `--storage`       | Storage type (local/remote)  |
 | `OH_FORMAT`        | `--format`        | Output format (json/csv)     |
 | `OH_FILE_PATH`     | `--output`        | Output file path             |
+| `OH_APPEND`        | `--append`        | Append to the output file instead of overwriting |
 | `OH_HEADLESS`      | `--headless`      | Run in headless mode         |
 | `OH_CONCURRENCY`   | `--concurrency`   | Number of concurrent tasks   |
 | `OH_REQUEST_DELAY` | `--request-delay` | Delay between requests (sec) |

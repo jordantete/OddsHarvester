@@ -105,6 +105,12 @@ def common_options(func):
         help="Output file path.",
     )
     @click.option(
+        "--append/--no-append",
+        default=False,
+        envvar="OH_APPEND",
+        help="Append to the output file instead of overwriting it (default: overwrite).",
+    )
+    @click.option(
         "--headless/--no-headless",
         default=False,
         envvar="OH_HEADLESS",

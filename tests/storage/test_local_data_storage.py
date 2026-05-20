@@ -47,7 +47,7 @@ def test_save_data_with_file_extension_handling(local_data_storage, sample_data)
         local_data_storage.save_data(sample_data, file_path="test", storage_format="csv")
 
         # Verify that .csv extension was added
-        mock_save.assert_called_once_with(sample_data, "test.csv")
+        mock_save.assert_called_once_with(sample_data, "test.csv", append=False)
 
 
 def test_save_data_with_existing_extension(local_data_storage, sample_data):
@@ -55,7 +55,15 @@ def test_save_data_with_existing_extension(local_data_storage, sample_data):
         local_data_storage.save_data(sample_data, file_path="test.csv", storage_format="csv")
 
         # Verify that extension wasn't duplicated
-        mock_save.assert_called_once_with(sample_data, "test.csv")
+        mock_save.assert_called_once_with(sample_data, "test.csv", append=False)
+
+
+def test_save_data_propagates_append(local_data_storage, sample_data):
+    """append=True must reach the format-specific writer."""
+    with patch.object(local_data_storage, "_save_as_json") as mock_save:
+        local_data_storage.save_data(sample_data, file_path="test.json", storage_format="json", append=True)
+
+        mock_save.assert_called_once_with(sample_data, "test.json", append=True)
 
 
 def test_save_data_unsupported_format(local_data_storage, sample_data):
@@ -63,16 +71,15 @@ def test_save_data_unsupported_format(local_data_storage, sample_data):
         local_data_storage.save_data(sample_data, storage_format="unsupported")
 
 
-def test_save_as_csv(local_data_storage, sample_data):
+def test_save_as_csv_overwrites_by_default(local_data_storage, sample_data):
+    """Default mode opens the file in write mode and always writes the header."""
     mock_file = mock_open()
 
-    with patch("builtins.open", mock_file), patch("os.path.getsize", return_value=0):
+    with patch("builtins.open", mock_file):
         local_data_storage._save_as_csv(sample_data, "test_data.csv")
 
-    # Check if file was opened correctly
-    mock_file.assert_called_once_with("test_data.csv", mode="a", newline="", encoding="utf-8")
+    mock_file.assert_called_once_with("test_data.csv", mode="w", newline="", encoding="utf-8")
 
-    # Validate the written content
     handle = mock_file()
     writer = csv.DictWriter(handle, fieldnames=sample_data[0].keys())
     writer.writeheader()
@@ -80,53 +87,75 @@ def test_save_as_csv(local_data_storage, sample_data):
     handle.write.assert_called()
 
 
-def test_save_as_csv_existing_file(local_data_storage, sample_data):
+def test_save_as_csv_append_new_file(local_data_storage, sample_data):
+    """Append mode on an empty file still writes the header."""
     mock_file = mock_open()
 
-    with patch("builtins.open", mock_file), patch("os.path.getsize", return_value=100):
-        local_data_storage._save_as_csv(sample_data, "test_data.csv")
+    with patch("builtins.open", mock_file), patch("os.path.getsize", return_value=0):
+        local_data_storage._save_as_csv(sample_data, "test_data.csv", append=True)
 
-    # Check if file was opened correctly
     mock_file.assert_called_once_with("test_data.csv", mode="a", newline="", encoding="utf-8")
 
 
-def test_save_as_json(local_data_storage, sample_data):
+def test_save_as_csv_append_existing_file(local_data_storage, sample_data):
+    """Append mode on a non-empty file skips the header to keep the CSV valid."""
     mock_file = mock_open()
 
-    with patch("builtins.open", mock_file), patch("os.path.exists", return_value=False):
+    with patch("builtins.open", mock_file), patch("os.path.getsize", return_value=100):
+        local_data_storage._save_as_csv(sample_data, "test_data.csv", append=True)
+
+    mock_file.assert_called_once_with("test_data.csv", mode="a", newline="", encoding="utf-8")
+
+
+def test_save_as_json_overwrites_by_default(local_data_storage, sample_data):
+    """Default mode writes only the new data, ignoring any existing file content."""
+    mock_file = mock_open(read_data=json.dumps([{"team": "Old Team", "odds": 3.0}]))
+
+    with patch("builtins.open", mock_file), patch("os.path.exists", return_value=True):
         local_data_storage._save_as_json(sample_data, "test_data.json")
 
-    # Check if file was opened in write mode
+    # Only the write call should happen — no read of existing data.
     mock_file.assert_called_once_with("test_data.json", "w", encoding="utf-8")
-
-    # Validate JSON content
     handle = mock_file()
     json.dump(sample_data, handle, indent=4)
     handle.write.assert_called()
 
 
-def test_save_as_json_existing_data(local_data_storage, sample_data):
+def test_save_as_json_new_file(local_data_storage, sample_data):
+    """When the file does not exist, both modes simply write the new data."""
+    mock_file = mock_open()
+
+    with patch("builtins.open", mock_file), patch("os.path.exists", return_value=False):
+        local_data_storage._save_as_json(sample_data, "test_data.json", append=True)
+
+    mock_file.assert_called_once_with("test_data.json", "w", encoding="utf-8")
+    handle = mock_file()
+    json.dump(sample_data, handle, indent=4)
+    handle.write.assert_called()
+
+
+def test_save_as_json_append_existing_data(local_data_storage, sample_data):
+    """append=True concatenates new data after the existing JSON list."""
     existing_data = [{"team": "Old Team", "odds": 3.0}]
     expected_combined_data = existing_data + sample_data
 
     mock_file = mock_open(read_data=json.dumps(existing_data))
 
     with patch("builtins.open", mock_file), patch("os.path.exists", return_value=True):
-        local_data_storage._save_as_json(sample_data, "test_data.json")
+        local_data_storage._save_as_json(sample_data, "test_data.json", append=True)
 
-    # Validate the final content of the JSON file
     handle = mock_file()
     json.dump(expected_combined_data, handle, indent=4)
     handle.write.assert_called()
 
 
-def test_save_as_json_invalid_json_file(local_data_storage, sample_data):
+def test_save_as_json_append_invalid_existing_file(local_data_storage, sample_data):
+    """append=True with a corrupted existing file falls back to writing only the new data."""
     mock_file = mock_open(read_data="invalid json content")
 
     with patch("builtins.open", mock_file), patch("os.path.exists", return_value=True):
-        local_data_storage._save_as_json(sample_data, "test_data.json")
+        local_data_storage._save_as_json(sample_data, "test_data.json", append=True)
 
-    # Should still save the new data (existing data ignored due to invalid JSON)
     handle = mock_file()
     json.dump(sample_data, handle, indent=4)
     handle.write.assert_called()

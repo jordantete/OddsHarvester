@@ -74,6 +74,7 @@ def historic(ctx, **kwargs):
                 data=scraped_data.success,
                 storage_format=storage_format.value if storage_format else "json",
                 file_path=kwargs.get("file_path"),
+                append=kwargs.get("append", False),
             )
             click.echo(
                 f"Successfully scraped {scraped_data.stats.successful} matches "
