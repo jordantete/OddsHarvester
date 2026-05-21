@@ -499,6 +499,41 @@ async def test_extract_match_links_unparseable_header_fails_safe(setup_base_scra
 
 
 @pytest.mark.asyncio
+async def test_extract_match_links_date_filter_no_match_logs_timezone_diagnostic(setup_base_scraper_mocks, caplog):
+    """A 0-result date filter emits a diagnostic listing the headers seen and
+    the --timezone hint (GitHub issue #58 follow-up)."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(return_value=_make_league_page_html())
+
+    with caplog.at_level("WARNING"):
+        result = await scraper.extract_match_links(page=page_mock, date_filter=date(2030, 1, 1))
+
+    assert result == []
+    diagnostic = [r.message for r in caplog.records if "matched 0 matches" in r.message]
+    assert diagnostic, "Expected a 0-result date-filter diagnostic warning"
+    assert "2026-04-18" in diagnostic[0]
+    assert "2026-04-19" in diagnostic[0]
+    assert "--timezone" in diagnostic[0]
+
+
+@pytest.mark.asyncio
+async def test_extract_match_links_date_filter_match_emits_no_diagnostic(setup_base_scraper_mocks, caplog):
+    """When the date filter yields matches, no 0-result diagnostic is logged."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(return_value=_make_league_page_html())
+
+    with caplog.at_level("WARNING"):
+        result = await scraper.extract_match_links(page=page_mock, date_filter=date(2026, 4, 18))
+
+    assert result
+    assert not [r for r in caplog.records if "matched 0 matches" in r.message]
+
+
+@pytest.mark.asyncio
 async def test_extract_match_links_deduplicates_preserving_order(setup_base_scraper_mocks):
     """Duplicate links across rows should be deduplicated while preserving order."""
     mocks = setup_base_scraper_mocks

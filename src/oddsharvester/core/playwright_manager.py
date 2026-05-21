@@ -95,6 +95,23 @@ class PlaywrightManager:
                 )
 
             self.page = await self.context.new_page()
+
+            # When no explicit timezone is requested, the browser context falls
+            # back to the host system timezone. Capture the effective timezone
+            # so date-header parsing and DOM match-date conversion use the same
+            # zone the browser actually rendered in (see docs/agentic-gotchas.md
+            # §10) — otherwise parsing silently assumed UTC while the browser
+            # rendered in the system tz, causing date-filter misses near
+            # midnight and on cross-timezone leagues.
+            if self.timezone_id is None:
+                try:
+                    self.timezone_id = await self.page.evaluate(
+                        "() => Intl.DateTimeFormat().resolvedOptions().timeZone"
+                    )
+                except Exception as e:
+                    self.logger.warning(f"Could not resolve browser timezone, assuming UTC: {e}")
+                    self.timezone_id = "UTC"
+
             self.logger.info("Playwright initialized successfully.")
 
         except Exception as e:

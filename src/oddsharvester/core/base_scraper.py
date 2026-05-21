@@ -316,6 +316,7 @@ class BaseScraper:
             seen: set[str] = set()
             match_links: list[str] = []
             current_row_date: date | None = None
+            seen_header_dates: set[date] = set()
             filtered_out_count = 0
             unparseable_header_count = 0
             offscreen_skipped_count = 0
@@ -336,6 +337,8 @@ class BaseScraper:
                             self.logger.warning(
                                 f"Could not parse date-header '{header_text}'; rows under it will not be filtered."
                             )
+                        else:
+                            seen_header_dates.add(parsed)
                         current_row_date = parsed
 
                     if current_row_date is not None and current_row_date != date_filter:
@@ -364,6 +367,15 @@ class BaseScraper:
                     f"{offscreen_skipped_count} offscreen rows skipped"
                     f"{started_suffix})."
                 )
+                if not match_links and filtered_out_count:
+                    headers_label = ", ".join(d.isoformat() for d in sorted(seen_header_dates)) or "none"
+                    self.logger.warning(
+                        f"Date filter {date_filter.isoformat()} matched 0 matches although "
+                        f"{filtered_out_count} rows were present under other dates. Date headers "
+                        f"on the page (grouped in browser timezone '{tz_name or 'UTC'}'): {headers_label}. "
+                        f"If the expected matches kick off late and land on an adjacent calendar day, "
+                        f"pass --timezone to align the listing with the competition's region."
+                    )
             else:
                 self.logger.info(
                     f"Extracted {len(match_links)} unique match links "

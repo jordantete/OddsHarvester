@@ -505,6 +505,50 @@ listing HAR fixtures and inspect the DOM before touching the helper.
 
 ---
 
+## §10 — Listing date-headers are grouped in the browser's timezone
+
+**Severity:** Medium — `upcoming -l <league> -d <date>` silently returned 0
+matches for South American leagues (GitHub issue #58 follow-up).
+
+OddsPortal renders the `[data-testid="date-header"]` groups on a league
+listing page using the **browser context's timezone** — not UTC, and not the
+competition's local time. A match kicks off at a single instant, but which
+date-header it appears under depends entirely on the timezone the page was
+rendered in.
+
+This bites cross-timezone competitions hardest: a Copa Libertadores match
+kicking off 21:30 in Argentina (UTC-3) renders under the **22 May** header in
+`Europe/Paris` (UTC+2). A user requesting `-d 20260521` then gets 0 results —
+the match is real and upcoming, just filed under the next calendar day.
+
+### Detection signal
+
+- The browser timezone is whatever `--timezone` / `OH_TIMEZONE` sets, and it
+  **falls back to the host system timezone** when unset — *not* UTC.
+- Two timezones must agree or dates drift: the one the browser **renders** in,
+  and the one `_parse_date_header` **resolves** "Today"/"Tomorrow" in. When
+  `timezone_id` is unset, `PlaywrightManager.initialize` resolves the effective
+  browser timezone (`Intl.DateTimeFormat().resolvedOptions().timeZone`) so both
+  sides share one zone.
+- Symptom: `upcoming -l … -d …` returns 0 matches while the league page
+  visibly has fixtures. `extract_match_links` emits a WARNING listing the date
+  headers actually seen when a filter matches nothing.
+
+### Fix pattern
+
+- Keep parsing and rendering on the same zone (resolve the effective tz once,
+  at context creation).
+- There is no "competition-local date" the scraper can infer — the user
+  expresses intent with `--timezone`. Don't try to guess it per league.
+
+### References
+
+- `core/playwright_manager.py` — effective-timezone resolution.
+- `base_scraper._parse_date_header` / `_resolved_browser_timezone`.
+- GitHub issue #58 follow-up.
+
+---
+
 ## Adding a new gotcha
 
 When a fix lands that exposes an OddsPortal-specific behaviour an agent
