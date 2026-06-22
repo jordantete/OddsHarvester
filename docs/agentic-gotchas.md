@@ -371,9 +371,55 @@ Quick checks (in order):
 or debugging region-specific bookmaker availability.
 
 OddsPortal serves region-specific mirror domains (e.g. `centroquote.it` for
-Italy) whose page structure is **byte-identical** to `www.oddsportal.com`;
-only the scheme + host differ. The motivation is that the bookmaker set exposed
-per region varies — users previously worked around this with a VPN (issue #45).
+Italy, `cuotasahora.com` for LATAM/Spanish, `oddsagora.com.br` for Brazil) whose
+DOM **structure** (selectors, JSON shapes, `data-testid`s) is identical to
+`www.oddsportal.com`; only the scheme + host differ. The motivation is that the
+bookmaker set exposed per region varies — users previously worked around this
+with a VPN (issue #45).
+
+### …but the structure is identical, the *labels* are not (issue #70)
+
+The page structure matches, but all **user-visible text is localized** per
+domain — and the language is **server-bound to the domain**, not switchable via
+`Accept-Language`, the Playwright context `locale`, or a `lang` cookie/localStorage
+(all verified ineffective on `cuotasahora.com`; `html lang="es"` is forced). The
+English-only mirror *is* `www.oddsportal.com`, which is exactly the domain a LATAM
+user gets geo-redirected away from.
+
+This breaks any code that matches DOM elements by their **visible text**. The
+market-tab navigator (`MarketTabNavigator`) matched tab labels against English
+strings (`"Over/Under"`), so on the Spanish mirror the `Más/Menos de` /
+`Hándicap asiático` / `Ambos equipos marcan` tabs were never found → the market
+silently returned `[]`.
+
+**The fix — match the language-independent market code, not the label.** When a
+market tab is clicked, OddsPortal writes a stable, language-independent code into
+the URL fragment: `#<match_id>:<code>;<scope>` (e.g. `#4pPp9nn3:over-under;2`).
+These codes are identical across every mirror **and** across sports. Verified
+live: `1X2`, `home-away`, `over-under`, `ah`, `eh`, `bts`, `cs`, `double`, `dnb`
+(plus out-of-scope `ht-ft`, `odd-even`). The map lives in
+`OddsPortalSelectors.MARKET_TAB_CODES`, keyed by the English `main_market` label.
+
+`MarketTabNavigator.navigate_to_tab` keeps label matching as the fast path
+(unchanged on `.com`) and, only when it fails, falls back to `_navigate_by_code`:
+click each tab, read `location.hash`, match the code. The `More` overflow button
+is opened via `data-testid="more-button"` (its text is localized too: `Más`),
+and its expanded state is detected via the `.drop-arrow-hide` arrow element, not
+text. `NavigationManager.wait_for_market_switch` likewise confirms the active
+market via the URL code first, falling back to label text.
+
+Two non-obvious traps for the next contributor:
+
+1. **You cannot navigate markets by setting `location.hash` directly.** The SPA's
+   market router ignores a synthetic `hashchange` for market switching (unlike the
+   match-id resync trick in §1 / issue #60). Only a real tab **click** drives it —
+   which is why the fallback clicks tabs and *reads* the resulting code rather than
+   writing it.
+2. **`main_market="Handicap"` (rugby) has no matching tab.** OddsPortal only has
+   `Asian Handicap`/`European Handicap`. The old substring match resolved
+   `"Handicap"` to the first tab containing it (`Asian Handicap`); the code map
+   pins `"Handicap" → "ah"` to preserve that exact behaviour. Revisit if rugby
+   handicap is ever meant to be European (`eh`).
 
 ### How `--base-url` works
 

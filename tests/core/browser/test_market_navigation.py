@@ -48,6 +48,7 @@ class TestMarketTabNavigator:
             patch.object(navigator, "_wait_and_click", return_value=True),
             patch.object(navigator, "_verify_tab_is_active", return_value=False),
             patch.object(navigator, "_click_more_if_market_hidden", return_value=False),
+            patch.object(navigator, "_navigate_by_code", return_value=False),
         ):
             result = await navigator.navigate_to_tab(mock_page, "Draw No Bet")
             assert result is False
@@ -58,6 +59,7 @@ class TestMarketTabNavigator:
         with (
             patch.object(navigator, "_wait_and_click", return_value=False),
             patch.object(navigator, "_click_more_if_market_hidden", return_value=False),
+            patch.object(navigator, "_navigate_by_code", return_value=False),
         ):
             result = await navigator.navigate_to_tab(mock_page, "Draw No Bet")
             assert result is False
@@ -69,9 +71,112 @@ class TestMarketTabNavigator:
             patch.object(navigator, "_wait_and_click", return_value=False),
             patch.object(navigator, "_click_more_if_market_hidden", return_value=True),
             patch.object(navigator, "_verify_tab_is_active", return_value=False),
+            patch.object(navigator, "_navigate_by_code", return_value=False),
         ):
             result = await navigator.navigate_to_tab(mock_page, "Draw No Bet")
             assert result is False
+
+    # =============================================================================
+    # MARKET-CODE FALLBACK TESTS (gotchas §7 — localized mirror domains)
+    # =============================================================================
+
+    @pytest.mark.asyncio
+    async def test_navigate_to_market_tab_via_code_fallback(self, navigator, mock_page):
+        """When label matching fails, the stable market-code fallback succeeds."""
+        with (
+            patch.object(navigator, "_wait_and_click", return_value=False),
+            patch.object(navigator, "_click_more_if_market_hidden", return_value=False),
+            patch.object(navigator, "_navigate_by_code", return_value=True) as code_fallback,
+        ):
+            result = await navigator.navigate_to_tab(mock_page, "Over/Under")
+            assert result is True
+            code_fallback.assert_awaited_once_with(mock_page, "over-under")
+
+    @pytest.mark.asyncio
+    async def test_navigate_to_market_tab_unknown_market_skips_code_fallback(self, navigator, mock_page):
+        """A market with no known code does not trigger the code fallback."""
+        with (
+            patch.object(navigator, "_wait_and_click", return_value=False),
+            patch.object(navigator, "_click_more_if_market_hidden", return_value=False),
+            patch.object(navigator, "_navigate_by_code", return_value=True) as code_fallback,
+        ):
+            result = await navigator.navigate_to_tab(mock_page, "Totally Unknown Market")
+            assert result is False
+            code_fallback.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_navigate_by_code_matches_localized_tab(self, navigator, mock_page):
+        """_navigate_by_code clicks each (localized) tab and matches the URL code."""
+        labels = ["1X2", "Más/Menos de", "Hándicap asiático"]
+        elements = [AsyncMock(text_content=AsyncMock(return_value=t)) for t in labels]
+        mock_page.query_selector_all = AsyncMock(return_value=elements)
+
+        async def fake_click(page, selector, text):
+            # OddsPortal writes the stable code into the URL fragment on click.
+            mapping = {"1X2": "1X2", "Más/Menos de": "over-under", "Hándicap asiático": "ah"}
+            page.url = f"https://m/football/h2h/a/b/#abcd:{mapping[text]};2"
+            return True
+
+        with (
+            patch.object(navigator, "_open_more_dropdown", return_value=True),
+            patch.object(navigator, "_click_by_text", side_effect=fake_click),
+        ):
+            result = await navigator._navigate_by_code(mock_page, "over-under")
+            assert result is True
+
+    @pytest.mark.asyncio
+    async def test_navigate_by_code_no_tab_yields_target(self, navigator, mock_page):
+        """_navigate_by_code returns False when no tab produces the target code."""
+        labels = ["1X2", "Más/Menos de"]
+        elements = [AsyncMock(text_content=AsyncMock(return_value=t)) for t in labels]
+        mock_page.query_selector_all = AsyncMock(return_value=elements)
+
+        async def fake_click(page, selector, text):
+            page.url = "https://m/#abcd:1X2;2"
+            return True
+
+        with (
+            patch.object(navigator, "_open_more_dropdown", return_value=True),
+            patch.object(navigator, "_click_by_text", side_effect=fake_click),
+        ):
+            result = await navigator._navigate_by_code(mock_page, "correct-score")
+            assert result is False
+
+    @pytest.mark.asyncio
+    async def test_navigate_by_code_no_tabs(self, navigator, mock_page):
+        """_navigate_by_code returns False when there are no market tabs."""
+        mock_page.query_selector_all = AsyncMock(return_value=[])
+        with patch.object(navigator, "_open_more_dropdown", return_value=True):
+            result = await navigator._navigate_by_code(mock_page, "over-under")
+            assert result is False
+
+    @pytest.mark.asyncio
+    async def test_open_more_dropdown_no_button(self, navigator, mock_page):
+        """_open_more_dropdown is a no-op when there is no overflow button."""
+        mock_page.query_selector = AsyncMock(return_value=None)
+        result = await navigator._open_more_dropdown(mock_page)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_open_more_dropdown_already_expanded(self, navigator, mock_page):
+        """_open_more_dropdown does not re-click when already expanded."""
+        more_button = AsyncMock()
+        # First query: the button; second query: the expanded-arrow marker.
+        mock_page.query_selector = AsyncMock(side_effect=[more_button, AsyncMock()])
+        result = await navigator._open_more_dropdown(mock_page)
+        assert result is True
+        more_button.click.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_open_more_dropdown_collapsed_clicks(self, navigator, mock_page):
+        """_open_more_dropdown clicks the button when collapsed."""
+        more_button = AsyncMock()
+        # First query: the button; second query: no expanded-arrow marker.
+        mock_page.query_selector = AsyncMock(side_effect=[more_button, None])
+        mock_page.wait_for_timeout = AsyncMock()
+        result = await navigator._open_more_dropdown(mock_page)
+        assert result is True
+        more_button.click.assert_called_once()
 
     # =============================================================================
     # PRIVATE HELPER METHODS TESTS

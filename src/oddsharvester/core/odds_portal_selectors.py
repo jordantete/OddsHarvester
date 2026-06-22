@@ -17,8 +17,12 @@ class OddsPortalSelectors:
         "nav li",
     ]
 
-    # "More" dropdown button selectors
+    # Every market tab (visible + 'More' overflow) carries the `odds-item` class.
+    MARKET_TAB_ITEM_SELECTOR = "li.odds-item"
+
+    # `data-testid='more-button'` is language-independent (text is localized).
     MORE_BUTTON_SELECTORS: ClassVar[list[str]] = [
+        "button[data-testid='more-button']",
         "button.toggle-odds:has-text('More')",
         "button[class*='toggle-odds']",
         ".visible-btn-odds:has-text('More')",
@@ -28,6 +32,21 @@ class OddsPortalSelectors:
         "li button:has-text('More')",
         "li a:has-text('More')",
     ]
+
+    # English main_market -> language-independent market code in the URL fragment
+    # (e.g. '#<id>:over-under;2'). Localized-mirror fallback; see gotchas §7.
+    MARKET_TAB_CODES: ClassVar[dict[str, str]] = {
+        "1X2": "1X2",
+        "Home/Away": "home-away",
+        "Over/Under": "over-under",
+        "Asian Handicap": "ah",
+        "European Handicap": "eh",
+        "Handicap": "ah",  # rugby: no standalone 'Handicap' tab; preserves prior substring behaviour
+        "Both Teams to Score": "bts",
+        "Correct Score": "cs",
+        "Double Chance": "double",
+        "Draw No Bet": "dnb",
+    }
 
     # Market navigation - sub-market selection
     SUB_MARKET_SELECTOR = "div.flex.w-full.items-center.justify-start.pl-3.font-bold p"
@@ -47,6 +66,16 @@ class OddsPortalSelectors:
     MATCH_DETAILS_GAME_GUEST_TESTID = "game-guest"
     MATCH_DETAILS_BREADCRUMBS_TESTID = "breadcrumbs-line"
     MATCH_DETAILS_BREADCRUMB_LEAGUE_TESTID = "3"
+
+    @staticmethod
+    def market_code_from_url(url: str) -> str | None:
+        """Return the market code from a `#<id>:<code>;<scope>` fragment, else None."""
+        if not isinstance(url, str) or "#" not in url:
+            return None
+        fragment = url.split("#", 1)[1]
+        if ":" not in fragment:
+            return None
+        return fragment.split(":", 1)[1].split(";", 1)[0]
 
     @staticmethod
     def get_dropdown_selectors_for_market(market_name: str) -> list[str]:

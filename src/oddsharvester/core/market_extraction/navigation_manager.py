@@ -4,6 +4,7 @@ from playwright.async_api import Page
 
 from oddsharvester.core.browser.market_navigation import MarketTabNavigator
 from oddsharvester.core.browser.scrolling import PageScroller
+from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import DEFAULT_MARKET_TIMEOUT_MS, MARKET_SWITCH_WAIT_TIME_MS, SCROLL_PAUSE_TIME_MS
 
 
@@ -36,12 +37,18 @@ class NavigationManager:
         """
         self.logger.info(f"Waiting for market switch to complete for: {market_name}")
 
+        # Localized-mirror confirmation via URL-fragment code (gotchas §7).
+        target_code = OddsPortalSelectors.MARKET_TAB_CODES.get(market_name)
+
         for attempt in range(max_attempts):
             try:
                 # Wait for the market switch animation to complete
                 await page.wait_for_timeout(MARKET_SWITCH_WAIT_TIME_MS)
 
-                # Check if the market tab is active
+                if target_code and OddsPortalSelectors.market_code_from_url(page.url) == target_code:
+                    self.logger.info(f"Market switch confirmed via URL code: {market_name} is active")
+                    return True
+
                 active_tab = await page.query_selector("li.active, li[class*='active'], .active")
                 if active_tab:
                     tab_text = await active_tab.text_content()
