@@ -421,6 +421,65 @@ Two non-obvious traps for the next contributor:
    pins `"Handicap" → "ah"` to preserve that exact behaviour. Revisit if rugby
    handicap is ever meant to be European (`eh`).
 
+### The label trap recurs below the tab — submarket lines (issue #70 follow-up)
+
+Fixing the **tab** is not enough: the same localization breaks the **submarket
+line** selection one layer down, and the URL-code trick does *not* apply there
+(submarket lines carry no per-line code in the fragment). After #70 the tab
+resolved correctly but `over_under` markets still returned `[]` on
+`cuotasahora.com`, because `NavigationManager.select_specific_market` matched the
+full English label `"Over/Under +20.5 Games"` and the row reads
+`"Más/Menos de +20.5 Games"`.
+
+**The fix — match the untranslated tail, not the full label.** Only the
+main-market *prefix* is translated (`Over/Under` → `Más/Menos de`); the numeric
+line and axis word (`+20.5 Games`, `-2.5 Sets`) are byte-identical across mirrors
+(verified: the `Games`/`Sets` suffix stays English on the Spanish mirror).
+`OddsPortalSelectors.submarket_match_text(specific_market, main_market)` strips
+the English `main_market` prefix and the substring matcher in
+`PageScroller.scroll_until_visible_and_click_parent` finds the row on every
+mirror. The retained leading `+`/`-`/`:` is load-bearing: it stops `+2.5` from
+matching `+20.5`. The submarket option box also carries a language-independent
+`data-testid="<code>-collapsed-option-box"` (e.g. `over-under-collapsed-option-box`)
+if a future change needs to scope by market rather than by label tail.
+
+### The period selector has the same trap — fixed via the fragment scope code
+
+The `kickoff-events-nav` tabs (`Full Time` → `Final del partido`, `1st Set` →
+`1er set`) expose only `data-testid="sub-nav-active-tab"`/`sub-nav-inactive-tab`
+— **no per-period code on the tab itself** — so the old label-based
+`SelectionManager`/`PERIOD_STRATEGY` logged `period target element not found for:
+Full Time` on every mirror. Non-fatal for the default period (Full Time is the
+active tab and the extractor ignores the return), but a **non-default** period
+(e.g. tennis `1st Set`) silently fell back to Full Time data — a §1-class
+silent-wrong-data risk.
+
+**The fix — select by the fragment scope, like the market tab.** The active
+period is the `;<scope>` segment of the fragment (`…:over-under;2`). Scope ids
+are **global OddsPortal period ids, identical across mirrors and across sports**
+(verified live: `FullTime`=2 on football/tennis/baseball, `1st Set`=12 on `.com`
+*and* `cuotasahora.com`, football `1st Half`=3 / `2nd Half`=4, baseball
+`FT incl. OT`=1). `PeriodSelector.select_by_scope` reads the current scope
+(no click if already correct — the common Full-Time case) else clicks each period
+tab and re-reads the scope until it matches. It returns `True` **only on an exact
+scope match**, so a wrong period is never silently selected; `None` when the
+`(sport, period)` scope is not in the verified map, which makes the extractor
+fall back to the old label matching (unchanged on `.com`).
+
+Two traps when extending the scope map (`OddsPortalSelectors.PERIOD_SCOPE_CODES_*`):
+
+1. **Scope is keyed by period *concept*, not by enum name.** Baseball's
+   `FirstHalf` enum renders as `1st Inning` = scope **17**, not the football half
+   = scope 3. So `FirstHalf`/`SecondHalf`/`FirstSet` live in the per-sport map,
+   not the universal one. Only `FullTime`=2 is universal (verified across three
+   disparate sports).
+2. **Only add scopes you verify live.** Do not guess the remaining ones
+   (quarters, later sets, hockey periods, `FT incl. OT` on basketball/amfootball):
+   the `/results/` listings lazy-load match links, so capture from an in-play or
+   finished match detail page and read `location.hash` after clicking each tab.
+   Unverified periods stay on the label fallback — correct on `.com`, no silent
+   wrong data on mirrors thanks to the exact-match rule.
+
 ### How `--base-url` works
 
 `--base-url` accepts a mirror root (e.g. `https://www.centroquote.it`) and

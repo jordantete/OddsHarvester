@@ -33,6 +33,71 @@ def test_market_code_from_url_non_string():
     assert OddsPortalSelectors.market_code_from_url(12345) is None
 
 
+def test_submarket_match_text_strips_main_market_prefix():
+    # On localized mirrors only the main-market prefix is translated; the tail
+    # ('+20.5 Games') is identical across mirrors, so we match on the tail.
+    assert OddsPortalSelectors.submarket_match_text("Over/Under +20.5 Games", "Over/Under") == "+20.5 Games"
+    assert OddsPortalSelectors.submarket_match_text("Asian Handicap -2.5 Sets", "Asian Handicap") == "-2.5 Sets"
+    assert OddsPortalSelectors.submarket_match_text("European Handicap 0:1", "European Handicap") == "0:1"
+
+
+def test_submarket_match_text_tail_is_substring_of_localized_label():
+    # Real localized label observed on cuotasahora.com (issue #70 follow-up).
+    tail = OddsPortalSelectors.submarket_match_text("Over/Under +20.5 Games", "Over/Under")
+    assert tail in "Más/Menos de +20.5 Games"
+    assert tail in "Over/Under +20.5 Games"  # still matches the English .com label
+    # The '+' guards against adjacent-line collisions ('+2.5' must not match '+20.5').
+    assert (
+        OddsPortalSelectors.submarket_match_text("Over/Under +2.5 Sets", "Over/Under") not in "Más/Menos de +20.5 Sets"
+    )
+
+
+def test_submarket_match_text_falls_back_to_full_label():
+    # No prefix given, or prefix not present -> use the label as-is.
+    assert OddsPortalSelectors.submarket_match_text("Over/Under +20.5 Games") == "Over/Under +20.5 Games"
+    assert OddsPortalSelectors.submarket_match_text("2:1", "Correct Score") == "2:1"
+
+
+def test_period_scope_from_url_extracts_scope():
+    # Period scope is the ';<scope>' segment of the fragment (gotchas §7).
+    assert OddsPortalSelectors.period_scope_from_url("https://x/#IXkNtYcL:over-under;2") == 2
+    assert OddsPortalSelectors.period_scope_from_url("https://x/#abcd:over-under;12") == 12
+
+
+def test_period_scope_from_url_no_scope_segment():
+    assert OddsPortalSelectors.period_scope_from_url("https://x/#abcd:over-under") is None
+    assert OddsPortalSelectors.period_scope_from_url("https://x/#abcd") is None
+    assert OddsPortalSelectors.period_scope_from_url("https://x/football/h2h/a/b/") is None
+
+
+def test_period_scope_from_url_non_string():
+    assert OddsPortalSelectors.period_scope_from_url(None) is None
+    assert OddsPortalSelectors.period_scope_from_url(12345) is None
+
+
+def test_period_scope_code_universal_full_time():
+    # FullTime is scope 2 on every sport (verified football/tennis/baseball).
+    assert OddsPortalSelectors.period_scope_code("tennis", "FullTime") == 2
+    assert OddsPortalSelectors.period_scope_code("football", "FullTime") == 2
+    assert OddsPortalSelectors.period_scope_code("ice-hockey", "FullTime") == 2
+
+
+def test_period_scope_code_per_sport():
+    assert OddsPortalSelectors.period_scope_code("football", "FirstHalf") == 3
+    assert OddsPortalSelectors.period_scope_code("football", "SecondHalf") == 4
+    assert OddsPortalSelectors.period_scope_code("tennis", "FirstSet") == 12
+    assert OddsPortalSelectors.period_scope_code("baseball", "FullIncludingOT") == 1
+
+
+def test_period_scope_code_unknown_returns_none():
+    # Unverified periods fall back to label matching; scope lookup must not guess.
+    assert OddsPortalSelectors.period_scope_code("basketball", "FirstQuarter") is None
+    assert OddsPortalSelectors.period_scope_code("tennis", "SecondSet") is None
+    # 'FirstHalf' is per-sport: verified for football, NOT generalized (baseball
+    # 'FirstHalf' is actually '1st Inning' = scope 17, a different concept).
+    assert OddsPortalSelectors.period_scope_code("baseball", "FirstHalf") is None
+
+
 def test_market_tab_codes_cover_registry_main_markets():
     # Every distinct main_market label passed by sport_market_registry must map
     # to a stable code so the localized-mirror fallback can resolve it.

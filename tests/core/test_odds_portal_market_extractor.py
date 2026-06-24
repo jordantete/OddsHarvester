@@ -518,12 +518,15 @@ class TestOddsPortalMarketExtractor:
         assert result["over_under_2_5_market"] is None
 
     @pytest.mark.asyncio
-    async def test_extract_market_odds_with_period_selection(self, extractor, page_mock, selection_manager_mock):
-        """Test that period selection is performed when sport is provided."""
+    async def test_extract_market_odds_uses_scope_code_when_verified(
+        self, extractor, page_mock, selection_manager_mock
+    ):
+        """Verified periods (football FullTime=scope 2) select by scope, not localized label."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.odds_parser.parse_market_odds = MagicMock(return_value=[])
+        extractor.period_selector.select_by_scope = AsyncMock(return_value=True)
 
         mock_period = MagicMock()
         mock_period.get_display_label = MagicMock(return_value="Full Time")
@@ -532,10 +535,34 @@ class TestOddsPortalMarketExtractor:
                 page=page_mock, main_market="1X2", odds_labels=["1", "X", "2"], sport="football", period="FullTime"
             )
 
+        extractor.period_selector.select_by_scope.assert_awaited_once_with(
+            page=page_mock, sport="football", internal_period="FullTime"
+        )
+        # Scope path handled it -> no label fallback.
+        selection_manager_mock.ensure_selected.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_extract_market_odds_falls_back_to_label_when_no_scope(
+        self, extractor, page_mock, selection_manager_mock
+    ):
+        """Unverified periods fall back to localized-label selection (select_by_scope -> None)."""
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_page_load = AsyncMock()
+        extractor.odds_parser.parse_market_odds = MagicMock(return_value=[])
+        extractor.period_selector.select_by_scope = AsyncMock(return_value=None)
+
+        mock_period = MagicMock()
+        mock_period.get_display_label = MagicMock(return_value="2nd Set")
+        with patch.object(SportPeriodRegistry, "from_internal_value", return_value=mock_period):
+            await extractor.extract_market_odds(
+                page=page_mock, main_market="Over/Under", odds_labels=["1", "2"], sport="tennis", period="SecondSet"
+            )
+
         selection_manager_mock.ensure_selected.assert_called_once_with(
             page=page_mock,
-            target_value="Full Time",
-            display_label="Full Time",
+            target_value="2nd Set",
+            display_label="2nd Set",
             strategy=PERIOD_STRATEGY,
         )
 
@@ -546,6 +573,7 @@ class TestOddsPortalMarketExtractor:
         extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.odds_parser.parse_market_odds = MagicMock(return_value=[])
+        extractor.period_selector.select_by_scope = AsyncMock(return_value=True)
 
         with patch.object(SportPeriodRegistry, "from_internal_value", return_value=None):
             await extractor.extract_market_odds(
@@ -553,6 +581,7 @@ class TestOddsPortalMarketExtractor:
             )
 
         selection_manager_mock.ensure_selected.assert_not_called()
+        extractor.period_selector.select_by_scope.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_extract_market_odds_preview_mode_passive(self, extractor, page_mock):

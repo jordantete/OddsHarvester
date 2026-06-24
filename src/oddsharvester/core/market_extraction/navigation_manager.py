@@ -62,21 +62,27 @@ class NavigationManager:
         self.logger.warning(f"Market switch verification failed after {max_attempts} attempts")
         return False
 
-    async def select_specific_market(self, page: Page, specific_market: str) -> bool:
-        """Select a specific submarket within the main market."""
+    async def select_specific_market(self, page: Page, specific_market: str, main_market: str | None = None) -> bool:
+        """Select a specific submarket within the main market.
+
+        On localized mirrors the submarket label prefix is translated, so match
+        on the language-independent tail (gotchas §7).
+        """
+        text = OddsPortalSelectors.submarket_match_text(specific_market, main_market)
         return await self.scroller.scroll_until_visible_and_click_parent(
             page=page,
-            selector="div.flex.w-full.items-center.justify-start.pl-3.font-bold p",
-            text=specific_market,
+            selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
+            text=text,
         )
 
-    async def close_specific_market(self, page: Page, specific_market: str) -> bool:
+    async def close_specific_market(self, page: Page, specific_market: str, main_market: str | None = None) -> bool:
         """Close a specific submarket after scraping."""
         self.logger.info(f"Closing sub-market: {specific_market}")
+        text = OddsPortalSelectors.submarket_match_text(specific_market, main_market)
         return await self.scroller.scroll_until_visible_and_click_parent(
             page=page,
-            selector="div.flex.w-full.items-center.justify-start.pl-3.font-bold p",
-            text=specific_market,
+            selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
+            text=text,
         )
 
     async def wait_for_page_load(self, page: Page) -> None:

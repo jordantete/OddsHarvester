@@ -138,6 +138,27 @@ class TestNavigationManager:
         )
 
     @pytest.mark.asyncio
+    async def test_select_specific_market_matches_language_independent_tail(
+        self, navigation_manager, page_mock, scroller_mock
+    ):
+        """On localized mirrors, match only the untranslated tail (issue #70 follow-up)."""
+        # Arrange
+        scroller_mock.scroll_until_visible_and_click_parent = AsyncMock(return_value=True)
+
+        # Act
+        result = await navigation_manager.select_specific_market(
+            page_mock, specific_market="Over/Under +20.5 Games", main_market="Over/Under"
+        )
+
+        # Assert
+        assert result is True
+        scroller_mock.scroll_until_visible_and_click_parent.assert_called_once_with(
+            page=page_mock,
+            selector="div.flex.w-full.items-center.justify-start.pl-3.font-bold p",
+            text="+20.5 Games",
+        )
+
+    @pytest.mark.asyncio
     async def test_select_specific_market_failure(self, navigation_manager, page_mock, scroller_mock):
         """Test failed selection of a specific market."""
         # Arrange
@@ -166,6 +187,27 @@ class TestNavigationManager:
             page=page_mock,
             selector="div.flex.w-full.items-center.justify-start.pl-3.font-bold p",
             text=specific_market,
+        )
+
+    @pytest.mark.asyncio
+    async def test_close_specific_market_matches_language_independent_tail(
+        self, navigation_manager, page_mock, scroller_mock
+    ):
+        """Closing a submarket must also use the untranslated tail on mirrors."""
+        # Arrange
+        scroller_mock.scroll_until_visible_and_click_parent = AsyncMock(return_value=True)
+
+        # Act
+        result = await navigation_manager.close_specific_market(
+            page_mock, specific_market="Over/Under +20.5 Games", main_market="Over/Under"
+        )
+
+        # Assert
+        assert result is True
+        scroller_mock.scroll_until_visible_and_click_parent.assert_called_once_with(
+            page=page_mock,
+            selector="div.flex.w-full.items-center.justify-start.pl-3.font-bold p",
+            text="+20.5 Games",
         )
 
     @pytest.mark.asyncio

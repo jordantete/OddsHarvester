@@ -1,3 +1,4 @@
+import re
 from typing import ClassVar
 
 
@@ -58,6 +59,25 @@ class OddsPortalSelectors:
     # Period selection navigation
     PERIOD_SELECTOR_CONTAINER = "div[data-testid='kickoff-events-nav']"
     PERIOD_ACTIVE_CLASS = "active-item-calendar"
+    # Real period tabs carry data-testid='sub-nav-active-tab'/'sub-nav-inactive-tab';
+    # peripheral entries (e.g. a 'Todos los bonos' bonus link) do not.
+    PERIOD_TAB_SELECTOR = f"{PERIOD_SELECTOR_CONTAINER} > div[data-testid^='sub-nav-']"
+
+    # Language-independent period scope codes — the ';<scope>' segment of the URL
+    # fragment ('#<id>:<market>;<scope>'). Scope ids are global OddsPortal period
+    # ids, identical across localized mirrors (gotchas §7). Only values verified
+    # live are listed; unverified (sport, period) pairs return None and fall back
+    # to localized-label matching. Verified: FT=2 (football/tennis/baseball).
+    PERIOD_SCOPE_CODES_UNIVERSAL: ClassVar[dict[str, int]] = {
+        "FullTime": 2,
+    }
+    # Per-sport because the same enum name can map to a different scope: baseball
+    # 'FirstHalf' renders as '1st Inning' (scope 17), not the football half (3).
+    PERIOD_SCOPE_CODES_BY_SPORT: ClassVar[dict[str, dict[str, int]]] = {
+        "football": {"FirstHalf": 3, "SecondHalf": 4},
+        "tennis": {"FirstSet": 12},
+        "baseball": {"FullIncludingOT": 1},
+    }
 
     # Match details — data-testid values for DOM-based extraction
     # (used by base_scraper._extract_match_details_event_header DOM helpers)
@@ -76,6 +96,48 @@ class OddsPortalSelectors:
         if ":" not in fragment:
             return None
         return fragment.split(":", 1)[1].split(";", 1)[0]
+
+    @staticmethod
+    def period_scope_from_url(url: str) -> int | None:
+        """Return the period scope int from a `#<id>:<market>;<scope>` fragment, else None."""
+        if not isinstance(url, str) or "#" not in url:
+            return None
+        fragment = url.split("#", 1)[1]
+        if ";" not in fragment:
+            return None
+        match = re.match(r"\d+", fragment.rsplit(";", 1)[1])
+        return int(match.group()) if match else None
+
+    @staticmethod
+    def period_scope_code(sport: str | None, internal_period: str) -> int | None:
+        """Return the verified language-independent scope code for (sport, period), else None.
+
+        Per-sport overrides win over the universal map. None means "not verified" —
+        the caller should fall back to localized-label matching (gotchas §7).
+        """
+        by_sport = OddsPortalSelectors.PERIOD_SCOPE_CODES_BY_SPORT.get((sport or "").lower(), {})
+        if internal_period in by_sport:
+            return by_sport[internal_period]
+        return OddsPortalSelectors.PERIOD_SCOPE_CODES_UNIVERSAL.get(internal_period)
+
+    @staticmethod
+    def submarket_match_text(specific_market: str, main_market: str | None = None) -> str:
+        """Return the language-independent portion of a submarket label.
+
+        On localized mirrors only the main-market prefix is translated
+        ('Over/Under' -> 'Más/Menos de'); the numeric line + axis word
+        ('+20.5 Games') is identical across mirrors. Stripping the English
+        main-market prefix lets the substring match in
+        PageScroller.scroll_until_visible_and_click_parent work on every mirror
+        (gotchas §7). The retained '+'/'-'/':' guards against adjacent-line
+        collisions. Falls back to the full label when no prefix is given or it
+        is not present.
+        """
+        if main_market and specific_market.startswith(main_market):
+            tail = specific_market[len(main_market) :].strip()
+            if tail:
+                return tail
+        return specific_market
 
     @staticmethod
     def get_dropdown_selectors_for_market(market_name: str) -> list[str]:

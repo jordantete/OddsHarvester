@@ -5,6 +5,7 @@ import pytest
 from oddsharvester.core.browser.selection import (
     BOOKIES_FILTER_STRATEGY,
     PERIOD_STRATEGY,
+    PeriodSelector,
     SelectionManager,
 )
 
@@ -148,3 +149,62 @@ class TestSelectionManager:
         arg_payload = call_args.kwargs.get("arg")
         assert arg_payload is not None
         assert arg_payload["targetValue"] == target_value
+
+
+class TestPeriodSelector:
+    """Language-independent period selection via the URL-fragment scope code."""
+
+    @pytest.fixture
+    def selector(self):
+        return PeriodSelector()
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_no_scope_code(self, selector, mock_page):
+        """Unknown (sport, period) -> None so the caller falls back to label matching."""
+        result = await selector.select_by_scope(mock_page, sport="basketball", internal_period="FirstQuarter")
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_already_active_skips_click(self, selector, mock_page):
+        """FullTime is the default scope (2); no tab click needed."""
+        mock_page.url = "https://x/#abcd:over-under;2"
+        mock_page.query_selector_all = AsyncMock()
+        result = await selector.select_by_scope(mock_page, sport="tennis", internal_period="FullTime")
+        assert result is True
+        mock_page.query_selector_all.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_clicks_tab_until_target_scope_active(self, selector, mock_page):
+        """Click period tabs and read the resulting fragment scope until it matches."""
+        # Start on FullTime (scope 2); target is 1st Set (scope 12).
+        urls = iter(
+            [
+                "https://x/#abcd:over-under;2",  # initial read
+                "https://x/#abcd:over-under;12",  # after clicking tab[0]
+            ]
+        )
+
+        tab0 = AsyncMock()
+        tab1 = AsyncMock()
+
+        def url_getter():
+            return next(urls)
+
+        type(mock_page).url = property(lambda self: url_getter())
+        mock_page.query_selector_all = AsyncMock(return_value=[tab0, tab1])
+        mock_page.wait_for_timeout = AsyncMock()
+
+        result = await selector.select_by_scope(mock_page, sport="tennis", internal_period="FirstSet")
+        assert result is True
+        tab0.click.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_returns_false_when_target_scope_never_reached(self, selector, mock_page):
+        """If no tab yields the target scope, return False (never select a wrong period)."""
+        type(mock_page).url = property(lambda self: "https://x/#abcd:over-under;2")
+        tab0 = AsyncMock()
+        mock_page.query_selector_all = AsyncMock(return_value=[tab0])
+        mock_page.wait_for_timeout = AsyncMock()
+
+        result = await selector.select_by_scope(mock_page, sport="tennis", internal_period="FirstSet")
+        assert result is False

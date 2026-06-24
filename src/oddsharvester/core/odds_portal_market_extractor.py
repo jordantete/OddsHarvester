@@ -7,6 +7,7 @@ from oddsharvester.core.browser.market_navigation import MarketTabNavigator
 from oddsharvester.core.browser.scrolling import PageScroller
 from oddsharvester.core.browser.selection import (
     PERIOD_STRATEGY,
+    PeriodSelector,
     SelectionManager,
 )
 from oddsharvester.core.market_extraction import (
@@ -41,6 +42,7 @@ class OddsPortalMarketExtractor:
         self.scroller = scroller
         self.tab_navigator = tab_navigator
         self.selection_manager = selection_manager
+        self.period_selector = PeriodSelector()
 
         # Initialize component classes
         self.navigation_manager = NavigationManager(tab_navigator=tab_navigator, scroller=scroller)
@@ -186,17 +188,23 @@ class OddsPortalMarketExtractor:
             # Wait for market switch to complete
             await self.navigation_manager.wait_for_market_switch(page, main_market)
 
-            # Ensure correct period is selected after market switch
+            # Ensure correct period is selected after market switch. Prefer the
+            # language-independent scope code (works on localized mirrors, §7);
+            # fall back to localized-label matching when no scope is verified.
             if sport:
                 period_enum = SportPeriodRegistry.from_internal_value(period, sport)
                 if period_enum:
-                    display_label = period_enum.get_display_label(period_enum)
-                    await self.selection_manager.ensure_selected(
-                        page=page,
-                        target_value=display_label,
-                        display_label=display_label,
-                        strategy=PERIOD_STRATEGY,
+                    scope_selected = await self.period_selector.select_by_scope(
+                        page=page, sport=sport, internal_period=period
                     )
+                    if scope_selected is None:
+                        display_label = period_enum.get_display_label(period_enum)
+                        await self.selection_manager.ensure_selected(
+                            page=page,
+                            target_value=display_label,
+                            display_label=display_label,
+                            strategy=PERIOD_STRATEGY,
+                        )
                 else:
                     self.logger.debug(f"Period selection skipped for sport: {sport}")
 
@@ -212,7 +220,7 @@ class OddsPortalMarketExtractor:
                 if not odds_data:
                     self.logger.info(f"No data extracted passively for {main_market}, falling back to normal scraping")
                     if specific_market and not await self.navigation_manager.select_specific_market(
-                        page=page, specific_market=specific_market
+                        page=page, specific_market=specific_market, main_market=main_market
                     ):
                         self.logger.error(f"Failed to find or select {specific_market} within {main_market}")
                         return []
@@ -229,7 +237,7 @@ class OddsPortalMarketExtractor:
             else:
                 # Active mode: click on specific submarket if provided
                 if specific_market and not await self.navigation_manager.select_specific_market(
-                    page=page, specific_market=specific_market
+                    page=page, specific_market=specific_market, main_market=main_market
                 ):
                     self.logger.error(f"Failed to find or select {specific_market} within {main_market}")
                     return []
@@ -263,7 +271,7 @@ class OddsPortalMarketExtractor:
 
             # Close the sub-market after scraping to avoid duplicates
             if specific_market:
-                await self.navigation_manager.close_specific_market(page, specific_market)
+                await self.navigation_manager.close_specific_market(page, specific_market, main_market=main_market)
 
             return odds_data
 

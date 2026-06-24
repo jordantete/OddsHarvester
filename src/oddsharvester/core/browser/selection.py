@@ -11,6 +11,7 @@ from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import (
     BOOKIES_FILTER_TIMEOUT_MS,
     FALLBACK_VERIFY_WAIT_MS,
+    MARKET_SWITCH_WAIT_TIME_MS,
     PERIOD_SELECTOR_TIMEOUT_MS,
 )
 
@@ -127,6 +128,53 @@ class SelectionManager:
         except Exception as e:
             self.logger.error(f"Error getting current {strategy.name}: {e}")
             return None
+
+
+class PeriodSelector:
+    """Select a match period by its language-independent URL-fragment scope code.
+
+    The active period is encoded in the fragment as `;<scope>` (e.g.
+    `…:over-under;2`). Scope ids are global and identical across localized mirrors
+    (gotchas §7), so we select by clicking period tabs and reading the resulting
+    scope rather than matching the localized tab label. Returns None when no scope
+    code is verified for `(sport, period)`, signalling the caller to fall back to
+    label-based selection.
+    """
+
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    async def select_by_scope(self, page: Page, sport: str | None, internal_period: str) -> bool | None:
+        """Return True if the target scope is active, False if unreachable, None if no scope is known.
+
+        Only ever returns True when the active fragment scope equals the target, so
+        a wrong period is never silently selected.
+        """
+        target = OddsPortalSelectors.period_scope_code(sport, internal_period)
+        if target is None:
+            return None
+
+        if OddsPortalSelectors.period_scope_from_url(page.url) == target:
+            self.logger.info(f"Period scope {target} already active for '{internal_period}'.")
+            return True
+
+        tabs = await page.query_selector_all(OddsPortalSelectors.PERIOD_TAB_SELECTOR)
+        for i in range(len(tabs)):
+            tabs = await page.query_selector_all(OddsPortalSelectors.PERIOD_TAB_SELECTOR)
+            if i >= len(tabs):
+                break
+            try:
+                await tabs[i].click()
+                await page.wait_for_timeout(MARKET_SWITCH_WAIT_TIME_MS)
+            except Exception as e:
+                self.logger.debug(f"Period tab click failed at index {i}: {e}")
+                continue
+            if OddsPortalSelectors.period_scope_from_url(page.url) == target:
+                self.logger.info(f"Selected period scope {target} for '{internal_period}' (tab index {i}).")
+                return True
+
+        self.logger.warning(f"Could not reach period scope {target} for '{internal_period}' via tab scan.")
+        return False
 
 
 # === Concrete strategies ===
