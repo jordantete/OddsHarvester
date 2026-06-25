@@ -480,6 +480,29 @@ Two traps when extending the scope map (`OddsPortalSelectors.PERIOD_SCOPE_CODES_
    Unverified periods stay on the label fallback — correct on `.com`, no silent
    wrong data on mirrors thanks to the exact-match rule.
 
+### The odds-history tooltip header has the same trap (issue #70 follow-up)
+
+`--odds-history` hovers each bookmaker odds cell to open the "Odds movement"
+tooltip, then reads `h3 → parentElement` to capture the modal. The old selector
+`h3:text('Odds movement')` matched the **localized** header (`$t("odds_movement")`
+in the Vue bundle), so on `cuotasahora.com` the `wait_for_selector` timed out:
+no modal captured → **both odds history and opening odds silently empty**, while
+closing odds (parsed from the main row, hover-independent) still came through.
+This is the reported "only closing odds" symptom.
+
+**The fix — match the header by its stable class, not its text.**
+`ODDS_MOVEMENT_HEADER = "h3.font-semibold.uppercase.leading-6"`. Verified in the
+`Event-*.js` bundle: the match page contains exactly two `<h3>` elements, both
+the odds-movement tooltip header (bookmaker variant `HistoryBackAndLayTooltip`
+and exchange variant), sharing class `text-sm font-semibold uppercase leading-6
+text-[#2F2F2F]`. No section-title `<h3>` exists, so the class match is unambiguous
+and only one tooltip is shown per hover.
+
+**The dates inside the tooltip are *not* localized** — do not "fix" the
+`"%d %b, %H:%M"` parse. The client renders them via `phpJsDate("d M, H:i", …)`,
+whose month/day arrays are hardcoded English in the bundle, so `"10 Jun, 14:30"`
+is emitted on every mirror regardless of `html lang`.
+
 ### How `--base-url` works
 
 `--base-url` accepts a mirror root (e.g. `https://www.centroquote.it`) and

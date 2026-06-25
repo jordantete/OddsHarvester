@@ -177,7 +177,8 @@ class OddsPortalSelectors:
     BOOKMAKER_ROW_CSS = "div.border-black-borders.flex.h-9"
     BOOKMAKER_LOGO_CSS = "img.bookmaker-logo"
     ODDS_BLOCK_CSS = "div.flex-center.flex-col.font-bold"
-    ODDS_MOVEMENT_HEADER = "h3:text('Odds movement')"
+    # Match the tooltip header by class: its text is localized on regional mirrors.
+    ODDS_MOVEMENT_HEADER = "h3.font-semibold.uppercase.leading-6"
 
     # Event listing — BeautifulSoup class pattern
     EVENT_ROW_CLASS_PATTERN = "^eventRow"
