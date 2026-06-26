@@ -34,7 +34,8 @@ dependencies = [
     "click>=8.1.0",
     "lxml>=6.0.2",
     "playwright>=1.57.0",
-    "pytz>=2025.2"
+    "pytz>=2025.2",
+    "tzdata>=2025.2"
 ]
 
 [project.optional-dependencies]
