@@ -94,6 +94,7 @@ class FootballEuropeanHandicapMarket(Enum):
 class FootballAsianHandicapMarket(Enum):
     """Asian Handicap market values for football (including quarters)."""
 
+    HANDICAP_MINUS_5 = "asian_handicap_-5"
     HANDICAP_MINUS_4 = "asian_handicap_-4"
     HANDICAP_MINUS_3_75 = "asian_handicap_-3_75"
     HANDICAP_MINUS_3_5 = "asian_handicap_-3_5"
