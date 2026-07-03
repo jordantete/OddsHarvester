@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from oddsharvester.utils.proxy_manager import ProxyManager
+from oddsharvester.utils.proxy_manager import PROXY_CONSECUTIVE_FAILURE_THRESHOLD, ProxyEntry, ProxyManager
 
 
 class TestProxyManagerBasics:
@@ -150,3 +150,89 @@ class TestLegacyMethods:
         proxy_manager.rotate_proxy()  # Should not raise
         # Proxy should remain the same
         assert proxy_manager.get_proxy() == {"server": "http://proxy.example.com:8080"}
+
+
+class TestMultiProxyPool:
+    def test_empty_pool_is_direct(self):
+        pm = ProxyManager()
+        assert pm.is_multi_proxy() is False
+        assert pm.launch_proxy() is None
+        entry = pm.next_proxy()
+        assert entry.config is None
+
+    def test_single_proxy_launches_with_that_proxy(self):
+        pm = ProxyManager(proxy_urls=["http://proxy.example.com:8080"])
+        assert pm.is_multi_proxy() is False
+        assert pm.launch_proxy() == {"server": "http://proxy.example.com:8080"}
+
+    def test_multiple_proxies_launch_per_context(self):
+        pm = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
+        assert pm.is_multi_proxy() is True
+        assert pm.launch_proxy() == {"server": "per-context"}
+
+    def test_embedded_credentials_split_into_username_password(self):
+        pm = ProxyManager(proxy_urls=["http://user:pass@a.example.com:8080"])
+        entry = pm.entries[0]
+        assert entry.config == {
+            "server": "http://a.example.com:8080",
+            "username": "user",
+            "password": "pass",
+        }
+
+    def test_round_robin_cycles_entries(self):
+        pm = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
+        keys = [pm.next_proxy().key for _ in range(4)]
+        assert keys == [
+            "http://a.example.com:1",
+            "http://b.example.com:2",
+            "http://a.example.com:1",
+            "http://b.example.com:2",
+        ]
+
+    def test_blacklist_after_threshold_skips_proxy(self):
+        pm = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
+        key_a = "http://a.example.com:1"
+        for _ in range(PROXY_CONSECUTIVE_FAILURE_THRESHOLD):
+            pm.report_result(key_a, is_proxy_failure=True)
+        keys = {pm.next_proxy().key for _ in range(4)}
+        assert keys == {"http://b.example.com:2"}
+
+    def test_success_resets_failure_counter(self):
+        pm = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
+        key_a = "http://a.example.com:1"
+        pm.report_result(key_a, is_proxy_failure=True)
+        pm.report_result(key_a, is_proxy_failure=True)
+        pm.report_result(key_a, is_proxy_failure=False)  # reset
+        pm.report_result(key_a, is_proxy_failure=True)
+        # Only 1 consecutive failure since reset -> not blacklisted
+        assert any(e.key == key_a and not e.blacklisted for e in pm.entries)
+
+    def test_all_blacklisted_returns_none(self):
+        pm = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
+        for key in ["http://a.example.com:1", "http://b.example.com:2"]:
+            for _ in range(PROXY_CONSECUTIVE_FAILURE_THRESHOLD):
+                pm.report_result(key, is_proxy_failure=True)
+        assert pm.next_proxy() is None
+
+    def test_single_proxy_never_blacklists(self):
+        pm = ProxyManager(proxy_urls=["http://a.example.com:1"])
+        for _ in range(PROXY_CONSECUTIVE_FAILURE_THRESHOLD * 3):
+            pm.report_result("http://a.example.com:1", is_proxy_failure=True)
+        assert pm.next_proxy().key == "http://a.example.com:1"
+
+    def test_multi_proxy_user_pass_ignored_with_warning(self):
+        from unittest.mock import patch
+
+        with patch("oddsharvester.utils.proxy_manager.logging.getLogger") as mock_get_logger:
+            mock_logger = mock_get_logger.return_value
+            ProxyManager(
+                proxy_urls=["http://a.example.com:1", "http://b.example.com:2"],
+                proxy_user="u",
+                proxy_pass="p",
+            )
+            assert any("ignored with multiple proxies" in str(call) for call in mock_logger.warning.call_args_list)
+
+    def test_entry_dataclass_defaults(self):
+        entry = ProxyEntry(key="k", config=None)
+        assert entry.consecutive_failures == 0
+        assert entry.blacklisted is False
