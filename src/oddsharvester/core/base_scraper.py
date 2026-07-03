@@ -20,7 +20,13 @@ from oddsharvester.core.browser.selection import (
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
-from oddsharvester.core.retry import RetryConfig, classify_error, is_retryable_error, retry_with_backoff
+from oddsharvester.core.retry import (
+    RetryConfig,
+    classify_error,
+    is_proxy_attributable_error,
+    is_retryable_error,
+    retry_with_backoff,
+)
 from oddsharvester.core.scrape_result import FailedUrl, ScrapeResult, ScrapeStats
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import (
@@ -226,6 +232,7 @@ class BaseScraper:
         self.selection_manager = selection_manager
         self.preview_submarkets_only = preview_submarkets_only
         self.base_url = base_url
+        self._warmed_proxy_keys: set[str] = set()
 
     async def set_odds_format(self, page: Page, odds_format: OddsFormat = OddsFormat.DECIMAL_ODDS):
         """
@@ -389,6 +396,31 @@ class BaseScraper:
             self.logger.error(f"Error extracting match links: {e}", exc_info=True)
             return []
 
+    async def _warm_proxy_contexts(self):
+        """Warm each non-default proxy context once.
+
+        Odds format and cookie consent are per-context state. Without this, match
+        pages loaded on a fresh proxy context would render with the wrong odds
+        format, silently corrupting odds values.
+        """
+        for key in self.playwright_manager.non_default_context_keys():
+            if key in self._warmed_proxy_keys:
+                continue
+            self._warmed_proxy_keys.add(key)
+            page = None
+            try:
+                page = await self.playwright_manager.new_page_on_key(key)
+                await page.goto(ODDSPORTAL_BASE_URL, timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded")
+                await self.cookie_dismisser.dismiss(page=page)
+                await self.set_odds_format(page=page)
+                self.logger.info(f"Warmed proxy context: {key}")
+            except Exception as e:
+                self.logger.warning(f"Failed to warm proxy context {key}: {e}")
+                self.playwright_manager.report_page_result(key, is_proxy_failure=True)
+            finally:
+                if page:
+                    await page.close()
+
     async def extract_match_odds(
         self,
         sport: str,
@@ -422,6 +454,8 @@ class BaseScraper:
         Returns:
             ScrapeResult: Contains successful results, failed URLs with error details, and statistics.
         """
+        await self._warm_proxy_contexts()
+
         self.logger.info(f"Starting to scrape odds for {len(match_links)} match links...")
 
         result = ScrapeResult(stats=ScrapeStats(total_urls=len(match_links)))
@@ -462,9 +496,10 @@ class BaseScraper:
                     await asyncio.sleep(total_delay)
 
                 tab = None
+                proxy_key = None
 
                 try:
-                    tab = await self.playwright_manager.context.new_page()
+                    tab, proxy_key = await self.playwright_manager.new_rotated_page()
 
                     # Use retry with backoff for each match
                     retry_result = await retry_with_backoff(
@@ -476,6 +511,7 @@ class BaseScraper:
 
                     if retry_result.success and retry_result.result is not None:
                         self.logger.info(f"Successfully scraped match link: {link} (attempts: {retry_result.attempts})")
+                        self.playwright_manager.report_page_result(proxy_key, is_proxy_failure=False)
                         return (link, retry_result.result, None)
                     else:
                         # Scraping failed after retries
@@ -490,6 +526,9 @@ class BaseScraper:
                         self.logger.warning(
                             f"Failed to scrape {link} after {retry_result.attempts} attempts: {retry_result.last_error}"
                         )
+                        self.playwright_manager.report_page_result(
+                            proxy_key, is_proxy_failure=is_proxy_attributable_error(error_type)
+                        )
                         return (link, None, failed_url)
 
                 except Exception as e:
@@ -503,6 +542,11 @@ class BaseScraper:
                         is_retryable=is_retryable_error(error_message),
                     )
                     self.logger.error(f"Unexpected error scraping {link}: {e}")
+                    if proxy_key is not None:
+                        self.playwright_manager.report_page_result(
+                            proxy_key,
+                            is_proxy_failure=is_proxy_attributable_error(classify_error(error_message)),
+                        )
                     return (link, None, failed_url)
 
                 finally:

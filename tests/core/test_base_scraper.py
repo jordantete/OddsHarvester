@@ -43,6 +43,10 @@ def setup_base_scraper_mocks():
 
     # Configure playwright manager mock
     playwright_manager_mock.context = context_mock
+    playwright_manager_mock.new_rotated_page = AsyncMock(return_value=(page_mock, "direct"))
+    playwright_manager_mock.new_page_on_key = AsyncMock(return_value=page_mock)
+    playwright_manager_mock.non_default_context_keys = MagicMock(return_value=[])
+    playwright_manager_mock.report_page_result = MagicMock()
 
     selection_manager_mock = AsyncMock()
 
@@ -723,7 +727,7 @@ async def test_extract_match_odds(setup_base_scraper_mocks):
     """Test extracting odds for multiple match links concurrently."""
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
-    context_mock = mocks["context_mock"]
+    pm = mocks["playwright_manager_mock"]
 
     # Mock _scrape_match_data to return data directly
     scraper._scrape_match_data = AsyncMock(side_effect=[{"match": "data1"}, {"match": "data2"}])
@@ -747,8 +751,8 @@ async def test_extract_match_odds(setup_base_scraper_mocks):
             sport="football", match_links=match_links, markets=["1x2"], scrape_odds_history=False
         )
 
-    # Verify new_page was called for each match link
-    assert context_mock.new_page.call_count == 2
+    # Verify a rotated page was acquired for each match link
+    assert pm.new_rotated_page.await_count == 2
 
     # Verify the result is a ScrapeResult with successful matches
     assert len(result.success) == 2
@@ -757,6 +761,33 @@ async def test_extract_match_odds(setup_base_scraper_mocks):
     assert result.stats.total_urls == 2
     assert result.stats.successful == 2
     assert result.stats.failed == 0
+
+
+@pytest.mark.asyncio
+async def test_extract_match_odds_warms_non_default_contexts(setup_base_scraper_mocks):
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    pm = mocks["playwright_manager_mock"]
+    pm.non_default_context_keys = MagicMock(return_value=["http://b.example.com:2"])
+
+    await scraper.extract_match_odds(sport="football", match_links=[], markets=["1x2"])
+
+    pm.new_page_on_key.assert_awaited_with("http://b.example.com:2")
+    assert "http://b.example.com:2" in scraper._warmed_proxy_keys
+
+
+@pytest.mark.asyncio
+async def test_extract_match_odds_uses_rotated_page(setup_base_scraper_mocks):
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    pm = mocks["playwright_manager_mock"]
+
+    await scraper.extract_match_odds(
+        sport="football", match_links=["https://www.oddsportal.com/football/x/y/#z"], markets=["1x2"]
+    )
+
+    pm.new_rotated_page.assert_awaited()
+    pm.report_page_result.assert_called()
 
 
 @pytest.mark.asyncio
