@@ -5,6 +5,7 @@ import pytest
 from oddsharvester.core.retry import (
     RetryConfig,
     classify_error,
+    is_proxy_attributable_error,
     is_retryable_error,
     retry_with_backoff,
 )
@@ -209,3 +210,20 @@ class TestRetryWithBackoff:
 
         assert result.success is False
         assert result.error_type == ErrorType.NAVIGATION
+
+
+class TestProxyAttributableError:
+    def test_navigation_is_proxy_attributable(self):
+        assert is_proxy_attributable_error(ErrorType.NAVIGATION) is True
+
+    def test_rate_limited_is_proxy_attributable(self):
+        assert is_proxy_attributable_error(ErrorType.RATE_LIMITED) is True
+
+    def test_parsing_is_not_proxy_attributable(self):
+        assert is_proxy_attributable_error(ErrorType.PARSING) is False
+
+    def test_page_not_found_is_not_proxy_attributable(self):
+        assert is_proxy_attributable_error(ErrorType.PAGE_NOT_FOUND) is False
+
+    def test_none_is_not_proxy_attributable(self):
+        assert is_proxy_attributable_error(None) is False

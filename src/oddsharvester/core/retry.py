@@ -104,6 +104,16 @@ def classify_error(error_message: str | None) -> ErrorType:
     return ErrorType.UNKNOWN
 
 
+# ErrorTypes attributable to the proxy/IP (vs. content-parsing failures).
+# Used by multi-proxy failover to decide whether a failure counts against a proxy.
+PROXY_ATTRIBUTABLE_ERROR_TYPES = (ErrorType.NAVIGATION, ErrorType.RATE_LIMITED)
+
+
+def is_proxy_attributable_error(error_type: ErrorType | None) -> bool:
+    """Return True if this error type should count against the proxy that produced it."""
+    return error_type in PROXY_ATTRIBUTABLE_ERROR_TYPES
+
+
 async def retry_with_backoff[T](
     func: Callable[..., Coroutine[Any, Any, T]],
     *args: Any,
