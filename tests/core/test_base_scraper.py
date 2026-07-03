@@ -47,6 +47,7 @@ def setup_base_scraper_mocks():
     playwright_manager_mock.new_page_on_key = AsyncMock(return_value=page_mock)
     playwright_manager_mock.non_default_context_keys = MagicMock(return_value=[])
     playwright_manager_mock.report_page_result = MagicMock()
+    playwright_manager_mock.blacklist_proxy = MagicMock()
 
     selection_manager_mock = AsyncMock()
 
@@ -777,6 +778,23 @@ async def test_extract_match_odds_warms_non_default_contexts(setup_base_scraper_
 
 
 @pytest.mark.asyncio
+async def test_warm_failure_blacklists_proxy(setup_base_scraper_mocks):
+    """A proxy whose context can't be warmed must be removed from rotation entirely,
+    not merely dinged with a single strike - a cold context silently corrupts odds."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    pm = mocks["playwright_manager_mock"]
+    pm.non_default_context_keys = MagicMock(return_value=["http://b.example.com:2"])
+    mocks["page_mock"].goto = AsyncMock(side_effect=Exception("Page.goto: net::ERR_PROXY_CONNECTION_FAILED"))
+    pm.new_page_on_key = AsyncMock(return_value=mocks["page_mock"])
+    pm.blacklist_proxy = MagicMock()
+
+    await scraper.extract_match_odds(sport="football", match_links=[], markets=["1x2"])
+
+    pm.blacklist_proxy.assert_called_once_with("http://b.example.com:2")
+
+
+@pytest.mark.asyncio
 async def test_extract_match_odds_uses_rotated_page(setup_base_scraper_mocks):
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
@@ -907,12 +925,13 @@ async def test_scrape_match_data_reraises_proxy_error(setup_base_scraper_mocks):
 
 
 @pytest.mark.asyncio
-async def test_scrape_match_data_swallows_non_proxy_error(setup_base_scraper_mocks):
-    """Non-proxy-attributable errors keep degrading gracefully to None."""
+async def test_scrape_match_data_swallows_post_navigation_error(setup_base_scraper_mocks):
+    """Errors raised after a successful goto (DOM/selector drift) must degrade gracefully to
+    None, not be attributed to the proxy - navigation already succeeded."""
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
 
-    mocks["page_mock"].goto = AsyncMock(side_effect=Exception("totally unrelated boom"))
+    mocks["selection_manager_mock"].ensure_selected = AsyncMock(side_effect=Exception("boom"))
 
     result = await scraper._scrape_match_data(
         page=mocks["page_mock"],

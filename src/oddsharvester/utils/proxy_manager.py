@@ -136,6 +136,13 @@ class ProxyManager:
             self._exhausted_logged = True
         return None
 
+    def blacklist_proxy(self, key: str) -> None:
+        """Force a proxy out of rotation (e.g. its context could not be warmed)."""
+        entry = next((e for e in self.entries if e.key == key), None)
+        if entry is not None and not entry.blacklisted:
+            entry.blacklisted = True
+            self.logger.warning(f"Proxy removed from rotation (context warm-up failed): {entry.key}")
+
     def report_result(self, key: str, is_proxy_failure: bool) -> None:
         """Record the outcome of a request that used the proxy identified by `key`.
 

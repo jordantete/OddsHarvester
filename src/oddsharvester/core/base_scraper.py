@@ -415,8 +415,8 @@ class BaseScraper:
                 await self.set_odds_format(page=page)
                 self.logger.info(f"Warmed proxy context: {key}")
             except Exception as e:
-                self.logger.warning(f"Failed to warm proxy context {key}: {e}")
-                self.playwright_manager.report_page_result(key, is_proxy_failure=True)
+                self.logger.warning(f"Failed to warm proxy context {key}: {e}. Removing proxy from rotation.")
+                self.playwright_manager.blacklist_proxy(key)
             finally:
                 if page:
                     await page.close()
@@ -617,10 +617,13 @@ class BaseScraper:
         """
         self.logger.info(f"Scraping match: {match_link}")
 
-        try:
-            # Navigate to the match page with extended timeout
-            await page.goto(match_link, timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded")
+        # Navigation is the proxy-sensitive step: let its failures propagate so
+        # retry/backoff and multi-proxy failover can attribute them to the proxy.
+        # Errors after a successful load are content/DOM issues and must not
+        # blacklist a proxy, so they stay swallowed to None below.
+        await page.goto(match_link, timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded")
 
+        try:
             # Wait a bit for dynamic content to load
             await page.wait_for_timeout(DYNAMIC_CONTENT_WAIT_MS)
 
@@ -667,8 +670,6 @@ class BaseScraper:
 
         except Exception as e:
             self.logger.error(f"Error scraping match data from {match_link}: {e}")
-            if is_proxy_attributable_error(classify_error(str(e))):
-                raise
             return None
 
     def _resolved_browser_timezone(self) -> ZoneInfo:

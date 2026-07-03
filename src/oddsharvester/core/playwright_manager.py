@@ -178,6 +178,11 @@ class PlaywrightManager:
         if self._proxy_manager is not None:
             self._proxy_manager.report_result(key, is_proxy_failure)
 
+    def blacklist_proxy(self, key: str) -> None:
+        """Force a proxy out of rotation (no-op without a proxy manager)."""
+        if self._proxy_manager is not None:
+            self._proxy_manager.blacklist_proxy(key)
+
     async def cleanup(self):
         """Properly closes Playwright instances."""
         self.logger.info("Cleaning up Playwright resources...")
