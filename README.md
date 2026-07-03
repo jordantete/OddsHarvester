@@ -158,13 +158,25 @@ oddsharvester historic -s football -l england-premier-league --season 2024-2025 
 
 #### Proxy Options
 
-| Option         | Description                                |
-| -------------- | ------------------------------------------ |
-| `--proxy-url`  | Proxy URL (`http://...` or `socks5://...`) |
-| `--proxy-user` | Proxy username                             |
-| `--proxy-pass` | Proxy password                             |
+| Option         | Description                                                                                                                                                             |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--proxy-url`  | Proxy URL (`http://...` or `socks5://...`). **Repeatable** — pass it multiple times to rotate per-match scraping round-robin across proxies. Each URL may embed credentials (`scheme://user:pass@host:port`). |
+| `--proxy-user` | Proxy username. Applies only when a **single** `--proxy-url` without embedded credentials is given; ignored (with a warning) if multiple proxies are passed.           |
+| `--proxy-pass` | Proxy password. Same single-proxy restriction as `--proxy-user`.                                                                                                       |
 
 > **Tip:** For best results, match `--locale` and `--timezone` to your proxy's region.
+
+**Multi-proxy example** — spread scraping across three proxies with embedded credentials:
+
+```bash
+oddsharvester historic --sport football --leagues england-premier-league --season 2013-2014 \
+  --markets 1x2 --concurrency 6 \
+  --proxy-url http://user:pass@p1.example.com:8000 \
+  --proxy-url http://user:pass@p2.example.com:8000 \
+  --proxy-url http://user:pass@p3.example.com:8000
+```
+
+Matches are dispatched round-robin across the proxies; a proxy that fails 3 times in a row (navigation/rate-limit errors) is dropped from rotation and the run continues on the survivors.
 
 #### Advanced Options
 
@@ -215,7 +227,7 @@ All CLI options can be set via environment variables — useful for Docker or CI
 | `OH_HEADLESS`      | `--headless`      | Run in headless mode         |
 | `OH_CONCURRENCY`   | `--concurrency`   | Number of concurrent tasks   |
 | `OH_REQUEST_DELAY` | `--request-delay` | Delay between requests (sec) |
-| `OH_PROXY_URL`     | `--proxy-url`     | Proxy server URL             |
+| `OH_PROXY_URL`     | `--proxy-url`     | Proxy server URL(s) — space-separated for multiple proxies |
 | `OH_PROXY_USER`    | `--proxy-user`    | Proxy username               |
 | `OH_PROXY_PASS`    | `--proxy-pass`    | Proxy password               |
 | `OH_USER_AGENT`    | `--user-agent`    | Custom browser user agent    |

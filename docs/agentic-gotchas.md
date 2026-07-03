@@ -677,6 +677,53 @@ the match is real and upcoming, just filed under the next calendar day.
 
 ---
 
+## §11 — Multi-proxy contexts each need their own warm-up (odds format + cookie consent are per-`BrowserContext`)
+
+**Severity:** High — silently wrong odds values, not a crash or empty result.
+
+Odds format (`Decimal Odds` vs `Fractional`/`American`) and cookie-consent
+acknowledgement are **`BrowserContext`-scoped state** on OddsPortal, not
+domain-wide. The single-proxy flow sets both once, at startup, before any
+match is scraped. Multi-proxy rotation breaks that assumption: each
+`--proxy-url` gets **its own** `BrowserContext` (Playwright configures a
+proxy at context-creation time, not per-request), so a context that is
+never warmed renders match pages in OddsPortal's default (non-decimal) odds
+format — and odds values parsed from it are silently wrong, with no
+exception raised.
+
+### Detection signal
+
+- Symptom: with `--proxy-url` passed more than once, some scraped matches
+  have odds values off by a format conversion (e.g. fractional `5/2`
+  parsed as if it were decimal `2.5`, or vice versa) while others from the
+  same run are correct.
+- No parsing exception is raised — the DOM is well-formed, just in the
+  wrong format, so extraction "succeeds" with corrupted numbers.
+- Only reproduces with 2+ proxies; single-proxy (or no-proxy) runs warm
+  the one context they use at startup and never hit this.
+
+### Fix pattern
+
+`base_scraper._warm_proxy_contexts()` navigates each non-default proxy
+context to `ODDSPORTAL_BASE_URL`, dismisses the cookie banner
+(`CookieDismisser.dismiss`), then calls `set_odds_format` — once per
+context, before that context scrapes any match. It's called from
+`extract_match_odds` before match links are dispatched round-robin across
+the proxy pool, and tracks already-warmed contexts in `_warmed_proxy_keys`
+so each proxy is only warmed once per run. Any future per-context setup
+(locale-dependent state, new format/consent flags) must go through this
+same warm-once-per-context path — don't assume a page inherits state from
+another context on the same proxy pool.
+
+### References
+
+- `core/base_scraper.py` — `_warm_proxy_contexts`, `_warmed_proxy_keys`.
+- `core/playwright_manager.py` — `non_default_context_keys`,
+  `new_page_on_key` (one `BrowserContext` per proxy).
+- `core/browser/cookies.py` — `CookieDismisser`.
+
+---
+
 ## Adding a new gotcha
 
 When a fix lands that exposes an OddsPortal-specific behaviour an agent
