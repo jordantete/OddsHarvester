@@ -1,6 +1,7 @@
 """Tests for custom exceptions module."""
 
 from oddsharvester.core.exceptions import (
+    AllProxiesExhaustedError,
     MarketExtractionError,
     NavigationError,
     PageNotFoundError,
@@ -149,3 +150,12 @@ class TestExceptionHierarchy:
         assert error.url == "https://example.com"
         assert hasattr(error, "retry_after")
         assert error.retry_after == 30
+
+
+class TestAllProxiesExhaustedError:
+    def test_is_scraper_error(self):
+        assert issubclass(AllProxiesExhaustedError, ScraperError)
+
+    def test_message_preserved(self):
+        err = AllProxiesExhaustedError("all proxies blacklisted")
+        assert str(err) == "all proxies blacklisted"

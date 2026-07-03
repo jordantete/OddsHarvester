@@ -93,3 +93,10 @@ class MarketExtractionError(ScraperError):
 
     def __init__(self, message: str, url: str, is_retryable: bool = True):
         super().__init__(message, url, is_retryable=is_retryable)
+
+
+class AllProxiesExhaustedError(ScraperError):
+    """Raised when every proxy in the rotation pool has been blacklisted.
+
+    Signals that no healthy IP remains for further requests.
+    """
