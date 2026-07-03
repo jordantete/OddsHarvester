@@ -44,21 +44,15 @@ class OddsPortalScraper(BaseScraper):
         browser_user_agent: str | None = None,
         browser_locale_timezone: str | None = None,
         browser_timezone_id: str | None = None,
-        proxy: dict[str, str] | None = None,
+        proxy_manager=None,
     ):
-        """
-        Initializes Playwright using PlaywrightManager.
-
-        Args:
-            headless (bool): Whether to run Playwright in headless mode.
-            proxy (Optional[Dict[str, str]]): Proxy configuration if needed.
-        """
+        """Initializes Playwright using PlaywrightManager."""
         await self.playwright_manager.initialize(
             headless=headless,
             user_agent=browser_user_agent,
             locale=browser_locale_timezone,
             timezone_id=browser_timezone_id,
-            proxy=proxy,
+            proxy_manager=proxy_manager,
         )
 
     async def stop_playwright(self):

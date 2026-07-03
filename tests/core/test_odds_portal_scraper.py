@@ -9,6 +9,7 @@ from oddsharvester.core.odds_portal_scraper import LinkCollectionResult, OddsPor
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
 from oddsharvester.utils.constants import GOTO_TIMEOUT_LONG_MS, MAX_PAGINATION_PAGES
+from oddsharvester.utils.proxy_manager import ProxyManager
 
 
 @pytest.fixture
@@ -61,7 +62,7 @@ async def test_start_playwright(setup_scraper_mocks):
     # Test with default parameters
     await scraper.start_playwright()
     mocks["playwright_manager_mock"].initialize.assert_called_once_with(
-        headless=True, user_agent=None, locale=None, timezone_id=None, proxy=None
+        headless=True, user_agent=None, locale=None, timezone_id=None, proxy_manager=None
     )
 
     # Reset the mock and test with custom parameters
@@ -70,14 +71,14 @@ async def test_start_playwright(setup_scraper_mocks):
     custom_user_agent = "Mozilla/5.0 CustomAgent"
     custom_locale = "en-US"
     custom_timezone = "Europe/London"
-    proxy_config = {"server": "http://proxy.example.com:8080"}
+    proxy_manager = ProxyManager(proxy_urls=["http://proxy.example.com:8080"])
 
     await scraper.start_playwright(
         headless=False,
         browser_user_agent=custom_user_agent,
         browser_locale_timezone=custom_locale,
         browser_timezone_id=custom_timezone,
-        proxy=proxy_config,
+        proxy_manager=proxy_manager,
     )
 
     mocks["playwright_manager_mock"].initialize.assert_called_once_with(
@@ -85,7 +86,7 @@ async def test_start_playwright(setup_scraper_mocks):
         user_agent=custom_user_agent,
         locale=custom_locale,
         timezone_id=custom_timezone,
-        proxy=proxy_config,
+        proxy_manager=proxy_manager,
     )
 
 

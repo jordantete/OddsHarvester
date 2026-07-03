@@ -2,7 +2,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from oddsharvester.core.exceptions import AllProxiesExhaustedError
 from oddsharvester.core.playwright_manager import PlaywrightManager
+from oddsharvester.utils.proxy_manager import ProxyManager
 
 
 @pytest.fixture
@@ -110,3 +112,46 @@ async def test_timezone_resolution_failure_falls_back_to_utc(mock_playwright):
     await pm.initialize(headless=True)
 
     assert pm.timezone_id == "UTC"
+
+
+@pytest.mark.asyncio
+async def test_single_context_when_no_proxy_manager(mock_playwright):
+    pm = PlaywrightManager()
+    await pm.initialize(headless=True)
+    mock_playwright["browser"].new_context.assert_awaited_once()
+    assert list(pm.contexts.keys()) == ["direct"]
+    assert pm.non_default_context_keys() == []
+
+
+@pytest.mark.asyncio
+async def test_one_context_per_proxy_when_multi(mock_playwright):
+    proxy_manager = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
+    pm = PlaywrightManager()
+    await pm.initialize(headless=True, proxy_manager=proxy_manager)
+    # Two contexts created; browser launched with the per-context sentinel.
+    assert mock_playwright["browser"].new_context.await_count == 2
+    assert set(pm.contexts.keys()) == {"http://a.example.com:1", "http://b.example.com:2"}
+    launch_kwargs = mock_playwright["playwright"].chromium.launch.await_args.kwargs
+    assert launch_kwargs["proxy"] == {"server": "per-context"}
+    assert len(pm.non_default_context_keys()) == 1
+
+
+@pytest.mark.asyncio
+async def test_new_rotated_page_reports_key(mock_playwright):
+    proxy_manager = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
+    pm = PlaywrightManager()
+    await pm.initialize(headless=True, proxy_manager=proxy_manager)
+    _page, key = await pm.new_rotated_page()
+    assert key in {"http://a.example.com:1", "http://b.example.com:2"}
+
+
+@pytest.mark.asyncio
+async def test_new_rotated_page_raises_when_exhausted(mock_playwright):
+    proxy_manager = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
+    pm = PlaywrightManager()
+    await pm.initialize(headless=True, proxy_manager=proxy_manager)
+    for key in ["http://a.example.com:1", "http://b.example.com:2"]:
+        for _ in range(3):
+            pm.report_page_result(key, is_proxy_failure=True)
+    with pytest.raises(AllProxiesExhaustedError):
+        await pm.new_rotated_page()
