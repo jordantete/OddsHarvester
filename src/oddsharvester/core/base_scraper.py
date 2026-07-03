@@ -667,6 +667,8 @@ class BaseScraper:
 
         except Exception as e:
             self.logger.error(f"Error scraping match data from {match_link}: {e}")
+            if is_proxy_attributable_error(classify_error(str(e))):
+                raise
             return None
 
     def _resolved_browser_timezone(self) -> ZoneInfo:

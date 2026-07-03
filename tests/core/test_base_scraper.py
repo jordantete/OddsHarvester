@@ -891,6 +891,39 @@ async def test_scrape_match_data_no_details(setup_base_scraper_mocks):
 
 
 @pytest.mark.asyncio
+async def test_scrape_match_data_reraises_proxy_error(setup_base_scraper_mocks):
+    """Proxy-attributable navigation errors must propagate so failover can blacklist the dead proxy."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+
+    mocks["page_mock"].goto = AsyncMock(side_effect=Exception("Page.goto: net::ERR_PROXY_CONNECTION_FAILED"))
+
+    with pytest.raises(Exception, match="ERR_PROXY_CONNECTION_FAILED"):
+        await scraper._scrape_match_data(
+            page=mocks["page_mock"],
+            sport="football",
+            match_link="https://www.oddsportal.com/football/x/y/",
+        )
+
+
+@pytest.mark.asyncio
+async def test_scrape_match_data_swallows_non_proxy_error(setup_base_scraper_mocks):
+    """Non-proxy-attributable errors keep degrading gracefully to None."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+
+    mocks["page_mock"].goto = AsyncMock(side_effect=Exception("totally unrelated boom"))
+
+    result = await scraper._scrape_match_data(
+        page=mocks["page_mock"],
+        sport="football",
+        match_link="https://www.oddsportal.com/football/x/y/",
+    )
+
+    assert result is None
+
+
+@pytest.mark.asyncio
 async def test_extract_match_details_event_header(setup_base_scraper_mocks):
     """Happy path: minimal valid JSON + no DOM landmarks → JSON-only extraction."""
     mocks = setup_base_scraper_mocks
