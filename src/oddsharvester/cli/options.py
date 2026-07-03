@@ -136,9 +136,11 @@ def common_options(func):
     @click.option(
         "--proxy-url",
         "proxy_url",
+        multiple=True,
         callback=validate_proxy_url,
         envvar="OH_PROXY_URL",
-        help="Proxy URL (e.g., http://proxy.example.com:8080 or socks5://proxy:1080).",
+        help="Proxy URL (repeatable). Format: http[s]://host:port, socks5://host:port, "
+        "or scheme://user:pass@host:port. Repeat to spread load across proxies.",
     )
     @click.option(
         "--proxy-user",
