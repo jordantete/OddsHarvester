@@ -41,6 +41,27 @@ across a pool of one browser context per proxy.
    `ErrorType.RATE_LIMITED` (429/blocking). Content errors (`PARSING`,
    `MARKET_EXTRACTION`, `PAGE_NOT_FOUND`, `HEADER_NOT_FOUND`) never blacklist a proxy.
 
+## Refinements discovered during planning
+
+These do not change the user-facing decisions above; they make the implementation
+correct and keep the single/no-proxy path byte-for-byte unchanged.
+
+- **Failover is active only with ≥ 2 proxies.** With 0 or 1 proxy, `report_result`
+  is a no-op — a single flaky proxy is never blacklisted, exactly like today. With
+  ≥ 2 proxies, all of them *can* end up blacklisted (→ clean failure per §4 below).
+- **Only the per-match scraping phase rotates.** Link collection / pagination
+  (`_collect_match_links`) stays on the default context (single IP). It is a tiny
+  fraction of total volume; keeping it on the pre-warmed default context avoids
+  extra risk for near-zero benefit.
+- **Each proxy context must be warmed once (correctness-critical).** Odds format and
+  cookie consent are **per-context** state, established today by navigating the
+  default context to `ODDSPORTAL_BASE_URL` and running `_prepare_page_for_scraping`
+  (`set_odds_format` + cookie dismissal). A cold context would render match pages
+  with the wrong odds format → **silently corrupted odds values**. So every
+  non-default proxy context is warmed once (navigate to `ODDSPORTAL_BASE_URL`,
+  dismiss cookies, set decimal odds) before it scrapes matches. This warrants an
+  `docs/agentic-gotchas.md` entry.
+
 ## Key constraint: Playwright proxy is per-context
 
 Playwright sets the proxy at browser-launch **or** per `BrowserContext`, never per
@@ -112,25 +133,30 @@ and used everywhere a proxy is logged.
 - New helper `new_page_on_proxy(key) -> Page` opens a page in the given proxy's
   context. This is the single funnel replacing direct `context.new_page()` calls.
 
-### 4. Integration points (route page creation through the pool)
+### 4. Integration point (route per-match page creation through the pool)
 
-Two sites open pages today and must go through the pool so each page uses the
-round-robin-selected proxy:
+Only the per-match scraping loop rotates. `base_scraper.py:467` (inside
+`scrape_with_semaphore`) changes from `self.playwright_manager.context.new_page()`
+to `page, key = await self.playwright_manager.new_rotated_page()`.
 
-- Per-match scraping: `base_scraper.py:467` (inside `scrape_with_semaphore`).
-- Link collection / pagination: `odds_portal_scraper.py:381`
-  (`_collect_match_links`).
-
-Flow per unit of work:
-1. `entry = proxy_manager.next()`; if `None` (all blacklisted) → fail this unit
-   with a clear "all proxies exhausted" error (logged once at error level).
-2. `page = playwright_manager.new_page_on_proxy(entry.key)`.
+Flow per match:
+1. `new_rotated_page()` calls `proxy_manager.next()`; if `None` (all blacklisted)
+   it raises `AllProxiesExhaustedError` → the match fails via the existing
+   `except` path (ProxyManager logs the "all proxies blacklisted" error once).
+2. Otherwise it opens a page in the selected proxy's context and returns
+   `(page, key)`.
 3. On completion, classify the outcome and call
-   `proxy_manager.report_result(entry.key, error_type_or_None)`.
+   `playwright_manager.report_page_result(key, error_type_or_None)` (None on
+   success → resets that proxy's consecutive-failure counter).
 
-Remaining direct references to `playwright_manager.context` / `.page` are audited
-during implementation; the initial warm-up page created at launch stays valid for
-the single/none path.
+`_collect_match_links` (`odds_portal_scraper.py:381`) is left unchanged on the
+default context. The initial warm-up page created at launch stays valid for the
+single/none path.
+
+Before the per-match loop, `BaseScraper` warms each **non-default** proxy context
+once (navigate to `ODDSPORTAL_BASE_URL`, dismiss cookies, `set_odds_format`),
+tracking warmed keys on the instance so multi-league runs warm each context only
+once. A warm failure reports one proxy-failure strike for that key.
 
 ### 5. Plumbing
 
