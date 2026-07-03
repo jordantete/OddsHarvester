@@ -73,7 +73,7 @@ async def test_run_scraper_historic(
         browser_user_agent=None,
         browser_locale_timezone=None,
         browser_timezone_id=None,
-        proxy={"server": "test-proxy"},
+        proxy_manager=proxy_manager_instance,
     )
 
     scraper_mock.scrape_historic.assert_called_once_with(
@@ -133,7 +133,7 @@ async def test_run_scraper_upcoming(
         browser_user_agent="custom-agent",
         browser_locale_timezone="Europe/Paris",
         browser_timezone_id=None,
-        proxy={"server": "test-proxy"},
+        proxy_manager=proxy_manager_instance,
     )
 
     scraper_mock.scrape_upcoming.assert_called_once_with(
@@ -199,6 +199,40 @@ async def test_run_scraper_match_links(
     )
 
     assert result == {"result": "match_data"}
+
+
+@pytest.mark.asyncio
+async def test_run_scraper_builds_multi_proxy_manager(monkeypatch):
+    """run_scraper(proxy_url=<tuple>) must build a single ProxyManager in multi-proxy mode
+    and pass it (not a proxy dict) to start_playwright (issue: multi-proxy rotation)."""
+    from oddsharvester.core import scraper_app
+
+    captured = {}
+
+    class DummyScraper:
+        def __init__(self, *a, **k):
+            pass
+
+        async def start_playwright(self, **kwargs):
+            captured["proxy_manager"] = kwargs.get("proxy_manager")
+
+        async def scrape_upcoming(self, *a, **k):
+            return ScrapeResult()
+
+        async def stop_playwright(self):
+            pass
+
+    monkeypatch.setattr(scraper_app, "OddsPortalScraper", DummyScraper)
+
+    await scraper_app.run_scraper(
+        command=CommandEnum.UPCOMING_MATCHES,
+        sport="football",
+        date="20250101",
+        markets=["1x2"],
+        proxy_url=("http://a.example.com:1", "http://b.example.com:2"),
+    )
+
+    assert captured["proxy_manager"].is_multi_proxy() is True
 
 
 @pytest.mark.asyncio

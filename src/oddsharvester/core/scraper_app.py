@@ -87,7 +87,10 @@ async def run_scraper(
                 base_url,
             )
 
-    proxy_manager = ProxyManager(proxy_url=proxy_url, proxy_user=proxy_user, proxy_pass=proxy_pass)
+    if isinstance(proxy_url, list | tuple):
+        proxy_manager = ProxyManager(proxy_urls=list(proxy_url), proxy_user=proxy_user, proxy_pass=proxy_pass)
+    else:
+        proxy_manager = ProxyManager(proxy_url=proxy_url, proxy_user=proxy_user, proxy_pass=proxy_pass)
     SportMarketRegistrar.register_all_markets()
     playwright_manager = PlaywrightManager()
     cookie_dismisser = CookieDismisser()
@@ -112,13 +115,12 @@ async def run_scraper(
     )
 
     try:
-        proxy_config = proxy_manager.get_current_proxy()
         await scraper.start_playwright(
             headless=headless,
             browser_user_agent=browser_user_agent,
             browser_locale_timezone=browser_locale_timezone,
             browser_timezone_id=browser_timezone_id,
-            proxy=proxy_config,
+            proxy_manager=proxy_manager,
         )
 
         if match_links and sport:
