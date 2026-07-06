@@ -100,7 +100,7 @@ fewer results than expected.
 |---|---|---|---|
 | **a.** Pagination widget collapses long ranges with an ellipsis (e.g. `[1, 2, 3, …, 28]`); only the visible page numbers exist in the HTML | League `/results/` listings beyond ~5 pages | Scraper visits 3–5 pages instead of 28; ≈85% of season missing | PR #50 — `_fill_pagination_gaps` generates the full `1..max_page` range |
 | **b.** `window.scrollTo(0, document.body.scrollHeight)` jumps past lazy-loader trigger points without firing the IntersectionObserver | League listings, market dropdowns | ~5 event rows loaded instead of ~50 per page | PR #50 — `scroll_until_loaded` now steps incrementally (500px) |
-| **c.** The current season URL has **no year suffix** (`/football/england/premier-league/results/`) while historic seasons do (`/premier-league-2024-2025/results/`) | URL builder for `--season current` (or implicit current season) | Builder appends a `-YYYY-YYYY` suffix → 404 / empty page | PR #50 — `URLBuilder` detects when requested season's end year is the current calendar year and omits the suffix |
+| **c.** The current season URL has **no year suffix** (`/football/england/premier-league/results/`) while historic seasons do (`/premier-league-2024-2025/results/`) | URL builder for `--season current` (or implicit current season) | Builder appends a `-YYYY-YYYY` suffix → 404 / empty page | PR #50 first dropped the suffix when `end_year == current calendar year`; that heuristic silently sent a *finished* season to the base URL once OddsPortal rolled it over to the next season (issue #71). **Corrected:** the no-suffix URL is reserved for `current`/None; every explicit `YYYY`/`YYYY-YYYY` always carries the suffix |
 
 ### Detection signal (general rule)
 
@@ -114,16 +114,21 @@ Build sanity checks:
 - **URL convention** — when generating URLs from templates, verify the
   produced URL exists in a browser before shipping the change. OddsPortal
   has at least three URL conventions (`/results/`, `-YYYY/results/`,
-  `-YYYY-YYYY/results/`) and the choice depends on the season's relationship
-  to *today*, not on the season string alone.
+  `-YYYY-YYYY/results/`). The no-suffix form serves *whatever season is
+  currently live* and rolls over without notice, so it is reserved for an
+  explicit `current`/None request; a named season (`YYYY` or `YYYY-YYYY`)
+  must always use its suffixed form. Do **not** re-derive the choice from the
+  calendar year — that is exactly what sent finished-season scrapes to the
+  rolled-over season (issue #71).
 
 ### Fix pattern
 
 1. Identify the "happy default" the rendered DOM gives you, and challenge it.
    - Pagination → don't trust the rendered list; compute the range.
    - Scroll → don't trust `scrollHeight`; iterate.
-   - URL builder → don't trust the year-suffix template; check whether the
-     season is the current one.
+   - URL builder → reserve the no-suffix base URL for `current`/None; a named
+     `YYYY`/`YYYY-YYYY` season always keeps its suffix. Don't re-derive the
+     choice from the calendar year (that reinstates the issue #71 rollover bug).
 2. When you fix a "silent truncation" bug, add a regression test asserting
    the **count**, not just the structure. A test that asserts "we got at
    least one row" is what allowed the bug to ship in the first place.
