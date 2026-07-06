@@ -67,6 +67,8 @@ oddsharvester historic -s football -l england-premier-league --season 2024-2025 
 | 🤾 Handball          | `1x2` `home_away` `double_chance` `draw_no_bet` `over/under` `handicap`                        |
 | 🏐 Volleyball        | `home_away` `total_sets_over/under` `total_points_over/under` `asian_handicap` `correct_score` |
 
+> **Umbrella tokens (football):** `over_under` and `asian_handicap` are umbrella market tokens — pass either as `--market` and it expands at scrape time to every line OddsPortal actually renders for that match (e.g. `over_under_1_5_market`, `over_under_2_5_market`, …), instead of listing each line by hand.
+
 100+ leagues supported across all sports: Premier League, La Liga, Serie A, NBA, NFL, MLB, NHL, ATP/WTA Grand Slams, and [many more](src/oddsharvester/utils/sport_league_constants.py).
 
 ---
@@ -92,7 +94,7 @@ oddsharvester upcoming -s football -l england-premier-league,spain-laliga -m 1x2
 # Specific match URLs
 oddsharvester upcoming -s football --match-link "https://www.oddsportal.com/football/..." -m 1x2
 
-# Preview mode (faster — average odds only, no individual bookmakers)
+# Preview mode (faster — best/highest odds only, no individual bookmakers)
 oddsharvester upcoming -s football -d 20250301 -m over_under --preview-only --headless
 ```
 
@@ -112,6 +114,9 @@ oddsharvester historic -s football -l england-premier-league --season 2022-2023 
 
 # Output as CSV
 oddsharvester historic -s football -l england-premier-league --season 2024-2025 -m 1x2 -f csv -o premier_league_odds --headless
+
+# Umbrella market — expands to every Over/Under line rendered on the page
+oddsharvester historic -s football -l england-premier-league --season 2023-2024 --market over_under -f csv
 ```
 
 ### CLI Options Reference
@@ -185,7 +190,7 @@ Matches are dispatched round-robin across the proxies; a proxy that fails 3 time
 | `--target-bookmaker` | Filter odds for a specific bookmaker                   | —              |
 | `--odds-history`     | Include historical odds movement per match             | `False`        |
 | `--odds-format`      | Odds display format                                    | `Decimal Odds` |
-| `--preview-only`     | Fast mode — average odds only, no bookmaker details    | `False`        |
+| `--preview-only`     | Fast mode — best/highest odds, no bookmaker details    | `False`        |
 | `--bookies-filter`   | Bookmaker filter: `all`, `classic`, or `crypto`        | `all`          |
 | `--period`           | Match period (sport-specific: full-time, halves, etc.) | sport default  |
 
@@ -196,12 +201,12 @@ Matches are dispatched round-robin across the proxies; a proxy that fails 3 time
 | Aspect           | Full Mode                   | Preview Mode                  |
 | ---------------- | --------------------------- | ----------------------------- |
 | **Speed**        | Slower (interactive)        | Faster (passive)              |
-| **Data**         | All submarkets + bookmakers | Visible submarkets + avg odds |
-| **Bookmakers**   | Individual bookmaker odds   | Average odds only             |
+| **Data**         | All submarkets + bookmakers | Visible submarkets + best odds |
+| **Bookmakers**   | Individual bookmaker odds   | Best/highest odds only        |
 | **Odds History** | Available                   | Not available                 |
-| **Structure**    | By bookmaker                | By submarket (avg odds)       |
+| **Structure**    | By bookmaker                | By submarket (best odds)      |
 
-Preview mode (`--preview-only`) is useful for quick exploration, testing data format, or light monitoring with reduced resource usage.
+Preview mode (`--preview-only`) is useful for quick exploration, testing data format, or light monitoring with reduced resource usage. It reads the collapsed submarket row — the single best/highest price OddsPortal shows per line, not a per-bookmaker breakdown and not a computed average (see `docs/agentic-gotchas.md` §12).
 
 </details>
 

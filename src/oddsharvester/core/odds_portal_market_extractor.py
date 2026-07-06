@@ -17,8 +17,10 @@ from oddsharvester.core.market_extraction import (
     OddsParser,
     SubmarketExtractor,
 )
+from oddsharvester.core.market_extraction.line_tokens import line_name_to_token
 from oddsharvester.core.sport_market_registry import SportMarketRegistry
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
+from oddsharvester.utils.sport_market_constants import FOOTBALL_UMBRELLA_MARKETS, Sport
 
 
 class OddsPortalMarketExtractor:
@@ -71,13 +73,48 @@ class OddsPortalMarketExtractor:
             period (str): The match period (e.g., "FullTime").
             scrape_odds_history (bool): Whether to extract historic odds evolution.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
-            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets.
+            preview_submarkets_only (bool): If True, only scrape the collapsed submarket odds (best/highest shown
+            per line, not per-bookmaker) from visible submarkets.
 
         Returns:
             Dict[str, Any]: A dictionary containing market data.
         """
         market_data = {}
         market_methods = SportMarketRegistry.get_market_mapping(sport)
+
+        # Expand umbrella tokens (e.g. "over_under") into the concrete per-line tokens
+        # actually rendered on the page (e.g. "over_under_2_5", "over_under_3_5") before
+        # running the normal per-market extraction loop below.
+        expanded_markets: list[str] = []
+        for market in markets:
+            umbrella_main_market = FOOTBALL_UMBRELLA_MARKETS.get(market) if sport == Sport.FOOTBALL.value else None
+            if umbrella_main_market is None:
+                if market not in expanded_markets:
+                    expanded_markets.append(market)
+                continue
+
+            try:
+                line_names = await self._discover_line_names(
+                    page=page, main_market=umbrella_main_market, sport=sport, period=period
+                )
+                line_tokens: list[str] = []
+                for line_name in line_names:
+                    token = line_name_to_token(umbrella_main_market, line_name)
+                    if token is not None and token not in line_tokens:
+                        line_tokens.append(token)
+            except Exception as e:
+                self.logger.warning(f"Error discovering lines for umbrella market '{market}': {e}")
+                continue
+
+            if not line_tokens:
+                self.logger.warning(f"Umbrella market '{market}' discovered no lines on the page; skipping.")
+                continue
+
+            for token in line_tokens:
+                if token not in expanded_markets:
+                    expanded_markets.append(token)
+
+        markets = expanded_markets
 
         # Group markets by their main market type for optimization in preview mode
         market_groups = {}
@@ -145,6 +182,30 @@ class OddsPortalMarketExtractor:
 
         return market_data
 
+    async def _discover_line_names(self, page: Page, main_market: str, sport: str, period: str) -> list[str]:
+        """
+        Navigate to a main-market tab and enumerate the rendered line names (e.g. "Over/Under +2.5").
+
+        Args:
+            page (Page): The Playwright page instance.
+            main_market (str): The main market name (e.g., "Over/Under", "Asian Handicap").
+            sport (str): The sport being scraped.
+            period (str): The match period (e.g., "FullTime").
+
+        Returns:
+            list[str]: The rendered submarket names currently visible on the page.
+        """
+        if not await self.navigation_manager.navigate_to_market_tab(page=page, market_tab_name=main_market):
+            self.logger.warning(f"Failed to find or click {main_market} tab while discovering lines")
+            return []
+
+        await self.navigation_manager.wait_for_market_switch(page, main_market)
+
+        submarkets = await self.submarket_extractor.extract_visible_submarkets_passive(
+            page=page, main_market=main_market, period=period
+        )
+        return [submarket["submarket_name"] for submarket in submarkets if submarket.get("submarket_name")]
+
     async def extract_market_odds(
         self,
         page: Page,
@@ -168,7 +229,8 @@ class OddsPortalMarketExtractor:
             odds_labels (list): Labels corresponding to odds values in the extracted data.
             scrape_odds_history (bool): Whether to scrape and attach odds history.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
-            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets.
+            preview_submarkets_only (bool): If True, only scrape the collapsed submarket odds (best/highest shown
+            per line, not per-bookmaker) from visible submarkets.
             sport (str): The sport being scraped (used for period selection).
 
         Returns:

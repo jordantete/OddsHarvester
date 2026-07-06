@@ -729,6 +729,56 @@ another context on the same proxy pool.
 
 ---
 
+## §12 — OddsPortal match pages expose no average odds to scrape
+
+**Severity:** Medium — kills any "average odds" feature idea before it starts; must be discovered before implementation, not during.
+
+There is no "Average" or "Highest" aggregate row anywhere in a rendered
+OddsPortal match-detail page. Verified three ways on 2026-07-06:
+
+1. Live render of a current match (desktop viewport, cookie dismissed,
+   fully scrolled) — the string "average" appears nowhere in the DOM.
+2. HAR replay of two captured markets (1X2 + Over/Under) — same result.
+3. The `Odds.vue` bundle (`build/assets/Odds-*.js`) does declare
+   `oddsAvgOdds`/`oddsMaxOdds` props, but their render path only fires for
+   listing `pageName`s (`inplay-live`, `tournament-next-matches`,
+   `outrights`) — never the match/event page.
+
+On the tested line (Over/Under +0.5), the **collapsed submarket row was
+observed to be the HIGHEST odds across bookmakers, not the average** — the
+collapsed "under" odd (9.50) equalled the bookmaker maximum, not the mean
+(8.12). Reading that row (what `--preview-only` does) yields best odds,
+not an average, at least on the tested line.
+
+The README and docstrings previously described `--preview-only` as an
+"average odds" mode — that was inaccurate and has been corrected to
+"best/highest odds" wording (see `README.md`'s Advanced Options table and
+the `preview_submarkets_only` docstrings in `base_scraper.py` /
+`odds_portal_market_extractor.py`).
+
+The odds feed (`/match-event/*.dat`) is also a dead end for this: it's an
+encrypted base64 blob decrypted client-side, so no average can be read
+from the raw response either.
+
+### Detection signal
+
+- A feature request asks for "average odds" or "average line" and the
+  instinct is to find a DOM node or feed field to scrape for it.
+- Grepping rendered match-page HTML/JSON for "average"/"avg" comes back
+  empty, or a `oddsAvgOdds` prop is found in the bundle but never reached
+  from an event page's `pageName`.
+
+### Implication
+
+An "average odds" feature must **compute the mean from the per-bookmaker
+rows the scraper already parses** — there is nothing labeled "average" to
+scrape on match pages. This is why the average-odds half of the
+umbrella/average-odds feature was dropped after a feasibility spike; only
+the umbrella market tokens (`over_under`, `asian_handicap` expanding to all
+rendered lines) shipped. See issue #71.
+
+---
+
 ## Adding a new gotcha
 
 When a fix lands that exposes an OddsPortal-specific behaviour an agent

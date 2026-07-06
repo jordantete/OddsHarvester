@@ -440,6 +440,216 @@ class TestOddsPortalMarketExtractor:
         assert mock_market_func.call_count == 2
 
     @pytest.mark.asyncio
+    async def test_scrape_markets_expands_over_under_umbrella(self, extractor, page_mock):
+        """Test that an umbrella token expands into one `{token}_market` entry per discovered line."""
+        # Arrange
+        mock_market_func = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor._discover_line_names = AsyncMock(return_value=["Over/Under +2.5", "Over/Under +3.5"])
+
+        with patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping:
+            mock_get_mapping.return_value = {
+                "over_under_2_5": mock_market_func,
+                "over_under_3_5": mock_market_func,
+            }
+
+            # Act
+            result = await extractor.scrape_markets(page=page_mock, sport="football", markets=["over_under"])
+
+        # Assert
+        assert "over_under_2_5_market" in result
+        assert "over_under_3_5_market" in result
+        assert "over_under_market" not in result
+        assert mock_market_func.call_count == 2
+        extractor._discover_line_names.assert_called_once_with(
+            page=page_mock, main_market="Over/Under", sport="football", period="FullTime"
+        )
+
+    @pytest.mark.asyncio
+    async def test_scrape_markets_non_umbrella_markets_unchanged(self, extractor, page_mock):
+        """Test that non-umbrella markets bypass line discovery entirely."""
+        # Arrange
+        mock_market_func = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor._discover_line_names = AsyncMock()
+
+        with patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping:
+            mock_get_mapping.return_value = {"1x2": mock_market_func, "btts": mock_market_func}
+
+            # Act
+            result = await extractor.scrape_markets(page=page_mock, sport="football", markets=["1x2", "btts"])
+
+        # Assert
+        assert "1x2_market" in result
+        assert "btts_market" in result
+        extractor._discover_line_names.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_scrape_markets_umbrella_gated_to_football_only(self, extractor, page_mock):
+        """Test that umbrella expansion never triggers for a non-football sport.
+
+        Umbrella tokens (over_under, asian_handicap) are football-only. Calling scrape_markets
+        directly with sport="tennis" must not expand "over_under" using the football umbrella
+        enums; it should fall through to the normal unsupported-market path instead.
+        """
+        # Arrange
+        extractor._discover_line_names = AsyncMock()
+
+        with patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping:
+            mock_get_mapping.return_value = {}
+
+            # Act
+            result = await extractor.scrape_markets(page=page_mock, sport="tennis", markets=["over_under"])
+
+        # Assert
+        extractor._discover_line_names.assert_not_called()
+        assert not any(key.startswith("over_under_") for key in result)
+
+    @pytest.mark.asyncio
+    async def test_scrape_markets_umbrella_discovery_exception_isolated(self, extractor, page_mock, caplog):
+        """Test that an exception during umbrella line discovery is isolated to that umbrella only."""
+        # Arrange
+        mock_market_func = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor._discover_line_names = AsyncMock(side_effect=Exception("boom"))
+
+        with patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping:
+            mock_get_mapping.return_value = {"1x2": mock_market_func}
+
+            # Act
+            with caplog.at_level("WARNING"):
+                result = await extractor.scrape_markets(page=page_mock, sport="football", markets=["over_under", "1x2"])
+
+        # Assert: the umbrella contributes no keys, but the rest of match's market_data is unaffected
+        assert "over_under_market" not in result
+        assert "1x2_market" in result
+        assert result["1x2_market"] is not None
+        assert any("over_under" in message for message in caplog.messages)
+
+    @pytest.mark.asyncio
+    async def test_scrape_markets_umbrella_preview_submarkets_routing(self, extractor, page_mock):
+        """Test that umbrella expansion composes with preview_submarkets_only grouping.
+
+        markets=["over_under"] should expand to the discovered lines and then be routed through
+        the preview-mode grouping path, producing one key per discovered line (not a single
+        `over_under_market` key).
+        """
+        # Arrange
+        extractor._discover_line_names = AsyncMock(return_value=["Over/Under +2.5", "Over/Under +3.5"])
+
+        def _make_closure(main_market, odds_labels):
+            return lambda self, page, period, hist, bk, preview, sport: (main_market, odds_labels)
+
+        func_2_5 = _make_closure("Over/Under", ["odds_over", "odds_under"])
+        func_3_5 = _make_closure("Over/Under", ["odds_over", "odds_under"])
+
+        with (
+            patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping,
+            patch.object(extractor, "extract_market_odds", new_callable=AsyncMock) as mock_extract,
+        ):
+            mock_get_mapping.return_value = {
+                "over_under_2_5": func_2_5,
+                "over_under_3_5": func_3_5,
+            }
+            mock_extract.return_value = [{"submarket_name": "Over/Under +2.5", "odds_over": "1.90"}]
+
+            # Act
+            result = await extractor.scrape_markets(
+                page=page_mock,
+                sport="football",
+                markets=["over_under"],
+                preview_submarkets_only=True,
+            )
+
+        # Assert
+        assert "over_under_2_5_market" in result
+        assert "over_under_3_5_market" in result
+        assert "over_under_market" not in result
+        mock_extract.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_scrape_markets_mixed_umbrella_and_explicit_token_deduped(self, extractor, page_mock):
+        """Test that an umbrella token and an explicit literal token it would also produce are deduped.
+
+        markets=["over_under", "over_under_2_5"]: the umbrella discovers a line mapping to
+        "over_under_2_5" (already explicitly requested) plus another line "over_under_3_5".
+        The extraction function for over_under_2_5 must run only once, and both line keys must exist.
+        """
+        # Arrange
+        mock_market_func_2_5 = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        mock_market_func_3_5 = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor._discover_line_names = AsyncMock(return_value=["Over/Under +2.5", "Over/Under +3.5"])
+
+        with patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping:
+            mock_get_mapping.return_value = {
+                "over_under_2_5": mock_market_func_2_5,
+                "over_under_3_5": mock_market_func_3_5,
+            }
+
+            # Act
+            result = await extractor.scrape_markets(
+                page=page_mock, sport="football", markets=["over_under", "over_under_2_5"]
+            )
+
+        # Assert
+        assert "over_under_2_5_market" in result
+        assert "over_under_3_5_market" in result
+        assert mock_market_func_2_5.call_count == 1
+        assert mock_market_func_3_5.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_scrape_markets_umbrella_zero_lines_discovered(self, extractor, page_mock, caplog):
+        """Test that an umbrella token with no discovered lines logs a warning and contributes no keys."""
+        # Arrange
+        extractor._discover_line_names = AsyncMock(return_value=[])
+
+        with patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping:
+            mock_get_mapping.return_value = {}
+
+            # Act
+            with caplog.at_level("WARNING"):
+                result = await extractor.scrape_markets(page=page_mock, sport="football", markets=["over_under"])
+
+        # Assert
+        assert result == {}
+        assert any("over_under" in message for message in caplog.messages)
+
+    @pytest.mark.asyncio
+    async def test_discover_line_names_returns_submarket_names(self, extractor, page_mock):
+        """Test that _discover_line_names navigates the tab and returns rendered submarket names."""
+        # Arrange
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.submarket_extractor.extract_visible_submarkets_passive = AsyncMock(
+            return_value=[
+                {"submarket_name": "Over/Under +2.5"},
+                {"submarket_name": "Over/Under +3.5"},
+            ]
+        )
+
+        # Act
+        result = await extractor._discover_line_names(
+            page=page_mock, main_market="Over/Under", sport="football", period="FullTime"
+        )
+
+        # Assert
+        assert result == ["Over/Under +2.5", "Over/Under +3.5"]
+        extractor.navigation_manager.navigate_to_market_tab.assert_called_once_with(
+            page=page_mock, market_tab_name="Over/Under"
+        )
+
+    @pytest.mark.asyncio
+    async def test_discover_line_names_tab_not_found_returns_empty(self, extractor, page_mock):
+        """Test that _discover_line_names returns [] when the market tab can't be found."""
+        # Arrange
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=False)
+
+        # Act
+        result = await extractor._discover_line_names(
+            page=page_mock, main_market="Over/Under", sport="football", period="FullTime"
+        )
+
+        # Assert
+        assert result == []
+
+    @pytest.mark.asyncio
     async def test_scrape_markets_with_exception(self, extractor, page_mock):
         """Test scraping markets where one market throws an exception."""
         # Arrange

@@ -236,8 +236,8 @@ class BaseScraper:
             scroller (PageScroller): Handles incremental page scrolling.
             cookie_dismisser (CookieDismisser): Handles cookie banner dismissal.
             selection_manager (SelectionManager): Manages bookies filter and period selection.
-            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading
-            individual bookmaker details.
+            preview_submarkets_only (bool): If True, only scrape the collapsed submarket odds (best/highest shown
+            per line, not per-bookmaker) from visible submarkets without loading individual bookmaker details.
             base_url (str | None): Regional OddsPortal domain override (scheme+host). When None, the canonical
             https://www.oddsportal.com is used.
         """
@@ -462,8 +462,8 @@ class BaseScraper:
             scrape_odds_history (bool): Whether to scrape and attach odds history.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
             concurrent_scraping_task (int): Controls how many pages are processed simultaneously.
-            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading
-            individual bookmaker details.
+            preview_submarkets_only (bool): If True, only scrape the collapsed submarket odds (best/highest shown
+            per line, not per-bookmaker) from visible submarkets without loading individual bookmaker details.
             bookies_filter (BookiesFilter): The bookmaker filter to apply.
             period: The period to scrape odds for.
             retry_config: Configuration for per-match retry behavior.
@@ -624,8 +624,8 @@ class BaseScraper:
             markets (Optional[List[str]]): A list of markets to scrape (e.g., ['1x2', 'over_under_2_5']).
             scrape_odds_history (bool): Whether to scrape and attach odds history.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
-            preview_submarkets_only (bool): If True, only scrape average odds from visible submarkets without loading
-            individual bookmaker details.
+            preview_submarkets_only (bool): If True, only scrape the collapsed submarket odds (best/highest shown
+            per line, not per-bookmaker) from visible submarkets without loading individual bookmaker details.
             bookies_filter (BookiesFilter): The bookmaker filter to apply.
             period: The period enum to scrape odds for (FootballPeriod, TennisPeriod, or BasketballPeriod).
 

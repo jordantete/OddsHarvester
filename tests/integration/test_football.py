@@ -175,6 +175,73 @@ class TestFootballBasicMarkets:
         result = compare_match_data(actual[0], expected[0])
         assert result.passed, str(result)
 
+    def test_fb_004_over_under_umbrella(
+        self,
+        run_scraper,
+        load_fixture,
+        temp_output_dir,
+        fixture_exists,
+        har_for_match,
+    ):
+        """FB-004: Test the over_under umbrella token expands into per-line markets.
+
+        Reuses the FB-003 fixture (captured for the explicit over_under_1_5 /
+        over_under_2_5 lines) but requests the umbrella token `over_under` instead.
+        The umbrella enumerates every O/U line rendered on the page and produces one
+        `{token}_market` key per line rather than a single `over_under_market` key.
+        Only the two lines this fixture was captured for are asserted here, since
+        those are the ones guaranteed to carry real odds data under HAR replay.
+        """
+        fixture_name = "over_under_1_5_over_under_2_5_full_time_all.json"
+
+        if not fixture_exists(
+            LEICESTER_BRENTFORD["sport"],
+            LEICESTER_BRENTFORD["league"],
+            LEICESTER_BRENTFORD["match_id"],
+            fixture_name,
+        ):
+            pytest.skip(f"Fixture not available: {fixture_name}")
+
+        output_path = temp_output_dir / "output"
+
+        exit_code, _stdout, stderr = run_scraper(
+            sport="football",
+            match_link=LEICESTER_BRENTFORD["url"],
+            markets=["over_under"],
+            output_path=output_path,
+            har_path=har_for_match(
+                LEICESTER_BRENTFORD["sport"],
+                LEICESTER_BRENTFORD["league"],
+                LEICESTER_BRENTFORD["match_id"],
+                fixture_name,
+            ),
+        )
+
+        assert exit_code == 0, f"Scraper failed: {stderr}"
+
+        with open(f"{output_path}.json") as f:
+            actual = json.load(f)
+
+        expected = load_fixture(
+            LEICESTER_BRENTFORD["sport"],
+            LEICESTER_BRENTFORD["league"],
+            LEICESTER_BRENTFORD["match_id"],
+            fixture_name,
+        )
+
+        result = compare_match_data(actual[0], expected[0])
+        assert result.passed, str(result)
+
+        record = actual[0]
+
+        # Umbrella must expand into per-line keys, not collapse to a single market key.
+        assert "over_under_market" not in record
+
+        for line_key in ("over_under_1_5_market", "over_under_2_5_market"):
+            assert line_key in record, f"Expected umbrella to produce '{line_key}'"
+            assert record[line_key], f"'{line_key}' should be non-empty"
+            assert record[line_key] == expected[0][line_key]
+
     @pytest.mark.live_only
     def test_fb_007_real_madrid_barcelona(
         self,

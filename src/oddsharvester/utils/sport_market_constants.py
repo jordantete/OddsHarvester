@@ -122,6 +122,13 @@ class FootballAsianHandicapMarket(Enum):
     HANDICAP_PLUS_2 = "asian_handicap_+2"
 
 
+FOOTBALL_UMBRELLA_MARKETS: dict[str, str] = {
+    "over_under": "Over/Under",
+    "asian_handicap": "Asian Handicap",
+}
+"""Umbrella tokens for football that expand to all lines of a market family."""
+
+
 class TennisMarket(Enum):
     """Tennis-specific markets."""
 
