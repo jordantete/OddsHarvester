@@ -197,6 +197,23 @@ def _extract_fragment_match_id(match_link: str) -> str | None:
     return fragment
 
 
+def _join_static_info(static_info: Any) -> str | None:
+    """
+    Join OddsPortal `eventData.staticInfo` note labels into a single string.
+
+    `staticInfo` is a list of `{"name": <label>}` entries shown under the
+    match header (neutral venue, first leg, behind closed doors, broadcast
+    note, ...). It is None/absent on ordinary matches. Returns None when
+    there is no usable label to report.
+    """
+    if not static_info:
+        return None
+    names = [
+        stripped for item in static_info if isinstance(item, dict) and (stripped := str(item.get("name") or "").strip())
+    ]
+    return ", ".join(names) or None
+
+
 class BaseScraper:
     """
     Base class for scraping match data from OddsPortal.
@@ -999,6 +1016,7 @@ class BaseScraper:
                 if event_body.get("venueTown")
                 else None,
                 "venue_country": event_body.get("venueCountry"),
+                "match_info": _join_static_info(event_data.get("staticInfo")),
             }
 
         except Exception as e:

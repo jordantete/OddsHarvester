@@ -85,6 +85,10 @@ class TestVolleyballBasicMarkets:
         home_away = actual[0].get("home_away_market")
         assert home_away, "Volleyball regression: home_away_market missing — scraper stored metadata only"
 
+        # End-to-end coverage for match_info: this playoff match carries a populated
+        # eventData.staticInfo (the only captured fixture that does).
+        assert actual[0].get("match_info") == "Perugia wins series 3-0., Third leg."
+
         expected = load_fixture(
             SUPERLEGA_MATCH["sport"],
             SUPERLEGA_MATCH["league"],

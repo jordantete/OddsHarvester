@@ -979,6 +979,74 @@ async def test_extract_match_details_event_header(setup_base_scraper_mocks):
 
 
 @pytest.mark.asyncio
+async def test_extract_match_details_extracts_match_info(setup_base_scraper_mocks):
+    """eventData.staticInfo note labels are joined into the match_info field."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    json_blob = (
+        '{"eventBody": {"startDate": 1681753200}, '
+        '"eventData": {"home": "Arsenal", "away": "Chelsea", '
+        '"staticInfo": [{"name": "1st leg 2:1"}, {"name": "Neutral venue"}]}}'
+    )
+    page_mock.content = AsyncMock(
+        return_value=f"<html><body><div id=\"react-event-header\" data='{json_blob}'></div></body></html>"
+    )
+
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/football/england/arsenal-chelsea-123456",
+    )
+
+    assert result["match_info"] == "1st leg 2:1, Neutral venue"
+
+
+@pytest.mark.asyncio
+async def test_extract_match_details_match_info_none_when_absent(setup_base_scraper_mocks):
+    """Ordinary matches carry no staticInfo → match_info is None."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    json_blob = '{"eventBody": {"startDate": 1681753200}, "eventData": {"home": "Arsenal", "away": "Chelsea"}}'
+    page_mock.content = AsyncMock(
+        return_value=f"<html><body><div id=\"react-event-header\" data='{json_blob}'></div></body></html>"
+    )
+
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/football/england/arsenal-chelsea-123456",
+    )
+
+    assert result["match_info"] is None
+
+
+@pytest.mark.asyncio
+async def test_extract_match_details_match_info_skips_nameless_and_empty(setup_base_scraper_mocks):
+    """Blank, whitespace-only, and nameless entries are skipped; all-empty yields None."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    json_blob = (
+        '{"eventBody": {"startDate": 1681753200}, '
+        '"eventData": {"home": "Arsenal", "away": "Chelsea", '
+        '"staticInfo": [{"name": ""}, {"name": "   "}, {"foo": "bar"}]}}'
+    )
+    page_mock.content = AsyncMock(
+        return_value=f"<html><body><div id=\"react-event-header\" data='{json_blob}'></div></body></html>"
+    )
+
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/football/england/arsenal-chelsea-123456",
+    )
+
+    assert result["match_info"] is None
+
+
+@pytest.mark.asyncio
 async def test_extract_match_details_missing_div(setup_base_scraper_mocks):
     """When the react-event-header div is absent, return None."""
     mocks = setup_base_scraper_mocks
