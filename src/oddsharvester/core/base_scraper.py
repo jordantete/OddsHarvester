@@ -93,9 +93,9 @@ def _parse_date_header(header_text: str, tz_name: str | None = None) -> date | N
         text = text.split(" - ", 1)[0].strip()
 
     try:
-        tz = ZoneInfo(tz_name) if tz_name else ZoneInfo("UTC")
+        tz = ZoneInfo(tz_name) if tz_name else UTC
     except (ZoneInfoNotFoundError, ValueError):
-        tz = ZoneInfo("UTC")
+        tz = UTC
 
     now_date = datetime.now(tz).date()
 
@@ -701,7 +701,7 @@ class BaseScraper:
             return ZoneInfo(tz_id)
         except ZoneInfoNotFoundError:
             self.logger.warning(f"Unknown timezone '{tz_id}', falling back to UTC for DOM date parsing")
-            return ZoneInfo("UTC")
+            return UTC
 
     def _parse_match_date_from_dom(self, soup: BeautifulSoup) -> str | None:
         """

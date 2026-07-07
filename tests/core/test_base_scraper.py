@@ -1,7 +1,7 @@
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 import json as _json
 from unittest.mock import AsyncMock, MagicMock, patch
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError
@@ -1152,8 +1152,45 @@ def test_resolved_browser_timezone_falls_back_on_unknown(setup_base_scraper_mock
     mocks["playwright_manager_mock"].timezone_id = "Not/A/Real/Zone"
     with caplog.at_level(logging.WARNING):
         result = scraper._resolved_browser_timezone()
-    assert result == ZoneInfo("UTC")
+    # Fallback returns the stdlib UTC constant (datetime.timezone.utc), which is
+    # not equal to ZoneInfo("UTC"); assert on the offset instead so this stays
+    # robust to either tzinfo implementation.
+    assert result.utcoffset(datetime(2024, 1, 1)) == timedelta(0)
     assert any("Not/A/Real/Zone" in rec.message for rec in caplog.records)
+
+
+def test_resolved_browser_timezone_survives_missing_tzdata(setup_base_scraper_mocks, caplog):
+    """Regression: when the tz database is unavailable, ZoneInfo("UTC") itself
+    raises ZoneInfoNotFoundError. The fallback must not construct a ZoneInfo at
+    all (it must return the stdlib UTC constant) or it will crash the same way.
+    """
+    import logging
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    mocks["playwright_manager_mock"].timezone_id = "UTC"
+
+    def _no_tzdata(_name):
+        raise ZoneInfoNotFoundError(f"No time zone found with key {_name}")
+
+    with patch("oddsharvester.core.base_scraper.ZoneInfo", side_effect=_no_tzdata), caplog.at_level(logging.WARNING):
+        result = scraper._resolved_browser_timezone()
+    assert result is UTC
+    assert result.utcoffset(datetime(2024, 1, 1)) == timedelta(0)
+
+
+def test_parse_date_header_survives_missing_tzdata():
+    """Regression: with tz_name="UTC" and no tz database installed, ZoneInfo
+    raises for every name including "UTC". The fallback must return a date
+    derived from the stdlib UTC constant, not crash.
+    """
+
+    def _no_tzdata(_name):
+        raise ZoneInfoNotFoundError(f"No time zone found with key {_name}")
+
+    today_utc = datetime.now(UTC).date()
+    with patch("oddsharvester.core.base_scraper.ZoneInfo", side_effect=_no_tzdata):
+        assert _parse_date_header("Today, 14 Apr", tz_name="UTC") == today_utc
 
 
 def _make_date_html(date_str: str = "06 Aug 2022,", time_str: str = "11:30") -> str:
