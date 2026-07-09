@@ -91,7 +91,7 @@ oddsharvester upcoming -s football -l england-premier-league -m 1x2,btts --headl
 # Multiple leagues
 oddsharvester upcoming -s football -l england-premier-league,spain-laliga -m 1x2 --headless
 
-# Specific match URLs
+# Specific match URLs (repeat the flag; works for past matches too)
 oddsharvester upcoming -s football --match-link "https://www.oddsportal.com/football/..." -m 1x2
 
 # Preview mode (faster — best/highest odds only, no individual bookmakers)
@@ -129,7 +129,9 @@ oddsharvester historic -s football -l england-premier-league --season 2023-2024 
 | `--date`       | `-d`  | Target date in `YYYYMMDD` format                                           | —          |
 | `--league`     | `-l`  | Comma-separated league slugs (e.g. `england-premier-league`)               | —          |
 | `--market`     | `-m`  | Comma-separated markets (e.g. `1x2,btts`)                                  | —          |
-| `--match-link` |       | Specific match URL (repeatable). Overrides `--sport`, `--date`, `--league` | —          |
+| `--match-link` |       | Specific match URL (repeatable). Skips listing pages; `--date`/`--league`/`--season` are then ignored | —          |
+
+**`--match-link` usage:** `--sport` is still required. Prefer `upcoming` over `historic` for arbitrary match URLs: match links bypass the listing pages entirely, so `upcoming` also works for matches already played, while `historic` would additionally demand a `--season` it never uses.
 
 **`upcoming` only:** `--date` is required unless `--league` or `--match-link` is provided. `--date` and `--league` can be combined to filter the league's upcoming matches down to a specific calendar day. When combining both, the reference timezone for resolving the date is `--timezone` if provided, otherwise UTC.
 
