@@ -87,6 +87,19 @@ class OddsPortalSelectors:
     MATCH_DETAILS_BREADCRUMBS_TESTID = "breadcrumbs-line"
     MATCH_DETAILS_BREADCRUMB_LEAGUE_TESTID = "3"
 
+    # Community Top Predictions page (/predictions/). All data-testid based; see
+    # docs/agentic-gotchas.md (community predictions entry).
+    COMMUNITY_LEAGUE_HEADER = "div[data-testid='sport-country-league-item']"
+    COMMUNITY_OUTCOME_HEADER = "div[data-testid='betting-tip-header']"
+    COMMUNITY_GAME_ROW = "div[data-testid='game-row']"
+    COMMUNITY_DATE_TIME = "div[data-testid='date-time-item']"
+    COMMUNITY_PARTICIPANTS = "div[data-testid='event-participants']"
+    COMMUNITY_ODD_CELL = "p[data-testid='odd-container-default']"
+    COMMUNITY_PREDICTION_CELL = "div[data-testid='prediction-container']"
+    COMMUNITY_BREADCRUMB_SPORT = "a[data-testid='header-sport-item']"
+    COMMUNITY_BREADCRUMB_COUNTRY = "a[data-testid='header-country-item']"
+    COMMUNITY_BREADCRUMB_LEAGUE = "a[data-testid='header-tournament-item']"
+
     @staticmethod
     def market_code_from_url(url: str) -> str | None:
         """Return the market code from a `#<id>:<code>;<scope>` fragment, else None."""
