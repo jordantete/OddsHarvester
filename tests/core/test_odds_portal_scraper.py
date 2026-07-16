@@ -477,6 +477,26 @@ async def test_collect_match_links_error_handling(setup_scraper_mocks):
     assert tab_mock.close.call_count == 2  # Should still close tabs even after error
 
 
+@pytest.mark.asyncio
+async def test_collect_match_links_preserves_listing_order(setup_scraper_mocks):
+    """Dedup must keep first-seen listing order across pages (issue #75)."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    tab_mock = AsyncMock()
+    mocks["context_mock"].new_page = AsyncMock(return_value=tab_mock)
+    scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+
+    page1_links = [f"https://www.oddsportal.com/match{i}" for i in range(1, 6)]
+    page2_links = ["https://www.oddsportal.com/match3", "https://www.oddsportal.com/match6"]
+    scraper.extract_match_links = AsyncMock(side_effect=[page1_links, page2_links])
+
+    result = await scraper._collect_match_links(base_url="https://base", pages_to_scrape=[1, 2])
+
+    assert result.links == [*page1_links, "https://www.oddsportal.com/match6"]
+    assert result.successful_pages == 2
+
+
 class TestFillPaginationGaps:
     """Tests for _fill_pagination_gaps behavior."""
 

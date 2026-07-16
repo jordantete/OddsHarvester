@@ -411,7 +411,7 @@ class OddsPortalScraper(BaseScraper):
                     await tab.close()
                     self.logger.debug(f"Closed tab for page {page_number}")
 
-        result.links = list(set(all_links))
+        result.links = list(dict.fromkeys(all_links))
         self.logger.info("Collection Summary:")
         self.logger.info(f"   - Total pages processed: {len(pages_to_scrape)}")
         self.logger.info(f"   - Successful pages: {result.successful_pages}")
