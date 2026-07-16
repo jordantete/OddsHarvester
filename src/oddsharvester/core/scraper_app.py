@@ -50,6 +50,7 @@ async def run_scraper(
     request_delay: float = DEFAULT_REQUEST_DELAY_S,
     concurrency_tasks: int = 3,
     include_started: bool = False,
+    links_only: bool = False,
 ) -> ScrapeResult | None:
     """
     Runs the scraping process and handles execution.
@@ -168,6 +169,7 @@ async def run_scraper(
                     period=period_enum,
                     request_delay=request_delay,
                     concurrent_scraping_task=concurrency_tasks,
+                    links_only=links_only,
                 )
             else:
                 return await _scrape_multiple_leagues(
@@ -184,6 +186,7 @@ async def run_scraper(
                     period=period_enum,
                     request_delay=request_delay,
                     concurrent_scraping_task=concurrency_tasks,
+                    links_only=links_only,
                 )
 
         elif command == CommandEnum.UPCOMING_MATCHES:
@@ -210,6 +213,7 @@ async def run_scraper(
                         request_delay=request_delay,
                         concurrent_scraping_task=concurrency_tasks,
                         include_started=include_started,
+                        links_only=links_only,
                     )
                 else:
                     return await _scrape_multiple_leagues(
@@ -226,6 +230,7 @@ async def run_scraper(
                         request_delay=request_delay,
                         concurrent_scraping_task=concurrency_tasks,
                         include_started=include_started,
+                        links_only=links_only,
                     )
             else:
                 logger.info(f"""
@@ -246,6 +251,7 @@ async def run_scraper(
                     request_delay=request_delay,
                     concurrent_scraping_task=concurrency_tasks,
                     include_started=include_started,
+                    links_only=links_only,
                 )
 
         else:
