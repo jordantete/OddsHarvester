@@ -779,6 +779,71 @@ rendered lines) shipped. See issue #71.
 
 ---
 
+## §13 — Community Top Predictions: parse the DOM, not the AJAX feed; community data is pre-match only
+
+**Severity:** Medium — the obvious data sources are either encrypted or absent, and the visible percentages are not authoritative.
+
+The `community` command scrapes the Top Predictions page
+(`/predictions/#sport/<sport>/`). Several instincts lead nowhere here; record
+them before the next contributor re-discovers each one.
+
+### The AJAX feed is a dead end — parse the rendered DOM
+
+The Top Predictions page and the community homepage widgets are fed by
+`ajax-topPredictions/<sport>/` and `ajax-top-predictions/homepage/`, whose
+payloads are obfuscated and decoded client-side by `lscompressor.min.js`. Do
+not try to read the XHR. Parse the rendered DOM instead: the community pages
+reuse the same `data-testid` vocabulary as match pages (`game-row`,
+`event-participants`, `odd-container-default`, `prediction-container`,
+`betting-tip-header`, `sport-country-league-item`).
+
+### Sport switching is fragment-routed — the scraper needs a sport guard
+
+The page switches sport via the URL fragment. Direct fragment navigation is
+**not guaranteed** to load the requested sport for non-default sports (the SPA
+may keep serving the default sport's rows). The scraper therefore drops any row
+whose `match_url` path does not start with the requested sport slug — a §1-class
+guard against silently mislabeling one sport's picks as another's. Note
+`ice-hockey` maps to the site slug `hockey` in that path check.
+
+### Match pages: `pageVar` holds raw vote counts, but it is null on finished matches
+
+Each match page embeds a `var pageVar` JSON blob whose
+`predictionData.communityData` holds **raw per-outcome vote counts for every
+market without any tab click** (keys of the form
+`E-<eventId>_<bettingTypeId>_<scopeId>_?_<handicap>`). Two traps:
+
+1. `communityData` is `null` on **finished** matches — OddsPortal drops
+   community data once a match ends. This is why the feature is pre-match only:
+   there is no way to backfill; build longitudinal datasets by scraping while
+   matches are upcoming.
+2. The visible `user-predictions-row` percentages can **lag** `pageVar` by a
+   server-cache snapshot (they come from different caches; observed 11/16/74 in
+   the row vs 10/15/75 in `pageVar` on the same page load). Neither is "wrong";
+   don't assert the two agree.
+
+### Percentages are rounded — never assert an exact 100 total
+
+Community vote percentages are rounded and may sum to 99–101. Never assert an
+exact 100 total.
+
+### Community date tokens use a `/` + trailing-comma form base_scraper rejects
+
+Non-today community rows carry date tokens like `19/Jul,` (slash separator,
+trailing comma) which `base_scraper._parse_date_header` does **not** accept. The
+community parser normalizes the token locally before delegating to
+`_parse_date_header`. Unparseable kickoffs yield `kickoff = None` (the raw label
+is kept in `kickoff_text`), so a token-format drift degrades to a null kickoff,
+not a crash.
+
+### References
+
+- `core/community/` — parser + scraper/runner.
+- `cli/commands/community.py` — the `community` command.
+- `tests/integration/test_community_predictions.py` — HAR-replay coverage.
+
+---
+
 ## Adding a new gotcha
 
 When a fix lands that exposes an OddsPortal-specific behaviour an agent

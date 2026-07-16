@@ -75,7 +75,7 @@ oddsharvester historic -s football -l england-premier-league --season 2024-2025 
 
 ## CLI Usage
 
-OddsHarvester has two main commands: **`upcoming`** and **`historic`**. They share most options, with a few command-specific ones.
+OddsHarvester has three commands: **`upcoming`**, **`historic`**, and **`community`**. They share most options, with a few command-specific ones.
 
 ### `oddsharvester upcoming`
 
@@ -118,6 +118,25 @@ oddsharvester historic -s football -l england-premier-league --season 2024-2025 
 # Umbrella market — expands to every Over/Under line rendered on the page
 oddsharvester historic -s football -l england-premier-league --season 2023-2024 --market over_under -f csv
 ```
+
+### `oddsharvester community`
+
+Scrape the most-voted community picks for the next 7 days (OddsPortal Community → Top Predictions).
+
+```bash
+# Top predictions for a sport
+oddsharvester community -s football --headless
+
+# Write to a named JSON file
+oddsharvester community -s football -f json -o top_predictions.json --headless
+```
+
+Each record contains the match (`home_team`, `away_team`, `match_url`, `kickoff`), the league (`sport`, `country`, `league`), the voted `market`, best odds per outcome (`odds`), the community vote split (`community_votes_pct`), and `scraped_at`.
+
+Notes:
+
+- OddsPortal surfaces ~10 picks per sport (no pagination) with rounded percentages.
+- Pre-match only: OddsPortal drops community data from finished-match pages, so build longitudinal datasets by scraping while matches are still upcoming.
 
 ### CLI Options Reference
 
