@@ -214,6 +214,7 @@ async def test_scrape_historic_links_only(url_builder_mock, setup_scraper_mocks)
             "season": "2022-2023",
         },
     ]
+    assert list(result.success[0].keys()) == ["match_link", "sport", "league", "season"]
     assert [f.url for f in result.failed] == [f"{base}#/page/3"]
     assert result.stats.successful == 2
     assert result.stats.failed == 1
@@ -304,6 +305,7 @@ async def test_scrape_upcoming_links_only(url_builder_mock, setup_scraper_mocks)
     assert result.success == [
         {"match_link": "https://oddsportal.com/m1", "sport": "football", "league": None, "date": "20260720"}
     ]
+    assert list(result.success[0].keys()) == ["match_link", "sport", "league", "date"]
     assert result.failed == []
     assert result.stats.successful == 1
     assert result.stats.total_urls == 1
