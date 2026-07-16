@@ -54,9 +54,9 @@ the links through the normal storage layer.
   `--scrape-odds-history`, `--preview-only`, `--target-bookmaker`,
   `--bookies-filter`) are silently ignored (`--markets` has a default value, so
   erroring is not possible). Documented in `--help` and README.
-- Options that stay honored: `--leagues`, `--season`, `--date`, `--max-pages`,
+- Options that stay honored: `--league`, `--season`, `--date`, `--max-pages`,
   `--include-started`, proxies, `--headless`, `--base-url`, locale/timezone,
-  storage options (`--storage`, `--format`, `--file-path`, `--append`).
+  storage options (`--storage`, `--format`, `--output`, `--append`).
 - End-of-run message: `Collected N match links (M listing pages failed).`
   Failed listing pages are reported through the existing stderr channel
   (`Failed URLs: [...]`), as page URLs.
@@ -66,8 +66,8 @@ Examples:
 
 ```bash
 # Pass 1 — collect links for a season
-oddsharvester historic --sport football --leagues england-premier-league \
-    --season 2022-2023 --links-only --format csv --file-path links.csv
+oddsharvester historic --sport football --league england-premier-league \
+    --season 2022-2023 --links-only --format csv --output links.csv
 
 # Upcoming listing
 oddsharvester upcoming --sport football --date 20260720 --links-only
