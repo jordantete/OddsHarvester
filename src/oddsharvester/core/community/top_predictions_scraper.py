@@ -60,7 +60,9 @@ class TopPredictionsScraper:
         # (gotchas §7) — validate each row's match_url path and drop mismatches rather
         # than emit picks mislabeled with the requested sport.
         expected_prefix = f"/{site_slug}/"
-        matching = [r for r in records if expected_prefix in r["match_url"].replace(ODDSPORTAL_BASE_URL, "", 1)]
+        matching = [
+            r for r in records if r["match_url"].replace(ODDSPORTAL_BASE_URL, "", 1).startswith(expected_prefix)
+        ]
         if records and not matching:
             logger.error(
                 "Top predictions page rendered %d rows but none belong to sport=%s "
