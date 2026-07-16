@@ -131,7 +131,7 @@ oddsharvester community -s football --headless
 oddsharvester community -s football -f json -o top_predictions.json --headless
 ```
 
-Each record contains the match (`home_team`, `away_team`, `match_url`, `kickoff`), the league (`sport`, `country`, `league`), the voted `market`, best odds per outcome (`odds`), the community vote split (`community_votes_pct`), and `scraped_at`.
+Each record contains the match (`home_team`, `away_team`, `match_url`, `kickoff`, plus the raw `kickoff_text` label kept as fallback when the date token fails to parse), the league (`sport`, `country`, `league`), the voted `market`, best odds per outcome (`odds`), the community vote split (`community_votes_pct`), and `scraped_at`.
 
 Notes:
 
