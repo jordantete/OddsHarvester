@@ -57,7 +57,7 @@ class TopPredictionsScraper:
         records = parse_top_predictions(html, tz_name=self.playwright_manager.timezone_id)
 
         # Fragment routing is not guaranteed to switch the SPA to the requested sport
-        # (gotchas §7) — validate each row's match_url path and drop mismatches rather
+        # (gotchas §1; see §13) — validate each row's match_url path and drop mismatches rather
         # than emit picks mislabeled with the requested sport.
         expected_prefix = f"/{site_slug}/"
         matching = [

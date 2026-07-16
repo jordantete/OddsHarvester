@@ -20,8 +20,6 @@ logger = logging.getLogger(__name__)
 # Raw data-testid values for the document-order section scan (find_all(attrs=)),
 # not CSS selectors — the CSS forms live on OddsPortalSelectors.
 _SECTION_TESTIDS = ("sport-country-league-item", "betting-tip-header", "game-row")
-# Team names: two separate <p class="participant-name"> per row (home, away).
-_PARTICIPANT_NAME = "p.participant-name"
 _PCT_RE = re.compile(r"(\d+)\s*%")
 _TIME_RE = re.compile(r"^\d{1,2}:\d{2}$")
 
@@ -93,7 +91,7 @@ def _parse_game_row(row, breadcrumb: dict | None, outcome_labels: list[str], tz_
 
 def _extract_teams(row) -> tuple[str | None, str | None]:
     # Primary: two separate participant-name elements (document order = home, away).
-    names = row.select(_PARTICIPANT_NAME)
+    names = row.select(OddsPortalSelectors.COMMUNITY_PARTICIPANT_NAME)
     if len(names) >= 2:
         return names[0].get_text(strip=True), names[-1].get_text(strip=True)
     # Fallback: a single dash-separated text node inside the participants container.

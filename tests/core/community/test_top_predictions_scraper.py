@@ -113,7 +113,7 @@ async def test_scrape_returns_empty_on_no_rows():
 
 @pytest.mark.asyncio
 async def test_scrape_drops_rows_of_wrong_sport():
-    # Fragment routing is not guaranteed to honor non-default sports (gotchas §7):
+    # Fragment routing is not guaranteed to honor non-default sports (gotchas §1; see §13):
     # rows whose match_url belongs to another sport must be dropped, not mislabeled.
     scraper, _, _ = _make_scraper(MINIMAL_PAGE_HTML)
     records = await scraper.scrape(sport="tennis")

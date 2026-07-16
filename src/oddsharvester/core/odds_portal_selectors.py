@@ -94,6 +94,7 @@ class OddsPortalSelectors:
     COMMUNITY_GAME_ROW = "div[data-testid='game-row']"
     COMMUNITY_DATE_TIME = "div[data-testid='date-time-item']"
     COMMUNITY_PARTICIPANTS = "div[data-testid='event-participants']"
+    COMMUNITY_PARTICIPANT_NAME = "p.participant-name"
     COMMUNITY_ODD_CELL = "p[data-testid='odd-container-default']"
     COMMUNITY_PREDICTION_CELL = "div[data-testid='prediction-container']"
     COMMUNITY_BREADCRUMB_SPORT = "a[data-testid='header-sport-item']"
