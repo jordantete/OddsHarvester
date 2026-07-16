@@ -150,6 +150,7 @@ oddsharvester historic -s football -l england-premier-league --season 2023-2024 
 | `--format`  | `-f`  | `json` or `csv`                                                            | `json`         |
 | `--output`  | `-o`  | Output file path                                                           | `scraped_data` |
 | `--append`  |       | Append to the output file instead of overwriting it (`--no-append` to opt out explicitly) | `--no-append`  |
+| `--links-only` |       | Collect match links only, without scraping odds (`--no-links-only` to opt out explicitly) | `--no-links-only` |
 
 #### Browser & Scraping Options
 
@@ -212,6 +213,22 @@ Preview mode (`--preview-only`) is useful for quick exploration, testing data fo
 
 </details>
 
+### Two-pass workflow: collect links, then scrape
+
+For large runs it can be safer to collect all match links first, then scrape odds per link and re-run only the failures (see issue #75):
+
+```bash
+# Pass 1 - collect the season's match links (no odds scraped)
+oddsharvester historic -s football -l england-premier-league --season 2022-2023 \
+    --links-only -f csv -o links.csv
+
+# Pass 2 - scrape odds per link (repeat --match-link; --append fills recovered failures)
+oddsharvester historic -s football --season 2022-2023 -m 1x2 -f csv -o odds.csv --append \
+    --match-link "https://www.oddsportal.com/football/england/premier-league-2022-2023/..."
+```
+
+Output rows contain `match_link`, `sport`, `league`, and `season` (`date` for `upcoming`), in the site's listing order. Options that only affect odds scraping (`--market`, `--period`, `--odds-history`, `--preview-only`, `--target-bookmaker`, `--bookies-filter`) are ignored when `--links-only` is set. `--links-only` cannot be combined with `--match-link`.
+
 ---
 
 ## Environment Variables
@@ -231,6 +248,7 @@ All CLI options can be set via environment variables — useful for Docker or CI
 | `OH_FORMAT`        | `--format`        | Output format (json/csv)     |
 | `OH_FILE_PATH`     | `--output`        | Output file path             |
 | `OH_APPEND`        | `--append`        | Append to the output file instead of overwriting |
+| `OH_LINKS_ONLY`    | `--links-only`    | Collect match links only, without scraping odds |
 | `OH_HEADLESS`      | `--headless`      | Run in headless mode         |
 | `OH_CONCURRENCY`   | `--concurrency`   | Number of concurrent tasks   |
 | `OH_REQUEST_DELAY` | `--request-delay` | Delay between requests (sec) |
