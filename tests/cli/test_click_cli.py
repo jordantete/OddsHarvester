@@ -282,6 +282,82 @@ class TestOutputPathValidation:
         assert "must not be an existing directory" in result.output
 
 
+class TestLinksOnly:
+    """Tests for the --links-only flag (issue #75)."""
+
+    MATCH_URL = "https://www.oddsportal.com/football/england/premier-league/arsenal-chelsea-abc123/"
+
+    def test_help_shows_links_only(self, runner):
+        for command in ["historic", "upcoming"]:
+            result = runner.invoke(cli, [command, "--help"])
+            assert result.exit_code == 0
+            assert "--links-only" in result.output
+
+    def test_links_only_conflicts_with_match_link_historic(self, runner):
+        result = runner.invoke(
+            cli,
+            ["historic", "-s", "football", "--season", "2024-2025", "--links-only", "--match-link", self.MATCH_URL],
+        )
+        assert result.exit_code != 0
+        assert "--links-only cannot be combined with --match-link" in result.output
+
+    def test_links_only_conflicts_with_match_link_upcoming(self, runner):
+        result = runner.invoke(
+            cli,
+            ["upcoming", "-s", "football", "--links-only", "--match-link", self.MATCH_URL],
+        )
+        assert result.exit_code != 0
+        assert "--links-only cannot be combined with --match-link" in result.output
+
+    def _links_result(self):
+        from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
+
+        return ScrapeResult(
+            success=[
+                {
+                    "match_link": self.MATCH_URL,
+                    "sport": "football",
+                    "league": "england-premier-league",
+                    "season": "2022-2023",
+                }
+            ],
+            stats=ScrapeStats(total_urls=1, successful=1, failed=0),
+        )
+
+    def test_links_only_forwarded_and_message_historic(self, runner):
+        with (
+            patch(
+                "oddsharvester.cli.commands.historic.run_scraper",
+                new_callable=AsyncMock,
+                return_value=self._links_result(),
+            ) as scraper_mock,
+            patch("oddsharvester.cli.commands.historic.store_data") as store_mock,
+        ):
+            result = runner.invoke(
+                cli,
+                ["historic", "-s", "football", "-l", "england-premier-league", "--season", "2022-2023", "--links-only"],
+            )
+        assert result.exit_code == 0
+        assert scraper_mock.call_args.kwargs["links_only"] is True
+        assert "Collected 1 match links (0 listing pages failed)." in result.output
+        store_mock.assert_called_once()
+
+    def test_links_only_forwarded_and_message_upcoming(self, runner):
+        with (
+            patch(
+                "oddsharvester.cli.commands.upcoming.run_scraper",
+                new_callable=AsyncMock,
+                return_value=self._links_result(),
+            ) as scraper_mock,
+            patch("oddsharvester.cli.commands.upcoming.store_data") as store_mock,
+        ):
+            result = runner.invoke(cli, ["upcoming", "-s", "football", "-d", FUTURE_DATE, "--links-only"])
+        assert result.exit_code == 0
+        assert scraper_mock.call_args.kwargs["links_only"] is True
+        assert "Collected 1 match links (0 listing pages failed)." in result.output
+        store_mock.assert_called_once()
+
+
 def test_all_registered_sport_periods_are_cli_selectable():
     """Every period of every registered sport must be a valid --period CLI choice.
 

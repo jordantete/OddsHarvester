@@ -36,6 +36,10 @@ def upcoming(ctx, **kwargs):
     if not kwargs.get("date") and not kwargs.get("leagues") and not kwargs.get("match_links"):
         raise click.UsageError("You must provide --date, --league, or --match-link for upcoming matches.")
 
+    links_only = kwargs.get("links_only", False)
+    if links_only and kwargs.get("match_links"):
+        raise click.UsageError("--links-only cannot be combined with --match-link (links are already collected).")
+
     # Convert enums to values for the scraper
     sport = kwargs["sport"]
     storage = kwargs["storage"]
@@ -69,6 +73,7 @@ def upcoming(ctx, **kwargs):
                 request_delay=kwargs.get("request_delay", 1.0),
                 concurrency_tasks=kwargs.get("concurrency_tasks", 3),
                 include_started=kwargs.get("include_started", False),
+                links_only=links_only,
             )
         )
 
@@ -80,10 +85,16 @@ def upcoming(ctx, **kwargs):
                 file_path=kwargs.get("file_path"),
                 append=kwargs.get("append", False),
             )
-            click.echo(
-                f"Successfully scraped {scraped_data.stats.successful} matches "
-                f"({scraped_data.stats.failed} failed, {scraped_data.stats.success_rate:.1f}% success rate)."
-            )
+            if links_only:
+                click.echo(
+                    f"Collected {scraped_data.stats.successful} match links "
+                    f"({scraped_data.stats.failed} listing pages failed)."
+                )
+            else:
+                click.echo(
+                    f"Successfully scraped {scraped_data.stats.successful} matches "
+                    f"({scraped_data.stats.failed} failed, {scraped_data.stats.success_rate:.1f}% success rate)."
+                )
             if scraped_data.failed:
                 click.echo(f"Failed URLs: {[f.url for f in scraped_data.failed]}", err=True)
         else:

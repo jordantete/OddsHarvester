@@ -111,6 +111,13 @@ def common_options(func):
         help="Append to the output file instead of overwriting it (default: overwrite).",
     )
     @click.option(
+        "--links-only/--no-links-only",
+        "links_only",
+        default=False,
+        envvar="OH_LINKS_ONLY",
+        help="Collect match links only, without scraping odds. Market/odds options are ignored.",
+    )
+    @click.option(
         "--headless/--no-headless",
         default=False,
         envvar="OH_HEADLESS",
