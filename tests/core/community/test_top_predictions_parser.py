@@ -48,6 +48,15 @@ def test_percentages_roughly_sum_to_100(records):
         assert 95 <= total <= 105
 
 
+def test_non_today_date_row_parses_kickoff(records):
+    # Fixture row 7 (Spain vs Argentina) renders a slash-separated future date
+    # "19/Jul," which base_scraper._parse_date_header cannot parse as-is.
+    row = next(r for r in records if "19/Jul" in r["kickoff_text"])
+    assert row["kickoff"] is not None
+    assert row["kickoff"].endswith("T21:00")
+    assert "-07-19" in row["kickoff"]
+
+
 def test_malformed_row_is_skipped():
     html = """
     <div data-testid="sport-country-league-item">

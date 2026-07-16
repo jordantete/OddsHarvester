@@ -120,7 +120,11 @@ def _extract_datetime_and_market(row, tz_name: str | None) -> tuple[str, str | N
     date_tokens = [t for t in texts if t != market and t != time_token]
     kickoff_text = " ".join(texts)
     kickoff = None
-    parsed_date = _parse_date_header(" ".join(date_tokens), tz_name) if date_tokens else None
+    # Community rows render future dates as "19/Jul," (slash-separated, trailing
+    # comma), a shape _parse_date_header (listing-page owned) doesn't accept.
+    # Normalize locally to "19 Jul" before handing it off.
+    date_header = " ".join(date_tokens).replace("/", " ").rstrip(",").strip()
+    parsed_date = _parse_date_header(date_header, tz_name) if date_header else None
     if parsed_date and time_token:
         kickoff = f"{parsed_date.isoformat()}T{time_token.zfill(5)}"
     return kickoff_text, kickoff, market
