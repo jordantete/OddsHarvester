@@ -155,6 +155,7 @@ class OddsPortalScraper(BaseScraper):
         request_delay: float = DEFAULT_REQUEST_DELAY_S,
         concurrent_scraping_task: int = 3,
         include_started: bool = False,
+        links_only: bool = False,
     ) -> ScrapeResult:
         """
         Scrapes upcoming match odds.
@@ -169,6 +170,7 @@ class OddsPortalScraper(BaseScraper):
             include_started (bool): If True, also return matches that have
                 already started or finished. Default False keeps the listing
                 page's true "upcoming" semantics (GitHub issue #58).
+            links_only (bool): If True, stop after link collection and return the links (no odds scraping).
 
         Returns:
             ScrapeResult: Contains successful results, failed URLs, and statistics.
@@ -212,6 +214,13 @@ class OddsPortalScraper(BaseScraper):
         if not match_links:
             self.logger.warning("No match links found for upcoming matches.")
             return ScrapeResult()
+
+        if links_only:
+            self.logger.info(f"Links-only mode: returning {len(match_links)} match links without odds.")
+            return self._links_only_result(
+                links=match_links,
+                context={"sport": sport, "league": league, "date": date},
+            )
 
         return await self.extract_match_odds(
             sport=sport,

@@ -287,6 +287,29 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
 
 
 @pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_upcoming_links_only(url_builder_mock, setup_scraper_mocks):
+    """links_only=True returns link rows with a date column; league may be None."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/matches/football/20260720/"
+    scraper.extract_match_links = AsyncMock(return_value=["https://oddsportal.com/m1"])
+    scraper.extract_match_odds = AsyncMock()
+    scraper._prepare_page_for_scraping = AsyncMock()
+
+    result = await scraper.scrape_upcoming(sport="football", date="20260720", league=None, links_only=True)
+
+    scraper.extract_match_odds.assert_not_called()
+    assert result.success == [
+        {"match_link": "https://oddsportal.com/m1", "sport": "football", "league": None, "date": "20260720"}
+    ]
+    assert result.failed == []
+    assert result.stats.successful == 1
+    assert result.stats.total_urls == 1
+
+
+@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.ODDSPORTAL_BASE_URL", "https://oddsportal.com")
 async def test_scrape_matches(setup_scraper_mocks):
     """Test scraping specific match links."""
