@@ -174,6 +174,54 @@ async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
 
 @pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_historic_links_only(url_builder_mock, setup_scraper_mocks):
+    """links_only=True stops after link collection and returns link rows."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    base = "https://oddsportal.com/football/england/premier-league-2022-2023"
+    url_builder_mock.get_historic_matches_url.return_value = base
+    scraper._get_pagination_info = AsyncMock(return_value=[1, 2, 3])
+    scraper._collect_match_links = AsyncMock(
+        return_value=LinkCollectionResult(
+            links=["https://oddsportal.com/match1", "https://oddsportal.com/match2"],
+            successful_pages=2,
+            failed_pages=[3],
+        )
+    )
+    scraper.extract_match_odds = AsyncMock()
+    scraper._prepare_page_for_scraping = AsyncMock()
+
+    result = await scraper.scrape_historic(
+        sport="football",
+        league="england-premier-league",
+        season="2022-2023",
+        links_only=True,
+    )
+
+    scraper.extract_match_odds.assert_not_called()
+    assert result.success == [
+        {
+            "match_link": "https://oddsportal.com/match1",
+            "sport": "football",
+            "league": "england-premier-league",
+            "season": "2022-2023",
+        },
+        {
+            "match_link": "https://oddsportal.com/match2",
+            "sport": "football",
+            "league": "england-premier-league",
+            "season": "2022-2023",
+        },
+    ]
+    assert [f.url for f in result.failed] == [f"{base}#/page/3"]
+    assert result.stats.successful == 2
+    assert result.stats.failed == 1
+    assert result.stats.total_urls == 3
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
     """Test scraping upcoming matches odds data."""
     mocks = setup_scraper_mocks

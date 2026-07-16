@@ -6,7 +6,7 @@ import random
 from playwright.async_api import Page
 
 from oddsharvester.core.base_scraper import BaseScraper
-from oddsharvester.core.scrape_result import ScrapeResult
+from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult, ScrapeStats
 from oddsharvester.core.url_builder import URLBuilder
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import (
@@ -72,6 +72,7 @@ class OddsPortalScraper(BaseScraper):
         period: Enum | None = None,
         request_delay: float = DEFAULT_REQUEST_DELAY_S,
         concurrent_scraping_task: int = 3,
+        links_only: bool = False,
     ) -> ScrapeResult:
         """
         Scrapes historical odds data.
@@ -84,6 +85,7 @@ class OddsPortalScraper(BaseScraper):
             scrape_odds_history (bool): Whether to scrape and attach odds history.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
             max_pages (Optional[int]): Maximum number of pages to scrape (default is None for all pages).
+            links_only (bool): If True, stop after link collection and return the links (no odds scraping).
 
         Returns:
             ScrapeResult: Contains successful results, failed URLs, and statistics.
@@ -114,6 +116,14 @@ class OddsPortalScraper(BaseScraper):
 
         if link_result.failed_pages:
             self.logger.warning(f"Failed to collect links from pages: {link_result.failed_pages}")
+
+        if links_only:
+            self.logger.info(f"Links-only mode: returning {len(link_result.links)} match links without odds.")
+            return self._links_only_result(
+                links=link_result.links,
+                context={"sport": sport, "league": league, "season": season},
+                failed_page_urls=[f"{base_url}#/page/{p}" for p in link_result.failed_pages],
+            )
 
         # Extract odds from all collected links
         self.logger.info("Step 3: Extracting odds from collected match links...")
@@ -269,6 +279,33 @@ class OddsPortalScraper(BaseScraper):
         """
         await self.set_odds_format(page=page)
         await self.cookie_dismisser.dismiss(page=page)
+
+    def _links_only_result(
+        self,
+        links: list[str],
+        context: dict,
+        failed_page_urls: list[str] | None = None,
+    ) -> ScrapeResult:
+        """Builds a ScrapeResult carrying collected match links instead of odds data."""
+        failed_page_urls = failed_page_urls or []
+        success = [{"match_link": link, **context} for link in links]
+        failed = [
+            FailedUrl(
+                url=url,
+                error_type=ErrorType.NAVIGATION,
+                error_message="Failed to collect links from listing page",
+            )
+            for url in failed_page_urls
+        ]
+        return ScrapeResult(
+            success=success,
+            failed=failed,
+            stats=ScrapeStats(
+                total_urls=len(success) + len(failed),
+                successful=len(success),
+                failed=len(failed),
+            ),
+        )
 
     async def _get_pagination_info(self, page: Page, max_pages: int | None) -> list[int]:
         """
