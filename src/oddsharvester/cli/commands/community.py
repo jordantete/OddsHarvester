@@ -8,14 +8,18 @@ import click
 
 from oddsharvester.cli.types import SPORT, STORAGE_FORMAT, STORAGE_TYPE
 from oddsharvester.cli.validators import validate_base_url, validate_file_path, validate_proxy_url
+from oddsharvester.core.community.match_community_scraper import run_match_community
 from oddsharvester.core.community.top_predictions_scraper import run_top_predictions
+from oddsharvester.core.community.user_profile_scraper import run_user_profile
 from oddsharvester.storage.storage_manager import store_data
 
 logger = logging.getLogger(__name__)
 
 
 @click.command("community")
-@click.option("--sport", "-s", type=SPORT, required=True, envvar="OH_SPORT", help="Sport to scrape predictions for.")
+@click.option("--sport", "-s", type=SPORT, envvar="OH_SPORT", help="Top-predictions mode: sport to scrape.")
+@click.option("--user", "username", envvar="OH_USER", help="User-profile mode: OddsPortal username.")
+@click.option("--match-url", "match_url", envvar="OH_MATCH_URL", help="Match-community mode: OddsPortal match URL.")
 @click.option(
     "--storage", type=STORAGE_TYPE, default="local", envvar="OH_STORAGE", help="Storage type: local or remote."
 )
@@ -67,39 +71,85 @@ logger = logging.getLogger(__name__)
 )
 @click.pass_context
 def community(ctx, **kwargs):
-    """Scrape the Community Top Predictions page (most-voted picks, next 7 days)."""
-    sport = kwargs["sport"]
+    """Scrape OddsPortal Community data.
+
+    Exactly one mode: --sport (top predictions), --user (profile), --match-url (match votes).
+    """
+    sport = kwargs.get("sport")
+    username = kwargs.get("username")
+    match_url = kwargs.get("match_url")
     storage = kwargs["storage"]
     storage_format = kwargs["storage_format"]
 
+    modes = [("--sport", sport), ("--user", username), ("--match-url", match_url)]
+    chosen = [name for name, value in modes if value]
+    if len(chosen) != 1:
+        raise click.UsageError("Provide exactly one of --sport, --user or --match-url.")
+
+    browser_kwargs = {
+        "headless": kwargs.get("headless", False),
+        "proxy_url": kwargs.get("proxy_url"),
+        "proxy_user": kwargs.get("proxy_user"),
+        "proxy_pass": kwargs.get("proxy_pass"),
+        "browser_user_agent": kwargs.get("browser_user_agent"),
+        "browser_locale_timezone": kwargs.get("browser_locale_timezone"),
+        "browser_timezone_id": kwargs.get("browser_timezone_id"),
+        "base_url": kwargs.get("base_url"),
+    }
+
     try:
-        records = asyncio.run(
-            run_top_predictions(
-                sport=sport.value,
-                headless=kwargs.get("headless", False),
-                proxy_url=kwargs.get("proxy_url"),
-                proxy_user=kwargs.get("proxy_user"),
-                proxy_pass=kwargs.get("proxy_pass"),
-                browser_user_agent=kwargs.get("browser_user_agent"),
-                browser_locale_timezone=kwargs.get("browser_locale_timezone"),
-                browser_timezone_id=kwargs.get("browser_timezone_id"),
-                base_url=kwargs.get("base_url"),
+        if sport:
+            records = asyncio.run(run_top_predictions(sport=sport.value, **browser_kwargs))
+            _store_or_exit(
+                records,
+                bool(records),
+                kwargs,
+                storage,
+                storage_format,
+                f"Successfully scraped {len(records)} community top predictions.",
+                "No community top predictions scraped.",
             )
-        )
-
-        if records:
-            store_data(
-                storage_type=storage.value if storage else "local",
-                data=records,
-                storage_format=storage_format.value if storage_format else "json",
-                file_path=kwargs.get("file_path"),
-                append=kwargs.get("append", False),
+        elif username:
+            record = asyncio.run(run_user_profile(username=username, **browser_kwargs))
+            has_data = bool(record.get("username"))
+            _store_or_exit(
+                [record],
+                has_data,
+                kwargs,
+                storage,
+                storage_format,
+                f"Successfully scraped profile '{username}' (privacy={record.get('privacy')}).",
+                f"No profile data scraped for '{username}'.",
             )
-            click.echo(f"Successfully scraped {len(records)} community top predictions.")
         else:
-            logger.error("No community top predictions scraped.")
-            sys.exit(1)
-
+            record = asyncio.run(run_match_community(match_url=match_url, **browser_kwargs))
+            has_data = bool(record.get("markets"))
+            _store_or_exit(
+                [record],
+                has_data,
+                kwargs,
+                storage,
+                storage_format,
+                f"Successfully scraped {len(record['markets'])} community markets for the match.",
+                "No community vote data for this match (finished match or empty).",
+            )
+    except click.UsageError:
+        raise
     except Exception as e:
         logger.error(f"Error during community scraping: {e}", exc_info=True)
+        sys.exit(1)
+
+
+def _store_or_exit(data, has_data, kwargs, storage, storage_format, ok_msg, empty_msg):
+    if has_data:
+        store_data(
+            storage_type=storage.value if storage else "local",
+            data=data,
+            storage_format=storage_format.value if storage_format else "json",
+            file_path=kwargs.get("file_path"),
+            append=kwargs.get("append", False),
+        )
+        click.echo(ok_msg)
+    else:
+        logger.error(empty_msg)
         sys.exit(1)
