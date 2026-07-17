@@ -4,7 +4,7 @@
 
 ### Scrape sports betting odds from OddsPortal.com with ease
 
-Extract upcoming & historical odds across 10 sports, 100+ leagues, and dozens of betting markets.
+Extract upcoming & historical odds, plus community top predictions, across 10 sports, 100+ leagues, and dozens of betting markets.
 <br>Powered by Playwright browser automation. Output to JSON, CSV, or S3.
 
 <br>
@@ -35,6 +35,9 @@ oddsharvester upcoming -s football -d 20250301 -m 1x2 --headless
 
 # Scrape historical Premier League odds
 oddsharvester historic -s football -l england-premier-league --season 2024-2025 -m 1x2 --headless
+
+# Scrape community top predictions
+oddsharvester community -s football --headless
 ```
 
 ---
@@ -45,6 +48,7 @@ oddsharvester historic -s football -l england-premier-league --season 2024-2025 
 | ---------------- | ----------------------- | -------------------------------------------------------------------------- |
 | **Upcoming**     | Scrape upcoming matches | Fetch odds and event details for upcoming sports matches by date or league |
 | **Historic**     | Scrape historical odds  | Retrieve past odds and match results for any season                        |
+| **Community**    | Scrape community picks  | Fetch the most-voted community top predictions for the next 7 days         |
 | **Multi-market** | Advanced parsing        | Structured data: dates, teams, scores, venues, and per-bookmaker odds      |
 | **Storage**      | Flexible output         | JSON, CSV (local), or direct upload to AWS S3                              |
 | **Docker**       | Container-ready         | Run seamlessly in Docker with environment variable configuration           |
