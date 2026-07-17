@@ -1,0 +1,61 @@
+[
+    {
+        "mode": "match",
+        "match_url": "https://www.oddsportal.com/football/h2h/fenerbahce-MsbmracL/gornik-zabrze-2LH3Ywq4/#CIeF1Lbt:1X2;2",
+        "event_id": "10818621",
+        "home_team": "Fenerbahce",
+        "away_team": "Gornik Zabrze",
+        "kickoff": "2026-07-21T18:00:00+00:00",
+        "is_prematch": true,
+        "top_community_pick": null,
+        "markets": [
+            {
+                "market": "1X2",
+                "scope": "Full Time",
+                "handicap": "0.00",
+                "betting_type_id": 1,
+                "scope_id": 2,
+                "total_votes": 11,
+                "outcome_counts": [
+                    8,
+                    2,
+                    1
+                ]
+            },
+            {
+                "market": "Asian Handicap",
+                "scope": "Full Time",
+                "handicap": "-1.25",
+                "betting_type_id": 5,
+                "scope_id": 2,
+                "total_votes": 1,
+                "outcome_counts": [
+                    1
+                ]
+            },
+            {
+                "market": "Asian Handicap",
+                "scope": "Full Time",
+                "handicap": "-2.25",
+                "betting_type_id": 5,
+                "scope_id": 2,
+                "total_votes": 1,
+                "outcome_counts": [
+                    1
+                ]
+            },
+            {
+                "market": "Asian Handicap",
+                "scope": "Full Time",
+                "handicap": "-1.75",
+                "betting_type_id": 5,
+                "scope_id": 2,
+                "total_votes": 1,
+                "outcome_counts": [
+                    1
+                ]
+            }
+        ],
+        "scraped_at": "2026-07-17T08:53:46.802360+00:00"
+    }
+]

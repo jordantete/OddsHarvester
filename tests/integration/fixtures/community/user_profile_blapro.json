@@ -1,0 +1,149 @@
+[
+    {
+        "mode": "user",
+        "username": "BLAPRO",
+        "roi_pct": 18.2,
+        "member_since": "2026-05-23",
+        "country": "France",
+        "privacy": "public",
+        "statistics": [
+            {
+                "month": "06/2026",
+                "total_predictions": 15,
+                "won": 5.28,
+                "lost": 9,
+                "plus_minus": -3.72,
+                "roi_pct": -24.8
+            },
+            {
+                "month": "05/2026",
+                "total_predictions": 11,
+                "won": 8.44,
+                "lost": 0,
+                "plus_minus": 8.44,
+                "roi_pct": 76.7
+            },
+            {
+                "month": "Total",
+                "total_predictions": 26,
+                "won": 13.72,
+                "lost": 9,
+                "plus_minus": 4.72,
+                "roi_pct": 18.2
+            }
+        ],
+        "predictions": [
+            {
+                "kickoff": "2026-06-20T12:10",
+                "kickoff_text": "20/Jun, 12:10 AH -1.5 Sets",
+                "market": "AH -1.5 Sets",
+                "home_team": "Sabalenka A.",
+                "away_team": "Pegula J.",
+                "score": "1 - 2",
+                "pick_odds": null,
+                "outcomes": [
+                    {
+                        "odds": 2.3,
+                        "community_pct": 50,
+                        "picked": false
+                    },
+                    {
+                        "odds": 1.65,
+                        "community_pct": 50,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/tennis/h2h/pegula-jessica-KdojxrAR/sabalenka-aryna-vyhksgUB/#CC4A2q0L:ah;2;-1.50;1"
+            },
+            {
+                "kickoff": "2026-06-20T12:10",
+                "kickoff_text": "20/Jun, 12:10 CS",
+                "market": "CS",
+                "home_team": "Sabalenka A.",
+                "away_team": "Pegula J.",
+                "score": "1 - 2",
+                "pick_odds": null,
+                "outcomes": [
+                    {
+                        "odds": 2.08,
+                        "community_pct": 50,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/tennis/h2h/pegula-jessica-KdojxrAR/sabalenka-aryna-vyhksgUB/#CC4A2q0L:cs;2;"
+            },
+            {
+                "kickoff": "2026-06-20T05:00",
+                "kickoff_text": "20/Jun, 05:00 1X2",
+                "market": "1X2",
+                "home_team": "Turkey",
+                "away_team": "Paraguay",
+                "score": "0 - 1",
+                "pick_odds": null,
+                "outcomes": [
+                    {
+                        "odds": 2.05,
+                        "community_pct": 87,
+                        "picked": false
+                    },
+                    {
+                        "odds": 3.5,
+                        "community_pct": 9,
+                        "picked": false
+                    },
+                    {
+                        "odds": 3.95,
+                        "community_pct": 4,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/football/h2h/paraguay-YaNlqp6j/turkey-QeijuHo5/#KnyuOLXH:1X2;2"
+            },
+            {
+                "kickoff": "2026-06-20T05:00",
+                "kickoff_text": "20/Jun, 05:00 AH -0.5",
+                "market": "AH -0.5",
+                "home_team": "Turkey",
+                "away_team": "Paraguay",
+                "score": "0 - 1",
+                "pick_odds": null,
+                "outcomes": [
+                    {
+                        "odds": 2.02,
+                        "community_pct": 100,
+                        "picked": false
+                    },
+                    {
+                        "odds": 1.8,
+                        "community_pct": 0,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/football/h2h/paraguay-YaNlqp6j/turkey-QeijuHo5/#KnyuOLXH:ah;2;-0.50;0"
+            },
+            {
+                "kickoff": "2026-06-20T00:00",
+                "kickoff_text": "20/Jun, 00:00 BTTS",
+                "market": "BTTS",
+                "home_team": "Scotland",
+                "away_team": "Morocco",
+                "score": "0 - 1",
+                "pick_odds": null,
+                "outcomes": [
+                    {
+                        "odds": 2.22,
+                        "community_pct": 88,
+                        "picked": false
+                    },
+                    {
+                        "odds": 1.69,
+                        "community_pct": 12,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/football/h2h/morocco-IDKYO3R8/scotland-fZRU25WH/#nRafcAyG:bts;2"
+            }
+        ],
+        "scraped_at": "2026-07-17T08:53:10.020350+00:00"
+    }
+]
