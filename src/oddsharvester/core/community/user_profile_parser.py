@@ -158,9 +158,9 @@ def _picked_index(row) -> int | None:
         if get is None:
             continue
         testid = el.get("data-testid")
-        if testid == "odd-container-default":
+        if testid == "odd-container-default" and el.name == "p":
             idx += 1
-        elif testid == "prediction-pick-item":
+        elif testid == "prediction-pick-item" and picked is None:
             picked = idx
     return picked if picked is not None and picked >= 0 else None
 

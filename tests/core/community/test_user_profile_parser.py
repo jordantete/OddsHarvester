@@ -18,9 +18,13 @@ _PUBLIC_HTML = """
   <div data-testid="event-participants">
     <p class="participant-name">Turkey</p><span>0 - 1</span><p class="participant-name">Paraguay</p>
   </div>
+  <div data-testid="odd-container-default">2.05</div>
   <p data-testid="odd-container-default">2.05</p><div data-testid="prediction-container">87%</div>
   <span data-testid="prediction-pick-item">PICK</span>
+  <span data-testid="prediction-pick-item">PICK</span>
+  <div data-testid="odd-container-default">3.50</div>
   <p data-testid="odd-container-default">3.50</p><div data-testid="prediction-container">9%</div>
+  <div data-testid="odd-container-default">3.95</div>
   <p data-testid="odd-container-default">3.95</p><div data-testid="prediction-container">4%</div>
 </div>
 </body></html>

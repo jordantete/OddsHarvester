@@ -40,12 +40,12 @@
                 "home_team": "Sabalenka A.",
                 "away_team": "Pegula J.",
                 "score": "1 - 2",
-                "pick_odds": null,
+                "pick_odds": 2.3,
                 "outcomes": [
                     {
                         "odds": 2.3,
                         "community_pct": 50,
-                        "picked": false
+                        "picked": true
                     },
                     {
                         "odds": 1.65,
@@ -62,12 +62,12 @@
                 "home_team": "Sabalenka A.",
                 "away_team": "Pegula J.",
                 "score": "1 - 2",
-                "pick_odds": null,
+                "pick_odds": 2.08,
                 "outcomes": [
                     {
                         "odds": 2.08,
                         "community_pct": 50,
-                        "picked": false
+                        "picked": true
                     }
                 ],
                 "match_url": "https://www.oddsportal.com/tennis/h2h/pegula-jessica-KdojxrAR/sabalenka-aryna-vyhksgUB/#CC4A2q0L:cs;2;"
@@ -79,12 +79,12 @@
                 "home_team": "Turkey",
                 "away_team": "Paraguay",
                 "score": "0 - 1",
-                "pick_odds": null,
+                "pick_odds": 2.05,
                 "outcomes": [
                     {
                         "odds": 2.05,
                         "community_pct": 87,
-                        "picked": false
+                        "picked": true
                     },
                     {
                         "odds": 3.5,
@@ -106,12 +106,12 @@
                 "home_team": "Turkey",
                 "away_team": "Paraguay",
                 "score": "0 - 1",
-                "pick_odds": null,
+                "pick_odds": 2.02,
                 "outcomes": [
                     {
                         "odds": 2.02,
                         "community_pct": 100,
-                        "picked": false
+                        "picked": true
                     },
                     {
                         "odds": 1.8,
@@ -128,12 +128,12 @@
                 "home_team": "Scotland",
                 "away_team": "Morocco",
                 "score": "0 - 1",
-                "pick_odds": null,
+                "pick_odds": 2.22,
                 "outcomes": [
                     {
                         "odds": 2.22,
                         "community_pct": 88,
-                        "picked": false
+                        "picked": true
                     },
                     {
                         "odds": 1.69,
@@ -144,6 +144,6 @@
                 "match_url": "https://www.oddsportal.com/football/h2h/morocco-IDKYO3R8/scotland-fZRU25WH/#nRafcAyG:bts;2"
             }
         ],
-        "scraped_at": "2026-07-17T08:53:10.020350+00:00"
+        "scraped_at": "2026-07-17T09:23:25.277395+00:00"
     }
 ]

@@ -48,6 +48,12 @@ def test_user_profile_command_har_replay(temp_output_dir):
     assert record["privacy"] == expected["privacy"]
     assert len(record["statistics"]) == len(expected["statistics"])
     assert record["statistics"] == expected["statistics"]
+    assert len(record["predictions"]) == len(expected["predictions"])
+    assert record["predictions"] == expected["predictions"]
+    assert record["predictions"][0]["pick_odds"] is not None
+    for prediction in record["predictions"]:
+        picked_count = sum(1 for outcome in prediction["outcomes"] if outcome["picked"])
+        assert picked_count == 1
 
 
 # The pre-match H2H page is subject to the "Known limit" in CLAUDE.md (runtime
