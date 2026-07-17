@@ -101,6 +101,14 @@ class OddsPortalSelectors:
     COMMUNITY_BREADCRUMB_COUNTRY = "a[data-testid='header-country-item']"
     COMMUNITY_BREADCRUMB_LEAGUE = "a[data-testid='header-tournament-item']"
 
+    # Community user profile page (/users/<username>/). Header renders even when
+    # private; the pick marker ('prediction-pick-item') is matched as a raw
+    # data-testid inside a document-order descendants loop, not a CSS selector.
+    COMMUNITY_PROFILE_USERNAME = "[data-testid='username']"
+    COMMUNITY_PROFILE_ROI = "[data-testid='user-roi']"
+    COMMUNITY_PROFILE_MEMBER_INFO = "[data-testid='member-info']"
+    COMMUNITY_PROFILE_STATS_HEADER = "[data-testid='stats-table-header-line']"
+
     @staticmethod
     def market_code_from_url(url: str) -> str | None:
         """Return the market code from a `#<id>:<code>;<scope>` fragment, else None."""
