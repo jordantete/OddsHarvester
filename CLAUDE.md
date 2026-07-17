@@ -66,6 +66,8 @@ uv sync
 uv run oddsharvester scrape-upcoming --sport football --date 20250101 --markets 1x2
 uv run oddsharvester scrape-historic --sport football --leagues england-premier-league --season 2022-2023 --markets 1x2
 uv run oddsharvester community --sport football --output top_predictions.json
+uv run oddsharvester community --user BLAPRO --output profile.json
+uv run oddsharvester community --match-url "https://www.oddsportal.com/football/h2h/.../" --output match_votes.json
 
 # Tests
 uv run pytest tests/ -q --ignore=tests/integration/                                # unit

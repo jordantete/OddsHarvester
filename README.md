@@ -142,6 +142,38 @@ Notes:
 - OddsPortal surfaces ~10 picks per sport (no pagination) with rounded percentages.
 - Pre-match only: OddsPortal drops community data from finished-match pages, so build longitudinal datasets by scraping while matches are still upcoming.
 
+`community` has three mutually-exclusive modes — exactly one is required:
+
+**Top predictions** (`--sport`): the most-voted community picks for the next 7 days (see above).
+
+**User profile** (`--user <username>`):
+
+```bash
+oddsharvester community --user BLAPRO --headless
+```
+
+Emits one record: header (`username`, `roi_pct`, `member_since`, `country`, `privacy`), the
+monthly `statistics` table (`month`, `total_predictions`, `won`, `lost`, `plus_minus`,
+`roi_pct`, incl. a `Total` row), and the rendered `predictions` batch. Each prediction has
+`market`, `home_team`/`away_team`, `score` (when finished), and a positional `outcomes` list
+of `{odds, community_pct, picked}` plus `pick_odds`. Most profiles are **private** — a private
+profile returns the header only (`privacy: "private"`, empty stats/predictions) and exits 0.
+
+**Match community votes** (`--match-url <url>`):
+
+```bash
+oddsharvester community --match-url "https://www.oddsportal.com/football/h2h/.../" --headless
+```
+
+Emits one record with per-market community vote volume: `markets[]` of `{market, scope,
+handicap, betting_type_id, scope_id, total_votes, outcome_counts}`, most-voted first, plus
+`top_community_pick`. Pre-match only (OddsPortal drops community data from finished matches).
+
+**Limitations:** `--match-url` outcome vote **counts are unlabeled** — OddsPortal obfuscates the
+per-outcome ids, so only per-market volume, the count distribution, and the single aggregate
+pick are recoverable. `--user` captures the first rendered predictions batch (no deep
+pagination) and does not emit per-prediction win/loss (use the monthly stats table).
+
 ### CLI Options Reference
 
 #### Core Options

@@ -836,6 +836,35 @@ community parser normalizes the token locally before delegating to
 is kept in `kickoff_text`), so a token-format drift degrades to a null kickoff,
 not a crash.
 
+### Match-page community votes: raw counts exist, but outcome labels don't
+
+`--match-url` reuses the same `pageVar.predictionData.communityData = {total, count,
+group}` blob described above, but here the labels matter and most of them are
+unrecoverable. `total[E-<eventId>_<bettingTypeId>_<scopeId>_<col>_<handicap>]` is the
+per-market vote total; `group[encodedOutcomeId] -> marketKey` and
+`count[encodedOutcomeId] -> votes` give the per-outcome split. **Outcome labels are NOT
+recoverable** — the `encodedOutcomeId`s are `lscompressor`-obfuscated and only appear
+inside the React hydration `data` blob, never on the odds cells themselves. Betting-type
+and scope ids are canonical and stable (`community_constants.py`: `1`=1X2, `2`=O/U,
+`4`=DoubleChance, `5`=AsianHandicap, `6`=DNB, `13`=BTTS; scope `2`=FT, `3`=1H, `4`=2H).
+`communityData` is `null` on finished matches, same as the Top Predictions page; teams,
+`isStarted`, `isFinished`, and `startDate` come from the `#react-event-header` `data`
+JSON instead. `[data-testid="match-facts-prediction"]` holds the one aggregate pick that
+does come with a label.
+
+### User profiles: header always renders, stats/predictions only when public
+
+`/profile/<username>/` always renders the header (`username`, `user-roi`, `member-info`
+with `Profile Privacy: Public|Private`), even for a private profile. The monthly stats
+table (siblings of `stats-table-header-line`, **not** inside `stats-table-box`) and the
+predictions list render only when the profile is public — **most profiles are private**,
+so `--user` frequently returns header-only records with empty stats/predictions. Public
+profiles are hard to find via the ROI leaderboard (every sampled leader was private); the
+`/users/` list and `community/feed` are mostly private too. Profile prediction rows reuse
+match-row testids (`game-row` etc.) but have **no `betting-tip-header`** — outcomes are
+positional, with no 1/X/2 labels — and there is no reliable per-row win/loss signal, so
+use the stats table for win/loss instead of trying to infer it per prediction.
+
 ### References
 
 - `core/community/` — parser + scraper/runner.
