@@ -4,7 +4,7 @@
 
 ### Scrape sports betting odds from OddsPortal.com with ease
 
-Extract upcoming & historical odds, plus community top predictions, across 10 sports, 100+ leagues, and dozens of betting markets.
+Extract upcoming & historical odds, plus community predictions, tipster profiles and per-match votes, across 10 sports, 100+ leagues, and dozens of betting markets.
 <br>Powered by Playwright browser automation. Output to JSON, CSV, or S3.
 
 <br>
@@ -36,7 +36,7 @@ oddsharvester upcoming -s football -d 20250301 -m 1x2 --headless
 # Scrape historical Premier League odds
 oddsharvester historic -s football -l england-premier-league --season 2024-2025 -m 1x2 --headless
 
-# Scrape community top predictions
+# Scrape community data (top predictions here; also --user profiles and --match-url votes)
 oddsharvester community -s football --headless
 ```
 
@@ -48,7 +48,7 @@ oddsharvester community -s football --headless
 | ---------------- | ----------------------- | -------------------------------------------------------------------------- |
 | **Upcoming**     | Scrape upcoming matches | Fetch odds and event details for upcoming sports matches by date or league |
 | **Historic**     | Scrape historical odds  | Retrieve past odds and match results for any season                        |
-| **Community**    | Scrape community picks  | Fetch the most-voted community top predictions for the next 7 days         |
+| **Community**    | Scrape community data   | Top predictions, tipster profiles (stats + picks), and per-match community votes |
 | **Multi-market** | Advanced parsing        | Structured data: dates, teams, scores, venues, and per-bookmaker odds      |
 | **Storage**      | Flexible output         | JSON, CSV (local), or direct upload to AWS S3                              |
 | **Docker**       | Container-ready         | Run seamlessly in Docker with environment variable configuration           |
@@ -125,7 +125,13 @@ oddsharvester historic -s football -l england-premier-league --season 2023-2024 
 
 ### `oddsharvester community`
 
-Scrape the most-voted community picks for the next 7 days (OddsPortal Community → Top Predictions).
+Scrape OddsPortal Community data. `community` has three mutually-exclusive modes; exactly one is required:
+
+- **Top predictions** (`--sport`): the most-voted community picks for the next 7 days.
+- **User profile** (`--user <username>`): a tipster's stats, monthly performance and recent predictions.
+- **Match community votes** (`--match-url <url>`): per-market community vote volume for a single match.
+
+#### Top predictions (`--sport`)
 
 ```bash
 # Top predictions for a sport
@@ -137,16 +143,10 @@ oddsharvester community -s football -f json -o top_predictions.json --headless
 
 Each record contains the match (`home_team`, `away_team`, `match_url`, `kickoff`, plus the raw `kickoff_text` label kept as fallback when the date token fails to parse), the league (`sport`, `country`, `league`), the voted `market`, best odds per outcome (`odds`), the community vote split (`community_votes_pct`), and `scraped_at`.
 
-Notes:
-
 - OddsPortal surfaces ~10 picks per sport (no pagination) with rounded percentages.
 - Pre-match only: OddsPortal drops community data from finished-match pages, so build longitudinal datasets by scraping while matches are still upcoming.
 
-`community` has three mutually-exclusive modes; exactly one is required:
-
-**Top predictions** (`--sport`): the most-voted community picks for the next 7 days (see above).
-
-**User profile** (`--user <username>`):
+#### User profile (`--user <username>`)
 
 ```bash
 oddsharvester community --user BLAPRO --headless
@@ -159,7 +159,7 @@ monthly `statistics` table (`month`, `total_predictions`, `won`, `lost`, `plus_m
 of `{odds, community_pct, picked}` plus `pick_odds`. Most profiles are **private**: a private
 profile returns the header only (`privacy: "private"`, empty stats/predictions) and exits 0.
 
-**Match community votes** (`--match-url <url>`):
+#### Match community votes (`--match-url <url>`)
 
 ```bash
 oddsharvester community --match-url "https://www.oddsportal.com/football/h2h/.../" --headless
