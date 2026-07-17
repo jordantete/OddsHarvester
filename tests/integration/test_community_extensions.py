@@ -49,7 +49,13 @@ def test_user_profile_command_har_replay(temp_output_dir):
     assert len(record["statistics"]) == len(expected["statistics"])
     assert record["statistics"] == expected["statistics"]
     assert len(record["predictions"]) == len(expected["predictions"])
-    assert record["predictions"] == expected["predictions"]
+
+    # kickoff / kickoff_text render in the browser timezone (differs by host/CI),
+    # so exclude them from the deep comparison (same pattern as test_community_predictions).
+    def stable(predictions):
+        return [{k: v for k, v in p.items() if k not in {"kickoff", "kickoff_text"}} for p in predictions]
+
+    assert stable(record["predictions"]) == stable(expected["predictions"])
     assert record["predictions"][0]["pick_odds"] is not None
     for prediction in record["predictions"]:
         picked_count = sum(1 for outcome in prediction["outcomes"] if outcome["picked"])
