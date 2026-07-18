@@ -88,3 +88,34 @@ class TestVolleyballLeagueConstants:
             fresh_mapping[Sport.VOLLEYBALL]["cev-champions-league"]
             == "https://www.oddsportal.com/volleyball/europe/champions-league/"
         )
+
+
+class TestCricketLeagueConstants:
+    """Guards the production cricket league mapping (limited-overs, v1)."""
+
+    def test_cricket_sport_present(self, fresh_mapping):
+        assert Sport.CRICKET in fresh_mapping
+
+    def test_cricket_expected_leagues(self, fresh_mapping):
+        leagues = fresh_mapping[Sport.CRICKET]
+        expected = {
+            "big-bash-league",
+            "the-hundred",
+            "lanka-premier-league",
+            "mlc",
+            "one-day-international",
+            "twenty20-international",
+        }
+        assert expected.issubset(set(leagues.keys()))
+
+    def test_cricket_urls_well_formed(self, fresh_mapping):
+        leagues = fresh_mapping[Sport.CRICKET]
+        for slug, url in leagues.items():
+            assert url.startswith("https://www.oddsportal.com/cricket/"), f"{slug}: {url}"
+            assert url.endswith("/"), f"{slug} URL must end with '/': {url}"
+
+    def test_big_bash_league_url(self, fresh_mapping):
+        assert (
+            fresh_mapping[Sport.CRICKET]["big-bash-league"]
+            == "https://www.oddsportal.com/cricket/australia/big-bash-league/"
+        )

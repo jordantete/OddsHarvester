@@ -238,6 +238,14 @@ def test_get_league_url(sport, league, expected_url):
     assert URLBuilder.get_league_url(sport, league) == expected_url
 
 
+def test_get_league_url_cricket():
+    """Cricket league URL resolves from the seeded mapping."""
+    assert (
+        URLBuilder.get_league_url("cricket", "big-bash-league")
+        == "https://www.oddsportal.com/cricket/australia/big-bash-league/"
+    )
+
+
 @pytest.mark.parametrize(
     ("sport", "league", "season", "expected_url"),
     [

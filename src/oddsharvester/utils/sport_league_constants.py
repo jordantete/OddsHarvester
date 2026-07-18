@@ -362,4 +362,19 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "cev-champions-league": "https://www.oddsportal.com/volleyball/europe/champions-league/",
         "nations-league": "https://www.oddsportal.com/volleyball/world/nations-league/",
     },
+    Sport.CRICKET: {
+        # Confirmed live 2026-07-18 (limited-overs formats only; multi-day/1x2 deferred).
+        # Full match-link validation is proxy-gated (France view hides cricket links); slugs
+        # below were read directly off OddsPortal's live DOM as canonical breadcrumb links.
+        "big-bash-league": "https://www.oddsportal.com/cricket/australia/big-bash-league/",
+        "big-bash-league-women": "https://www.oddsportal.com/cricket/australia/big-bash-league-women/",
+        "one-day-cup": "https://www.oddsportal.com/cricket/australia/one-day-cup/",
+        "the-hundred": "https://www.oddsportal.com/cricket/united-kingdom/the-hundred/",
+        "the-hundred-women": "https://www.oddsportal.com/cricket/united-kingdom/the-hundred-women/",
+        "lanka-premier-league": "https://www.oddsportal.com/cricket/sri-lanka/lanka-premier-league/",
+        "mlc": "https://www.oddsportal.com/cricket/usa/mlc/",
+        "one-day-international": "https://www.oddsportal.com/cricket/world/one-day-international/",
+        "twenty20-international": "https://www.oddsportal.com/cricket/world/twenty20-international/",
+        "global-super-league": "https://www.oddsportal.com/cricket/world/global-super-league/",
+    },
 }
