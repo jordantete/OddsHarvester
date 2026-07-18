@@ -236,8 +236,8 @@ pagination) and does not emit per-prediction win/loss (use the monthly stats tab
 **Multi-proxy example** — spread scraping across three proxies with embedded credentials:
 
 ```bash
-oddsharvester historic --sport football --leagues england-premier-league --season 2013-2014 \
-  --markets 1x2 --concurrency 6 \
+oddsharvester historic --sport football --league england-premier-league --season 2013-2014 \
+  --market 1x2 --concurrency 6 \
   --proxy-url http://user:pass@p1.example.com:8000 \
   --proxy-url http://user:pass@p2.example.com:8000 \
   --proxy-url http://user:pass@p3.example.com:8000

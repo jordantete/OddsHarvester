@@ -63,8 +63,8 @@ For multi-step work, state a brief plan with per-step verification.
 uv sync
 
 # Run scraper
-uv run oddsharvester scrape-upcoming --sport football --date 20250101 --markets 1x2
-uv run oddsharvester scrape-historic --sport football --leagues england-premier-league --season 2022-2023 --markets 1x2
+uv run oddsharvester upcoming --sport football --date 20250101 --market 1x2
+uv run oddsharvester historic --sport football --league england-premier-league --season 2022-2023 --market 1x2
 uv run oddsharvester community --sport football --output top_predictions.json
 uv run oddsharvester community --user BLAPRO --output profile.json
 uv run oddsharvester community --match-url "https://www.oddsportal.com/football/h2h/.../" --output match_votes.json
