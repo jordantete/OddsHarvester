@@ -61,7 +61,7 @@ class TestCricketBasicMarkets:
             ENGLAND_INDIA_MATCH["match_id"],
             fixture_name,
         ):
-            pytest.skip(f"Fixture not available: {fixture_name} — see module docstring")
+            pytest.skip(f"Fixture not available: {fixture_name} (see module docstring)")
 
         output_path = temp_output_dir / "output"
 
@@ -95,7 +95,7 @@ class TestCricketBasicMarkets:
         # odds table, so home_away_market is empty. This is the inverse of the other
         # sports' non-empty odds guard.
         assert actual[0].get("home_away_market") == [], (
-            "Cricket now returns odds — OddsPortal may have added a cricket odds table; "
+            "Cricket now returns odds: OddsPortal may have added a cricket odds table; "
             "revisit the home_away registration and this assertion (see module docstring)."
         )
 
