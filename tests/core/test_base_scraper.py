@@ -1,5 +1,6 @@
 from datetime import UTC, date, datetime, timedelta
 import json as _json
+import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -1173,6 +1174,82 @@ async def test_extract_match_details_event_header(setup_base_scraper_mocks):
     assert result["venue_country"] == "England"
     assert "match_date" in result
     assert "scraped_date" in result
+
+
+@pytest.mark.asyncio
+async def test_local_kickoff_disabled_adds_no_keys(setup_base_scraper_mocks):
+    """When local_kickoff is False (default), no venue_timezone/local kickoff keys are added."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    json_blob = (
+        '{"eventBody": {"startDate": 1681753200, "venueTown": "London", "venueCountry": "England"}, '
+        '"eventData": {"home": "Arsenal", "away": "Chelsea"}}'
+    )
+    page_mock.content = AsyncMock(
+        return_value=f"<html><body><div id=\"react-event-header\" data='{json_blob}'></div></body></html>"
+    )
+
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/football/england/arsenal-chelsea-123456",
+    )
+
+    assert "venue_timezone" not in result
+    assert "match_date_venue_local" not in result
+
+
+@pytest.mark.asyncio
+async def test_local_kickoff_enabled_adds_local_fields(setup_base_scraper_mocks):
+    """When local_kickoff is True and the venue resolves, venue_timezone/match_date_venue_local are added."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    scraper.local_kickoff = True
+    page_mock = mocks["page_mock"]
+
+    json_blob = (
+        '{"eventBody": {"startDate": 1681753200, "venueTown": "London", "venueCountry": "England"}, '
+        '"eventData": {"home": "Arsenal", "away": "Chelsea"}}'
+    )
+    page_mock.content = AsyncMock(
+        return_value=f"<html><body><div id=\"react-event-header\" data='{json_blob}'></div></body></html>"
+    )
+
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/football/england/arsenal-chelsea-123456",
+    )
+
+    assert result["venue_timezone"] == "Europe/London"
+    assert result["match_date_venue_local"] is not None
+
+
+@pytest.mark.asyncio
+async def test_local_kickoff_enabled_unresolved_venue_sets_none(setup_base_scraper_mocks, caplog):
+    """Unresolved venue leaves both fields None and logs a debug message so gaps can be reported."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    scraper.local_kickoff = True
+    page_mock = mocks["page_mock"]
+
+    json_blob = (
+        '{"eventBody": {"startDate": 1681753200, "venueTown": "Poseidonis", "venueCountry": "Atlantis"}, '
+        '"eventData": {"home": "Arsenal", "away": "Chelsea"}}'
+    )
+    page_mock.content = AsyncMock(
+        return_value=f"<html><body><div id=\"react-event-header\" data='{json_blob}'></div></body></html>"
+    )
+
+    with caplog.at_level(logging.DEBUG):
+        result = await scraper._extract_match_details_event_header(
+            page=page_mock,
+            match_link="https://www.oddsportal.com/football/england/arsenal-chelsea-123456",
+        )
+
+    assert result["venue_timezone"] is None
+    assert result["match_date_venue_local"] is None
+    assert "Unresolved venue timezone" in caplog.text
 
 
 @pytest.mark.asyncio

@@ -43,6 +43,7 @@ from oddsharvester.utils.constants import (
     REQUEST_DELAY_JITTER_FACTOR,
     SELECTOR_TIMEOUT_MS,
 )
+from oddsharvester.utils.local_kickoff import compute_local_kickoff
 from oddsharvester.utils.odds_format_enum import OddsFormat
 from oddsharvester.utils.utils import clean_html_text
 
@@ -258,6 +259,7 @@ class BaseScraper:
         cookie_dismisser: CookieDismisser,
         selection_manager: SelectionManager,
         preview_submarkets_only: bool = False,
+        local_kickoff: bool = False,
         base_url: str | None = None,
     ):
         """
@@ -269,6 +271,8 @@ class BaseScraper:
             selection_manager (SelectionManager): Manages bookies filter and period selection.
             preview_submarkets_only (bool): If True, only scrape the collapsed submarket odds (best/highest shown
             per line, not per-bookmaker) from visible submarkets without loading individual bookmaker details.
+            local_kickoff (bool): If True, add venue_timezone and match_date_venue_local (kickoff converted to
+            the venue's local time) to each record. match_date stays UTC.
             base_url (str | None): Regional OddsPortal domain override (scheme+host). When None, the canonical
             https://www.oddsportal.com is used.
         """
@@ -279,6 +283,7 @@ class BaseScraper:
         self.cookie_dismisser = cookie_dismisser
         self.selection_manager = selection_manager
         self.preview_submarkets_only = preview_submarkets_only
+        self.local_kickoff = local_kickoff
         self.base_url = base_url
         self._warmed_proxy_keys: set[str] = set()
 
@@ -1058,7 +1063,7 @@ class BaseScraper:
             json_fields = sorted(k for k, v in sources.items() if v == "json")
             self.logger.info(f"match_details extracted dom={dom_fields} json_fallback={json_fields}")
 
-            return {
+            details = {
                 "scraped_date": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S %Z"),
                 "match_date": match_date,
                 "match_link": match_link,
@@ -1077,6 +1082,23 @@ class BaseScraper:
                 "venue_country": event_body.get("venueCountry"),
                 "match_info": _join_static_info(event_data.get("staticInfo")),
             }
+
+            if self.local_kickoff:
+                venue_timezone, match_date_venue_local = compute_local_kickoff(
+                    match_date_utc=details["match_date"],
+                    country=details["venue_country"],
+                    town=details["venue_town"],
+                )
+                details["venue_timezone"] = venue_timezone
+                details["match_date_venue_local"] = match_date_venue_local
+
+                if venue_timezone is None and details["venue_country"]:
+                    self.logger.debug(
+                        f"Unresolved venue timezone for country={details['venue_country']!r} "
+                        f"town={details['venue_town']!r}; match_date_venue_local left null"
+                    )
+
+            return details
 
         except Exception as e:
             self.logger.error(f"Error extracting match details while parsing React event header: {e}")
