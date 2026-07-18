@@ -118,6 +118,14 @@ def common_options(func):
         help="Collect match links only, without scraping odds. Market/odds options are ignored.",
     )
     @click.option(
+        "--local-kickoff/--no-local-kickoff",
+        "local_kickoff",
+        default=False,
+        envvar="OH_LOCAL_KICKOFF",
+        help="Add venue-local kickoff time (venue_timezone + match_date_venue_local) to each record. "
+        "match_date stays UTC. Distinct from --timezone, which sets the browser context timezone.",
+    )
+    @click.option(
         "--headless/--no-headless",
         default=False,
         envvar="OH_HEADLESS",

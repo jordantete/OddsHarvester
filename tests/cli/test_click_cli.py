@@ -201,6 +201,23 @@ class TestCommonOptions:
         assert mock_run_scraper["historic"].called
         assert mock_run_scraper["historic"].call_args.kwargs.get("concurrency_tasks") == 7
 
+    def test_local_kickoff_flag_forwarded_historic(self, runner, mock_run_scraper):
+        runner.invoke(cli, ["historic", "-s", "football", "--season", "2024", "--local-kickoff"])
+        assert mock_run_scraper["historic"].call_args.kwargs["local_kickoff"] is True
+
+    def test_local_kickoff_defaults_false(self, runner, mock_run_scraper):
+        runner.invoke(cli, ["historic", "-s", "football", "--season", "2024"])
+        assert mock_run_scraper["historic"].call_args.kwargs["local_kickoff"] is False
+
+    def test_local_kickoff_conflicts_with_links_only(self, runner, mock_run_scraper):
+        result = runner.invoke(
+            cli,
+            ["historic", "-s", "football", "--season", "2024", "--links-only", "--local-kickoff"],
+        )
+        assert result.exit_code != 0
+        assert "local-kickoff" in result.output
+        assert "links-only" in result.output
+
     def test_invalid_proxy_url_format(self, runner, mock_run_scraper):
         """Test invalid proxy URL format."""
         result = runner.invoke(cli, ["upcoming", "-s", "football", "-d", FUTURE_DATE, "--proxy-url", "invalid"])

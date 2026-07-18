@@ -44,8 +44,11 @@ def upcoming(ctx, **kwargs):
         raise click.UsageError("You must provide --date, --league, or --match-link for upcoming matches.")
 
     links_only = kwargs.get("links_only", False)
+    local_kickoff = kwargs.get("local_kickoff", False)
     if links_only and kwargs.get("match_links"):
         raise click.UsageError("--links-only cannot be combined with --match-link (links are already collected).")
+    if links_only and local_kickoff:
+        raise click.UsageError("--links-only cannot be combined with --local-kickoff (no match pages are visited).")
 
     # Convert enums to values for the scraper
     sport = kwargs["sport"]
@@ -82,6 +85,7 @@ def upcoming(ctx, **kwargs):
                 include_started=kwargs.get("include_started", False),
                 kickoff_within_hours=kwargs.get("kickoff_within_hours"),
                 links_only=links_only,
+                local_kickoff=local_kickoff,
             )
         )
 

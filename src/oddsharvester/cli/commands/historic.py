@@ -40,8 +40,11 @@ def historic(ctx, **kwargs):
     sport_value = sport.value if isinstance(sport, Sport) else sport
 
     links_only = kwargs.get("links_only", False)
+    local_kickoff = kwargs.get("local_kickoff", False)
     if links_only and kwargs.get("match_links"):
         raise click.UsageError("--links-only cannot be combined with --match-link (links are already collected).")
+    if links_only and local_kickoff:
+        raise click.UsageError("--links-only cannot be combined with --local-kickoff (no match pages are visited).")
 
     try:
         scraped_data = asyncio.run(
@@ -70,6 +73,7 @@ def historic(ctx, **kwargs):
                 request_delay=kwargs.get("request_delay", 1.0),
                 concurrency_tasks=kwargs.get("concurrency_tasks", 3),
                 links_only=links_only,
+                local_kickoff=local_kickoff,
             )
         )
 
