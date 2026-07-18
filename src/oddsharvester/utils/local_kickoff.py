@@ -22,6 +22,9 @@ def compute_local_kickoff(
     venue_timezone is the resolved IANA id (or None). match_date_venue_local
     is the kickoff rendered in that zone with an explicit offset, or None when
     the venue is unresolved or match_date_utc cannot be parsed. Never raises.
+
+    A missing (falsy) match_date_utc short-circuits to (None, None) before
+    venue resolution; an unparseable but present date yields (venue_timezone, None).
     """
     if not match_date_utc:
         return None, None
