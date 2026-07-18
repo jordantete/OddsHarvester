@@ -74,6 +74,8 @@ oddsharvester community -s football --headless
 
 > **Umbrella tokens (football):** `over_under` and `asian_handicap` are umbrella market tokens — pass either as `--market` and it expands at scrape time to every line OddsPortal actually renders for that match (e.g. `over_under_1_5_market`, `over_under_2_5_market`, …), instead of listing each line by hand.
 
+> **Cricket:** OddsPortal does not currently publish a per-bookmaker odds table for cricket, so cricket scraping returns match metadata (teams, league, score, result) with an empty odds list. The `home_away` market is wired and will populate if OddsPortal adds cricket odds.
+
 100+ leagues supported across all sports: Premier League, La Liga, Serie A, NBA, NFL, MLB, NHL, ATP/WTA Grand Slams, and [many more](src/oddsharvester/utils/sport_league_constants.py).
 
 ---

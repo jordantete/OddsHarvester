@@ -120,6 +120,7 @@ def capture_fixture(
     timeout: int = 300,
     season: str = "current",
     capture_har: bool = False,
+    proxy_url: str | None = None,
 ) -> Path:
     """
     Capture a new fixture from live scraping.
@@ -164,6 +165,9 @@ def capture_fixture(
 
     if period:
         cmd.extend(["--period", period])
+
+    if proxy_url:
+        cmd.extend(["--proxy-url", proxy_url])
 
     if headless:
         cmd.append("--headless")
@@ -298,6 +302,11 @@ Examples:
         action="store_true",
         help="Record a HAR file (snapshot.har) alongside the JSON fixture.",
     )
+    parser.add_argument(
+        "--proxy-url",
+        default=None,
+        help="Proxy URL (e.g. http://host:port). Needed to capture geo-gated sports such as cricket.",
+    )
 
     args = parser.parse_args()
 
@@ -315,6 +324,7 @@ Examples:
             timeout=args.timeout,
             season=args.season,
             capture_har=args.capture_har,
+            proxy_url=args.proxy_url,
         )
         print()
         print("Done!")

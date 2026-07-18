@@ -1,0 +1,19 @@
+{
+    "match_id": "fcOzl2uI",
+    "match_url": "https://www.oddsportal.com/cricket/h2h/england-UJC5mtAU/india-fcOzl2uI/",
+    "sport": "cricket",
+    "league": "one-day-international",
+    "home_team": "England",
+    "away_team": "India",
+    "final_score": {
+        "home": "",
+        "away": ""
+    },
+    "match_date": "2026-07-19 10:00:00 UTC",
+    "notes": "OddsPortal exposes no per-bookmaker odds table for cricket detail pages; home_away_market is empty by design (verified England vs India ODI). Captured via non-France proxy.",
+    "captured_at": "2026-07-18 23:27:28 UTC",
+    "oddsharvester_version": "0.3.0",
+    "available_fixtures": [
+        "home_away_full_including_ot_all.json"
+    ]
+}

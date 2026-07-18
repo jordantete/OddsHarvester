@@ -873,9 +873,9 @@ use the stats table for win/loss instead of trying to infer it per prediction.
 
 ---
 
-## §14 (Cricket): one market, one period, and hidden from a France IP
+## §14 (Cricket): one market, one period, and no per-bookmaker odds on detail pages
 
-**Severity:** Medium (affects HAR capture setup and sets expectations for what the market table can ever show).
+**Severity:** Medium (sets expectations: cricket scraping yields metadata only, and shapes the integration test).
 
 Cricket on OddsPortal exposes a single market tab: `Home/Away`, a 2-way match
 winner with no draw outcome, for limited-overs formats (T20, ODI). There is no
@@ -886,21 +886,29 @@ reuses the same label baseball uses, even though cricket has no overtime
 concept). It maps to `CricketPeriod.FULL_INCLUDING_OT`, scope code 1 (same
 scope id as baseball's `FT incl. OT`, per §7's period-scope map).
 
-### France geo-filter hides odds, not structure
+### No per-bookmaker odds on cricket detail pages (any region)
 
-From a France IP, cricket results listings and per-bookmaker odds tables come
-back empty ("no odds available from your selected bookmakers"). The market
-and period tabs still render, so the DOM structure is observable, but there
-are no odds rows to parse. Capturing a HAR fixture with real odds requires a
-non-France exit IP (UK, India, Australia all verified clean), so any cricket
-HAR fixture must be proxy-captured rather than captured directly.
+Cricket match-detail pages carry no per-bookmaker odds table. `home_away_market`
+comes back empty on every match tested, including marquee internationals
+(verified: England vs India, One Day International) and through a non-France
+proxy. The detail page itself renders "No odds available for this match". The
+listing pages show an aggregate teaser price per side, but that value is not
+exposed in the per-bookmaker detail table the scraper reads. Scraping cricket
+therefore yields correct match metadata (teams, league, score, result) with an
+empty odds list, which is what `tests/integration/test_cricket.py` asserts.
+
+Separately, from a France IP the cricket results LISTINGS are geo-filtered to
+empty ("no odds available from your selected bookmakers") while the market and
+period tabs still render. A non-France IP restores the listings, so the HAR
+fixture had to be proxy-captured, but a non-France IP does not restore the
+missing detail odds because those do not exist for cricket in any region.
 
 ### Detection signal
 
-- Tabs render, bookmaker table is present but has zero rows, and the page
-  shows the "no odds available from your selected bookmakers" message.
-- If this happens for a sport/market known to have live coverage, check the
-  scraping IP's geography before assuming a parsing bug.
+- A cricket scrape returns populated metadata (teams, league) with an empty
+  `home_away_market`. This is expected for cricket, not a parsing bug.
+- The detail page shows "No odds available for this match" regardless of the
+  scraping IP's geography.
 
 ### Open item: multi-day formats may expose a `1X2` market (unverified)
 
