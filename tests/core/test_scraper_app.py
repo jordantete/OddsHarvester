@@ -3,6 +3,7 @@ from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 
+from oddsharvester.core import scraper_app
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
@@ -763,3 +764,36 @@ def test_run_scraper_validation(command, params, error_message):
         asyncio.run(validate_only())
 
     assert error_message in str(exc_info.value)
+
+
+def test_run_scraper_accepts_local_kickoff_param():
+    import inspect
+
+    sig = inspect.signature(scraper_app.run_scraper)
+    assert "local_kickoff" in sig.parameters
+    assert sig.parameters["local_kickoff"].default is False
+
+
+@pytest.mark.asyncio
+async def test_run_scraper_forwards_local_kickoff(monkeypatch):
+    captured = {}
+
+    class FakeScraper:
+        def __init__(self, *args, local_kickoff=False, **kwargs):
+            captured["local_kickoff"] = local_kickoff
+
+        async def start_playwright(self, **kwargs):
+            raise RuntimeError("stop here")  # abort before real scraping
+
+        async def stop_playwright(self):
+            pass
+
+    monkeypatch.setattr(scraper_app, "OddsPortalScraper", FakeScraper)
+
+    await scraper_app.run_scraper(
+        command="scrape_upcoming",
+        sport="football",
+        date="2025-01-15",
+        local_kickoff=True,
+    )
+    assert captured["local_kickoff"] is True

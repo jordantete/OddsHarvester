@@ -52,6 +52,7 @@ async def run_scraper(
     include_started: bool = False,
     kickoff_within_hours: float | None = None,
     links_only: bool = False,
+    local_kickoff: bool = False,
 ) -> ScrapeResult | None:
     """
     Runs the scraping process and handles execution.
@@ -71,7 +72,7 @@ async def run_scraper(
         f"browser_locale_timezone={browser_locale_timezone}, browser_timezone_id={browser_timezone_id}, "
         f"scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}, "
         f"headless={headless}, preview_submarkets_only={preview_submarkets_only}, "
-        f"bookies_filter={bookies_filter}, period={period}, base_url={base_url}"
+        f"bookies_filter={bookies_filter}, period={period}, base_url={base_url}, local_kickoff={local_kickoff}"
     )
 
     if base_url:
@@ -113,6 +114,7 @@ async def run_scraper(
         cookie_dismisser=cookie_dismisser,
         selection_manager=selection_manager,
         preview_submarkets_only=preview_submarkets_only,
+        local_kickoff=local_kickoff,
         base_url=base_url,
     )
 
