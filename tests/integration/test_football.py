@@ -242,6 +242,53 @@ class TestFootballBasicMarkets:
             assert record[line_key], f"'{line_key}' should be non-empty"
             assert record[line_key] == expected[0][line_key]
 
+    def test_fb_008_local_kickoff(
+        self,
+        run_scraper,
+        load_fixture,
+        temp_output_dir,
+        fixture_exists,
+        har_for_match,
+    ):
+        """FB-008: Test --local-kickoff adds venue_timezone and match_date_venue_local, UTC untouched."""
+        fixture_name = "1x2_full_time_all.json"
+
+        if not fixture_exists(
+            LEICESTER_BRENTFORD["sport"],
+            LEICESTER_BRENTFORD["league"],
+            LEICESTER_BRENTFORD["match_id"],
+            fixture_name,
+        ):
+            pytest.skip(f"Fixture not available: {fixture_name}")
+
+        output_path = temp_output_dir / "output"
+
+        exit_code, _stdout, stderr = run_scraper(
+            sport="football",
+            match_link=LEICESTER_BRENTFORD["url"],
+            markets=["1x2"],
+            output_path=output_path,
+            period="full_time",
+            bookies_filter="all",
+            local_kickoff=True,
+            har_path=har_for_match(
+                LEICESTER_BRENTFORD["sport"],
+                LEICESTER_BRENTFORD["league"],
+                LEICESTER_BRENTFORD["match_id"],
+                fixture_name,
+            ),
+        )
+
+        assert exit_code == 0, f"Scraper failed: {stderr}"
+
+        with open(f"{output_path}.json") as f:
+            actual = json.load(f)
+
+        record = actual[0]
+        assert record["venue_timezone"] == "Europe/London"
+        assert record["match_date_venue_local"] is not None
+        assert record["match_date"].endswith("UTC")
+
     @pytest.mark.live_only
     def test_fb_007_real_madrid_barcelona(
         self,

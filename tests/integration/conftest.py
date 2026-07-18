@@ -39,6 +39,7 @@ def run_scraper():
         season: str = "current",
         timeout: int = 300,
         har_path: Path | None = None,
+        local_kickoff: bool = False,
     ) -> tuple[int, str, str]:
         cmd = [
             "uv",
@@ -61,6 +62,9 @@ def run_scraper():
             "--output",
             str(output_path),
         ]
+
+        if local_kickoff:
+            cmd.append("--local-kickoff")
 
         if period:
             cmd.extend(["--period", period])
