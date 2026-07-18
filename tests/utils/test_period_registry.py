@@ -234,7 +234,7 @@ class TestSportPeriodRegistryConversion:
 
     def test_from_internal_value_unregistered_sport(self):
         """Test that unregistered sports return None."""
-        assert SportPeriodRegistry.from_internal_value("FullTime", "cricket") is None
+        assert SportPeriodRegistry.from_internal_value("FullTime", "curling") is None
 
     def test_from_internal_value_none_sport(self):
         """Test that None sport returns None."""
