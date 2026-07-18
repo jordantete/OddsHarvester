@@ -873,17 +873,17 @@ use the stats table for win/loss instead of trying to infer it per prediction.
 
 ---
 
-## §14 — Cricket: one market, one period, and hidden from a France IP
+## §14 (Cricket): one market, one period, and hidden from a France IP
 
-**Severity:** Medium — affects HAR capture setup and sets expectations for what the market table can ever show.
+**Severity:** Medium (affects HAR capture setup and sets expectations for what the market table can ever show).
 
 Cricket on OddsPortal exposes a single market tab: `Home/Away`, a 2-way match
 winner with no draw outcome, for limited-overs formats (T20, ODI). There is no
 `Over/Under` tab or any other market. Registered market key is `home_away`.
 
-There is also a single period tab, labelled `FT including OT` — OddsPortal
+There is also a single period tab, labelled `FT including OT` (OddsPortal
 reuses the same label baseball uses, even though cricket has no overtime
-concept. It maps to `CricketPeriod.FULL_INCLUDING_OT`, scope code 1 (same
+concept). It maps to `CricketPeriod.FULL_INCLUDING_OT`, scope code 1 (same
 scope id as baseball's `FT incl. OT`, per §7's period-scope map).
 
 ### France geo-filter hides odds, not structure
@@ -892,8 +892,8 @@ From a France IP, cricket results listings and per-bookmaker odds tables come
 back empty ("no odds available from your selected bookmakers"). The market
 and period tabs still render, so the DOM structure is observable, but there
 are no odds rows to parse. Capturing a HAR fixture with real odds requires a
-non-France exit IP (UK, India, Australia all verified clean) — this is why
-the cricket integration fixtures are proxy-captured, not captured directly.
+non-France exit IP (UK, India, Australia all verified clean), so any cricket
+HAR fixture must be proxy-captured rather than captured directly.
 
 ### Detection signal
 
@@ -906,16 +906,16 @@ the cricket integration fixtures are proxy-captured, not captured directly.
 
 Multi-day formats (Test matches, Sheffield Shield, Ford Ranger Cup) can end in
 a draw, which limited-overs cricket cannot, so they likely expose a separate
-`1X2`-style market (win/draw/win). This is unverified — checked during the
-off-season with the France geo-filter also hiding odds — and is deferred as a
+`1X2`-style market (win/draw/win). This is unverified (checked during the
+off-season with the France geo-filter also hiding odds) and is deferred as a
 follow-up rather than guessed at. See the "Follow-up" section of the cricket
 support task notes for the drop-in shape (`CricketMarket.ONE_X_TWO`) once this
 is confirmed live.
 
 ### References
 
-- `utils/sport_market_constants.py` — `CricketMarket.HOME_AWAY`.
-- `utils/period_constants.py` — `CricketPeriod.FULL_INCLUDING_OT`.
+- `utils/sport_market_constants.py`: `CricketMarket.HOME_AWAY`.
+- `utils/period_constants.py`: `CricketPeriod.FULL_INCLUDING_OT`.
 
 ---
 
@@ -927,7 +927,7 @@ couldn't deduce by reading the code, add it here. Criteria:
 - The pattern has appeared **more than once**, OR is likely to recur
   (sponsor changes, SPA-vs-SSR mismatches, anti-bot tweaks, format
   variations across geographies).
-- The fix is non-obvious from the code alone — the reader needs to know
+- The fix is non-obvious from the code alone: the reader needs to know
   *why* the defensive check exists, not just that it does.
 - The signal is describable: a future agent must be able to recognize the
   shape of the problem in new code.
