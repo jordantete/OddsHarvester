@@ -304,7 +304,7 @@ def test_validate_and_convert_period_wrong_period_for_sport():
 
 def test_validate_and_convert_period_unregistered_sport():
     """Test that unregistered sports return None."""
-    result = validate_and_convert_period("full_time", "cricket")
+    result = validate_and_convert_period("full_time", "curling")
     assert result is None
 
 

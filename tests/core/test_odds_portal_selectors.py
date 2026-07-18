@@ -98,6 +98,10 @@ def test_period_scope_code_unknown_returns_none():
     assert OddsPortalSelectors.period_scope_code("baseball", "FirstHalf") is None
 
 
+def test_period_scope_code_cricket_full_including_ot():
+    assert OddsPortalSelectors.period_scope_code("cricket", "FullIncludingOT") == 1
+
+
 def test_odds_movement_header_is_language_independent():
     # Header text is i18n-translated on localized mirrors; match by class, not text.
     selector = OddsPortalSelectors.ODDS_MOVEMENT_HEADER

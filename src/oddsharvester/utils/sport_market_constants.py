@@ -14,6 +14,7 @@ class Sport(Enum):
     AMERICAN_FOOTBALL = "american-football"
     HANDBALL = "handball"
     VOLLEYBALL = "volleyball"
+    CRICKET = "cricket"
 
 
 class FootballMarket(Enum):
@@ -1062,3 +1063,9 @@ class VolleyballCorrectScoreMarket(Enum):
     CORRECT_SCORE_0_3 = "correct_score_0_3"
     CORRECT_SCORE_1_3 = "correct_score_1_3"
     CORRECT_SCORE_2_3 = "correct_score_2_3"
+
+
+class CricketMarket(Enum):
+    """Cricket-specific markets (limited-overs match winner, 2-way, no draw)."""
+
+    HOME_AWAY = "home_away"

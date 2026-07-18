@@ -309,3 +309,29 @@ class VolleyballPeriod(Enum):
             cls.FIFTH_SET: "FifthSet",
         }
         return internal_values[period]
+
+
+class CricketPeriod(Enum):
+    """Periods available for cricket matches.
+
+    OddsPortal exposes a single period tab labelled "FT including OT" (it reuses
+    the baseball label; cricket has no overtime). No innings-level sub-periods.
+    """
+
+    FULL_INCLUDING_OT = "full_including_ot"
+
+    @classmethod
+    def get_display_label(cls, period: "CricketPeriod") -> str:
+        """Get the display label for OddsPortal UI."""
+        labels = {
+            cls.FULL_INCLUDING_OT: "FT including OT",
+        }
+        return labels[period]
+
+    @classmethod
+    def get_internal_value(cls, period: "CricketPeriod") -> str:
+        """Get the internal value used in scraper functions."""
+        internal_values = {
+            cls.FULL_INCLUDING_OT: "FullIncludingOT",
+        }
+        return internal_values[period]

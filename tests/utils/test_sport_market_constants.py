@@ -7,6 +7,7 @@ from oddsharvester.utils.sport_market_constants import (
     BasketballAsianHandicapMarket,
     BasketballMarket,
     BasketballOverUnderMarket,
+    CricketMarket,
     FootballAsianHandicapMarket,
     FootballEuropeanHandicapMarket,
     FootballMarket,
@@ -222,3 +223,8 @@ class TestSportEnums:
             "correct_score_1_3",
             "correct_score_2_3",
         }
+
+    def test_cricket_market_enums(self):
+        """Verify cricket market (single Home/Away match-winner, 2-way)."""
+        assert Sport.CRICKET.value == "cricket"
+        assert [m.value for m in CricketMarket] == ["home_away"]

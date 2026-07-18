@@ -77,6 +77,7 @@ class OddsPortalSelectors:
         "football": {"FirstHalf": 3, "SecondHalf": 4},
         "tennis": {"FirstSet": 12},
         "baseball": {"FullIncludingOT": 1},
+        "cricket": {"FullIncludingOT": 1},
     }
 
     # Match details — data-testid values for DOM-based extraction

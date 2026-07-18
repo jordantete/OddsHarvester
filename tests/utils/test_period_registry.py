@@ -3,6 +3,7 @@ from oddsharvester.utils.period_constants import (
     AmericanFootballPeriod,
     BaseballPeriod,
     BasketballPeriod,
+    CricketPeriod,
     FootballPeriod,
     HandballPeriod,
     IceHockeyPeriod,
@@ -75,6 +76,12 @@ class TestSportPeriodRegistry:
         assert SportPeriodRegistry.is_sport_registered("volleyball")
         assert SportPeriodRegistry.get_period_enum("volleyball") == VolleyballPeriod
         assert SportPeriodRegistry.get_default_period("volleyball") == VolleyballPeriod.FULL_TIME
+
+    def test_cricket_is_registered(self):
+        """Test that cricket is auto-registered."""
+        assert SportPeriodRegistry.is_sport_registered("cricket")
+        assert SportPeriodRegistry.get_period_enum("cricket") == CricketPeriod
+        assert SportPeriodRegistry.get_default_period("cricket") == CricketPeriod.FULL_INCLUDING_OT
 
     def test_all_sports_registered(self):
         """Test that all sports are auto-registered."""
@@ -215,6 +222,10 @@ class TestSportPeriodRegistryConversion:
         assert SportPeriodRegistry.from_internal_value("FullTime", "volleyball") == VolleyballPeriod.FULL_TIME
         assert SportPeriodRegistry.from_internal_value("FirstSet", "volleyball") == VolleyballPeriod.FIRST_SET
         assert SportPeriodRegistry.from_internal_value("FifthSet", "volleyball") == VolleyballPeriod.FIFTH_SET
+
+    def test_from_internal_value_cricket(self):
+        """Test converting internal values to cricket enum."""
+        assert SportPeriodRegistry.from_internal_value("FullIncludingOT", "cricket") == CricketPeriod.FULL_INCLUDING_OT
 
     def test_from_internal_value_invalid(self):
         """Test that invalid internal values return None."""

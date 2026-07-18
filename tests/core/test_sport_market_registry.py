@@ -281,6 +281,14 @@ class TestSportMarketRegistrar:
         assert "asian_handicap_-9_5_points" in m
         assert "correct_score_3_0" in m
 
+    def test_register_cricket_markets(self):
+        """Test registering markets for cricket (single Home/Away market)."""
+        SportMarketRegistrar.register_cricket_markets()
+
+        m = SportMarketRegistry.get_market_mapping(Sport.CRICKET.value)
+
+        assert "home_away" in m
+
     def test_register_all_markets(self):
         """Test registering all markets for all sports."""
         # Act
@@ -300,7 +308,10 @@ class TestSportMarketRegistrar:
                                             with patch.object(
                                                 SportMarketRegistrar, "register_volleyball_markets"
                                             ) as mock_volleyball:
-                                                SportMarketRegistrar.register_all_markets()
+                                                with patch.object(
+                                                    SportMarketRegistrar, "register_cricket_markets"
+                                                ) as mock_cricket:
+                                                    SportMarketRegistrar.register_all_markets()
 
         # Assert
         mock_football.assert_called_once()
@@ -313,6 +324,7 @@ class TestSportMarketRegistrar:
         mock_american_football.assert_called_once()
         mock_handball.assert_called_once()
         mock_volleyball.assert_called_once()
+        mock_cricket.assert_called_once()
 
     def test_register_all_markets_integration(self):
         """Test registering all markets in an integration test"""

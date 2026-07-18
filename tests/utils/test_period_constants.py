@@ -2,6 +2,7 @@ from oddsharvester.utils.period_constants import (
     AmericanFootballPeriod,
     BaseballPeriod,
     BasketballPeriod,
+    CricketPeriod,
     FootballPeriod,
     HandballPeriod,
     IceHockeyPeriod,
@@ -225,3 +226,16 @@ class TestVolleyballPeriod:
         assert VolleyballPeriod.get_internal_value(VolleyballPeriod.THIRD_SET) == "ThirdSet"
         assert VolleyballPeriod.get_internal_value(VolleyballPeriod.FOURTH_SET) == "FourthSet"
         assert VolleyballPeriod.get_internal_value(VolleyballPeriod.FIFTH_SET) == "FifthSet"
+
+
+class TestCricketPeriod:
+    """Tests for the CricketPeriod enum (single full-match period)."""
+
+    def test_enum_values(self):
+        assert CricketPeriod.FULL_INCLUDING_OT.value == "full_including_ot"
+
+    def test_get_display_label(self):
+        assert CricketPeriod.get_display_label(CricketPeriod.FULL_INCLUDING_OT) == "FT including OT"
+
+    def test_get_internal_value(self):
+        assert CricketPeriod.get_internal_value(CricketPeriod.FULL_INCLUDING_OT) == "FullIncludingOT"

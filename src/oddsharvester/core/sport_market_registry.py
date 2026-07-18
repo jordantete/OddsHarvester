@@ -551,6 +551,16 @@ class SportMarketRegistrar:
             )
 
     @classmethod
+    def register_cricket_markets(cls):
+        """Registers all cricket betting markets (limited-overs match winner)."""
+        SportMarketRegistry.register(
+            Sport.CRICKET,
+            {
+                "home_away": cls.create_market_lambda("Home/Away", odds_labels=["1", "2"]),
+            },
+        )
+
+    @classmethod
     def register_all_markets(cls):
         """Registers all sports markets."""
         cls.register_football_markets()
@@ -563,3 +573,4 @@ class SportMarketRegistrar:
         cls.register_american_football_markets()
         cls.register_handball_markets()
         cls.register_volleyball_markets()
+        cls.register_cricket_markets()
