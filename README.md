@@ -4,7 +4,7 @@
 
 ### Scrape sports betting odds from OddsPortal.com with ease
 
-Extract upcoming & historical odds, plus community predictions, tipster profiles and per-match votes, across 10 sports, 100+ leagues, and dozens of betting markets.
+Extract upcoming & historical odds, plus community predictions, tipster profiles and per-match votes, across 11 sports, 100+ leagues, and dozens of betting markets.
 <br>Powered by Playwright browser automation. Output to JSON, CSV, or S3.
 
 <br>
@@ -70,6 +70,7 @@ oddsharvester community -s football --headless
 | 🏈 American Football | `1x2` `moneyline` `over/under` `asian_handicap`                                                |
 | 🤾 Handball          | `1x2` `home_away` `double_chance` `draw_no_bet` `over/under` `handicap`                        |
 | 🏐 Volleyball        | `home_away` `total_sets_over/under` `total_points_over/under` `asian_handicap` `correct_score` |
+| 🏏 Cricket           | `home_away`                                                                                    |
 
 > **Umbrella tokens (football):** `over_under` and `asian_handicap` are umbrella market tokens — pass either as `--market` and it expands at scrape time to every line OddsPortal actually renders for that match (e.g. `over_under_1_5_market`, `over_under_2_5_market`, …), instead of listing each line by hand.
 

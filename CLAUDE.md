@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-OddsHarvester is a Python web scraper that extracts sports betting odds from oddsportal.com. It uses Playwright for browser automation and BeautifulSoup/lxml for HTML parsing. Supports multiple sports (football, tennis, basketball, rugby, ice hockey, baseball, American football, handball, volleyball), various betting markets, and stores output locally (JSON/CSV) or remotely (AWS S3).
+OddsHarvester is a Python web scraper that extracts sports betting odds from oddsportal.com. It uses Playwright for browser automation and BeautifulSoup/lxml for HTML parsing. Supports multiple sports (football, tennis, basketball, rugby, ice hockey, baseball, American football, handball, volleyball, cricket), various betting markets, and stores output locally (JSON/CSV) or remotely (AWS S3).
 
 ## Before You Code — Read This
 
