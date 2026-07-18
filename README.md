@@ -209,6 +209,7 @@ pagination) and does not emit per-prediction win/loss (use the monthly stats tab
 | `--output`  | `-o`  | Output file path                                                           | `scraped_data` |
 | `--append`  |       | Append to the output file instead of overwriting it (`--no-append` to opt out explicitly) | `--no-append`  |
 | `--links-only` |       | Collect match links only, without scraping odds (`--no-links-only` to opt out explicitly) | `--no-links-only` |
+| `--local-kickoff` |       | Add venue-local kickoff time to each record (`--no-local-kickoff` to opt out explicitly). Distinct from `--timezone` | `--no-local-kickoff` |
 
 #### Browser & Scraping Options
 
@@ -287,6 +288,16 @@ oddsharvester historic -s football --season 2022-2023 -m 1x2 -f csv -o odds.csv 
 
 Output rows contain `match_link`, `sport`, `league`, and `season` (`date` for `upcoming`), in the site's listing order. Options that only affect odds scraping (`--market`, `--period`, `--odds-history`, `--preview-only`, `--target-bookmaker`, `--bookies-filter`) are ignored when `--links-only` is set. `--links-only` cannot be combined with `--match-link`.
 
+### Local kickoff time
+
+`--local-kickoff` adds two fields to each record: `venue_timezone` (the venue's IANA timezone id) and `match_date_venue_local` (the kickoff converted to that timezone, with an explicit offset), e.g. `2022-05-01 16:00:00 BST+0100`. `match_date` stays UTC; the two fields are additive and only appear when the flag is set.
+
+Resolution is best-effort from the record's venue country/town. Single-timezone countries resolve by country; USA, Canada, Mexico, Brazil, Russia, and Australia resolve by host city instead. A venue that can't be resolved gets `null` for both fields.
+
+Not compatible with `--links-only` (no match pages are visited, so there's no venue to resolve). Distinct from `--timezone`, which sets the browser's context timezone and does not affect the output fields.
+
+If you `--append` onto an existing CSV file, the header is frozen on the first write, so start a fresh file when you turn the flag on.
+
 ---
 
 ## Environment Variables
@@ -307,6 +318,7 @@ All CLI options can be set via environment variables — useful for Docker or CI
 | `OH_FILE_PATH`     | `--output`        | Output file path             |
 | `OH_APPEND`        | `--append`        | Append to the output file instead of overwriting |
 | `OH_LINKS_ONLY`    | `--links-only`    | Collect match links only, without scraping odds |
+| `OH_LOCAL_KICKOFF` | `--local-kickoff` | Add venue-local kickoff time to each record |
 | `OH_HEADLESS`      | `--headless`      | Run in headless mode         |
 | `OH_CONCURRENCY`   | `--concurrency`   | Number of concurrent tasks   |
 | `OH_REQUEST_DELAY` | `--request-delay` | Delay between requests (sec) |
