@@ -44,3 +44,12 @@ def test_every_curated_timezone_is_a_valid_iana_id():
     for city_map in MULTI_TZ_CITY_TIMEZONES.values():
         for tz in city_map.values():
             ZoneInfo(tz)
+
+
+def test_multi_tz_town_with_state_suffix_resolves():
+    assert resolve_venue_timezone("USA", "Kansas City, MO") == "America/Chicago"
+    assert resolve_venue_timezone("USA", "Los Angeles, CA") == "America/Los_Angeles"
+
+
+def test_town_without_suffix_still_resolves():
+    assert resolve_venue_timezone("USA", "Los Angeles") == "America/Los_Angeles"

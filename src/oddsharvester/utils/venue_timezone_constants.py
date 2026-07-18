@@ -97,7 +97,8 @@ MULTI_TZ_CITY_TIMEZONES: dict[str, dict[str, str]] = {
 
 
 def _normalize_town(town: str) -> str:
-    return town.strip().casefold()
+    # Strip region suffix (e.g., "Kansas City, MO" -> "Kansas City") before normalizing.
+    return town.split(",")[0].strip().casefold()
 
 
 def resolve_venue_timezone(country: str | None, town: str | None) -> str | None:
