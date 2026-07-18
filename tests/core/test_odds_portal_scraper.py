@@ -381,6 +381,23 @@ async def test_scrape_upcoming_forwards_concurrent_scraping_task(url_builder_moc
 
 @pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_upcoming_forwards_kickoff_within_hours(url_builder_mock, setup_scraper_mocks):
+    """scrape_upcoming must forward kickoff_within_hours to extract_match_links (issue #77)."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/football/matches/20260601"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.extract_match_links = AsyncMock(return_value=["https://oddsportal.com/m1"])
+    scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
+
+    await scraper.scrape_upcoming(sport="football", date="20260601", kickoff_within_hours=6)
+
+    assert scraper.extract_match_links.call_args.kwargs.get("kickoff_within_hours") == 6
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_scrape_historic_forwards_concurrent_scraping_task(url_builder_mock, setup_scraper_mocks):
     """scrape_historic must forward concurrent_scraping_task to extract_match_odds (issue #64)."""
     mocks = setup_scraper_mocks

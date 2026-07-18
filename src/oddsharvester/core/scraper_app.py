@@ -50,6 +50,7 @@ async def run_scraper(
     request_delay: float = DEFAULT_REQUEST_DELAY_S,
     concurrency_tasks: int = 3,
     include_started: bool = False,
+    kickoff_within_hours: float | None = None,
     links_only: bool = False,
 ) -> ScrapeResult | None:
     """
@@ -213,6 +214,7 @@ async def run_scraper(
                         request_delay=request_delay,
                         concurrent_scraping_task=concurrency_tasks,
                         include_started=include_started,
+                        kickoff_within_hours=kickoff_within_hours,
                         links_only=links_only,
                     )
                 else:
@@ -230,6 +232,7 @@ async def run_scraper(
                         request_delay=request_delay,
                         concurrent_scraping_task=concurrency_tasks,
                         include_started=include_started,
+                        kickoff_within_hours=kickoff_within_hours,
                         links_only=links_only,
                     )
             else:
@@ -251,6 +254,7 @@ async def run_scraper(
                     request_delay=request_delay,
                     concurrent_scraping_task=concurrency_tasks,
                     include_started=include_started,
+                    kickoff_within_hours=kickoff_within_hours,
                     links_only=links_only,
                 )
 

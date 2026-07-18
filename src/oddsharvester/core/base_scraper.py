@@ -1,5 +1,5 @@
 import asyncio
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from enum import Enum
 import json
 import logging
@@ -179,6 +179,37 @@ def _row_has_started(row) -> bool:
     return not _KICKOFF_TIME_RE.match(text)
 
 
+def _row_kickoff_datetime(row, row_date: date | None, tz) -> datetime | None:
+    """Best-effort kickoff datetime for a listing-page event row.
+
+    Combines the group's `row_date` (from the surrounding date-header) with the
+    HH:MM shown in the row's `time-item`. Returns None when the kickoff cannot
+    be determined (no date, no time-item, or a non-clock value such as a live
+    period marker), so callers keep the row (fail-safe against DOM drift).
+
+    Args:
+        row: A BeautifulSoup event-row node.
+        row_date: The date of the row's group, or None if unknown.
+        tz: tzinfo used to build the aware datetime; must match the timezone the
+            listing times are rendered in (see `docs/agentic-gotchas.md` §10).
+    """
+    if row_date is None:
+        return None
+    time_el = row.find(attrs={"data-testid": OddsPortalSelectors.EVENT_ROW_TIME_ITEM_TESTID})
+    if time_el is None:
+        return None
+    p = time_el.find("p")
+    text = p.get_text(strip=True) if p else time_el.get_text(strip=True)
+    if not text or not _KICKOFF_TIME_RE.match(text):
+        return None
+    hour_str, minute_str = text.split(":")
+    try:
+        kickoff_time = time(int(hour_str), int(minute_str))
+    except ValueError:
+        return None
+    return datetime.combine(row_date, kickoff_time, tzinfo=tz)
+
+
 def _extract_fragment_match_id(match_link: str) -> str | None:
     """
     Extract the URL fragment as a match id from a match link.
@@ -307,6 +338,7 @@ class BaseScraper:
         page: Page,
         date_filter: date | None = None,
         skip_started: bool = False,
+        kickoff_within_hours: float | None = None,
     ) -> list[str]:
         """
         Extract and parse match links from the current page.
@@ -325,6 +357,11 @@ class BaseScraper:
                 date-header that cannot be parsed are kept (fail-safe).
             skip_started (bool): If True, drop rows that are live or finished
                 (see `_row_has_started` for detection). Fail-safe on DOM drift.
+            kickoff_within_hours (Optional[float]): If provided, keep only rows
+                whose kickoff is at most this many hours ahead of now. Rows whose
+                kickoff cannot be computed are kept (fail-safe). Combines the
+                row's date-header with its HH:MM in the browser timezone (issue
+                #77); pair with skip_started to bound the window on both sides.
 
         Returns:
             List[str]: A list of unique match links found on the page.
@@ -335,7 +372,17 @@ class BaseScraper:
             event_rows = soup.find_all(class_=re.compile(OddsPortalSelectors.EVENT_ROW_CLASS_PATTERN))
             self.logger.info(f"Found {len(event_rows)} event rows.")
 
-            tz_name = getattr(self.playwright_manager, "timezone_id", None) if date_filter else None
+            track_headers = date_filter is not None or kickoff_within_hours is not None
+            tz_name = getattr(self.playwright_manager, "timezone_id", None) if track_headers else None
+
+            window_cutoff: datetime | None = None
+            ref_tz = None
+            if kickoff_within_hours is not None:
+                try:
+                    ref_tz = ZoneInfo(tz_name) if tz_name else UTC
+                except (ZoneInfoNotFoundError, ValueError):
+                    ref_tz = UTC
+                window_cutoff = datetime.now(ref_tz) + timedelta(hours=kickoff_within_hours)
 
             seen: set[str] = set()
             match_links: list[str] = []
@@ -345,13 +392,14 @@ class BaseScraper:
             unparseable_header_count = 0
             offscreen_skipped_count = 0
             started_filtered_out_count = 0
+            window_filtered_out_count = 0
 
             for row in event_rows:
                 if _is_offscreen_row(row):
                     offscreen_skipped_count += 1
                     continue
 
-                if date_filter is not None:
+                if track_headers:
                     header_el = row.find(attrs={"data-testid": "date-header"})
                     if header_el is not None:
                         header_text = header_el.get_text(" ", strip=True)
@@ -365,13 +413,19 @@ class BaseScraper:
                             seen_header_dates.add(parsed)
                         current_row_date = parsed
 
-                    if current_row_date is not None and current_row_date != date_filter:
-                        filtered_out_count += 1
-                        continue
+                if date_filter is not None and current_row_date is not None and current_row_date != date_filter:
+                    filtered_out_count += 1
+                    continue
 
                 if skip_started and _row_has_started(row):
                     started_filtered_out_count += 1
                     continue
+
+                if window_cutoff is not None:
+                    kickoff_dt = _row_kickoff_datetime(row, current_row_date, ref_tz)
+                    if kickoff_dt is not None and kickoff_dt > window_cutoff:
+                        window_filtered_out_count += 1
+                        continue
 
                 for link in row.find_all("a", href=True):
                     href = link["href"]
@@ -383,13 +437,18 @@ class BaseScraper:
                         match_links.append(full_url)
 
             started_suffix = f", {started_filtered_out_count} started/finished rows skipped" if skip_started else ""
+            window_suffix = (
+                f", {window_filtered_out_count} rows outside the {kickoff_within_hours}h kickoff window"
+                if kickoff_within_hours is not None
+                else ""
+            )
             if date_filter is not None:
                 self.logger.info(
                     f"Extracted {len(match_links)} unique match links after date filtering "
                     f"(filter={date_filter.isoformat()}, filtered out {filtered_out_count} rows, "
                     f"{unparseable_header_count} unparseable headers, "
                     f"{offscreen_skipped_count} offscreen rows skipped"
-                    f"{started_suffix})."
+                    f"{started_suffix}{window_suffix})."
                 )
                 if not match_links and filtered_out_count:
                     headers_label = ", ".join(d.isoformat() for d in sorted(seen_header_dates)) or "none"
@@ -404,7 +463,7 @@ class BaseScraper:
                 self.logger.info(
                     f"Extracted {len(match_links)} unique match links "
                     f"({offscreen_skipped_count} offscreen rows skipped"
-                    f"{started_suffix})."
+                    f"{started_suffix}{window_suffix})."
                 )
 
             return match_links

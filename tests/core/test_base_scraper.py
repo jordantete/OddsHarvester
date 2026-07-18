@@ -13,6 +13,7 @@ from oddsharvester.core.base_scraper import (
     _is_offscreen_row,
     _parse_date_header,
     _row_has_started,
+    _row_kickoff_datetime,
 )
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
@@ -588,6 +589,202 @@ async def test_extract_match_links_uses_playwright_manager_timezone(setup_base_s
 
     result = await scraper.extract_match_links(page=page_mock, date_filter=tokyo_today)
     assert len(result) == 1
+
+
+# -- extract_match_links with kickoff_within_hours (GitHub issue #77) --------
+
+
+class _FixedNow(datetime):
+    """datetime subclass whose ``now()`` is frozen for deterministic window
+    tests. ``combine`` and the constructor are inherited unchanged."""
+
+    _frozen = datetime(2026, 4, 18, 12, 0, tzinfo=UTC)
+
+    @classmethod
+    def now(cls, tz=None):
+        return cls._frozen if tz is None else cls._frozen.astimezone(tz)
+
+
+def _make_kickoff_window_html() -> str:
+    """Listing with one date group ('18 Apr 2026') and three kickoff times.
+
+    Against the frozen now (12:00 on 18 Apr 2026): Soon is 1h away, Edge 1.5h
+    away, Late 4h away.
+    """
+    return """
+    <html><body>
+      <div class="eventRow">
+        <div data-testid="date-header">18 Apr 2026</div>
+        <div data-testid="time-item"><p>13:00</p></div>
+        <a href="/football/england/premier-league/soon-match/aaaaaaa1">Soon</a>
+      </div>
+      <div class="eventRow">
+        <div data-testid="time-item"><p>13:30</p></div>
+        <a href="/football/england/premier-league/edge-match/aaaaaaa2">Edge</a>
+      </div>
+      <div class="eventRow">
+        <div data-testid="time-item"><p>16:00</p></div>
+        <a href="/football/england/premier-league/late-match/aaaaaaa3">Late</a>
+      </div>
+    </body></html>
+    """
+
+
+@pytest.mark.asyncio
+async def test_extract_match_links_kickoff_window_keeps_only_matches_within_window(setup_base_scraper_mocks):
+    """Only matches kicking off within the window are kept; later ones dropped."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(return_value=_make_kickoff_window_html())
+
+    with patch("oddsharvester.core.base_scraper.datetime", _FixedNow):
+        result = await scraper.extract_match_links(page=page_mock, kickoff_within_hours=2)
+
+    assert any("soon-match/aaaaaaa1" in url for url in result)
+    assert any("edge-match/aaaaaaa2" in url for url in result)
+    assert not any("late-match/aaaaaaa3" in url for url in result)
+    assert len(result) == 2
+
+
+@pytest.mark.asyncio
+async def test_extract_match_links_kickoff_window_none_preserves_all(setup_base_scraper_mocks):
+    """Regression: without the window filter, all rows are returned."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(return_value=_make_kickoff_window_html())
+
+    result = await scraper.extract_match_links(page=page_mock)
+    assert len(result) == 3
+
+
+@pytest.mark.asyncio
+async def test_extract_match_links_kickoff_window_unparseable_time_fails_safe(setup_base_scraper_mocks):
+    """A row with no parseable HH:MM (e.g. a live marker) has no computable
+    kickoff, so it is kept rather than silently dropped."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(
+        return_value="""
+        <html><body>
+          <div class="eventRow">
+            <div data-testid="date-header">18 Apr 2026</div>
+            <div data-testid="time-item"><p class="text-red-dark">1H</p></div>
+            <a href="/football/england/premier-league/live-match/bbbbbbb1">Live</a>
+          </div>
+          <div class="eventRow">
+            <div data-testid="time-item"><p>16:00</p></div>
+            <a href="/football/england/premier-league/late-match/bbbbbbb2">Late</a>
+          </div>
+        </body></html>
+        """
+    )
+
+    with patch("oddsharvester.core.base_scraper.datetime", _FixedNow):
+        result = await scraper.extract_match_links(page=page_mock, kickoff_within_hours=1)
+
+    assert any("live-match/bbbbbbb1" in url for url in result)
+    assert not any("late-match/bbbbbbb2" in url for url in result)
+
+
+@pytest.mark.asyncio
+async def test_extract_match_links_kickoff_window_row_without_date_header_fails_safe(setup_base_scraper_mocks):
+    """Without a date-header, a row's kickoff date is unknown, so it is kept."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(
+        return_value="""
+        <html><body>
+          <div class="eventRow">
+            <div data-testid="time-item"><p>16:00</p></div>
+            <a href="/football/england/premier-league/orphan-match/ccccccc1">Orphan</a>
+          </div>
+        </body></html>
+        """
+    )
+
+    with patch("oddsharvester.core.base_scraper.datetime", _FixedNow):
+        result = await scraper.extract_match_links(page=page_mock, kickoff_within_hours=1)
+
+    assert any("orphan-match/ccccccc1" in url for url in result)
+
+
+@pytest.mark.asyncio
+async def test_extract_match_links_kickoff_window_composes_with_skip_started(setup_base_scraper_mocks):
+    """Window filter and skip_started compose: started rows dropped by
+    skip_started, far-future rows dropped by the window, the near upcoming row
+    survives."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(
+        return_value="""
+        <html><body>
+          <div class="eventRow">
+            <div data-testid="date-header">18 Apr 2026</div>
+            <div data-testid="time-item"><p>13:00</p></div>
+            <div data-testid="game-status-box"></div>
+            <a href="/football/england/premier-league/near-upcoming/ddddddd1">Near</a>
+          </div>
+          <div class="eventRow">
+            <div data-testid="time-item"><p>11:00</p></div>
+            <div data-testid="game-status-box">FinishedFIN</div>
+            <a href="/football/england/premier-league/finished/ddddddd2">Finished</a>
+          </div>
+          <div class="eventRow">
+            <div data-testid="time-item"><p>16:00</p></div>
+            <div data-testid="game-status-box"></div>
+            <a href="/football/england/premier-league/far-future/ddddddd3">Far</a>
+          </div>
+        </body></html>
+        """
+    )
+
+    with patch("oddsharvester.core.base_scraper.datetime", _FixedNow):
+        result = await scraper.extract_match_links(page=page_mock, kickoff_within_hours=2, skip_started=True)
+
+    assert any("near-upcoming/ddddddd1" in url for url in result)
+    assert not any("finished/ddddddd2" in url for url in result)
+    assert not any("far-future/ddddddd3" in url for url in result)
+    assert len(result) == 1
+
+
+class TestRowKickoffDatetime:
+    """Unit tests for the _row_kickoff_datetime helper (GitHub issue #77)."""
+
+    def _row(self, html: str):
+        return BeautifulSoup(f"<div class='eventRow'>{html}</div>", "lxml").find(class_="eventRow")
+
+    def test_valid_time_and_date_returns_aware_datetime(self):
+        row = self._row('<div data-testid="time-item"><p>21:00</p></div>')
+        assert _row_kickoff_datetime(row, date(2026, 4, 18), UTC) == datetime(2026, 4, 18, 21, 0, tzinfo=UTC)
+
+    def test_single_digit_hour_parsed(self):
+        row = self._row('<div data-testid="time-item"><p>9:05</p></div>')
+        assert _row_kickoff_datetime(row, date(2026, 4, 18), UTC) == datetime(2026, 4, 18, 9, 5, tzinfo=UTC)
+
+    def test_none_row_date_returns_none(self):
+        row = self._row('<div data-testid="time-item"><p>21:00</p></div>')
+        assert _row_kickoff_datetime(row, None, UTC) is None
+
+    def test_missing_time_item_returns_none(self):
+        row = self._row("<span>no time here</span>")
+        assert _row_kickoff_datetime(row, date(2026, 4, 18), UTC) is None
+
+    def test_empty_time_item_returns_none(self):
+        row = self._row('<div data-testid="time-item"></div>')
+        assert _row_kickoff_datetime(row, date(2026, 4, 18), UTC) is None
+
+    def test_live_marker_returns_none(self):
+        row = self._row('<div data-testid="time-item"><p>1H</p></div>')
+        assert _row_kickoff_datetime(row, date(2026, 4, 18), UTC) is None
+
+    def test_invalid_clock_returns_none(self):
+        row = self._row('<div data-testid="time-item"><p>25:00</p></div>')
+        assert _row_kickoff_datetime(row, date(2026, 4, 18), UTC) is None
 
 
 # -- _is_offscreen_row + offscreen filtering (regression: issue #61) ---------

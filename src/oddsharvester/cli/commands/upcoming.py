@@ -29,6 +29,13 @@ logger = logging.getLogger(__name__)
     envvar="OH_INCLUDE_STARTED",
     help="Also return matches that have already started or finished (default: upcoming-only).",
 )
+@click.option(
+    "--kickoff-within-hours",
+    "kickoff_within_hours",
+    type=click.FloatRange(min=0, min_open=True),
+    default=None,
+    help="Only scrape matches kicking off within this many hours from now (reduces request volume).",
+)
 @click.pass_context
 def upcoming(ctx, **kwargs):
     """Scrape odds for upcoming matches."""
@@ -73,6 +80,7 @@ def upcoming(ctx, **kwargs):
                 request_delay=kwargs.get("request_delay", 1.0),
                 concurrency_tasks=kwargs.get("concurrency_tasks", 3),
                 include_started=kwargs.get("include_started", False),
+                kickoff_within_hours=kwargs.get("kickoff_within_hours"),
                 links_only=links_only,
             )
         )

@@ -149,6 +149,7 @@ async def test_run_scraper_upcoming(
         request_delay=ANY,
         concurrent_scraping_task=ANY,
         include_started=False,
+        kickoff_within_hours=None,
         links_only=ANY,
     )
 
@@ -296,6 +297,62 @@ async def test_run_scraper_upcoming_forwards_include_started(
     )
 
     assert scraper_mock.scrape_upcoming.call_args.kwargs.get("include_started") is True
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.scraper_app.OddsPortalScraper")
+@patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
+@patch("oddsharvester.core.scraper_app.PlaywrightManager")
+@patch("oddsharvester.core.scraper_app.ProxyManager")
+@patch("oddsharvester.core.scraper_app.SportMarketRegistrar")
+async def test_run_scraper_upcoming_forwards_kickoff_within_hours(
+    sport_market_registrar_mock,
+    proxy_manager_mock,
+    playwright_manager_mock,
+    market_extractor_mock,
+    scraper_cls_mock,
+    setup_mocks,
+):
+    """run_scraper(kickoff_within_hours=N) must forward it to scrape_upcoming (issue #77)."""
+    scraper_mock = setup_mocks["scraper_mock"]
+    scraper_cls_mock.return_value = scraper_mock
+    proxy_manager_mock.return_value.get_current_proxy.return_value = None
+
+    await run_scraper(
+        command=CommandEnum.UPCOMING_MATCHES,
+        sport="football",
+        date="20260601",
+        markets=["1x2"],
+        kickoff_within_hours=6,
+    )
+
+    assert scraper_mock.scrape_upcoming.call_args.kwargs.get("kickoff_within_hours") == 6
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.scraper_app.OddsPortalScraper")
+@patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
+@patch("oddsharvester.core.scraper_app.PlaywrightManager")
+@patch("oddsharvester.core.scraper_app.ProxyManager")
+@patch("oddsharvester.core.scraper_app.SportMarketRegistrar")
+async def test_run_scraper_upcoming_multi_league_forwards_kickoff_within_hours(
+    registrar_mock, proxy_mock, playwright_mock, extractor_mock, scraper_cls_mock
+):
+    """The multi-league path must forward kickoff_within_hours to every league (issue #77)."""
+    scraper_mock = scraper_cls_mock.return_value
+    scraper_mock.start_playwright = AsyncMock()
+    scraper_mock.stop_playwright = AsyncMock()
+    scraper_mock.scrape_upcoming = AsyncMock(return_value=ScrapeResult())
+
+    await run_scraper(
+        command="scrape_upcoming",
+        sport="football",
+        leagues=["england-premier-league", "spain-laliga"],
+        kickoff_within_hours=3,
+    )
+
+    assert scraper_mock.scrape_upcoming.call_count == 2
+    assert all(c.kwargs.get("kickoff_within_hours") == 3 for c in scraper_mock.scrape_upcoming.call_args_list)
 
 
 @pytest.mark.asyncio

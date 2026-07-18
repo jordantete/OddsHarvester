@@ -155,6 +155,7 @@ class OddsPortalScraper(BaseScraper):
         request_delay: float = DEFAULT_REQUEST_DELAY_S,
         concurrent_scraping_task: int = 3,
         include_started: bool = False,
+        kickoff_within_hours: float | None = None,
         links_only: bool = False,
     ) -> ScrapeResult:
         """
@@ -170,6 +171,9 @@ class OddsPortalScraper(BaseScraper):
             include_started (bool): If True, also return matches that have
                 already started or finished. Default False keeps the listing
                 page's true "upcoming" semantics (GitHub issue #58).
+            kickoff_within_hours (Optional[float]): If set, only scrape matches
+                kicking off within this many hours from now, cutting request
+                volume by skipping far-off matches (GitHub issue #77).
             links_only (bool): If True, stop after link collection and return the links (no odds scraping).
 
         Returns:
@@ -209,6 +213,7 @@ class OddsPortalScraper(BaseScraper):
             page=current_page,
             date_filter=date_filter,
             skip_started=not include_started,
+            kickoff_within_hours=kickoff_within_hours,
         )
 
         if not match_links:

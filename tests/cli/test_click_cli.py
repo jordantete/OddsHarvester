@@ -181,6 +181,18 @@ class TestCommonOptions:
         assert mock_run_scraper["upcoming"].called
         assert mock_run_scraper["upcoming"].call_args.kwargs.get("concurrency_tasks") == 10
 
+    def test_upcoming_kickoff_within_hours_forwarded_to_run_scraper(self, runner, mock_run_scraper):
+        """`--kickoff-within-hours N` on `upcoming` must reach run_scraper (issue #77)."""
+        runner.invoke(cli, ["upcoming", "-s", "football", "-d", FUTURE_DATE, "--kickoff-within-hours", "6"])
+        assert mock_run_scraper["upcoming"].called
+        assert mock_run_scraper["upcoming"].call_args.kwargs.get("kickoff_within_hours") == 6.0
+
+    def test_upcoming_kickoff_within_hours_rejects_non_positive(self, runner, mock_run_scraper):
+        """A zero or negative window is meaningless and must be rejected (issue #77)."""
+        result = runner.invoke(cli, ["upcoming", "-s", "football", "-d", FUTURE_DATE, "--kickoff-within-hours", "0"])
+        assert result.exit_code != 0
+        assert not mock_run_scraper["upcoming"].called
+
     def test_historic_concurrency_flag_forwarded_to_run_scraper(self, runner, mock_run_scraper):
         """`--concurrency N` on `historic` must reach run_scraper as concurrency_tasks=N (issue #64)."""
         runner.invoke(
