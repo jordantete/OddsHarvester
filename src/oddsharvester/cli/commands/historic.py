@@ -9,6 +9,7 @@ import click
 from oddsharvester.cli.options import common_options
 from oddsharvester.cli.types import COMMA_LIST
 from oddsharvester.cli.validators import validate_max_pages, validate_seasons
+from oddsharvester.core.scrape_result import ErrorType
 from oddsharvester.core.scraper_app import run_scraper
 from oddsharvester.storage.storage_manager import store_data
 from oddsharvester.utils.sport_market_constants import Sport
@@ -133,6 +134,20 @@ def historic(ctx, **kwargs):
 
             if not scraped_data.success:
                 logger.error("Scraper did not return valid data.")
+                sys.exit(1)
+
+            # A failed listing page hides an unknown number of matches: they were
+            # never discovered, so nothing downstream can detect the gap from the
+            # data itself. Signal it through the exit code, but keep what was
+            # collected so it can be inspected or re-run.
+            listing_failures = [f for f in scraped_data.failed if f.error_type is ErrorType.LISTING_PAGE]
+            if listing_failures:
+                logger.error(f"Incomplete collection: {len(listing_failures)} listing page(s) failed.")
+                click.echo(
+                    f"Incomplete collection: {len(listing_failures)} listing page(s) failed, so an unknown "
+                    f"number of matches were never discovered. The partial data was still written.",
+                    err=True,
+                )
                 sys.exit(1)
         else:
             logger.error("Scraper did not return valid data.")

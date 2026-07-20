@@ -146,6 +146,15 @@ class OddsPortalScraper(BaseScraper):
         for row in result.success:
             row["season"] = season
 
+        # A failed listing page loses an entire page of matches that were never
+        # discovered, so it cannot show up as a per-match failure. Surface it here
+        # or the run reports 100% success on an incomplete dataset.
+        if link_result.failed_pages:
+            listing_failures = self._listing_page_failures(base_url, link_result.failed_pages)
+            result.failed.extend(listing_failures)
+            result.stats.failed += len(listing_failures)
+            result.stats.total_urls += len(listing_failures)
+
         return result
 
     async def scrape_upcoming(
@@ -387,6 +396,18 @@ class OddsPortalScraper(BaseScraper):
         await self.set_odds_format(page=page)
         await self.cookie_dismisser.dismiss(page=page)
 
+    @staticmethod
+    def _listing_page_failures(base_url: str, failed_pages: list[int]) -> list[FailedUrl]:
+        """Build the failure entries for listing pages that could not be collected."""
+        return [
+            FailedUrl(
+                url=f"{base_url}#/page/{page}",
+                error_type=ErrorType.LISTING_PAGE,
+                error_message="Failed to collect links from listing page",
+            )
+            for page in failed_pages
+        ]
+
     def _links_only_result(
         self,
         links: list[str],
@@ -399,7 +420,7 @@ class OddsPortalScraper(BaseScraper):
         failed = [
             FailedUrl(
                 url=url,
-                error_type=ErrorType.NAVIGATION,
+                error_type=ErrorType.LISTING_PAGE,
                 error_message="Failed to collect links from listing page",
             )
             for url in failed_page_urls

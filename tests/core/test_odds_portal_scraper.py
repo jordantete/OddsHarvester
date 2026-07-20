@@ -7,7 +7,7 @@ import pytest
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import LinkCollectionResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
-from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
+from oddsharvester.core.scrape_result import ErrorType, ScrapeResult, ScrapeStats
 from oddsharvester.utils.constants import GOTO_TIMEOUT_LONG_MS, MAX_PAGINATION_PAGES
 from oddsharvester.utils.proxy_manager import ProxyManager
 
@@ -775,3 +775,63 @@ async def test_scrape_live_never_scrapes_odds_history(url_builder_mock, setup_sc
     kwargs = scraper.extract_match_odds.call_args.kwargs
     assert kwargs["scrape_odds_history"] is False
     assert kwargs["period"] is None
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_historic_surfaces_failed_listing_pages_in_odds_path(url_builder_mock, setup_scraper_mocks):
+    """A failed listing page silently loses ~50 unknown matches, so it must reach the result.
+
+    Without this the odds path reports 100% success on a dataset missing entire
+    pages, which is undetectable downstream.
+    """
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    url_builder_mock.get_historic_matches_url.return_value = "https://oddsportal.com/football/epl/results/"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._get_pagination_info = AsyncMock(return_value=[1, 2, 3])
+    scraper._collect_match_links = AsyncMock(
+        return_value=LinkCollectionResult(links=["https://oddsportal.com/m1"], successful_pages=1, failed_pages=[2, 3])
+    )
+    scraper.extract_match_odds = AsyncMock(
+        return_value=ScrapeResult(
+            success=[{"home_team": "A"}],
+            stats=ScrapeStats(total_urls=1, successful=1, failed=0),
+        )
+    )
+
+    result = await scraper.scrape_historic(
+        sport="football", league="england-premier-league", season="2022-2023", markets=["1x2"]
+    )
+
+    listing_failures = [f for f in result.failed if f.error_type is ErrorType.LISTING_PAGE]
+    assert len(listing_failures) == 2, "both failed listing pages must be reported"
+    assert result.stats.failed == 2
+    assert result.stats.total_urls == 3
+    assert result.success == [{"home_team": "A", "season": "2022-2023"}]
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_historic_clean_run_reports_no_listing_failures(url_builder_mock, setup_scraper_mocks):
+    """A complete collection must not be polluted with phantom failures."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    url_builder_mock.get_historic_matches_url.return_value = "https://oddsportal.com/football/epl/results/"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._get_pagination_info = AsyncMock(return_value=[1])
+    scraper._collect_match_links = AsyncMock(
+        return_value=LinkCollectionResult(links=["https://oddsportal.com/m1"], successful_pages=1, failed_pages=[])
+    )
+    scraper.extract_match_odds = AsyncMock(
+        return_value=ScrapeResult(success=[{"home_team": "A"}], stats=ScrapeStats(total_urls=1, successful=1))
+    )
+
+    result = await scraper.scrape_historic(
+        sport="football", league="england-premier-league", season="2022-2023", markets=["1x2"]
+    )
+
+    assert result.failed == []
+    assert result.stats.failed == 0

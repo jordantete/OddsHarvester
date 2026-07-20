@@ -21,6 +21,10 @@ class ErrorType(Enum):
     HEADER_NOT_FOUND = "header_not_found"  # React header missing
     RATE_LIMITED = "rate_limited"  # Too many requests
     PAGE_NOT_FOUND = "page_not_found"  # 404 or page unavailable
+    # A listing page that could not be collected. Distinct from a per-match
+    # failure: the matches behind it are never even discovered, so the dataset
+    # is incomplete in a way the caller cannot enumerate or retry per URL.
+    LISTING_PAGE = "listing_page"
     UNKNOWN = "unknown"  # Unclassified errors
 
 
