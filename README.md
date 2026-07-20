@@ -152,7 +152,8 @@ oddsharvester live -s football --links-only -o live_links.json --headless
 ```
 
 Each record carries the usual match metadata plus live context: `live_period`
-(the period marker as displayed, e.g. `1st Set`, `65'`, `HT`), `live_score_home`,
+(the period marker exactly as the site displays it, so it is sport-specific:
+`1st Set` in tennis, `9th Inning` in baseball), `live_score_home`,
 `live_score_away`, `live_score_raw` (keeps compound formats such as
 `0:1 (3:6, 4:2)`), and `scraped_at_utc`, which is what makes a series of
 snapshots comparable.
@@ -245,6 +246,13 @@ pagination) and does not emit per-prediction win/loss (use the monthly stats tab
 | ------------- | ----------------------------------------- | ---------- |
 | `--season`    | Comma-separated seasons to scrape (`YYYY`, `YYYY-YYYY`, or `current`). Scraped as the cartesian product with `--league`. Duplicates are ignored. | _required_ |
 | `--max-pages` | Max number of result pages to scrape. Applies per league/season combo, not per run. | unlimited  |
+
+**`live` only:** no `--date` and no `--season`; the command always reads whatever is in
+play at the moment it runs. `--league` accepts **at most one** slug. `--odds-history` and
+`--period` are rejected outright, because the in-play view exposes neither. A
+`--match-link` given in classic form is normalized to its in-play URL automatically, so
+either form works. When every match fails to scrape the command exits non-zero, which is
+what lets a scheduled sampler tell a blocked run apart from a genuinely empty one.
 
 #### Output Options
 
@@ -340,7 +348,7 @@ oddsharvester historic -s football --season 2022-2023 -m 1x2 -f csv -o odds.csv 
     --match-link "https://www.oddsportal.com/football/england/premier-league-2022-2023/..."
 ```
 
-Output rows contain `match_link`, `sport`, `league`, and `season` (`date` for `upcoming`), in the site's listing order. Options that only affect odds scraping (`--market`, `--period`, `--odds-history`, `--preview-only`, `--target-bookmaker`, `--bookies-filter`) are ignored when `--links-only` is set. `--links-only` cannot be combined with `--match-link`.
+Output rows contain `match_link`, `sport`, `league`, and `season` (`date` for `upcoming`; `live` emits neither), in the site's listing order. Options that only affect odds scraping (`--market`, `--period`, `--odds-history`, `--preview-only`, `--target-bookmaker`, `--bookies-filter`) are ignored when `--links-only` is set. `--links-only` cannot be combined with `--match-link`.
 
 ### Bulk scraping: multiple leagues, multiple seasons
 
