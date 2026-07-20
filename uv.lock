@@ -321,7 +321,7 @@ wheels = [
 
 [[package]]
 name = "oddsharvester"
-version = "0.6.0"
+version = "0.7.0"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
