@@ -110,6 +110,13 @@ class OddsPortalSelectors:
     COMMUNITY_PROFILE_MEMBER_INFO = "[data-testid='member-info']"
     COMMUNITY_PROFILE_STATS_HEADER = "[data-testid='stats-table-header-line']"
 
+    # Live (in-play) pages. `live-info` is the match-page live header (period,
+    # score, partial result); it disappears once the match ends. `game-row` is
+    # the listing row testid shared with community pages.
+    LIVE_INFO_TESTID = "live-info"
+    LIVE_PARTIAL_RESULT_TESTID = "partial-result"
+    GAME_ROW_TESTID = "game-row"
+
     @staticmethod
     def market_code_from_url(url: str) -> str | None:
         """Return the market code from a `#<id>:<code>;<scope>` fragment, else None."""

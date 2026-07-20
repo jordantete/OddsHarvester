@@ -211,6 +211,51 @@ def _row_kickoff_datetime(row, row_date: date | None, tz) -> datetime | None:
     return datetime.combine(row_date, kickoff_time, tzinfo=tz)
 
 
+_LIVE_MAIN_SCORE_RE = re.compile(r"^(\d+)\s*[:\-]\s*(\d+)$")
+
+
+def _parse_live_info(soup) -> dict[str, Any] | None:
+    """Parse the in-play match header into live context fields.
+
+    Structure (verified 2026-07-20): a `live-info` container holding a period
+    chunk, a main-score chunk, and an optional `partial-result` element with
+    the compound detail in parentheses. Match on text shape, not classes.
+    Returns None when the container is absent (match ended or not live).
+    """
+    container = soup.find(attrs={"data-testid": OddsPortalSelectors.LIVE_INFO_TESTID})
+    if container is None:
+        return None
+
+    partial_text = None
+    partial_el = container.find(attrs={"data-testid": OddsPortalSelectors.LIVE_PARTIAL_RESULT_TESTID})
+    if partial_el is not None:
+        partial_text = partial_el.get_text("", strip=True).strip("()") or None
+        partial_el.extract()
+
+    period = None
+    score_raw = None
+    score_home = None
+    score_away = None
+    for chunk in container.stripped_strings:
+        match = _LIVE_MAIN_SCORE_RE.match(chunk)
+        if match and score_raw is None:
+            score_raw = chunk
+            score_home, score_away = int(match.group(1)), int(match.group(2))
+        elif period is None and not match:
+            period = chunk
+
+    live_score_raw = score_raw
+    if score_raw and partial_text:
+        live_score_raw = f"{score_raw} ({partial_text})"
+
+    return {
+        "live_period": period,
+        "live_score_home": score_home,
+        "live_score_away": score_away,
+        "live_score_raw": live_score_raw,
+    }
+
+
 def _extract_fragment_match_id(match_link: str) -> str | None:
     """
     Extract the URL fragment as a match id from a match link.

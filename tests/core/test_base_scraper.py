@@ -13,6 +13,7 @@ from oddsharvester.core.base_scraper import (
     _extract_fragment_match_id,
     _is_offscreen_row,
     _parse_date_header,
+    _parse_live_info,
     _row_has_started,
     _row_kickoff_datetime,
 )
@@ -2182,3 +2183,63 @@ class TestOddsPortalScraperUrlWiring:
                 sport="football", league="england-premier-league", season="current", markets=["1x2"]
             )
         assert captured["base_url"] is None
+
+
+# -- parse live info -------------------------------------------------------
+
+LIVE_INFO_TENNIS_HTML = """
+<div class="flex max-sm:gap-2" data-testid="live-info">
+  <div class="flex flex-wrap gap-2">
+    <p class="result-live"></p>
+    <div class="text-red-dark">2nd Set</div>
+    <div class="text-red-dark font-bold">1:0</div>
+    <div class="flex" data-testid="partial-result"><span>(</span><div class="flex">6:4, 0:0</div><span>)</span></div>
+  </div>
+</div>
+"""
+
+LIVE_INFO_FOOTBALL_STYLE_HTML = """
+<div data-testid="live-info">
+  <div>
+    <div>65'</div>
+    <div>2:1</div>
+  </div>
+</div>
+"""
+
+
+class TestParseLiveInfo:
+    """Unit tests for the _parse_live_info helper (live scraping support)."""
+
+    def _soup(self, html: str) -> BeautifulSoup:
+        return BeautifulSoup(html, "lxml")
+
+    def test_parses_tennis_header_with_partial_result(self):
+        result = _parse_live_info(self._soup(LIVE_INFO_TENNIS_HTML))
+        assert result == {
+            "live_period": "2nd Set",
+            "live_score_home": 1,
+            "live_score_away": 0,
+            "live_score_raw": "1:0 (6:4, 0:0)",
+        }
+
+    def test_parses_minimal_period_and_score(self):
+        result = _parse_live_info(self._soup(LIVE_INFO_FOOTBALL_STYLE_HTML))
+        assert result == {
+            "live_period": "65'",
+            "live_score_home": 2,
+            "live_score_away": 1,
+            "live_score_raw": "2:1",
+        }
+
+    def test_returns_none_when_live_info_absent(self):
+        assert _parse_live_info(self._soup("<div><p>Finished</p></div>")) is None
+
+    def test_missing_score_yields_none_ints_and_keeps_period(self):
+        result = _parse_live_info(self._soup('<div data-testid="live-info"><div>HT</div></div>'))
+        assert result == {
+            "live_period": "HT",
+            "live_score_home": None,
+            "live_score_away": None,
+            "live_score_raw": None,
+        }
