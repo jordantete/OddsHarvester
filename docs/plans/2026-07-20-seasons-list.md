@@ -123,12 +123,23 @@ def validate_seasons(ctx, param, value):
     return list(seen)
 ```
 
-Note: `validate_season` (singular) is now gone. Its only importer is `cli/commands/historic.py:10`, which Task 3 updates. Between Task 1 and Task 3 the import is broken, so run the full suite only after Task 3. This is the one deliberate cross-task breakage in this plan.
+Keep `validate_season` (singular) as a thin wrapper so the tree stays green at
+every commit. Its only importer is `cli/commands/historic.py:10`, which Task 3
+updates; Task 3 also deletes this wrapper.
+
+```python
+def validate_season(ctx, param, value):
+    """Deprecated, superseded by validate_seasons. Removed once historic.py migrates."""
+    return _validate_one_season(value) if value else None
+```
 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/cli/test_validators_seasons.py -q`
 Expected: PASS, 8 passed
+
+Then confirm nothing else broke: `uv run pytest tests/ -q --ignore=tests/integration/`
+Expected: PASS (the `validate_season` wrapper keeps `historic.py` importable).
 
 - [ ] **Step 5: Commit**
 
@@ -580,6 +591,9 @@ Lines 223-239, in the upcoming branch, rename the call only (no `seasons` kwarg,
 ```
 
 - [ ] **Step 5: Update the CLI call sites**
+
+In `src/oddsharvester/cli/validators.py`, delete the `validate_season` wrapper
+that Task 1 left behind. Nothing imports it after this step.
 
 In `src/oddsharvester/cli/commands/historic.py`:
 
