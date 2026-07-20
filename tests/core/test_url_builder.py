@@ -7,34 +7,52 @@ from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
 from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from oddsharvester.utils.sport_market_constants import Sport
 
-# Create test mapping for sports and leagues
-SPORTS_LEAGUES_URLS_MAPPING[Sport.FOOTBALL] = {
-    "england-premier-league": f"{ODDSPORTAL_BASE_URL}/football/england/premier-league",
-    "la-liga": f"{ODDSPORTAL_BASE_URL}/football/spain/la-liga",
-    "czech-republic-chance-liga": f"{ODDSPORTAL_BASE_URL}/football/czech-republic/chance-liga",
-    "slovakia-nike-liga": f"{ODDSPORTAL_BASE_URL}/football/slovakia/nike-liga",
-    "hungary-nb-i": f"{ODDSPORTAL_BASE_URL}/football/hungary/nb-i",
-    "brazil-serie-a": f"{ODDSPORTAL_BASE_URL}/football/brazil/serie-a-betano",
-    "south-africa-premiership": f"{ODDSPORTAL_BASE_URL}/football/south-africa/betway-premiership",
-    "bulgaria-parva-liga": f"{ODDSPORTAL_BASE_URL}/football/bulgaria/efbet-league",
+# Fixed league URLs these tests build their expected values from. Kept as plain
+# data: installing them into the real SPORTS_LEAGUES_URLS_MAPPING at import time
+# leaked the fake mapping into every other test in the session (a stale mapping
+# made unrelated CLI/league tests pass or fail depending on collection order).
+# The autouse fixture below installs them per test and restores the originals.
+_TEST_LEAGUE_MAPPING = {
+    Sport.FOOTBALL: {
+        "england-premier-league": f"{ODDSPORTAL_BASE_URL}/football/england/premier-league",
+        "la-liga": f"{ODDSPORTAL_BASE_URL}/football/spain/la-liga",
+        "czech-republic-chance-liga": f"{ODDSPORTAL_BASE_URL}/football/czech-republic/chance-liga",
+        "slovakia-nike-liga": f"{ODDSPORTAL_BASE_URL}/football/slovakia/nike-liga",
+        "hungary-nb-i": f"{ODDSPORTAL_BASE_URL}/football/hungary/nb-i",
+        "brazil-serie-a": f"{ODDSPORTAL_BASE_URL}/football/brazil/serie-a-betano",
+        "south-africa-premiership": f"{ODDSPORTAL_BASE_URL}/football/south-africa/betway-premiership",
+        "bulgaria-parva-liga": f"{ODDSPORTAL_BASE_URL}/football/bulgaria/efbet-league",
+    },
+    Sport.TENNIS: {
+        "atp-tour": f"{ODDSPORTAL_BASE_URL}/tennis/atp-tour",
+    },
+    Sport.BASEBALL: {
+        "mlb": f"{ODDSPORTAL_BASE_URL}/baseball/usa/mlb",
+        "japan-npb": f"{ODDSPORTAL_BASE_URL}/baseball/japan/npb",
+    },
+    Sport.AMERICAN_FOOTBALL: {
+        "nfl": f"{ODDSPORTAL_BASE_URL}/american-football/usa/nfl",
+        "ncaa": f"{ODDSPORTAL_BASE_URL}/american-football/usa/ncaa",
+    },
+    Sport.HANDBALL: {
+        "ehf-champions-league": f"{ODDSPORTAL_BASE_URL}/handball/europe/champions-league",
+    },
+    Sport.VOLLEYBALL: {
+        "italy-superlega": f"{ODDSPORTAL_BASE_URL}/volleyball/italy/superlega",
+    },
 }
-SPORTS_LEAGUES_URLS_MAPPING[Sport.TENNIS] = {
-    "atp-tour": f"{ODDSPORTAL_BASE_URL}/tennis/atp-tour",
-}
-SPORTS_LEAGUES_URLS_MAPPING[Sport.BASEBALL] = {
-    "mlb": f"{ODDSPORTAL_BASE_URL}/baseball/usa/mlb",
-    "japan-npb": f"{ODDSPORTAL_BASE_URL}/baseball/japan/npb",
-}
-SPORTS_LEAGUES_URLS_MAPPING[Sport.AMERICAN_FOOTBALL] = {
-    "nfl": f"{ODDSPORTAL_BASE_URL}/american-football/usa/nfl",
-    "ncaa": f"{ODDSPORTAL_BASE_URL}/american-football/usa/ncaa",
-}
-SPORTS_LEAGUES_URLS_MAPPING[Sport.HANDBALL] = {
-    "ehf-champions-league": f"{ODDSPORTAL_BASE_URL}/handball/europe/champions-league",
-}
-SPORTS_LEAGUES_URLS_MAPPING[Sport.VOLLEYBALL] = {
-    "italy-superlega": f"{ODDSPORTAL_BASE_URL}/volleyball/italy/superlega",
-}
+
+
+@pytest.fixture(autouse=True)
+def _use_test_league_mapping(monkeypatch):
+    """Install the fixed league URLs for the duration of one test, then restore.
+
+    monkeypatch.setitem records each key's prior value (or absence) and reverts on
+    teardown, so no mutation escapes this module. The mapping is read at runtime
+    inside URLBuilder, never at collection time, so a runtime fixture is enough.
+    """
+    for sport, leagues in _TEST_LEAGUE_MAPPING.items():
+        monkeypatch.setitem(SPORTS_LEAGUES_URLS_MAPPING, sport, leagues)
 
 
 @pytest.mark.parametrize(
