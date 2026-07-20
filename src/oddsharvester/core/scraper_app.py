@@ -179,7 +179,7 @@ async def run_scraper(
                     scraper=scraper,
                     scrape_func=scraper.scrape_historic,
                     leagues=leagues,
-                    seasons=seasons,
+                    seasons=seasons or [None],
                     sport=sport,
                     markets=markets,
                     scrape_odds_history=scrape_odds_history,
@@ -297,13 +297,14 @@ async def _scrape_league_season_combos(
         ScrapeResult: Merged results, with a per-combo breakdown in `combo_stats`.
     """
     combined_result = ScrapeResult()
+    pass_season = seasons is not None
     combos = [(league, season) for league in leagues for season in (seasons or [None])]
 
     logger.info(f"Starting scraping for {len(combos)} league/season combo(s)")
 
     for i, (league, season) in enumerate(combos, 1):
         label = f"{league} {season}" if season is not None else league
-        combo_kwargs = {**kwargs, "season": season} if season is not None else kwargs
+        combo_kwargs = {**kwargs, "season": season} if pass_season else kwargs
 
         try:
             logger.info(f"[{i}/{len(combos)}] Processing: {label}")

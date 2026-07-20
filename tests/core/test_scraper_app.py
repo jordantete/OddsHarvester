@@ -686,6 +686,13 @@ async def test_scrape_league_season_combos_empty_results():
     assert len(result.success) == 1
     assert result.success[0] == {"match1": "data1"}
 
+    # The None-return combo (serie-a) must be pinned as errored=True, not silently flipped
+    assert result.combo_stats == [
+        {"league": "england-premier-league", "season": None, "successful": 1, "failed": 0, "errored": False},
+        {"league": "spain-primera-division", "season": None, "successful": 0, "failed": 0, "errored": False},
+        {"league": "italy-serie-a", "season": None, "successful": 0, "failed": 0, "errored": True},
+    ]
+
 
 @pytest.mark.asyncio
 async def test_run_scraper_multiple_leagues_historic():
@@ -894,6 +901,37 @@ async def test_combo_stats_distinguishes_errored_from_empty():
 
 
 @pytest.mark.asyncio
+async def test_multi_league_historic_none_seasons_calls_scrape_historic_with_season_none():
+    """Regression: seasons=None on the multi-league historic path must still pass season=None
+    to scrape_historic (a required param), not omit it and error every combo (issue #78)."""
+    with (
+        patch("oddsharvester.core.scraper_app.OddsPortalScraper") as scraper_cls_mock,
+        patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor"),
+        patch("oddsharvester.core.scraper_app.PlaywrightManager"),
+        patch("oddsharvester.core.scraper_app.ProxyManager"),
+        patch("oddsharvester.core.scraper_app.SportMarketRegistrar"),
+    ):
+        scraper_mock = MagicMock()
+        scraper_mock.start_playwright = AsyncMock()
+        scraper_mock.stop_playwright = AsyncMock()
+        scraper_mock.scrape_historic = AsyncMock(return_value=ScrapeResult())
+        scraper_cls_mock.return_value = scraper_mock
+
+        result = await run_scraper(
+            command=CommandEnum.HISTORIC,
+            sport="football",
+            leagues=["england-premier-league", "spain-laliga"],
+            seasons=None,
+        )
+
+    assert scraper_mock.scrape_historic.call_count == 2
+    for call in scraper_mock.scrape_historic.call_args_list:
+        assert "season" in call.kwargs
+        assert call.kwargs["season"] is None
+    assert all(combo["errored"] is False for combo in result.combo_stats)
+
+
+@pytest.mark.asyncio
 async def test_single_league_single_season_skips_the_combo_helper():
     """One league and one season must keep the direct single-call path (no behaviour drift)."""
     with (
@@ -918,3 +956,4 @@ async def test_single_league_single_season_skips_the_combo_helper():
         )
 
     assert not combos_mock.called
+    scraper_mock.scrape_historic.assert_called_once()

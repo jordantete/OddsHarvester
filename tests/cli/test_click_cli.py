@@ -215,6 +215,7 @@ class TestCommonOptions:
         assert mock_run_scraper["historic"].call_args.kwargs["seasons"] == ["2021-2022", "2022-2023"]
 
     def test_historic_season_list_deduplicated(self, runner, mock_run_scraper):
+        """--season with repeated values is deduplicated, order preserved (issue #78)."""
         runner.invoke(cli, ["historic", "-s", "football", "--season", "2024,2024,2023"])
         assert mock_run_scraper["historic"].call_args.kwargs["seasons"] == ["2024", "2023"]
 
