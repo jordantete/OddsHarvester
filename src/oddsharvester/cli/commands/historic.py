@@ -7,7 +7,8 @@ import sys
 import click
 
 from oddsharvester.cli.options import common_options
-from oddsharvester.cli.validators import validate_max_pages, validate_season
+from oddsharvester.cli.types import COMMA_LIST
+from oddsharvester.cli.validators import validate_max_pages, validate_seasons
 from oddsharvester.core.scraper_app import run_scraper
 from oddsharvester.storage.storage_manager import store_data
 from oddsharvester.utils.sport_market_constants import Sport
@@ -19,9 +20,11 @@ logger = logging.getLogger(__name__)
 @common_options
 @click.option(
     "--season",
+    "seasons",
     required=True,
-    callback=validate_season,
-    help="Season to scrape (YYYY, YYYY-YYYY, or 'current').",
+    type=COMMA_LIST,
+    callback=validate_seasons,
+    help="Comma-separated seasons to scrape (YYYY, YYYY-YYYY, or 'current').",
 )
 @click.option(
     "--max-pages",
@@ -36,7 +39,7 @@ def historic(ctx, **kwargs):
     storage = kwargs["storage"]
     storage_format = kwargs["storage_format"]
     bookies_filter = kwargs.get("bookies_filter")
-    season = kwargs.get("season")
+    seasons = kwargs.get("seasons")
     sport_value = sport.value if isinstance(sport, Sport) else sport
 
     links_only = kwargs.get("links_only", False)
@@ -54,7 +57,7 @@ def historic(ctx, **kwargs):
                 sport=sport_value,
                 date=None,
                 leagues=kwargs.get("leagues"),
-                season=season,
+                seasons=seasons,
                 markets=kwargs.get("markets"),
                 max_pages=kwargs.get("max_pages"),
                 proxy_url=kwargs.get("proxy_url"),

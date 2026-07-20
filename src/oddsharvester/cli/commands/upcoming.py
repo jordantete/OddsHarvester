@@ -64,7 +64,7 @@ def upcoming(ctx, **kwargs):
                 sport=sport.value if sport else None,
                 date=kwargs.get("date"),
                 leagues=kwargs.get("leagues"),
-                season=None,
+                seasons=None,
                 markets=kwargs.get("markets"),
                 max_pages=None,
                 proxy_url=kwargs.get("proxy_url"),

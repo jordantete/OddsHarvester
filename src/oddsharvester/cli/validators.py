@@ -61,11 +61,6 @@ def validate_seasons(ctx, param, value):
     return list(seen)
 
 
-def validate_season(ctx, param, value):
-    """Deprecated, superseded by validate_seasons. Removed once historic.py migrates."""
-    return _validate_one_season(value) if value else None
-
-
 def validate_match_links(ctx, param, value):
     """Validate match links format."""
     if not value:

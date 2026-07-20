@@ -201,6 +201,28 @@ class TestCommonOptions:
         assert mock_run_scraper["historic"].called
         assert mock_run_scraper["historic"].call_args.kwargs.get("concurrency_tasks") == 7
 
+    def test_historic_single_season_forwarded_as_list(self, runner, mock_run_scraper):
+        """Backward compatibility: a single --season value still works, now as a one-element list."""
+        runner.invoke(cli, ["historic", "-s", "football", "-l", "england-premier-league", "--season", "2024"])
+        assert mock_run_scraper["historic"].call_args.kwargs["seasons"] == ["2024"]
+
+    def test_historic_season_list_forwarded(self, runner, mock_run_scraper):
+        """--season accepts a comma-separated list (issue #78)."""
+        runner.invoke(
+            cli,
+            ["historic", "-s", "football", "-l", "england-premier-league", "--season", "2021-2022,2022-2023"],
+        )
+        assert mock_run_scraper["historic"].call_args.kwargs["seasons"] == ["2021-2022", "2022-2023"]
+
+    def test_historic_season_list_deduplicated(self, runner, mock_run_scraper):
+        runner.invoke(cli, ["historic", "-s", "football", "--season", "2024,2024,2023"])
+        assert mock_run_scraper["historic"].call_args.kwargs["seasons"] == ["2024", "2023"]
+
+    def test_historic_season_list_rejects_invalid_element(self, runner, mock_run_scraper):
+        result = runner.invoke(cli, ["historic", "-s", "football", "--season", "2024,invalid"])
+        assert result.exit_code != 0
+        assert "Invalid season format" in result.output
+
     def test_local_kickoff_flag_forwarded_historic(self, runner, mock_run_scraper):
         runner.invoke(cli, ["historic", "-s", "football", "--season", "2024", "--local-kickoff"])
         assert mock_run_scraper["historic"].call_args.kwargs["local_kickoff"] is True

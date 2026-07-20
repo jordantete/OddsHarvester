@@ -9,7 +9,7 @@ from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.retry import TRANSIENT_ERROR_KEYWORDS
 from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
-from oddsharvester.core.scraper_app import _scrape_multiple_leagues, retry_scrape, run_scraper
+from oddsharvester.core.scraper_app import _scrape_league_season_combos, retry_scrape, run_scraper
 from oddsharvester.utils.command_enum import CommandEnum
 from oddsharvester.utils.constants import OPERATION_RETRY_MAX_ATTEMPTS
 
@@ -61,7 +61,7 @@ async def test_run_scraper_historic(
         command=CommandEnum.HISTORIC,
         sport="football",
         leagues=["premier-league"],
-        season="2023",
+        seasons=["2023"],
         markets=["1x2", "over_under"],
         max_pages=2,
         headless=True,
@@ -379,7 +379,7 @@ async def test_run_scraper_historic_forwards_concurrency(
         command=CommandEnum.HISTORIC,
         sport="football",
         leagues=["premier-league"],
-        season="2024",
+        seasons=["2024"],
         markets=["1x2"],
         concurrency_tasks=7,
     )
@@ -405,7 +405,7 @@ async def test_run_scraper_forwards_links_only_historic(
         command="scrape_historic",
         sport="football",
         leagues=["england-premier-league"],
-        season="2022-2023",
+        seasons=["2022-2023"],
         links_only=True,
     )
 
@@ -430,7 +430,7 @@ async def test_run_scraper_forwards_links_only_historic_multi_league(
         command="scrape_historic",
         sport="football",
         leagues=["england-premier-league", "spain-laliga"],
-        season="2022-2023",
+        seasons=["2022-2023"],
         links_only=True,
     )
 
@@ -561,7 +561,7 @@ async def test_run_scraper_error_handling(sport_market_registrar_mock, proxy_man
     proxy_manager_mock.return_value = proxy_manager_instance
 
     result = await run_scraper(
-        command=CommandEnum.HISTORIC, sport="football", leagues=["premier-league"], season="2023"
+        command=CommandEnum.HISTORIC, sport="football", leagues=["premier-league"], seasons=["2023"]
     )
 
     scraper_mock.stop_playwright.assert_called_once()
@@ -569,8 +569,8 @@ async def test_run_scraper_error_handling(sport_market_registrar_mock, proxy_man
 
 
 @pytest.mark.asyncio
-async def test_scrape_multiple_leagues_success():
-    """Test _scrape_multiple_leagues with successful scraping."""
+async def test_scrape_league_season_combos_success():
+    """Test _scrape_league_season_combos with successful scraping."""
     scraper_mock = MagicMock()
     scrape_func_mock = AsyncMock()
 
@@ -593,12 +593,12 @@ async def test_scrape_multiple_leagues_success():
     leagues = ["england-premier-league", "spain-primera-division", "italy-serie-a"]
 
     with patch("oddsharvester.core.scraper_app.retry_scrape", scrape_func_mock):
-        result = await _scrape_multiple_leagues(
+        result = await _scrape_league_season_combos(
             scraper=scraper_mock,
             scrape_func=scrape_func_mock,
             leagues=leagues,
             sport="football",
-            season="2023",
+            seasons=["2023"],
             markets=["1x2"],
         )
 
@@ -615,8 +615,8 @@ async def test_scrape_multiple_leagues_success():
 
 
 @pytest.mark.asyncio
-async def test_scrape_multiple_leagues_with_failures():
-    """Test _scrape_multiple_leagues with some league failures."""
+async def test_scrape_league_season_combos_with_failures():
+    """Test _scrape_league_season_combos with some league failures."""
     scraper_mock = MagicMock()
     scrape_func_mock = AsyncMock()
 
@@ -636,12 +636,12 @@ async def test_scrape_multiple_leagues_with_failures():
     leagues = ["england-premier-league", "spain-primera-division", "italy-serie-a"]
 
     with patch("oddsharvester.core.scraper_app.retry_scrape", scrape_func_mock):
-        result = await _scrape_multiple_leagues(
+        result = await _scrape_league_season_combos(
             scraper=scraper_mock,
             scrape_func=scrape_func_mock,
             leagues=leagues,
             sport="football",
-            season="2023",
+            seasons=["2023"],
         )
 
     # Verify all leagues were attempted
@@ -656,8 +656,8 @@ async def test_scrape_multiple_leagues_with_failures():
 
 
 @pytest.mark.asyncio
-async def test_scrape_multiple_leagues_empty_results():
-    """Test _scrape_multiple_leagues with empty results from some leagues."""
+async def test_scrape_league_season_combos_empty_results():
+    """Test _scrape_league_season_combos with empty results from some leagues."""
     scraper_mock = MagicMock()
     scrape_func_mock = AsyncMock()
 
@@ -674,7 +674,7 @@ async def test_scrape_multiple_leagues_empty_results():
     leagues = ["england-premier-league", "spain-primera-division", "italy-serie-a"]
 
     with patch("oddsharvester.core.scraper_app.retry_scrape", scrape_func_mock):
-        result = await _scrape_multiple_leagues(
+        result = await _scrape_league_season_combos(
             scraper=scraper_mock,
             scrape_func=scrape_func_mock,
             leagues=leagues,
@@ -696,7 +696,7 @@ async def test_run_scraper_multiple_leagues_historic():
         patch("oddsharvester.core.scraper_app.PlaywrightManager"),
         patch("oddsharvester.core.scraper_app.ProxyManager"),
         patch("oddsharvester.core.scraper_app.SportMarketRegistrar"),
-        patch("oddsharvester.core.scraper_app._scrape_multiple_leagues") as multi_scrape_mock,
+        patch("oddsharvester.core.scraper_app._scrape_league_season_combos") as multi_scrape_mock,
     ):
         scraper_mock = MagicMock()
         scraper_mock.start_playwright = AsyncMock()
@@ -709,16 +709,16 @@ async def test_run_scraper_multiple_leagues_historic():
             command=CommandEnum.HISTORIC,
             sport="football",
             leagues=["england-premier-league", "spain-primera-division"],
-            season="2023",
+            seasons=["2023"],
             markets=["1x2"],
         )
 
-        # Verify _scrape_multiple_leagues was called for multiple leagues
+        # Verify _scrape_league_season_combos was called for multiple leagues
         multi_scrape_mock.assert_called_once()
         call_args = multi_scrape_mock.call_args
         assert call_args[1]["leagues"] == ["england-premier-league", "spain-primera-division"]
         assert call_args[1]["sport"] == "football"
-        assert call_args[1]["season"] == "2023"
+        assert call_args[1]["seasons"] == ["2023"]
 
         assert result == [{"combined": "data"}]
 
@@ -797,3 +797,124 @@ async def test_run_scraper_forwards_local_kickoff(monkeypatch):
         local_kickoff=True,
     )
     assert captured["local_kickoff"] is True
+
+
+@pytest.mark.asyncio
+async def test_combos_iterate_league_outer_season_inner():
+    """Output must be grouped by league, then by season, deterministically."""
+    scraper_mock = MagicMock()
+    scrape_func_mock = AsyncMock()
+    scrape_func_mock.return_value = ScrapeResult(success=[{"m": "x"}], stats=ScrapeStats(total_urls=1, successful=1))
+
+    with patch("oddsharvester.core.scraper_app.retry_scrape", scrape_func_mock):
+        await _scrape_league_season_combos(
+            scraper=scraper_mock,
+            scrape_func=scrape_func_mock,
+            leagues=["epl", "laliga"],
+            sport="football",
+            seasons=["2020-2021", "2021-2022"],
+        )
+
+    ordered = [(c.kwargs["league"], c.kwargs["season"]) for c in scrape_func_mock.call_args_list]
+    assert ordered == [
+        ("epl", "2020-2021"),
+        ("epl", "2021-2022"),
+        ("laliga", "2020-2021"),
+        ("laliga", "2021-2022"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_no_seasons_passes_no_season_kwarg():
+    """The upcoming path shares this helper and scrape_upcoming has no season parameter."""
+    scraper_mock = MagicMock()
+    scrape_func_mock = AsyncMock()
+    scrape_func_mock.return_value = ScrapeResult(success=[{"m": "x"}], stats=ScrapeStats(total_urls=1, successful=1))
+
+    with patch("oddsharvester.core.scraper_app.retry_scrape", scrape_func_mock):
+        await _scrape_league_season_combos(
+            scraper=scraper_mock,
+            scrape_func=scrape_func_mock,
+            leagues=["epl", "laliga"],
+            sport="football",
+            seasons=None,
+        )
+
+    assert len(scrape_func_mock.call_args_list) == 2
+    for call in scrape_func_mock.call_args_list:
+        assert "season" not in call.kwargs
+
+
+@pytest.mark.asyncio
+async def test_combo_stats_records_zero_link_combo():
+    """A combo returning nothing is recorded with a zero count, not as an error."""
+    scraper_mock = MagicMock()
+    scrape_func_mock = AsyncMock()
+    scrape_func_mock.side_effect = [
+        ScrapeResult(success=[{"m": "x"}], stats=ScrapeStats(total_urls=1, successful=1)),
+        ScrapeResult(success=[], stats=ScrapeStats(total_urls=0, successful=0)),
+    ]
+
+    with patch("oddsharvester.core.scraper_app.retry_scrape", scrape_func_mock):
+        result = await _scrape_league_season_combos(
+            scraper=scraper_mock,
+            scrape_func=scrape_func_mock,
+            leagues=["russia-premier-league"],
+            sport="football",
+            seasons=["2011-2012", "2011"],
+        )
+
+    assert result.combo_stats == [
+        {"league": "russia-premier-league", "season": "2011-2012", "successful": 1, "failed": 0, "errored": False},
+        {"league": "russia-premier-league", "season": "2011", "successful": 0, "failed": 0, "errored": False},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_combo_stats_distinguishes_errored_from_empty():
+    """An errored combo is worth re-running; an empty one usually is not."""
+    scraper_mock = MagicMock()
+    scrape_func_mock = AsyncMock()
+    scrape_func_mock.side_effect = [
+        ScrapeResult(success=[], stats=ScrapeStats(total_urls=0, successful=0)),
+        Exception("Network error"),
+    ]
+
+    with patch("oddsharvester.core.scraper_app.retry_scrape", scrape_func_mock):
+        result = await _scrape_league_season_combos(
+            scraper=scraper_mock,
+            scrape_func=scrape_func_mock,
+            leagues=["epl"],
+            sport="football",
+            seasons=["2020", "2021"],
+        )
+
+    assert [c["errored"] for c in result.combo_stats] == [False, True]
+    assert result.stats.successful == 0
+
+
+@pytest.mark.asyncio
+async def test_single_league_single_season_skips_the_combo_helper():
+    """One league and one season must keep the direct single-call path (no behaviour drift)."""
+    with (
+        patch("oddsharvester.core.scraper_app.OddsPortalScraper") as scraper_cls_mock,
+        patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor"),
+        patch("oddsharvester.core.scraper_app.PlaywrightManager"),
+        patch("oddsharvester.core.scraper_app.ProxyManager"),
+        patch("oddsharvester.core.scraper_app.SportMarketRegistrar"),
+        patch("oddsharvester.core.scraper_app._scrape_league_season_combos") as combos_mock,
+    ):
+        scraper_mock = MagicMock()
+        scraper_mock.start_playwright = AsyncMock()
+        scraper_mock.stop_playwright = AsyncMock()
+        scraper_mock.scrape_historic = AsyncMock(return_value=ScrapeResult())
+        scraper_cls_mock.return_value = scraper_mock
+
+        await run_scraper(
+            command="scrape_historic",
+            sport="football",
+            leagues=["england-premier-league"],
+            seasons=["2024"],
+        )
+
+    assert not combos_mock.called
