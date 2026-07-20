@@ -106,6 +106,7 @@ class ScrapeResult:
     failed: list[FailedUrl] = field(default_factory=list)
     partial: list[PartialResult] = field(default_factory=list)
     stats: ScrapeStats = field(default_factory=ScrapeStats)
+    combo_stats: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -114,6 +115,7 @@ class ScrapeResult:
             "failed": [f.to_dict() for f in self.failed],
             "partial": [p.to_dict() for p in self.partial],
             "stats": self.stats.to_dict(),
+            "combo_stats": self.combo_stats,
         }
 
     def merge(self, other: "ScrapeResult") -> "ScrapeResult":

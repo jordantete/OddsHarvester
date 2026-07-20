@@ -239,3 +239,29 @@ class TestScrapeResult:
         assert len(data["failed"]) == 1
         assert data["stats"]["total_urls"] == 2
         assert data["failed"][0]["error_type"] == "navigation"
+
+
+def test_combo_stats_defaults_to_empty_list():
+    result = ScrapeResult()
+    assert result.combo_stats == []
+
+
+def test_combo_stats_included_in_to_dict():
+    result = ScrapeResult()
+    result.combo_stats.append(
+        {"league": "england-premier-league", "season": "2021-2022", "successful": 380, "failed": 0, "errored": False}
+    )
+    assert result.to_dict()["combo_stats"] == [
+        {"league": "england-premier-league", "season": "2021-2022", "successful": 380, "failed": 0, "errored": False}
+    ]
+
+
+def test_merge_does_not_propagate_combo_stats():
+    """Only the combo helper writes combo_stats; merging per-combo results must not duplicate entries."""
+    target = ScrapeResult()
+    other = ScrapeResult()
+    other.combo_stats.append(
+        {"league": "spain-laliga", "season": "2020", "successful": 1, "failed": 0, "errored": False}
+    )
+    target.merge(other)
+    assert target.combo_stats == []
