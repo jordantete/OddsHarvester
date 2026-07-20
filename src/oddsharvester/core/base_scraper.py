@@ -6,6 +6,7 @@ import logging
 import random
 import re
 from typing import Any
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from bs4 import BeautifulSoup
@@ -28,6 +29,7 @@ from oddsharvester.core.retry import (
     retry_with_backoff,
 )
 from oddsharvester.core.scrape_result import FailedUrl, ScrapeResult, ScrapeStats
+from oddsharvester.core.url_builder import URLBuilder
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import (
     DEFAULT_REQUEST_DELAY_S,
@@ -520,6 +522,86 @@ class BaseScraper:
 
         except Exception as e:
             self.logger.error(f"Error extracting match links: {e}", exc_info=True)
+            return []
+
+    async def extract_live_match_links(
+        self,
+        page: Page,
+        sport: str | None = None,
+        league: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Extract match links and listing context from a live-now in-play listing.
+
+        Rows are `[data-testid='game-row']` elements; this listing carries no
+        `eventRow` class, unlike `/matches/`. The testid appears twice per row
+        (outer div and a nested div inside the anchor), so dedupe on href.
+        Hrefs here already carry the `/inplay-odds/#<id>` suffix.
+
+        Args:
+            page (Page): A Playwright Page instance for this task.
+            sport (Optional[str]): Sport slug, required when `league` is given.
+            league (Optional[str]): League slug; keeps only rows whose href sits
+                under the league URL path from SPORTS_LEAGUES_URLS_MAPPING.
+
+        Returns:
+            List[dict]: One dict per live match: {"match_link": str, "live_period": str | None}.
+        """
+        try:
+            league_path_prefix = None
+            if league and sport:
+                league_url = URLBuilder.get_league_url(sport, league)
+                league_path_prefix = urlsplit(league_url).path
+
+            html_content = await page.content()
+            soup = BeautifulSoup(html_content, "lxml")
+            rows = soup.find_all(attrs={"data-testid": OddsPortalSelectors.GAME_ROW_TESTID})
+
+            seen: set[str] = set()
+            results: list[dict[str, Any]] = []
+            offscreen_skipped = 0
+            league_filtered_out = 0
+
+            for row in rows:
+                if _is_offscreen_row(row):
+                    offscreen_skipped += 1
+                    continue
+
+                anchor = row.find("a", href=lambda h: h and "/inplay-odds/" in h)
+                if anchor is None:
+                    continue
+                href = anchor["href"]
+                if href in seen:
+                    continue
+                seen.add(href)
+
+                if league_path_prefix and not href.startswith(league_path_prefix):
+                    league_filtered_out += 1
+                    continue
+
+                period = None
+                time_el = row.find(attrs={"data-testid": OddsPortalSelectors.EVENT_ROW_TIME_ITEM_TESTID})
+                if time_el is not None:
+                    p = time_el.find("p")
+                    text = p.get_text(strip=True) if p else time_el.get_text(strip=True)
+                    period = text or None
+
+                results.append(
+                    {
+                        "match_link": f"{self.base_url or ODDSPORTAL_BASE_URL}{href}",
+                        "live_period": period,
+                    }
+                )
+
+            league_suffix = f", {league_filtered_out} rows outside league '{league}'" if league_path_prefix else ""
+            self.logger.info(
+                f"Extracted {len(results)} live match links "
+                f"({offscreen_skipped} offscreen rows skipped{league_suffix})."
+            )
+            return results
+
+        except Exception as e:
+            self.logger.error(f"Error extracting live match links: {e}", exc_info=True)
             return []
 
     async def _warm_proxy_contexts(self):

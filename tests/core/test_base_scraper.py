@@ -2243,3 +2243,106 @@ class TestParseLiveInfo:
             "live_score_away": None,
             "live_score_raw": None,
         }
+
+
+LIVE_NOW_LISTING_HTML = """
+<html><body>
+<div class="group flex" data-testid="game-row">
+  <a href="/tennis/h2h/janvier-maxime-S4riPNES/kuzmanov-dimitar-WEwUtEGs/inplay-odds/#t0bmQMVh">
+    <div class="column" data-testid="game-row">
+      <div data-testid="time-item"><p>1S</p></div>
+      <div data-testid="event-participants">Janvier M. - Kuzmanov D.</div>
+    </div>
+  </a>
+</div>
+<div class="group flex" data-testid="game-row">
+  <a href="/football/england/premier-league/arsenal-chelsea-xYz12345/inplay-odds/#aB3dE6fG">
+    <div class="column" data-testid="game-row">
+      <div data-testid="time-item"><p>65'</p></div>
+      <div data-testid="event-participants">Arsenal - Chelsea</div>
+    </div>
+  </a>
+</div>
+<div class="group flex" data-testid="game-row" style="position:absolute;left:-9999px">
+  <a href="/football/england/premier-league/hidden-twin-corrupt/inplay-odds/#zzz">
+    <div class="column" data-testid="game-row"></div>
+  </a>
+</div>
+</body></html>
+"""
+
+
+@pytest.mark.asyncio
+async def test_extract_live_match_links(setup_base_scraper_mocks):
+    """Live-now rows yield absolute in-play links plus their period marker."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(return_value=LIVE_NOW_LISTING_HTML)
+
+    rows = await scraper.extract_live_match_links(page=page_mock)
+
+    assert [r["match_link"] for r in rows] == [
+        "https://www.oddsportal.com/tennis/h2h/janvier-maxime-S4riPNES/kuzmanov-dimitar-WEwUtEGs/inplay-odds/#t0bmQMVh",
+        "https://www.oddsportal.com/football/england/premier-league/arsenal-chelsea-xYz12345/inplay-odds/#aB3dE6fG",
+    ]
+    assert rows[0]["live_period"] == "1S"
+    assert rows[1]["live_period"] == "65'"
+
+
+@pytest.mark.asyncio
+async def test_extract_live_match_links_skips_offscreen_twin(setup_base_scraper_mocks):
+    """The CSS-hidden duplicate row is dropped, not returned as a third match."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(return_value=LIVE_NOW_LISTING_HTML)
+
+    rows = await scraper.extract_live_match_links(page=page_mock)
+
+    assert len(rows) == 2
+    assert not any("hidden-twin-corrupt" in r["match_link"] for r in rows)
+
+
+@pytest.mark.asyncio
+async def test_extract_live_match_links_league_filter(setup_base_scraper_mocks):
+    """A league slug keeps only rows whose href sits under that league path."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(return_value=LIVE_NOW_LISTING_HTML)
+
+    rows = await scraper.extract_live_match_links(page=page_mock, sport="football", league="england-premier-league")
+
+    assert len(rows) == 1
+    assert "arsenal-chelsea" in rows[0]["match_link"]
+
+
+@pytest.mark.asyncio
+async def test_extract_live_match_links_empty_listing(setup_base_scraper_mocks):
+    """No live matches is a normal outcome, not an error."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(return_value="<html><body></body></html>")
+
+    assert await scraper.extract_live_match_links(page=page_mock) == []
+
+
+@pytest.mark.asyncio
+async def test_extract_live_match_links_ignores_non_inplay_anchors(setup_base_scraper_mocks):
+    """Rows whose only anchor is a league link (not a match) are skipped."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(
+        return_value="""
+        <html><body>
+        <div data-testid="game-row">
+          <a href="/football/england/premier-league/">Premier League</a>
+        </div>
+        </body></html>
+        """
+    )
+
+    assert await scraper.extract_live_match_links(page=page_mock) == []
