@@ -129,7 +129,7 @@ class OddsPortalScraper(BaseScraper):
         self.logger.info("Step 3: Extracting odds from collected match links...")
         self.logger.info(f"Total unique matches to process: {len(link_result.links)}")
 
-        return await self.extract_match_odds(
+        result = await self.extract_match_odds(
             sport=sport,
             match_links=link_result.links,
             markets=markets,
@@ -141,6 +141,11 @@ class OddsPortalScraper(BaseScraper):
             period=period,
             request_delay=request_delay,
         )
+
+        for row in result.success:
+            row["season"] = season
+
+        return result
 
     async def scrape_upcoming(
         self,

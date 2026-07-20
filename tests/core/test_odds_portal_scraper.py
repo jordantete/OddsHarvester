@@ -417,6 +417,31 @@ async def test_scrape_historic_forwards_concurrent_scraping_task(url_builder_moc
 
 
 @pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_historic_stamps_season_on_rows(url_builder_mock, setup_scraper_mocks):
+    """Historic rows carry the season of their combo (issue #78)."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    url_builder_mock.get_historic_matches_url.return_value = "https://oddsportal.com/football/england/premier-league"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._get_pagination_info = AsyncMock(return_value=[1])
+    scraper._collect_match_links = AsyncMock(
+        return_value=LinkCollectionResult(links=["https://oddsportal.com/m1"], successful_pages=1, failed_pages=[])
+    )
+    scraper.extract_match_odds = AsyncMock(
+        return_value=ScrapeResult(
+            success=[{"match_date": "2022-04-09 14:00:00 UTC", "season": None}],
+            stats=ScrapeStats(total_urls=1, successful=1),
+        )
+    )
+
+    result = await scraper.scrape_historic(sport="football", league="premier-league", season="2021-2022")
+
+    assert result.success[0]["season"] == "2021-2022"
+
+
+@pytest.mark.asyncio
 async def test_prepare_page_for_scraping(setup_scraper_mocks):
     """Test preparing the page for scraping."""
     mocks = setup_scraper_mocks

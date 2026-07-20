@@ -1066,6 +1066,7 @@ class BaseScraper:
             details = {
                 "scraped_date": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S %Z"),
                 "match_date": match_date,
+                "season": None,
                 "match_link": match_link,
                 "home_team": home_team,
                 "away_team": away_team,
