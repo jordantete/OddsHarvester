@@ -127,6 +127,29 @@ async def run_scraper(
             proxy_manager=proxy_manager,
         )
 
+        # Checked before the generic match_links branch: live scraping needs its own
+        # in-play flow even when specific match links are supplied.
+        if command == CommandEnum.LIVE:
+            if not sport:
+                raise ValueError("'sport' must be provided for live scraping.")
+
+            logger.info(f"""
+                Scraping live matches for sport={sport}, leagues={leagues}, markets={markets},
+                target_bookmaker={target_bookmaker}, bookies_filter={bookies_filter}
+            """)
+            return await retry_scrape(
+                scraper.scrape_live,
+                sport=sport,
+                league=leagues[0] if leagues else None,
+                markets=markets,
+                match_links=list(match_links) if match_links else None,
+                target_bookmaker=target_bookmaker,
+                bookies_filter=bookies_filter_enum,
+                request_delay=request_delay,
+                concurrent_scraping_task=concurrency_tasks,
+                links_only=links_only,
+            )
+
         if match_links and sport:
             logger.info(f"""
                 Scraping specific matches: {match_links} for sport: {sport}, markets={markets},
@@ -261,7 +284,9 @@ async def run_scraper(
                 )
 
         else:
-            raise ValueError(f"Unknown command: {command}. Supported commands are 'upcoming-matches' and 'historic'.")
+            raise ValueError(
+                f"Unknown command: {command}. Supported commands are 'upcoming-matches', 'historic' and 'live'."
+            )
 
     except Exception as e:
         logger.error(f"An error occured: {e}")

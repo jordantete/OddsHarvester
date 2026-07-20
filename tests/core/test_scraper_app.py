@@ -27,6 +27,7 @@ def setup_mocks():
     scraper_mock.scrape_historic = AsyncMock(return_value={"result": "historic_data"})
     scraper_mock.scrape_upcoming = AsyncMock(return_value={"result": "upcoming_data"})
     scraper_mock.scrape_matches = AsyncMock(return_value={"result": "match_data"})
+    scraper_mock.scrape_live = AsyncMock(return_value={"result": "live_data"})
 
     return {
         "playwright_manager_mock": playwright_manager_mock,
@@ -957,3 +958,87 @@ async def test_single_league_single_season_skips_the_combo_helper():
 
     assert not combos_mock.called
     scraper_mock.scrape_historic.assert_called_once()
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.scraper_app.OddsPortalScraper")
+@patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
+@patch("oddsharvester.core.scraper_app.PlaywrightManager")
+@patch("oddsharvester.core.scraper_app.ProxyManager")
+@patch("oddsharvester.core.scraper_app.SportMarketRegistrar")
+async def test_run_scraper_routes_live_command(
+    sport_market_registrar_mock,
+    proxy_manager_mock,
+    playwright_manager_mock,
+    market_extractor_mock,
+    scraper_cls_mock,
+    setup_mocks,
+):
+    """The live command routes to scrape_live with the single league unwrapped."""
+    scraper_mock = setup_mocks["scraper_mock"]
+    scraper_cls_mock.return_value = scraper_mock
+
+    result = await run_scraper(command="scrape_live", sport="football", markets=["1x2"])
+
+    scraper_mock.scrape_live.assert_awaited_once()
+    kwargs = scraper_mock.scrape_live.await_args.kwargs
+    assert kwargs["sport"] == "football"
+    assert kwargs["league"] is None
+    assert kwargs["markets"] == ["1x2"]
+    assert result == {"result": "live_data"}
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.scraper_app.OddsPortalScraper")
+@patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
+@patch("oddsharvester.core.scraper_app.PlaywrightManager")
+@patch("oddsharvester.core.scraper_app.ProxyManager")
+@patch("oddsharvester.core.scraper_app.SportMarketRegistrar")
+async def test_run_scraper_live_with_match_links_uses_scrape_live_not_scrape_matches(
+    sport_market_registrar_mock,
+    proxy_manager_mock,
+    playwright_manager_mock,
+    market_extractor_mock,
+    scraper_cls_mock,
+    setup_mocks,
+):
+    """The generic match_links branch must not swallow the live command."""
+    scraper_mock = setup_mocks["scraper_mock"]
+    scraper_cls_mock.return_value = scraper_mock
+
+    await run_scraper(
+        command="scrape_live",
+        sport="football",
+        match_links=["https://www.oddsportal.com/football/x/y/z-abc/"],
+        markets=["1x2"],
+    )
+
+    scraper_mock.scrape_live.assert_awaited_once()
+    scraper_mock.scrape_matches.assert_not_awaited()
+    assert scraper_mock.scrape_live.await_args.kwargs["match_links"] == [
+        "https://www.oddsportal.com/football/x/y/z-abc/"
+    ]
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.scraper_app.OddsPortalScraper")
+@patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
+@patch("oddsharvester.core.scraper_app.PlaywrightManager")
+@patch("oddsharvester.core.scraper_app.ProxyManager")
+@patch("oddsharvester.core.scraper_app.SportMarketRegistrar")
+async def test_run_scraper_live_requires_sport(
+    sport_market_registrar_mock,
+    proxy_manager_mock,
+    playwright_manager_mock,
+    market_extractor_mock,
+    scraper_cls_mock,
+    setup_mocks,
+):
+    """Live scraping without a sport has no listing to read; it must not silently succeed."""
+    scraper_mock = setup_mocks["scraper_mock"]
+    scraper_cls_mock.return_value = scraper_mock
+
+    result = await run_scraper(command="scrape_live", sport=None, markets=["1x2"])
+
+    assert result is None
+    scraper_mock.scrape_live.assert_not_awaited()
