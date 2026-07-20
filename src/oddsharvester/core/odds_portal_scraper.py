@@ -563,6 +563,18 @@ class OddsPortalScraper(BaseScraper):
 
                 self.logger.info(f"Extracting match links from page {page_number}...")
                 links = await self.extract_match_links(page=tab)
+
+                # Pagination promised this page exists, so zero rows means it did not
+                # render: throttled, blocked, or a parse failure that extract_match_links
+                # swallowed into an empty list. Counting it as collected is how a run
+                # silently returns page 1 only while reporting no failures at all.
+                # A single planned page is different: an empty season legitimately has
+                # one empty page, which is the documented way to spot an invalid combo.
+                if not links and len(pages_to_scrape) > 1:
+                    result.failed_pages.append(page_number)
+                    self.logger.warning(f"Page {page_number} returned no links; treating it as failed.")
+                    continue
+
                 all_links.extend(links)
                 result.successful_pages += 1
                 self.logger.info(f"Extracted {len(links)} links from page {page_number}")

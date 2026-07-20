@@ -835,3 +835,47 @@ async def test_scrape_historic_clean_run_reports_no_listing_failures(url_builder
 
     assert result.failed == []
     assert result.stats.failed == 0
+
+
+@pytest.mark.asyncio
+async def test_collect_match_links_treats_empty_page_as_failure(setup_scraper_mocks):
+    """A page that yields zero links has not been collected, whatever the reason.
+
+    extract_match_links swallows its exceptions and returns [], and a throttled
+    or blocked page renders no rows at all. Counting either as a successful page
+    is how a run silently returns page 1 only while reporting zero failures.
+    """
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock()
+    mocks["playwright_manager_mock"].context.new_page = AsyncMock(return_value=tab)
+    scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+    # page 1 renders, pages 2 and 3 come back empty
+    scraper.extract_match_links = AsyncMock(side_effect=[["https://m1", "https://m2"], [], []])
+
+    result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1, 2, 3])
+
+    assert result.links == ["https://m1", "https://m2"]
+    assert result.successful_pages == 1, "an empty page must not count as collected"
+    assert result.failed_pages == [2, 3]
+
+
+@pytest.mark.asyncio
+async def test_collect_match_links_keeps_single_empty_page_successful(setup_scraper_mocks):
+    """A genuinely empty season returns zero links on its only page, and that is not an error.
+
+    Documented behaviour: OddsPortal answers HTTP 200 for a dead season URL, so an
+    empty single-page result is the normal way to learn a combo is invalid.
+    """
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock()
+    mocks["playwright_manager_mock"].context.new_page = AsyncMock(return_value=tab)
+    scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+    scraper.extract_match_links = AsyncMock(return_value=[])
+
+    result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1])
+
+    assert result.links == []
+    assert result.successful_pages == 1
+    assert result.failed_pages == []
