@@ -935,19 +935,20 @@ is confirmed live.
 cartesian product with `--league`, sequentially, league outer and season
 inner (issue #78, `_scrape_league_season_combos` in
 `core/scraper_app.py`). Some leagues changed season format mid-history
-(Russia moved from calendar-year to autumn-spring format in 2011-2012,
-several South American leagues moved the other way), so a bulk request
-spanning that boundary has to pass both formats and accept that the
-wrong-format pairs return nothing.
+(Russia moved from calendar-year to autumn-spring format in 2011-2012),
+so a bulk request spanning that boundary has to pass both formats and
+accept that the wrong-format pairs return nothing.
 
 The scraper does not try to pre-filter which `(league, season)` pairs are
-valid before scraping them. It cannot: §4 already established that a dead
-season URL on OddsPortal returns HTTP 200 with a valid-looking `<title>`,
-and only the absence of `eventRow` match links reveals it is dead. There is
-no cheap request (a HEAD, a status check) that tells a wrong-format season
-apart from a right one; the only signal is doing the actual listing scrape
-and counting links. A pre-filtering pass would cost the same network round
-trip as just scraping the combo, for no benefit.
+valid before scraping them. It cannot: §4 established this behaviour for
+dead league-slug URLs, and by analogy the same pattern holds for wrong
+season suffixes. A dead season URL on OddsPortal returns HTTP 200 with a
+valid-looking `<title>`, and only the absence of `eventRow` match links
+reveals it is dead. There is no cheap request (a HEAD, a status check)
+that tells a wrong-format season apart from a right one; the only signal
+is doing the actual listing scrape and counting links. A pre-filtering pass
+would cost the same network round trip as just scraping the combo, for no
+benefit.
 
 Because a zero-link result is the expected shape for an invalid pairing, not
 a scraper malfunction, a combo returning zero results is reported in the
