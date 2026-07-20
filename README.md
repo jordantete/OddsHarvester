@@ -36,6 +36,9 @@ oddsharvester upcoming -s football -d 20250301 -m 1x2 --headless
 # Scrape historical Premier League odds
 oddsharvester historic -s football -l england-premier-league --season 2024-2025 -m 1x2 --headless
 
+# Snapshot odds for matches in play right now
+oddsharvester live -s tennis -m match_winner --headless
+
 # Scrape community data (top predictions here; also --user profiles and --match-url votes)
 oddsharvester community -s football --headless
 ```
@@ -48,6 +51,7 @@ oddsharvester community -s football --headless
 | ---------------- | ----------------------- | -------------------------------------------------------------------------- |
 | **Upcoming**     | Scrape upcoming matches | Fetch odds and event details for upcoming sports matches by date or league |
 | **Historic**     | Scrape historical odds  | Retrieve past odds and match results for any season                        |
+| **Live**         | Snapshot in-play odds   | One-shot capture of matches in play, with live score, period and scrape timestamp |
 | **Community**    | Scrape community data   | Top predictions, tipster profiles (stats + picks), and per-match community votes |
 | **Multi-market** | Advanced parsing        | Structured data: dates, teams, scores, venues, and per-bookmaker odds      |
 | **Storage**      | Flexible output         | JSON, CSV (local), or direct upload to AWS S3                              |
@@ -82,7 +86,7 @@ oddsharvester community -s football --headless
 
 ## CLI Usage
 
-OddsHarvester has three commands: **`upcoming`**, **`historic`**, and **`community`**. They share most options, with a few command-specific ones.
+OddsHarvester has four commands: **`upcoming`**, **`historic`**, **`live`**, and **`community`**. They share most options, with a few command-specific ones.
 
 ### `oddsharvester upcoming`
 
@@ -128,6 +132,45 @@ oddsharvester historic -s football -l england-premier-league --season 2024-2025 
 # Umbrella market — expands to every Over/Under line rendered on the page
 oddsharvester historic -s football -l england-premier-league --season 2023-2024 --market over_under -f csv
 ```
+
+### `oddsharvester live`
+
+Take a one-shot snapshot of matches currently in play, with per-bookmaker in-play odds.
+
+```bash
+# Every live match for a sport
+oddsharvester live -s tennis -m match_winner --headless
+
+# Restricted to one league
+oddsharvester live -s football -l england-premier-league -m 1x2 --headless
+
+# Re-sample one known match without reloading the listing
+oddsharvester live -s football --match-link "https://www.oddsportal.com/football/..." -m 1x2 --headless
+
+# Collect live match links only
+oddsharvester live -s football --links-only -o live_links.json --headless
+```
+
+Each record carries the usual match metadata plus live context: `live_period`
+(the period marker as displayed, e.g. `1st Set`, `65'`, `HT`), `live_score_home`,
+`live_score_away`, `live_score_raw` (keeps compound formats such as
+`0:1 (3:6, 4:2)`), and `scraped_at_utc`, which is what makes a series of
+snapshots comparable.
+
+Notes:
+
+- **Zero live matches is a normal outcome**: the command prints a message and
+  exits 0 without writing a file.
+- **Matches that end between listing and scrape are dropped**, so a snapshot only
+  ever contains genuinely live matches.
+- **In-play bookmaker coverage is thinner than pre-match** (often 2 to 4
+  bookmakers instead of 15 to 20) and varies by region.
+- `--odds-history` and `--period` are rejected: the in-play view exposes neither.
+- **For repeated sampling, schedule the command externally** (cron or similar).
+  Keep at least 60 seconds between snapshots, and prefer `--match-link` to
+  re-sample a known match without re-reading the listing. The command itself
+  never refreshes a page, which keeps its request profile identical to
+  `upcoming`.
 
 ### `oddsharvester community`
 

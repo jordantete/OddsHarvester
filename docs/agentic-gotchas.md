@@ -986,6 +986,85 @@ re-running.
 
 ---
 
+## §16 — In-play (live) pages are a separate URL space with their own end-of-match signal
+
+**Severity:** High — treating the in-play view like a normal match page yields
+pre-match odds mixed with live ones, and finished matches silently recorded as
+live.
+
+OddsPortal serves live betting from a dedicated URL space, not from the pages
+the `upcoming` / `historic` commands already know:
+
+| What | URL |
+|---|---|
+| Matches in play now | `/inplay-odds/live-now/<sport>/` |
+| Matches that will have live odds | `/inplay-odds/scheduled/<sport>/` |
+| One match's live view | `<match_url>/inplay-odds/#<match_id>` |
+
+On a match page, **"Pre-match Odds" and "In-Play Odds" are two distinct tabs
+over the same event**. They must never be mixed in one record: the pre-match
+tab keeps serving its own bookmaker table while the match is running.
+
+### The live-now listing is not shaped like `/matches/`
+
+Rows carry no `eventRow` class. They are `[data-testid='game-row']` elements,
+and the same testid appears **twice per row**: once on the outer container and
+once on a nested div inside the anchor. Iterating the testid therefore yields
+roughly double the rows. Dedupe on the href, and skip nodes with no in-play
+anchor among their descendants. Listing hrefs already carry the
+`/inplay-odds/#<id>` suffix, so they need no rewriting.
+
+### A finished match keeps its live header
+
+The first wrong hypothesis to avoid: **the `live-info` container does not
+disappear when a match ends.** It stays, and the period marker is replaced by a
+terminal string (`Final result`, verified 2026-07-20 on tennis). Treating
+"container absent" as the only end-of-match signal lets finished matches through
+with `live_period = "Final result"`, exactly the bug the smoke test caught.
+
+Detection needs both signals:
+
+- container absent → not live;
+- container present but the period marker is a terminal state → not live.
+
+Text chunks in this container are separated with **non-breaking spaces**
+(`Final\u00a0result`), so normalize `\u00a0` before comparing. The main score
+uses a colon (`1:0`), but OddsPortal renders scores with an en-dash elsewhere,
+so accept both.
+
+### The page polls itself; the scraper must not
+
+An open in-play page refreshes odds in place via first-party feeds
+(`/feed/live-event/*.dat` roughly every 10s, `/feed/postmatch-score/*.dat` every
+3-4s) and mutates the DOM without navigating. A snapshot therefore needs exactly
+one page load and one parse. Never add a reload loop: repeated refreshes are the
+clearest bot signal this feature could send (see §6).
+
+### In-play bookmaker coverage is thin and geo-dependent
+
+A live match commonly exposes 2 to 4 bookmakers where the pre-match tab shows 15
+to 20 (observed from a French IP: Betclic.fr, Winamax, Bets.io, Stake.com). A
+near-empty in-play odds table is normal, not an extraction failure. Coverage
+varies by region, like the Pinnacle case in §3.
+
+### Live pages are ephemeral, so HAR fixtures are capture-once
+
+Once a match finishes, its in-play view is gone for good. A HAR must be captured
+while the match runs, and can then be replayed forever. This is why the live
+integration test self-discovers whatever is in play and skips when nothing is,
+instead of relying on a committed fixture.
+
+### Related observation on §9 (unconfirmed)
+
+While investigating, a `/matches/football/` listing appeared to render
+`FinishedFIN` inside `time-item`, where §9's table places it in
+`game-status-box`. The selector used may have matched a parent node, so this is
+**not confirmed drift**. It has no functional impact either way:
+`_row_has_started` flags the row through its time-item branch as well. Worth
+re-checking at the next listing fixture recapture.
+
+---
+
 ## Adding a new gotcha
 
 When a fix lands that exposes an OddsPortal-specific behaviour an agent
