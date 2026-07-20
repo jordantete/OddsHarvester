@@ -153,7 +153,7 @@ oddsharvester live -s football --links-only -o live_links.json --headless
 
 Each record carries the usual match metadata plus live context: `live_period`
 (the period marker exactly as the site displays it, so it is sport-specific:
-`4'` in football, `1st Set` in tennis, `9th Inning` in baseball), `live_score_home`,
+`4'` or `Half-time` in football, `1st Set` in tennis, `9th Inning` in baseball), `live_score_home`,
 `live_score_away`, `live_score_raw` (keeps compound formats such as
 `0:1 (3:6, 4:2)`), and `scraped_at_utc`, which is what makes a series of
 snapshots comparable.

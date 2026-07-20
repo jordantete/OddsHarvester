@@ -1033,10 +1033,12 @@ uses a colon (`1:0`), but OddsPortal renders scores with an en-dash elsewhere,
 so accept both.
 
 The period marker is sport-specific and must never be parsed as a fixed
-vocabulary. Verified 2026-07-20: `4'` (football, elapsed minutes with an
-apostrophe), `1st Set` / `2nd Set Tiebreak` (tennis), `9th Inning` (baseball).
-Match on shape instead: a chunk of the form `N:N` is the score, the remaining
-chunk is the period.
+vocabulary. It is not even consistent *within* a sport: football alternates
+between elapsed minutes (`4'`) and named phases (`Half-time`), both verified
+2026-07-20. Also verified: `1st Set` / `2nd Set Tiebreak` (tennis), `9th Inning`
+(baseball). Match on shape instead: a chunk of the form `N:N` is the score, the
+remaining chunk is the period. Any attempt to enumerate the vocabulary will be
+wrong within one sport, let alone across eleven.
 
 ### Being in play is not the same as having in-play odds
 
@@ -1069,9 +1071,18 @@ varies by region, like the Pinnacle case in §3.
 ### Live pages are ephemeral, so HAR fixtures are capture-once
 
 Once a match finishes, its in-play view is gone for good. A HAR must be captured
-while the match runs, and can then be replayed forever. This is why the live
-integration test self-discovers whatever is in play and skips when nothing is,
-instead of relying on a committed fixture.
+while the match runs, and can then be replayed forever. A captured HAR unblocks a
+deterministic replay test that runs by default; the self-discovering live-network
+test stays as a complement, run with `--live`.
+
+A live HAR is not a frozen instant. The page self-refreshes via first-party
+`.dat` feeds, and recording in `record_har_mode="full"` stores every snapshot
+that arrived during capture. On replay, timing selects one of them, so
+`live_period` and `live_score` are non-deterministic across replays of the same
+HAR (a match captured at `Half-time` replayed later as `49'`). A replay test must
+assert the *shape* of the live context (a period marker is present, the score
+matches `\d+:\d+`) and the *fixed identity* of the match (teams, league, date,
+odds table), never the captured period or score value.
 
 ### Related observation on §9 (unconfirmed)
 
