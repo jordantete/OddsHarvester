@@ -127,6 +127,12 @@ class TestHistoricCommand:
         assert result.exit_code != 0
         assert "Second year must be exactly one year after" in result.output
 
+    def test_historic_empty_season_rejected(self, runner, mock_run_scraper):
+        """--season "" must fail validation, not silently fall back to the current season (issue #78 regression)."""
+        result = runner.invoke(cli, ["historic", "-s", "football", "--season", ""])
+        assert result.exit_code != 0
+        assert not mock_run_scraper["historic"].called
+
     def test_historic_valid_season_formats(self, runner, mock_run_scraper):
         """Test valid season formats are accepted (parsing only)."""
         # Single year format
@@ -409,6 +415,71 @@ class TestLinksOnly:
         assert scraper_mock.call_args.kwargs["links_only"] is True
         assert "Collected 1 match links (0 listing pages failed)." in result.output
         store_mock.assert_called_once()
+
+
+class TestComboSummaryRendering:
+    """Tests for the per-combo summary table gate in `historic` (findings 2 and 4)."""
+
+    def _combo_result(self, combo_stats, success=None):
+        from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
+
+        success = success if success is not None else []
+        return ScrapeResult(
+            success=success,
+            stats=ScrapeStats(total_urls=len(success), successful=len(success), failed=0),
+            combo_stats=combo_stats,
+        )
+
+    def test_all_combos_empty_still_prints_summary_and_exits_1(self, runner):
+        """A run where every combo returns zero rows must still show the breakdown, and still exit 1 (finding 2)."""
+        combo_stats = [
+            {"league": "england-premier-league", "season": "2020", "successful": 0, "failed": 0, "errored": False},
+            {"league": "england-premier-league", "season": "2021", "successful": 0, "failed": 0, "errored": False},
+        ]
+        with patch(
+            "oddsharvester.cli.commands.historic.run_scraper",
+            new_callable=AsyncMock,
+            return_value=self._combo_result(combo_stats),
+        ) as scraper_mock:
+            result = runner.invoke(
+                cli,
+                ["historic", "-s", "football", "-l", "england-premier-league", "--season", "2020,2021"],
+            )
+        assert scraper_mock.called
+        assert result.exit_code == 1
+        assert "Collected matches across 2 combos" in result.output
+        assert "2 combo(s) returned nothing." in result.output
+
+    @pytest.mark.parametrize("combo_count", [0, 1, 2])
+    def test_summary_table_only_shown_for_more_than_one_combo(self, runner, combo_count):
+        """The table must appear only when there is more than one combo (finding 4)."""
+        combo_stats = [
+            {
+                "league": "england-premier-league",
+                "season": str(2020 + i),
+                "successful": 1,
+                "failed": 0,
+                "errored": False,
+            }
+            for i in range(combo_count)
+        ]
+        success = [{"match": "data"}] * max(combo_count, 1)
+        with (
+            patch(
+                "oddsharvester.cli.commands.historic.run_scraper",
+                new_callable=AsyncMock,
+                return_value=self._combo_result(combo_stats, success=success),
+            ),
+            patch("oddsharvester.cli.commands.historic.store_data"),
+        ):
+            result = runner.invoke(
+                cli,
+                ["historic", "-s", "football", "-l", "england-premier-league", "--season", "2020"],
+            )
+        if combo_count > 1:
+            assert "combos:" in result.output
+        else:
+            assert "combos:" not in result.output
 
 
 def test_all_registered_sport_periods_are_cli_selectable():

@@ -106,28 +106,34 @@ def historic(ctx, **kwargs):
             )
         )
 
-        if scraped_data and scraped_data.success:
-            store_data(
-                storage_type=storage.value if storage else "local",
-                data=scraped_data.success,
-                storage_format=storage_format.value if storage_format else "json",
-                file_path=kwargs.get("file_path"),
-                append=kwargs.get("append", False),
-            )
-            if links_only:
-                click.echo(
-                    f"Collected {scraped_data.stats.successful} match links "
-                    f"({scraped_data.stats.failed} listing pages failed)."
+        if scraped_data:
+            if scraped_data.success:
+                store_data(
+                    storage_type=storage.value if storage else "local",
+                    data=scraped_data.success,
+                    storage_format=storage_format.value if storage_format else "json",
+                    file_path=kwargs.get("file_path"),
+                    append=kwargs.get("append", False),
                 )
-            else:
-                click.echo(
-                    f"Successfully scraped {scraped_data.stats.successful} matches "
-                    f"({scraped_data.stats.failed} failed, {scraped_data.stats.success_rate:.1f}% success rate)."
-                )
+                if links_only:
+                    click.echo(
+                        f"Collected {scraped_data.stats.successful} match links "
+                        f"({scraped_data.stats.failed} listing pages failed)."
+                    )
+                else:
+                    click.echo(
+                        f"Successfully scraped {scraped_data.stats.successful} matches "
+                        f"({scraped_data.stats.failed} failed, {scraped_data.stats.success_rate:.1f}% success rate)."
+                    )
+
             if len(scraped_data.combo_stats) > 1:
                 click.echo(_format_combo_summary(scraped_data.combo_stats, links_only=links_only))
             if scraped_data.failed:
                 click.echo(f"Failed URLs: {[f.url for f in scraped_data.failed]}", err=True)
+
+            if not scraped_data.success:
+                logger.error("Scraper did not return valid data.")
+                sys.exit(1)
         else:
             logger.error("Scraper did not return valid data.")
             sys.exit(1)

@@ -53,7 +53,7 @@ def _validate_one_season(value: str) -> str:
 def validate_seasons(ctx, param, value):
     """Validate a list of seasons, preserving order and dropping duplicates."""
     if not value:
-        return None
+        raise click.BadParameter("At least one season must be provided.")
 
     seen: dict[str, None] = {}
     for item in value:

@@ -214,11 +214,13 @@ pagination) and does not emit per-prediction win/loss (use the monthly stats tab
 | `--links-only` |       | Collect match links only, without scraping odds (`--no-links-only` to opt out explicitly) | `--no-links-only` |
 | `--local-kickoff` |       | Add venue-local kickoff time to each record (`--no-local-kickoff` to opt out explicitly). Distinct from `--timezone` | `--no-local-kickoff` |
 
-> **Breaking change:** every output row now carries a `season` column, inserted
-> directly after `match_date`. It holds the scraped season for `historic` and is
-> empty for `upcoming` and `--match-link` runs. Appending to a file produced by
-> an earlier version yields a file with two different column layouts, so start a
-> new output file rather than appending across the upgrade.
+> **Breaking change:** every output row now carries a `season` column. For odds
+> rows it is inserted directly after `match_date`; `--links-only` rows have no
+> `match_date` and carry `season` alongside the other link fields instead. It
+> holds the scraped season for `historic` and is empty for `upcoming` and
+> `--match-link` runs. Appending to a file produced by an earlier version
+> yields a file with two different column layouts, so start a new output file
+> rather than appending across the upgrade.
 
 #### Browser & Scraping Options
 

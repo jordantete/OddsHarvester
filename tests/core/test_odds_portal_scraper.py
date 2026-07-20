@@ -290,7 +290,10 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
 @pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_scrape_upcoming_links_only(url_builder_mock, setup_scraper_mocks):
-    """links_only=True returns link rows with a date column; league may be None."""
+    """links_only=True returns link rows with a date column; league may be None.
+
+    `season` is always present (None here) so every row of every command carries the column (finding 3).
+    """
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
 
@@ -303,9 +306,15 @@ async def test_scrape_upcoming_links_only(url_builder_mock, setup_scraper_mocks)
 
     scraper.extract_match_odds.assert_not_called()
     assert result.success == [
-        {"match_link": "https://oddsportal.com/m1", "sport": "football", "league": None, "date": "20260720"}
+        {
+            "match_link": "https://oddsportal.com/m1",
+            "sport": "football",
+            "league": None,
+            "date": "20260720",
+            "season": None,
+        }
     ]
-    assert list(result.success[0].keys()) == ["match_link", "sport", "league", "date"]
+    assert list(result.success[0].keys()) == ["match_link", "sport", "league", "date", "season"]
     assert result.failed == []
     assert result.stats.successful == 1
     assert result.stats.total_urls == 1

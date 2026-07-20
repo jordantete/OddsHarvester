@@ -229,7 +229,7 @@ class OddsPortalScraper(BaseScraper):
             self.logger.info(f"Links-only mode: returning {len(match_links)} match links without odds.")
             return self._links_only_result(
                 links=match_links,
-                context={"sport": sport, "league": league, "date": date},
+                context={"sport": sport, "league": league, "date": date, "season": None},
             )
 
         return await self.extract_match_odds(
