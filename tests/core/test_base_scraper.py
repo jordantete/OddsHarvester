@@ -1295,6 +1295,13 @@ async def test_extract_match_details_declares_null_season(setup_base_scraper_moc
 
     assert "season" in result
     assert result["season"] is None
+    # Column position is part of the schema contract: the CSV header follows key order.
+    keys = list(result.keys())
+    season_idx = keys.index("season")
+    match_date_idx = keys.index("match_date")
+    match_link_idx = keys.index("match_link")
+    assert season_idx == match_date_idx + 1, f"season at index {season_idx}, expected {match_date_idx + 1}"
+    assert match_link_idx == season_idx + 1, f"match_link at index {match_link_idx}, expected {season_idx + 1}"
 
 
 @pytest.mark.asyncio
