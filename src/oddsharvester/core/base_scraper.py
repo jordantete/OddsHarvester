@@ -644,6 +644,7 @@ class BaseScraper:
         period: Enum | None = None,
         retry_config: RetryConfig | None = None,
         request_delay: float = DEFAULT_REQUEST_DELAY_S,
+        live_mode: bool = False,
     ) -> ScrapeResult:
         """
         Extract odds for a list of match links concurrently.
@@ -690,6 +691,7 @@ class BaseScraper:
                 preview_submarkets_only=preview_submarkets_only,
                 bookies_filter=bookies_filter,
                 period=period,
+                live_mode=live_mode,
             )
 
         request_counter = {"count": 0}
@@ -806,6 +808,7 @@ class BaseScraper:
         preview_submarkets_only: bool = False,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
+        live_mode: bool = False,
     ) -> dict[str, Any] | None:
         """
         Scrape data for a specific match based on the desired markets.
@@ -852,6 +855,16 @@ class BaseScraper:
                     f"No match details found for {match_link} - page may be unavailable or structure changed"
                 )
                 return None
+
+            if live_mode:
+                live_info = _parse_live_info(BeautifulSoup(await page.content(), "lxml"))
+                if live_info is None:
+                    # No live-info header: the match ended (or lost live coverage)
+                    # between listing and visit. Not a scraping failure.
+                    self.logger.info(f"No live-info header on {match_link}; match no longer live, skipping.")
+                    return {"_live_ended": True, "match_link": match_link}
+                match_details.update(live_info)
+                match_details["scraped_at_utc"] = datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
             if markets:
                 self.logger.info(f"Scraping markets: {markets}")

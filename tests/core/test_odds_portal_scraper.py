@@ -660,3 +660,118 @@ class TestFillPaginationGaps:
         pages = list(range(1, 11))
         result = scraper._fill_pagination_gaps(pages)
         assert result == list(range(1, 11))
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_live_no_matches_returns_empty_result(url_builder_mock, setup_scraper_mocks):
+    """No live match is a normal outcome: empty result, no failures."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    url_builder_mock.get_live_matches_url.return_value = "https://oddsportal.com/inplay-odds/live-now/football/"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.extract_live_match_links = AsyncMock(return_value=[])
+    scraper.extract_match_odds = AsyncMock()
+
+    result = await scraper.scrape_live(sport="football")
+
+    assert result.success == []
+    assert result.stats.total_urls == 0
+    scraper.extract_match_odds.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_live_links_only(url_builder_mock, setup_scraper_mocks):
+    """links_only=True returns the collected live links without scraping odds."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    url_builder_mock.get_live_matches_url.return_value = "https://oddsportal.com/inplay-odds/live-now/football/"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.extract_live_match_links = AsyncMock(
+        return_value=[{"match_link": "https://www.oddsportal.com/x/inplay-odds/#a", "live_period": "1H"}]
+    )
+    scraper.extract_match_odds = AsyncMock()
+
+    result = await scraper.scrape_live(sport="football", links_only=True)
+
+    assert result.success == [
+        {"match_link": "https://www.oddsportal.com/x/inplay-odds/#a", "sport": "football", "league": None}
+    ]
+    scraper.extract_match_odds.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_live_drops_ended_matches(url_builder_mock, setup_scraper_mocks):
+    """A match that ended between listing and visit is dropped, not counted as scraped."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    url_builder_mock.get_live_matches_url.return_value = "https://oddsportal.com/inplay-odds/live-now/football/"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.extract_live_match_links = AsyncMock(
+        return_value=[
+            {"match_link": "https://www.oddsportal.com/x/inplay-odds/#a", "live_period": "1H"},
+            {"match_link": "https://www.oddsportal.com/y/inplay-odds/#b", "live_period": "2H"},
+        ]
+    )
+    live_match = {"home_team": "A", "away_team": "B", "live_period": "1H"}
+    ended_marker = {"_live_ended": True, "match_link": "https://www.oddsportal.com/y/inplay-odds/#b"}
+    scraper.extract_match_odds = AsyncMock(
+        return_value=ScrapeResult(
+            success=[live_match, ended_marker],
+            stats=ScrapeStats(total_urls=2, successful=2, failed=0),
+        )
+    )
+
+    result = await scraper.scrape_live(sport="football", markets=["1x2"])
+
+    assert result.success == [live_match]
+    assert result.stats.successful == 1
+    assert result.stats.total_urls == 1
+
+
+@pytest.mark.asyncio
+async def test_scrape_live_with_match_links_normalizes_urls(setup_scraper_mocks):
+    """--match-link accepts a classic match URL and is normalized to its in-play form."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.extract_live_match_links = AsyncMock()
+    scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
+
+    await scraper.scrape_live(
+        sport="football",
+        markets=["1x2"],
+        match_links=["https://www.oddsportal.com/football/spain/laliga/real-betis-abc/"],
+    )
+
+    kwargs = scraper.extract_match_odds.call_args.kwargs
+    assert kwargs["match_links"] == ["https://www.oddsportal.com/football/spain/laliga/real-betis-abc/inplay-odds/"]
+    assert kwargs["live_mode"] is True
+    scraper.extract_live_match_links.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_live_never_scrapes_odds_history(url_builder_mock, setup_scraper_mocks):
+    """Live snapshots carry no odds history: the in-play view does not expose it."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    url_builder_mock.get_live_matches_url.return_value = "https://oddsportal.com/inplay-odds/live-now/football/"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.extract_live_match_links = AsyncMock(
+        return_value=[{"match_link": "https://www.oddsportal.com/x/inplay-odds/#a", "live_period": "1H"}]
+    )
+    scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
+
+    await scraper.scrape_live(sport="football", markets=["1x2"])
+
+    kwargs = scraper.extract_match_odds.call_args.kwargs
+    assert kwargs["scrape_odds_history"] is False
+    assert kwargs["period"] is None

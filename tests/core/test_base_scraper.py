@@ -2356,3 +2356,53 @@ async def test_extract_live_match_links_ignores_non_inplay_anchors(setup_base_sc
     )
 
     assert await scraper.extract_live_match_links(page=page_mock) == []
+
+
+@pytest.mark.asyncio
+async def test_scrape_match_data_live_mode_adds_live_fields(setup_base_scraper_mocks):
+    """Live mode enriches the match record with score, period and a scrape timestamp."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(return_value=f"<html><body>{LIVE_INFO_TENNIS_HTML}</body></html>")
+    scraper._extract_match_details_event_header = AsyncMock(return_value={"home_team": "A"})
+
+    data = await scraper._scrape_match_data(
+        page=page_mock, sport="tennis", match_link="https://x/inplay-odds/#a", live_mode=True
+    )
+
+    assert data["live_period"] == "2nd Set"
+    assert data["live_score_home"] == 1
+    assert data["live_score_away"] == 0
+    assert data["live_score_raw"] == "1:0 (6:4, 0:0)"
+    assert data["scraped_at_utc"].endswith("Z")
+
+
+@pytest.mark.asyncio
+async def test_scrape_match_data_live_mode_flags_ended_match(setup_base_scraper_mocks):
+    """A page without a live-info header means the match ended; flag it for the caller to drop."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(return_value="<html><body><div>FT 2:1</div></body></html>")
+    scraper._extract_match_details_event_header = AsyncMock(return_value={"home_team": "A"})
+
+    data = await scraper._scrape_match_data(
+        page=page_mock, sport="football", match_link="https://x/inplay-odds/#a", live_mode=True
+    )
+
+    assert data == {"_live_ended": True, "match_link": "https://x/inplay-odds/#a"}
+
+
+@pytest.mark.asyncio
+async def test_scrape_match_data_without_live_mode_adds_no_live_fields(setup_base_scraper_mocks):
+    """Default (non-live) scraping is untouched by the live-mode branch."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(return_value=f"<html><body>{LIVE_INFO_TENNIS_HTML}</body></html>")
+    scraper._extract_match_details_event_header = AsyncMock(return_value={"home_team": "A"})
+
+    data = await scraper._scrape_match_data(page=page_mock, sport="tennis", match_link="https://x/")
+
+    assert data == {"home_team": "A"}

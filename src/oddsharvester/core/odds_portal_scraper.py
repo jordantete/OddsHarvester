@@ -6,8 +6,9 @@ import random
 from playwright.async_api import Page
 
 from oddsharvester.core.base_scraper import BaseScraper
+from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult, ScrapeStats
-from oddsharvester.core.url_builder import URLBuilder
+from oddsharvester.core.url_builder import URLBuilder, normalize_inplay_match_url
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import (
     DEFAULT_REQUEST_DELAY_S,
@@ -244,6 +245,93 @@ class OddsPortalScraper(BaseScraper):
             period=period,
             request_delay=request_delay,
         )
+
+    async def scrape_live(
+        self,
+        sport: str,
+        league: str | None = None,
+        markets: list[str] | None = None,
+        match_links: list[str] | None = None,
+        target_bookmaker: str | None = None,
+        bookies_filter: BookiesFilter = BookiesFilter.ALL,
+        request_delay: float = DEFAULT_REQUEST_DELAY_S,
+        concurrent_scraping_task: int = 3,
+        links_only: bool = False,
+    ) -> ScrapeResult:
+        """
+        Scrapes a one-shot snapshot of in-play odds for currently live matches.
+
+        Listing source is /inplay-odds/live-now/<sport>/; each match is scraped
+        on its in-play view (per-bookmaker live odds plus live score/period).
+        When `match_links` is given the listing is skipped and those URLs are
+        normalized to their in-play form, which is the building block for
+        external re-sampling of a known match.
+
+        Args:
+            sport (str): The sport to scrape.
+            league (Optional[str]): Single league slug filter, applied after listing.
+            markets (Optional[List[str]]): List of markets.
+            match_links (Optional[List[str]]): Scrape these matches directly.
+            target_bookmaker (str): If set, only scrape odds for this bookmaker.
+            links_only (bool): If True, return collected live links without odds.
+
+        Returns:
+            ScrapeResult: Contains successful results, failed URLs, and statistics.
+        """
+        current_page = self.playwright_manager.page
+        if not current_page:
+            raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
+
+        if match_links:
+            links = [normalize_inplay_match_url(link) for link in match_links]
+            await current_page.goto(ODDSPORTAL_BASE_URL, timeout=GOTO_TIMEOUT_LONG_MS, wait_until="domcontentloaded")
+            await self._prepare_page_for_scraping(page=current_page)
+        else:
+            url = URLBuilder.get_live_matches_url(sport=sport, base_url=self.base_url)
+            self.logger.info(f"Fetching live matches from {url}")
+
+            await current_page.goto(url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
+            await self._prepare_page_for_scraping(page=current_page)
+            await self.scroller.scroll_until_loaded(
+                page=current_page,
+                timeout=30,
+                scroll_pause_time=2,
+                max_scroll_attempts=3,
+                content_check_selector=f"div[data-testid='{OddsPortalSelectors.GAME_ROW_TESTID}']",
+            )
+
+            rows = await self.extract_live_match_links(page=current_page, sport=sport, league=league)
+            if not rows:
+                self.logger.info("No live matches found on the live-now listing.")
+                return ScrapeResult()
+            links = [row["match_link"] for row in rows]
+
+        if links_only:
+            self.logger.info(f"Links-only mode: returning {len(links)} live match links without odds.")
+            return self._links_only_result(links=links, context={"sport": sport, "league": league})
+
+        result = await self.extract_match_odds(
+            sport=sport,
+            match_links=links,
+            markets=markets,
+            scrape_odds_history=False,
+            target_bookmaker=target_bookmaker,
+            concurrent_scraping_task=concurrent_scraping_task,
+            preview_submarkets_only=self.preview_submarkets_only,
+            bookies_filter=bookies_filter,
+            period=None,
+            request_delay=request_delay,
+            live_mode=True,
+        )
+
+        ended = [d for d in result.success if d.get("_live_ended")]
+        if ended:
+            self.logger.info(f"{len(ended)} matches ended between listing and scrape; dropped from output.")
+            result.success = [d for d in result.success if not d.get("_live_ended")]
+            result.stats.successful -= len(ended)
+            result.stats.total_urls -= len(ended)
+
+        return result
 
     async def scrape_matches(
         self,
