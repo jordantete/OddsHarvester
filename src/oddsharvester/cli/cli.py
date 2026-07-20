@@ -5,7 +5,7 @@ import logging
 import click
 
 from oddsharvester import __version__
-from oddsharvester.cli.commands import community, historic, upcoming
+from oddsharvester.cli.commands import community, historic, live, upcoming
 from oddsharvester.utils.setup_logging import setup_logger
 
 
@@ -47,6 +47,7 @@ def cli(ctx, verbose, quiet):
 cli.add_command(upcoming)
 cli.add_command(historic)
 cli.add_command(community)
+cli.add_command(live)
 
 
 def main():
