@@ -104,9 +104,9 @@ class TestHistoricCurrentSeason:
         process = _spawn_historic_league(sport=sport, league=league, market=market, output_path=output_path)
         _stdout, stderr = _wait_past_url_building(process)
 
-        assert (
-            "Invalid season format" not in stderr
-        ), f"`--season current` was rejected for {sport}/{league} — issue #59 regressed:\n{stderr}"
+        assert "Invalid season format" not in stderr, (
+            f"`--season current` was rejected for {sport}/{league} — issue #59 regressed:\n{stderr}"
+        )
 
         scraping_started_markers = (
             "Successfully navigated",

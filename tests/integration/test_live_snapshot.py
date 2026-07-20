@@ -111,9 +111,9 @@ def test_live_snapshot_replays_captured_football_match(tmp_path, har_for_match):
     # "Half-time", a later replay saw "49'"). Assert the SHAPE of the live context,
     # not the captured values.
     assert actual["live_period"], "a live record must carry a period marker"
-    assert re.fullmatch(
-        r"\d+:\d+.*", actual["live_score_raw"]
-    ), f"live_score_raw should start with a numeric score, got {actual['live_score_raw']!r}"
+    assert re.fullmatch(r"\d+:\d+.*", actual["live_score_raw"]), (
+        f"live_score_raw should start with a numeric score, got {actual['live_score_raw']!r}"
+    )
     assert str(actual["scraped_at_utc"]).endswith("Z")
 
     # Match identity, on the other hand, is fixed: it must never drift on replay.
@@ -161,9 +161,9 @@ def test_live_listing_replays_captured_live_now_page(tmp_path, har_for_match):
         row["match_link"].endswith(tuple("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
         for row in actual
     )
-    assert all(
-        "/inplay-odds/#" in row["match_link"] for row in actual
-    ), "listing hrefs must already carry the in-play path and fragment"
+    assert all("/inplay-odds/#" in row["match_link"] for row in actual), (
+        "listing hrefs must already carry the in-play path and fragment"
+    )
 
 
 @pytest.mark.live_only
@@ -185,17 +185,17 @@ def test_live_snapshot_self_discovering(tmp_path):
         assert records, f"{sport}: an output file was written but holds no records"
 
         for match in records:
-            assert str(match.get("scraped_at_utc", "")).endswith(
-                "Z"
-            ), f"{sport}: every live record needs a UTC scrape timestamp, got {match.get('scraped_at_utc')!r}"
+            assert str(match.get("scraped_at_utc", "")).endswith("Z"), (
+                f"{sport}: every live record needs a UTC scrape timestamp, got {match.get('scraped_at_utc')!r}"
+            )
             assert "live_period" in match, f"{sport}: live records must carry a period marker"
             assert "live_score_raw" in match, f"{sport}: live records must carry a raw score"
             assert "_live_ended" not in match, f"{sport}: the ended-match sentinel must never reach output"
 
         periods = {str(m.get("live_period", "")).casefold() for m in records}
-        assert not any(
-            "final" in p for p in periods
-        ), f"{sport}: finished matches leaked into a live snapshot: {sorted(periods)}"
+        assert not any("final" in p for p in periods), (
+            f"{sport}: finished matches leaked into a live snapshot: {sorted(periods)}"
+        )
         return
 
     pytest.skip("No live matches with in-play odds found on any candidate sport right now.")

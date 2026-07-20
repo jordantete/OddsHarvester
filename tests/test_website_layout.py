@@ -289,9 +289,9 @@ def test_match_layout_integrity(page, test_case):
     """Parameterized test to verify layout integrity for different sports."""
     tester = WebsiteLayoutTester(page)
 
-    assert tester.test_market_integrity(
-        test_case
-    ), f"Test failed for {test_case['sport']}: {test_case['description']}\nLogs: {chr(10).join(tester.logs)}"
+    assert tester.test_market_integrity(test_case), (
+        f"Test failed for {test_case['sport']}: {test_case['description']}\nLogs: {chr(10).join(tester.logs)}"
+    )
 
 
 @pytest.mark.skip(reason="Requires Playwright browser installation")
@@ -335,9 +335,9 @@ def test_sport_coverage():
 
     # Check that we have at least 2 different sports (football variants count as football)
     football_variants = [s for s in sports if s.startswith("football")]
-    assert (
-        len(football_variants) >= 2
-    ), f"Insufficient football coverage: only {len(football_variants)} football variants"
+    assert len(football_variants) >= 2, (
+        f"Insufficient football coverage: only {len(football_variants)} football variants"
+    )
 
     # Check that we have football coverage
     assert "football" in unique_sports or any(s.startswith("football") for s in unique_sports), "No football coverage"
