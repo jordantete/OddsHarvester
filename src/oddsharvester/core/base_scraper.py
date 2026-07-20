@@ -218,13 +218,33 @@ def _row_kickoff_datetime(row, row_date: date | None, tz) -> datetime | None:
 _LIVE_MAIN_SCORE_RE = re.compile(r"^(\d+)\s*[:\u2013-]\s*(\d+)$")
 
 
+# A finished match keeps its live-info container and swaps the period marker for a
+# terminal state, so an absent container is not the only end-of-match signal.
+# "Final result" verified live 2026-07-20; the rest mirror the listing-page states
+# in docs/agentic-gotchas.md §9.
+_LIVE_ENDED_PERIOD_MARKERS = frozenset(
+    {
+        "final result",
+        "finished",
+        "postponed",
+        "canceled",
+        "cancelled",
+        "abandoned",
+        "retired",
+        "walkover",
+    }
+)
+
+
 def _parse_live_info(soup: BeautifulSoup) -> dict[str, Any] | None:
     """Parse the in-play match header into live context fields.
 
     Structure (verified 2026-07-20): a `live-info` container holding a period
     chunk, a main-score chunk, and an optional `partial-result` element with
     the compound detail in parentheses. Match on text shape, not classes.
-    Returns None when the container is absent (match ended or not live).
+
+    Returns None when the match is not live, which covers two cases: the
+    container is absent, or it carries a terminal marker such as "Final result".
     """
     container = soup.find(attrs={"data-testid": OddsPortalSelectors.LIVE_INFO_TESTID})
     if container is None:
@@ -240,13 +260,18 @@ def _parse_live_info(soup: BeautifulSoup) -> dict[str, Any] | None:
     score_raw = None
     score_home = None
     score_away = None
-    for chunk in container.stripped_strings:
+    for raw_chunk in container.stripped_strings:
+        # OddsPortal separates words with non-breaking spaces in these chunks.
+        chunk = raw_chunk.replace("\u00a0", " ").strip()
         match = _LIVE_MAIN_SCORE_RE.match(chunk)
         if match and score_raw is None:
             score_raw = chunk
             score_home, score_away = int(match.group(1)), int(match.group(2))
         elif period is None and not match:
             period = chunk
+
+    if period and period.casefold() in _LIVE_ENDED_PERIOD_MARKERS:
+        return None
 
     live_score_raw = score_raw
     if score_raw and partial_text:

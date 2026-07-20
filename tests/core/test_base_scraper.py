@@ -2245,6 +2245,20 @@ class TestParseLiveInfo:
             "live_score_raw": "2\u20131",
         }
 
+    def test_returns_none_for_finished_match(self):
+        """A finished match keeps its live-info container but shows a terminal marker.
+
+        Verified live 2026-07-20: OddsPortal renders "Final result" (with a
+        non-breaking space) instead of dropping the container, so absence is not
+        the only end-of-match signal.
+        """
+        html = '<div data-testid="live-info"><div>Final\u00a0result</div><div>0:2</div></div>'
+        assert _parse_live_info(self._soup(html)) is None
+
+    def test_normalizes_non_breaking_space_in_period(self):
+        html = '<div data-testid="live-info"><div>1st\u00a0Set</div><div>0:0</div></div>'
+        assert _parse_live_info(self._soup(html))["live_period"] == "1st Set"
+
     def test_missing_score_yields_none_ints_and_keeps_period(self):
         result = _parse_live_info(self._soup('<div data-testid="live-info"><div>HT</div></div>'))
         assert result == {
