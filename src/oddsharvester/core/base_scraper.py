@@ -213,10 +213,12 @@ def _row_kickoff_datetime(row, row_date: date | None, tz) -> datetime | None:
     return datetime.combine(row_date, kickoff_time, tzinfo=tz)
 
 
-_LIVE_MAIN_SCORE_RE = re.compile(r"^(\d+)\s*[:\-]\s*(\d+)$")
+# Separator is a colon on the live header, but OddsPortal renders scores with an
+# en-dash (U+2013) elsewhere; accept both rather than silently dropping the score.
+_LIVE_MAIN_SCORE_RE = re.compile(r"^(\d+)\s*[:\u2013-]\s*(\d+)$")
 
 
-def _parse_live_info(soup) -> dict[str, Any] | None:
+def _parse_live_info(soup: BeautifulSoup) -> dict[str, Any] | None:
     """Parse the in-play match header into live context fields.
 
     Structure (verified 2026-07-20): a `live-info` container holding a period

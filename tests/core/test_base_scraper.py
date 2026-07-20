@@ -2235,6 +2235,16 @@ class TestParseLiveInfo:
     def test_returns_none_when_live_info_absent(self):
         assert _parse_live_info(self._soup("<div><p>Finished</p></div>")) is None
 
+    def test_parses_en_dash_score_separator(self):
+        """OddsPortal renders some scores with an en-dash rather than a colon."""
+        result = _parse_live_info(self._soup('<div data-testid="live-info"><div>HT</div><div>2\u20131</div></div>'))
+        assert result == {
+            "live_period": "HT",
+            "live_score_home": 2,
+            "live_score_away": 1,
+            "live_score_raw": "2\u20131",
+        }
+
     def test_missing_score_yields_none_ints_and_keeps_period(self):
         result = _parse_live_info(self._soup('<div data-testid="live-info"><div>HT</div></div>'))
         assert result == {
