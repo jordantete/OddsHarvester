@@ -23,6 +23,21 @@ def rebase_url(url: str, base_url: str | None) -> str:
     return urlunsplit((base.scheme, base.netloc, parts.path, parts.query, parts.fragment))
 
 
+def normalize_inplay_match_url(url: str) -> str:
+    """
+    Ensure a match URL points at its in-play view.
+
+    Inserts the `/inplay-odds/` path segment before the fragment when it is
+    missing. Idempotent. Live-now listing hrefs already carry the segment;
+    this exists for user-supplied --match-link values in classic form.
+    """
+    parts = urlsplit(url)
+    path = parts.path
+    if not path.rstrip("/").endswith("/inplay-odds"):
+        path = path.rstrip("/") + "/inplay-odds/"
+    return urlunsplit((parts.scheme, parts.netloc, path, parts.query, parts.fragment))
+
+
 class URLBuilder:
     """
     A utility class for constructing URLs used in scraping data from OddsPortal.
@@ -134,3 +149,21 @@ class URLBuilder:
             raise ValueError(f"Invalid league '{league}' for sport '{sport}'. Available: {', '.join(leagues.keys())}")
 
         return rebase_url(leagues[league], base_url)
+
+    @staticmethod
+    def get_live_matches_url(sport: str, base_url: str | None = None) -> str:
+        """
+        Constructs the URL for the live-now in-play listing of a sport.
+
+        Args:
+            sport (str): The sport for which the URL is required (e.g., "football").
+            base_url (Optional[str]): When provided, rebases the returned URL onto this scheme+host.
+
+        Returns:
+            str: The live-now listing URL, e.g. https://www.oddsportal.com/inplay-odds/live-now/football/
+
+        Raises:
+            ValueError: If the sport is not a known Sport enum value.
+        """
+        sport_value = Sport(sport).value
+        return rebase_url(f"{ODDSPORTAL_BASE_URL}/inplay-odds/live-now/{sport_value}/", base_url)

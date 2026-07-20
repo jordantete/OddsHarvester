@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from oddsharvester.core.url_builder import URLBuilder, rebase_url
+from oddsharvester.core.url_builder import URLBuilder, normalize_inplay_match_url, rebase_url
 from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
 from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from oddsharvester.utils.sport_market_constants import Sport
@@ -455,3 +455,34 @@ class TestUrlBuilderBaseUrl:
         assert URLBuilder.get_upcoming_matches_url(sport="football", date="2025-01-15").startswith(
             "https://www.oddsportal.com/"
         )
+
+
+class TestLiveUrls:
+    def test_get_live_matches_url(self):
+        url = URLBuilder.get_live_matches_url(sport="football")
+        assert url == "https://www.oddsportal.com/inplay-odds/live-now/football/"
+
+    def test_get_live_matches_url_rebases_on_base_url(self):
+        url = URLBuilder.get_live_matches_url(sport="football", base_url="https://www.centroquote.it")
+        assert url == "https://www.centroquote.it/inplay-odds/live-now/football/"
+
+    def test_get_live_matches_url_rejects_unknown_sport(self):
+        with pytest.raises(ValueError):
+            URLBuilder.get_live_matches_url(sport="chess")
+
+    def test_normalize_inplay_match_url_appends_segment(self):
+        url = "https://www.oddsportal.com/football/spain/laliga/real-madrid-barcelona-abc123/"
+        assert (
+            normalize_inplay_match_url(url)
+            == "https://www.oddsportal.com/football/spain/laliga/real-madrid-barcelona-abc123/inplay-odds/"
+        )
+
+    def test_normalize_inplay_match_url_preserves_fragment(self):
+        url = "https://www.oddsportal.com/tennis/h2h/a-x1/b-y2/#t0bmQMVh"
+        assert (
+            normalize_inplay_match_url(url) == "https://www.oddsportal.com/tennis/h2h/a-x1/b-y2/inplay-odds/#t0bmQMVh"
+        )
+
+    def test_normalize_inplay_match_url_idempotent(self):
+        url = "https://www.oddsportal.com/tennis/h2h/a-x1/b-y2/inplay-odds/#t0bmQMVh"
+        assert normalize_inplay_match_url(url) == url
