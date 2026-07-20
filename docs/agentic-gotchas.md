@@ -927,6 +927,64 @@ is confirmed live.
 
 ---
 
+## §15: The season/league cartesian product cannot pre-filter invalid pairs, because HTTP 200 is not validation (§4)
+
+**Severity:** Low (informational). Explains a design decision so a future contributor does not "fix" it into a network validation step.
+
+`historic --season` accepts a comma-separated list and is scraped as the
+cartesian product with `--league`, sequentially, league outer and season
+inner (issue #78, `_scrape_league_season_combos` in
+`core/scraper_app.py`). Some leagues changed season format mid-history
+(Russia moved from calendar-year to autumn-spring format in 2011-2012,
+several South American leagues moved the other way), so a bulk request
+spanning that boundary has to pass both formats and accept that the
+wrong-format pairs return nothing.
+
+The scraper does not try to pre-filter which `(league, season)` pairs are
+valid before scraping them. It cannot: §4 already established that a dead
+season URL on OddsPortal returns HTTP 200 with a valid-looking `<title>`,
+and only the absence of `eventRow` match links reveals it is dead. There is
+no cheap request (a HEAD, a status check) that tells a wrong-format season
+apart from a right one; the only signal is doing the actual listing scrape
+and counting links. A pre-filtering pass would cost the same network round
+trip as just scraping the combo, for no benefit.
+
+Because a zero-link result is the expected shape for an invalid pairing, not
+a scraper malfunction, a combo returning zero results is reported in the
+end-of-run summary table (`_format_combo_summary` in
+`cli/commands/historic.py`) as a zero-count row, not as an error, and does
+not affect the exit code. Only combos that raise (network error, parse
+exception) count toward the "errored" total; those are the ones worth
+re-running.
+
+### Detection signal
+
+- A bulk `--season` run against a league that changed format shows some
+  combos with a `0` count in the end-of-run table. That is expected, not a
+  bug, when the run intentionally passes both old- and new-format seasons.
+- Don't add a pre-scrape validation step for `(league, season)` pairs. It
+  can't be cheaper than the scrape itself (§4), and it would only duplicate
+  the zero-link signal the scraper already produces.
+
+### Fix pattern (i.e., how not to "fix" this)
+
+- Keep treating zero links as a normal, non-error outcome. If a future
+  report conflates "zero results" with "the scraper is broken," point back
+  to this entry and §4.
+- If a genuinely cheap way to know which `(league, season)` pairs exist is
+  ever found (e.g., an index OddsPortal publishes), that would obsolete the
+  cartesian brute-force scrape-and-count approach. No such source is
+  currently known.
+
+### References
+
+- §4's "HTTP 200 is not validation" point.
+- `core/scraper_app.py`: `_scrape_league_season_combos`.
+- `cli/commands/historic.py`: `_format_combo_summary`.
+- Issue #78.
+
+---
+
 ## Adding a new gotcha
 
 When a fix lands that exposes an OddsPortal-specific behaviour an agent

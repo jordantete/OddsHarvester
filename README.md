@@ -200,8 +200,8 @@ pagination) and does not emit per-prediction win/loss (use the monthly stats tab
 
 | Option        | Description                               | Default    |
 | ------------- | ----------------------------------------- | ---------- |
-| `--season`    | Season: `YYYY`, `YYYY-YYYY`, or `current` | _required_ |
-| `--max-pages` | Max number of result pages to scrape      | unlimited  |
+| `--season`    | Comma-separated seasons to scrape (`YYYY`, `YYYY-YYYY`, or `current`). Scraped as the cartesian product with `--league`. Duplicates are ignored. | _required_ |
+| `--max-pages` | Max number of result pages to scrape. Applies per league/season combo, not per run. | unlimited  |
 
 #### Output Options
 
@@ -213,6 +213,12 @@ pagination) and does not emit per-prediction win/loss (use the monthly stats tab
 | `--append`  |       | Append to the output file instead of overwriting it (`--no-append` to opt out explicitly) | `--no-append`  |
 | `--links-only` |       | Collect match links only, without scraping odds (`--no-links-only` to opt out explicitly) | `--no-links-only` |
 | `--local-kickoff` |       | Add venue-local kickoff time to each record (`--no-local-kickoff` to opt out explicitly). Distinct from `--timezone` | `--no-local-kickoff` |
+
+> **Breaking change:** every output row now carries a `season` column, inserted
+> directly after `match_date`. It holds the scraped season for `historic` and is
+> empty for `upcoming` and `--match-link` runs. Appending to a file produced by
+> an earlier version yields a file with two different column layouts, so start a
+> new output file rather than appending across the upgrade.
 
 #### Browser & Scraping Options
 
@@ -290,6 +296,28 @@ oddsharvester historic -s football --season 2022-2023 -m 1x2 -f csv -o odds.csv 
 ```
 
 Output rows contain `match_link`, `sport`, `league`, and `season` (`date` for `upcoming`), in the site's listing order. Options that only affect odds scraping (`--market`, `--period`, `--odds-history`, `--preview-only`, `--target-bookmaker`, `--bookies-filter`) are ignored when `--links-only` is set. `--links-only` cannot be combined with `--match-link`.
+
+### Bulk scraping: multiple leagues, multiple seasons
+
+`--season` and `--league` both accept comma-separated lists. `historic` scrapes every combination as the cartesian product, sequentially, league outer and season inner, so output stays grouped and deterministic. `--max-pages` applies per combo, not per run.
+
+```bash
+# Several seasons of one league
+oddsharvester historic --sport football --league england-premier-league \
+    --season 2020-2021,2021-2022,2022-2023 --links-only --format csv --output links.csv
+
+# Cartesian product: every league by every season
+oddsharvester historic --sport football \
+    --league england-premier-league,spain-laliga \
+    --season 2021-2022,2022-2023 --links-only
+
+# A league that changed season format mid-history: pass both formats and
+# let the invalid pairs report zero
+oddsharvester historic --sport football --league russia-premier-league \
+    --season 2010,2010-2011,2011,2011-2012 --links-only
+```
+
+No pre-filtering is attempted to figure out which `(league, season)` pairs are valid before scraping them; a wrong-format pair (e.g. `2010` for a league that only ever used `2010-2011`) is simply scraped and returns zero links. That is normal, not an error: OddsPortal returns HTTP 200 for a dead season URL, so the only way to tell a valid combo from an invalid one is to scrape it and count the results (see `docs/agentic-gotchas.md` §15). When more than one combo runs, an end-of-run table lists each league/season pair with its count, then reports how many combos returned nothing and how many errored. A zero-count combo does not affect the exit code; only errored combos are worth re-running.
 
 ### Local kickoff time
 
