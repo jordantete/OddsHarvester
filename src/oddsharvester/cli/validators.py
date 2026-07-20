@@ -28,11 +28,8 @@ def validate_date(ctx, param, value):
     return value
 
 
-def validate_season(ctx, param, value):
-    """Validate season format (YYYY, YYYY-YYYY, or 'current')."""
-    if value is None:
-        return None
-
+def _validate_one_season(value: str) -> str:
+    """Validate a single season token (YYYY, YYYY-YYYY, or 'current')."""
     if value.lower() == "current":
         return value
 
@@ -51,6 +48,22 @@ def validate_season(ctx, param, value):
         return value
 
     raise click.BadParameter(f"Invalid season format '{value}'. Expected YYYY, YYYY-YYYY, or 'current'.")
+
+
+def validate_seasons(ctx, param, value):
+    """Validate a list of seasons, preserving order and dropping duplicates."""
+    if not value:
+        return None
+
+    seen: dict[str, None] = {}
+    for item in value:
+        seen[_validate_one_season(item)] = None
+    return list(seen)
+
+
+def validate_season(ctx, param, value):
+    """Deprecated, superseded by validate_seasons. Removed once historic.py migrates."""
+    return _validate_one_season(value) if value else None
 
 
 def validate_match_links(ctx, param, value):
