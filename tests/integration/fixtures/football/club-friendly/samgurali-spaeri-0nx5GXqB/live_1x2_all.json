@@ -1,0 +1,32 @@
+[
+    {
+        "scraped_date": "2026-07-20 14:34:51 UTC",
+        "match_date": "2026-07-20 13:30:00 UTC",
+        "season": null,
+        "match_link": "https://www.oddsportal.com/football/h2h/samgurali-UVbdPPp5/spaeri-lhbBhs66/inplay-odds/#0nx5GXqB",
+        "home_team": "Spaeri",
+        "away_team": "Samgurali",
+        "league_name": "Club Friendly",
+        "home_score": "0",
+        "away_score": "0",
+        "partial_results": "(0:0)",
+        "venue": null,
+        "venue_town": null,
+        "venue_country": "",
+        "match_info": null,
+        "live_period": "Half-time",
+        "live_score_home": 0,
+        "live_score_away": 0,
+        "live_score_raw": "0:0 (0:0)",
+        "scraped_at_utc": "2026-07-20T14:34:51Z",
+        "1x2_market": [
+            {
+                "1": "2.45",
+                "X": "2.45",
+                "2": "3.45",
+                "bookmaker_name": "Bets.io",
+                "period": null
+            }
+        ]
+    }
+]
