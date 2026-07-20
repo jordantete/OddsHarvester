@@ -1084,6 +1084,72 @@ re-checking at the next listing fixture recapture.
 
 ---
 
+## §17 — A listing page can answer 200 with zero rendered rows, and silence looks like success
+
+**Severity:** High — a run returns one page of a multi-page season, reports zero
+failures, and exits 0. Nothing downstream can detect the gap from the data.
+
+Observed 2026-07-20 on `england-premier-league --season 2022-2023 --links-only`:
+50 links instead of 380, `0 listing pages failed`, pagination correctly detecting
+8 pages. Intermittent, and it does not reproduce back to back: it appears on cold
+or degraded runs, and disappears once the site is answering fast.
+
+### Why zero rows is not an error anywhere in the chain
+
+Three behaviours compose into a silent truncation:
+
+- OddsPortal answers **200 with an empty result set** when it throttles. There is
+  no error status to react to (same lesson as §4 and §15).
+- `extract_match_links` wraps its whole body in `try/except` and returns `[]` on
+  any failure, which is deliberate fail-safe behaviour against DOM drift.
+- The collection loop then counted the page as collected regardless of what came
+  back, so `[]` incremented `successful_pages`.
+
+Each piece is defensible alone. Together they turn a blocked page into a
+successful one carrying no data.
+
+### Detection signal
+
+Suspect this whenever the collected count is an exact multiple of a page's worth
+(50 on results pages) while pagination reported more pages than that. Concretely:
+`Final pages to scrape: [1..8]` followed by `Total links found: 50` and
+`Failed pages: 0` is the fingerprint.
+
+### The distinction that matters for the fix
+
+Zero links is only contradictory when pagination promised more than one page.
+A genuinely empty season has exactly one page and returns zero links, and that is
+the documented, expected way to discover an invalid league/season pair (§15). So
+the rule is: **more than one page planned and a page yields nothing → that page
+failed**; one page planned and it yields nothing → legitimately empty.
+
+Failures raised this way flow into `ErrorType.LISTING_PAGE`, which is distinct
+from a per-match failure on purpose: a per-match failure names a URL you can
+retry, whereas a lost listing page hides an unknown number of matches that were
+never discovered.
+
+### Two hypotheses to skip if this resurfaces
+
+Both were measured and refuted on 2026-07-20, so do not spend time on them again:
+
+- *A race on pagination detection.* Pagination is server-rendered and present at
+  `t=0`; a probe sampling `a.pagination-link` every 500ms found all 8 pages
+  immediately on every run.
+- *Stale page-1 content behind the `#/page/N` fragment.* The fragment never
+  reaches the server, so the concern is reasonable, but the SPA swaps the rows
+  within ~250ms even with `wait_until="domcontentloaded"`. The page shows no rows
+  at all before that, never page 1's rows.
+
+### When investigating, do not hammer the site
+
+The truncation is triggered by degradation, so the instinct is to run the scrape
+repeatedly until it fails. That induces the throttling it is meant to observe and
+buries the original condition: five consecutive 8-page scrapes in seven minutes
+produced a run where six pages failed outright and one took 17 minutes. Reproduce
+with spaced cold runs, and prefer a unit test over live repetition.
+
+---
+
 ## Adding a new gotcha
 
 When a fix lands that exposes an OddsPortal-specific behaviour an agent
