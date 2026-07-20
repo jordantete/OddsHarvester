@@ -53,6 +53,8 @@ def live(ctx, **kwargs):
                 base_url=kwargs.get("base_url"),
                 target_bookmaker=kwargs.get("target_bookmaker"),
                 headless=kwargs.get("headless", False),
+                preview_submarkets_only=kwargs.get("preview_submarkets_only", False),
+                local_kickoff=kwargs.get("local_kickoff", False),
                 bookies_filter=bookies_filter.value if bookies_filter else "all",
                 request_delay=kwargs.get("request_delay", 1.0),
                 concurrency_tasks=kwargs.get("concurrency_tasks", 3),
@@ -64,9 +66,15 @@ def live(ctx, **kwargs):
             logger.error("Scraper did not return valid data.")
             sys.exit(1)
 
-        # No live match is a normal outcome, not a failure: OddsPortal simply has
-        # nothing in play right now.
         if not scraped_data.success:
+            # An empty snapshot has two very different causes, and an external
+            # sampler must be able to tell them apart: nothing in play (fine) vs
+            # every request failing (not fine, and invisible if reported as fine).
+            if scraped_data.failed:
+                click.echo(f"Failed URLs: {[f.url for f in scraped_data.failed]}", err=True)
+                logger.error(f"All {len(scraped_data.failed)} live matches failed to scrape.")
+                sys.exit(1)
+
             click.echo("No live matches found right now.")
             return
 

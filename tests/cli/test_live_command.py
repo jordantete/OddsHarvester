@@ -6,7 +6,7 @@ from click.testing import CliRunner
 import pytest
 
 from oddsharvester.cli.cli import cli
-from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
+from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult, ScrapeStats
 
 
 @pytest.fixture
@@ -113,3 +113,44 @@ def test_live_exits_nonzero_when_scraper_returns_none(store_mock, runner):
 
     assert result.exit_code == 1
     assert not store_mock.called
+
+
+@patch("oddsharvester.cli.commands.live.store_data")
+def test_live_exits_nonzero_when_every_match_fails(store_mock, runner):
+    """All matches failing is a scraping failure, not an empty-but-healthy snapshot.
+
+    An external cron sampler must be able to tell "OddsPortal has nothing in play"
+    apart from "every request was blocked".
+    """
+    failures = [
+        FailedUrl(
+            url="https://www.oddsportal.com/football/x/inplay-odds/#a",
+            error_type=ErrorType.NAVIGATION,
+            error_message="timeout",
+        )
+    ]
+    with patch(
+        "oddsharvester.cli.commands.live.run_scraper",
+        new_callable=AsyncMock,
+        return_value=ScrapeResult(
+            success=[],
+            failed=failures,
+            stats=ScrapeStats(total_urls=1, successful=0, failed=1),
+        ),
+    ):
+        result = runner.invoke(cli, ["live", "--sport", "football", "--market", "1x2"])
+
+    assert result.exit_code == 1
+    assert not store_mock.called
+    assert "No live matches" not in result.output
+
+
+@patch("oddsharvester.cli.commands.live.store_data")
+def test_live_forwards_preview_and_local_kickoff(store_mock, runner, mock_live_run_scraper):
+    """Options accepted by the CLI must reach the scraper, not be silently dropped."""
+    result = runner.invoke(cli, ["live", "--sport", "football", "--market", "1x2", "--preview-only", "--local-kickoff"])
+
+    assert result.exit_code == 0
+    kwargs = mock_live_run_scraper.call_args.kwargs
+    assert kwargs["preview_submarkets_only"] is True
+    assert kwargs["local_kickoff"] is True
