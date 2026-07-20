@@ -2245,6 +2245,28 @@ class TestParseLiveInfo:
             "live_score_raw": "2\u20131",
         }
 
+    def test_parses_real_football_live_header(self):
+        """Ground truth captured from a live football match on 2026-07-20 15:04.
+
+        Football marks the period as elapsed minutes with an apostrophe, unlike
+        tennis sets or baseball innings, and repeats the running score inside
+        partial-result. Locked in so the shape-based parser cannot regress on it.
+        """
+        html = (
+            '<div class="flex max-sm:gap-2" data-testid="live-info">'
+            '<div class="flex flex-wrap gap-2"><p class="result-live"></p>'
+            '<div class="text-red-dark">4\'</div>'
+            '<div class="text-red-dark font-bold">1:0</div>'
+            '<div class="flex" data-testid="partial-result">'
+            '<span>(</span><div class="flex">1:0</div><span>)</span></div></div></div>'
+        )
+        assert _parse_live_info(self._soup(html)) == {
+            "live_period": "4'",
+            "live_score_home": 1,
+            "live_score_away": 0,
+            "live_score_raw": "1:0 (1:0)",
+        }
+
     def test_returns_none_for_finished_match(self):
         """A finished match keeps its live-info container but shows a terminal marker.
 

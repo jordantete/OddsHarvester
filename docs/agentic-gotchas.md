@@ -1032,6 +1032,25 @@ Text chunks in this container are separated with **non-breaking spaces**
 uses a colon (`1:0`), but OddsPortal renders scores with an en-dash elsewhere,
 so accept both.
 
+The period marker is sport-specific and must never be parsed as a fixed
+vocabulary. Verified 2026-07-20: `4'` (football, elapsed minutes with an
+apostrophe), `1st Set` / `2nd Set Tiebreak` (tennis), `9th Inning` (baseball).
+Match on shape instead: a chunk of the form `N:N` is the score, the remaining
+chunk is the period.
+
+### Being in play is not the same as having in-play odds
+
+A match can be visibly live on `/matches/<sport>/` (its `time-item` showing
+`4'`) and still be absent from `/inplay-odds/live-now/<sport>/`. Verified
+2026-07-20 on a Kazakh women's league match: the site linked it to its
+`/inplay-odds/` view, the live header rendered a period and a score, and the
+odds table said **"No odds available for this match"**. The live-now listing is
+the set of matches with *bookmaker in-play coverage*, which is much smaller than
+the set of matches in play, and smaller again outside peak hours and top
+leagues. Scraping the live-now listing is therefore the right entry point; do
+not "fix" an empty result by falling back to the general listing, or you will
+collect matches that carry no odds at all.
+
 ### The page polls itself; the scraper must not
 
 An open in-play page refreshes odds in place via first-party feeds
