@@ -16,6 +16,32 @@ from oddsharvester.utils.sport_market_constants import Sport
 logger = logging.getLogger(__name__)
 
 
+def _format_combo_summary(combo_stats: list[dict], links_only: bool) -> str:
+    """Render the per-combo breakdown shown at the end of a multi-combo run."""
+    unit = "links" if links_only else "matches"
+    labels = [f"{c['league']} {c['season']}".strip() if c["season"] else c["league"] for c in combo_stats]
+    width = max(len(label) for label in labels)
+
+    lines = [f"Collected {unit} across {len(combo_stats)} combos:"]
+    empty = errored = 0
+
+    for label, combo in zip(labels, combo_stats, strict=True):
+        if combo["errored"]:
+            lines.append(f"  {label:<{width}}  error")
+            errored += 1
+        else:
+            lines.append(f"  {label:<{width}}  {combo['successful']}")
+            if combo["successful"] == 0:
+                empty += 1
+
+    if empty:
+        lines.append(f"{empty} combo(s) returned nothing.")
+    if errored:
+        lines.append(f"{errored} combo(s) errored.")
+
+    return "\n".join(lines)
+
+
 @click.command("historic")
 @common_options
 @click.option(
@@ -98,6 +124,8 @@ def historic(ctx, **kwargs):
                     f"Successfully scraped {scraped_data.stats.successful} matches "
                     f"({scraped_data.stats.failed} failed, {scraped_data.stats.success_rate:.1f}% success rate)."
                 )
+            if len(scraped_data.combo_stats) > 1:
+                click.echo(_format_combo_summary(scraped_data.combo_stats, links_only=links_only))
             if scraped_data.failed:
                 click.echo(f"Failed URLs: {[f.url for f in scraped_data.failed]}", err=True)
         else:
