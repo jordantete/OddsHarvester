@@ -59,6 +59,8 @@ python/
 # Claude Code
 .claude/
 docs/superpowers/
+docs/plans/
+docs/specs/
 
 # Scraper output files
 scraped_data.json
