@@ -17,31 +17,36 @@
                 "odds_over": "1.16",
                 "odds_under": "4.40",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.18",
                 "odds_under": "5.20",
                 "bookmaker_name": "Bets.io",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.16",
                 "odds_under": "4.20",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.15",
                 "odds_under": "4.15",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.16",
                 "odds_under": "4.40",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             }
         ],
         "over_under_2_5_market": [
@@ -49,31 +54,36 @@
                 "odds_over": "1.55",
                 "odds_under": "2.25",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.60",
                 "odds_under": "2.41",
                 "bookmaker_name": "Bets.io",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.52",
                 "odds_under": "2.20",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.52",
                 "odds_under": "2.17",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.50",
                 "odds_under": "2.20",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             }
         ]
     },
@@ -95,31 +105,36 @@
                 "odds_over": "1.16",
                 "odds_under": "4.40",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.18",
                 "odds_under": "5.20",
                 "bookmaker_name": "Bets.io",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.16",
                 "odds_under": "4.20",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.15",
                 "odds_under": "4.15",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.16",
                 "odds_under": "4.40",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             }
         ],
         "over_under_2_5_market": [
@@ -127,31 +142,36 @@
                 "odds_over": "1.55",
                 "odds_under": "2.25",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.60",
                 "odds_under": "2.41",
                 "bookmaker_name": "Bets.io",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.52",
                 "odds_under": "2.20",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.52",
                 "odds_under": "2.17",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.50",
                 "odds_under": "2.20",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             }
         ]
     },
@@ -173,31 +193,36 @@
                 "odds_over": "1.16",
                 "odds_under": "4.40",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.18",
                 "odds_under": "5.20",
                 "bookmaker_name": "Bets.io",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.16",
                 "odds_under": "4.20",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.15",
                 "odds_under": "4.15",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.16",
                 "odds_under": "4.40",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             }
         ],
         "over_under_2_5_market": [
@@ -205,31 +230,36 @@
                 "odds_over": "1.55",
                 "odds_under": "2.25",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.60",
                 "odds_under": "2.41",
                 "bookmaker_name": "Bets.io",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.52",
                 "odds_under": "2.20",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.52",
                 "odds_under": "2.17",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.50",
                 "odds_under": "2.20",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             }
         ]
     },
@@ -251,31 +281,36 @@
                 "odds_over": "1.16",
                 "odds_under": "4.40",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.18",
                 "odds_under": "5.20",
                 "bookmaker_name": "Bets.io",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.16",
                 "odds_under": "4.20",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.15",
                 "odds_under": "4.15",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             },
             {
                 "odds_over": "1.16",
                 "odds_under": "4.40",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
             }
         ],
         "over_under_2_5_market": [
@@ -283,31 +318,36 @@
                 "odds_over": "1.55",
                 "odds_under": "2.25",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.60",
                 "odds_under": "2.41",
                 "bookmaker_name": "Bets.io",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.52",
                 "odds_under": "2.20",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.52",
                 "odds_under": "2.17",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             },
             {
                 "odds_over": "1.50",
                 "odds_under": "2.20",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
             }
         ]
     }
