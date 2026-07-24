@@ -265,6 +265,83 @@ class TestOddsPortalMarketExtractor:
         assert result[0]["bookmaker_name"] == "Bookmaker1"
 
     @pytest.mark.asyncio
+    async def test_extract_market_odds_stamps_submarket_name(self, extractor, page_mock):
+        """Line markets: every odds dict carries the rendered line via submarket_name (issue #78)."""
+        # Arrange
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_page_load = AsyncMock()
+        extractor.navigation_manager.scroller.scroll_until_visible_and_click_parent = AsyncMock(return_value=True)
+        extractor.navigation_manager.close_specific_market = AsyncMock(return_value=True)
+        extractor.odds_parser.parse_market_odds = MagicMock(
+            return_value=[
+                {"bookmaker_name": "Bookmaker1", "odds_over": "1.90", "odds_under": "1.90", "period": "FullTime"},
+                {"bookmaker_name": "Bookmaker2", "odds_over": "1.85", "odds_under": "1.95", "period": "FullTime"},
+            ]
+        )
+        page_mock.content = AsyncMock(return_value="<div>test</div>")
+
+        # Act
+        result = await extractor.extract_market_odds(
+            page=page_mock,
+            main_market="Over/Under",
+            specific_market="Over/Under +2.5",
+            odds_labels=["odds_over", "odds_under"],
+        )
+
+        # Assert
+        assert [entry["submarket_name"] for entry in result] == ["Over/Under +2.5", "Over/Under +2.5"]
+
+    @pytest.mark.asyncio
+    async def test_extract_market_odds_no_submarket_name_for_main_markets(self, extractor, page_mock):
+        """Main markets (no specific_market): dicts must NOT gain a submarket_name key."""
+        # Arrange
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_page_load = AsyncMock()
+        extractor.odds_parser.parse_market_odds = MagicMock(
+            return_value=[{"bookmaker_name": "Bookmaker1", "1": "1.90", "X": "3.50", "2": "4.20", "period": "FullTime"}]
+        )
+        page_mock.content = AsyncMock(return_value="<div>test</div>")
+
+        # Act
+        result = await extractor.extract_market_odds(page=page_mock, main_market="1X2", odds_labels=["1", "X", "2"])
+
+        # Assert
+        assert "submarket_name" not in result[0]
+
+    @pytest.mark.asyncio
+    async def test_extract_market_odds_preserves_passive_submarket_name(self, extractor, page_mock):
+        """Preview passive dicts already carry submarket_name; stamping must never overwrite it."""
+        # Arrange
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.submarket_extractor.extract_visible_submarkets_passive = AsyncMock(
+            return_value=[
+                {
+                    "submarket_name": "Over/Under +1.5",
+                    "period": "FullTime",
+                    "market_type": "Over/Under",
+                    "extraction_mode": "passive",
+                    "odds_over": "1.30",
+                    "odds_under": "3.40",
+                }
+            ]
+        )
+
+        # Act
+        result = await extractor.extract_market_odds(
+            page=page_mock,
+            main_market="Over/Under",
+            specific_market="Over/Under +2.5",
+            odds_labels=["odds_over", "odds_under"],
+            preview_submarkets_only=True,
+        )
+
+        # Assert
+        assert result[0]["submarket_name"] == "Over/Under +1.5"
+
+    @pytest.mark.asyncio
     async def test_extract_market_odds_tab_not_found(self, extractor, page_mock):
         """Test behavior when the market tab is not found."""
         # Arrange

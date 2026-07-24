@@ -311,6 +311,11 @@ class OddsPortalMarketExtractor:
                     html_content=html_content, period=period, odds_labels=odds_labels, target_bookmaker=target_bookmaker
                 )
 
+            # Stamp the line onto each dict (issue #78); passive mode already sets submarket_name.
+            if specific_market:
+                for odds_entry in odds_data:
+                    odds_entry.setdefault("submarket_name", specific_market)
+
             if scrape_odds_history:
                 self.logger.info("Fetching odds history for all parsed bookmakers.")
 
