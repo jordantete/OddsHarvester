@@ -1071,9 +1071,9 @@ varies by region, like the Pinnacle case in §3.
 ### Live pages are ephemeral, so HAR fixtures are capture-once
 
 Once a match finishes, its in-play view is gone for good. A HAR must be captured
-while the match runs, and can then be replayed forever. A captured HAR unblocks a
-deterministic replay test that runs by default; the self-discovering live-network
-test stays as a complement, run with `--live`.
+while the match runs. Replaying it does *not* bring the live view back, see the
+next subsection; the self-discovering live-network test (`--live`) is what
+actually exercises this path.
 
 A live HAR is not a frozen instant. The page self-refreshes via first-party
 `.dat` feeds, and recording in `record_har_mode="full"` stores every snapshot
@@ -1083,6 +1083,44 @@ HAR (a match captured at `Half-time` replayed later as `49'`). A replay test mus
 assert the *shape* of the live context (a period marker is present, the score
 matches `\d+:\d+`) and the *fixed identity* of the match (teams, league, date,
 odds table), never the captured period or score value.
+
+### An in-play page does not replay from a HAR
+
+**Severity:** Medium — costs a day of debugging a "regression" that is a replay
+limit, and any future in-play replay fixture will hit it too.
+
+Replaying a live match page from its own HAR renders the **pre-match** variant of
+the event header. `data-testid="live-info"` never mounts, so the scraper
+correctly classifies the match as no longer live and drops the record: the run
+exits 0 with no output. The odds tab bar (`Pre-match Odds` / `In-Play Odds`)
+never renders either, though a bookmaker table does.
+
+The data is not the problem. The recorded SSR payload carries
+`isLive: true`, `realLive: true`, `isFinished: false` and the live text
+(`Half-time 0:0 (0:0)`); every recorded request is served; there is no JS error.
+The client simply does not mount the in-play view.
+
+Investigated 2026-07-26, five causes ruled out by isolated experiment:
+
+- the 3 requests absent from the HAR (`ajax-getCount/MyBookmarks/`, a header
+  icon, analytics) — stubbing them with empty 200s removes every JS error and
+  changes nothing;
+- the `.dat` feeds — blocking them one at a time and together changes nothing;
+- wall-clock — pinning the browser clock to the capture instant with
+  `context.clock` changes only the rendered date label;
+- a cold session — replaying the full capture journey (homepage first, cookies
+  set) changes nothing;
+- the URL fragment — present or absent, same result.
+
+The remaining suspect is state the HAR cannot hold (a real-time channel, or
+responses served from the browser HTTP cache during capture and therefore never
+recorded — `MyBookmarks` is provably in that category). Same family as the H2H
+fragment limit in the `live_only` tests.
+
+Consequence: do not write a replay test that asserts the live header. The
+existing one is kept as `xfail` rather than `live_only`, because the captured
+match is over and `--live` would have nothing to scrape, which would make the
+marker a permanent no-op.
 
 ### Related observation on §9 (unconfirmed)
 

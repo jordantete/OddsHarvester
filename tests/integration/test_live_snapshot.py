@@ -63,11 +63,20 @@ def _run_live(sport: str, market: str, output_path: Path) -> tuple[int, str]:
     return result.returncode, result.stdout + result.stderr
 
 
+@pytest.mark.xfail(
+    reason="an in-play page does not replay from a HAR: the app renders its pre-match "
+    "header, live-info never mounts and the record is dropped (agentic-gotchas §16)",
+    strict=False,
+)
 def test_live_snapshot_replays_captured_football_match(tmp_path, har_for_match):
     """A captured in-play football match replays: fixed identity, live-shaped context.
 
     The score and period are deliberately NOT asserted against captured values,
     see the comment on the live-context assertions below.
+
+    Kept as xfail rather than live_only: the captured match is long over, so --live
+    has nothing to scrape and the marker would make this a permanent no-op. Running
+    it flags the day a replay renders the live view again.
     """
     har = har_for_match("football", REPLAY_MATCH["league"], REPLAY_MATCH["match_id"], REPLAY_MATCH["fixture"])
     if har is None:
