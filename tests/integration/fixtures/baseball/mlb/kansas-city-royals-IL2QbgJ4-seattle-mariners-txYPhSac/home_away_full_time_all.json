@@ -17,37 +17,43 @@
                 "1": "1.71",
                 "2": "2.16",
                 "bookmaker_name": "Bets.io",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "1.56",
                 "2": "1.98",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "1.69",
                 "2": "2.12",
                 "bookmaker_name": "Roobet",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "1.70",
                 "2": "2.05",
                 "bookmaker_name": "Stake.com",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "1.69",
                 "2": "2.20",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "1.70",
                 "2": "2.10",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             }
         ]
     }

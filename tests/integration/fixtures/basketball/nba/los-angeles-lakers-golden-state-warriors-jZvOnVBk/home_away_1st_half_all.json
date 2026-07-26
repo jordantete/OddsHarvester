@@ -17,13 +17,15 @@
                 "1": "1.53",
                 "2": "2.25",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FirstHalf"
+                "period": "FirstHalf",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "1.34",
                 "2": "2.20",
                 "bookmaker_name": "bwin.fr",
-                "period": "FirstHalf"
+                "period": "FirstHalf",
+                "submarket_name": "Home/Away"
             }
         ]
     },
@@ -45,13 +47,15 @@
                 "1": "1.53",
                 "2": "2.25",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FirstHalf"
+                "period": "FirstHalf",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "1.34",
                 "2": "2.20",
                 "bookmaker_name": "bwin.fr",
-                "period": "FirstHalf"
+                "period": "FirstHalf",
+                "submarket_name": "Home/Away"
             }
         ]
     },
@@ -73,13 +77,15 @@
                 "1": "1.53",
                 "2": "2.25",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FirstHalf"
+                "period": "FirstHalf",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "1.34",
                 "2": "2.20",
                 "bookmaker_name": "bwin.fr",
-                "period": "FirstHalf"
+                "period": "FirstHalf",
+                "submarket_name": "Home/Away"
             }
         ]
     }

@@ -17,25 +17,29 @@
                 "1": "1.96",
                 "2": "1.56",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "1.95",
                 "2": "1.57",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "1.98",
                 "2": "1.57",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "2.00",
                 "2": "1.58",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             }
         ]
     }

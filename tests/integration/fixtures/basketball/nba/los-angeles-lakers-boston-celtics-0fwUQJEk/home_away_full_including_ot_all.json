@@ -17,25 +17,29 @@
                 "1": "2.80",
                 "2": "1.38",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullIncludingOT"
+                "period": "FullIncludingOT",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "2.50",
                 "2": "1.30",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullIncludingOT"
+                "period": "FullIncludingOT",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "3.05",
                 "2": "1.43",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullIncludingOT"
+                "period": "FullIncludingOT",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "3.00",
                 "2": "1.38",
                 "bookmaker_name": "Winamax",
-                "period": "FullIncludingOT"
+                "period": "FullIncludingOT",
+                "submarket_name": "Home/Away"
             }
         ]
     },
@@ -57,25 +61,29 @@
                 "1": "2.80",
                 "2": "1.38",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullIncludingOT"
+                "period": "FullIncludingOT",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "2.50",
                 "2": "1.30",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullIncludingOT"
+                "period": "FullIncludingOT",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "3.05",
                 "2": "1.43",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullIncludingOT"
+                "period": "FullIncludingOT",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "3.00",
                 "2": "1.38",
                 "bookmaker_name": "Winamax",
-                "period": "FullIncludingOT"
+                "period": "FullIncludingOT",
+                "submarket_name": "Home/Away"
             }
         ]
     },
@@ -97,25 +105,29 @@
                 "1": "2.80",
                 "2": "1.38",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullIncludingOT"
+                "period": "FullIncludingOT",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "2.50",
                 "2": "1.30",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullIncludingOT"
+                "period": "FullIncludingOT",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "3.05",
                 "2": "1.43",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullIncludingOT"
+                "period": "FullIncludingOT",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "3.00",
                 "2": "1.38",
                 "bookmaker_name": "Winamax",
-                "period": "FullIncludingOT"
+                "period": "FullIncludingOT",
+                "submarket_name": "Home/Away"
             }
         ]
     }

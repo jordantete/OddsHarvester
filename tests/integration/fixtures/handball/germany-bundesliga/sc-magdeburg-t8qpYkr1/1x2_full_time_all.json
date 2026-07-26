@@ -18,49 +18,56 @@
                 "X": "12.50",
                 "2": "8.35",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "1.09",
                 "X": "15.00",
                 "2": "11.00",
                 "bookmaker_name": "Bets.io",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "1.07",
                 "X": "11.00",
                 "2": "6.50",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "1.11",
                 "X": "14.00",
                 "2": "8.50",
                 "bookmaker_name": "Roobet",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "1.08",
                 "X": "23.00",
                 "2": "11.00",
                 "bookmaker_name": "Stake.com",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "1.06",
                 "X": "13.50",
                 "2": "8.20",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "1.05",
                 "X": "14.00",
                 "2": "8.50",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             }
         ]
     }

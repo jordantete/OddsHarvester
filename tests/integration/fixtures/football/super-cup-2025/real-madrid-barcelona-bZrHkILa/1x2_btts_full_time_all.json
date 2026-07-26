@@ -18,21 +18,24 @@
                 "X": "3.83",
                 "2": "2.63",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "2.46",
                 "X": "4.00",
                 "2": "2.60",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "2.40",
                 "X": "3.95",
                 "2": "2.65",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             }
         ],
         "btts_market": [
@@ -40,7 +43,8 @@
                 "btts_yes": "1.29",
                 "btts_no": "3.05",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Both Teams to Score"
             }
         ]
     },
@@ -63,21 +67,24 @@
                 "X": "3.83",
                 "2": "2.63",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "2.46",
                 "X": "4.00",
                 "2": "2.60",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "2.40",
                 "X": "3.95",
                 "2": "2.65",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             }
         ],
         "btts_market": [
@@ -85,7 +92,8 @@
                 "btts_yes": "1.29",
                 "btts_no": "3.05",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Both Teams to Score"
             }
         ]
     },
@@ -108,21 +116,24 @@
                 "X": "3.83",
                 "2": "2.63",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "2.46",
                 "X": "4.00",
                 "2": "2.60",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "2.40",
                 "X": "3.95",
                 "2": "2.65",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             }
         ],
         "btts_market": [
@@ -130,7 +141,8 @@
                 "btts_yes": "1.29",
                 "btts_no": "3.05",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Both Teams to Score"
             }
         ]
     }

@@ -25,7 +25,8 @@
                 "X": "2.45",
                 "2": "3.45",
                 "bookmaker_name": "Bets.io",
-                "period": null
+                "period": null,
+                "submarket_name": "1X2"
             }
         ]
     }

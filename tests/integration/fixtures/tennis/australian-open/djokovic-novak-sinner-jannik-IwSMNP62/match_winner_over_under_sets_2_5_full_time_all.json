@@ -17,19 +17,22 @@
                 "player_1": "1.52",
                 "player_2": "2.67",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "1.45",
                 "player_2": "2.50",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "1.52",
                 "player_2": "2.65",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             }
         ],
         "over_under_sets_2_5_market": []
@@ -52,19 +55,22 @@
                 "player_1": "1.52",
                 "player_2": "2.67",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "1.45",
                 "player_2": "2.50",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "1.52",
                 "player_2": "2.65",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             }
         ],
         "over_under_sets_2_5_market": []
@@ -87,19 +93,22 @@
                 "player_1": "1.52",
                 "player_2": "2.67",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "1.45",
                 "player_2": "2.50",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "1.52",
                 "player_2": "2.65",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             }
         ],
         "over_under_sets_2_5_market": []

@@ -17,25 +17,29 @@
                 "player_1": "5.20",
                 "player_2": "1.14",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "5.25",
                 "player_2": "1.17",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "5.10",
                 "player_2": "1.17",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "5.30",
                 "player_2": "1.17",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             }
         ]
     },
@@ -57,25 +61,29 @@
                 "player_1": "5.20",
                 "player_2": "1.14",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "5.25",
                 "player_2": "1.17",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "5.10",
                 "player_2": "1.17",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "5.30",
                 "player_2": "1.17",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             }
         ]
     },
@@ -97,25 +105,29 @@
                 "player_1": "5.20",
                 "player_2": "1.14",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "5.25",
                 "player_2": "1.17",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "5.10",
                 "player_2": "1.17",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "5.30",
                 "player_2": "1.17",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "Home/Away"
             }
         ]
     }

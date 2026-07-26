@@ -17,13 +17,15 @@
                 "player_1": "1.51",
                 "player_2": "2.10",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FirstSet"
+                "period": "FirstSet",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "1.55",
                 "player_2": "1.95",
                 "bookmaker_name": "bwin.fr",
-                "period": "FirstSet"
+                "period": "FirstSet",
+                "submarket_name": "Home/Away"
             }
         ]
     },
@@ -45,13 +47,15 @@
                 "player_1": "1.51",
                 "player_2": "2.10",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FirstSet"
+                "period": "FirstSet",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "1.55",
                 "player_2": "1.95",
                 "bookmaker_name": "bwin.fr",
-                "period": "FirstSet"
+                "period": "FirstSet",
+                "submarket_name": "Home/Away"
             }
         ]
     },
@@ -73,13 +77,15 @@
                 "player_1": "1.51",
                 "player_2": "2.10",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FirstSet"
+                "period": "FirstSet",
+                "submarket_name": "Home/Away"
             },
             {
                 "player_1": "1.55",
                 "player_2": "1.95",
                 "bookmaker_name": "bwin.fr",
-                "period": "FirstSet"
+                "period": "FirstSet",
+                "submarket_name": "Home/Away"
             }
         ]
     }

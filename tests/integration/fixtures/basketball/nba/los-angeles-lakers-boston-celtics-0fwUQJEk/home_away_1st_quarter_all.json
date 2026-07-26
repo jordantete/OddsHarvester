@@ -17,13 +17,15 @@
                 "1": "2.21",
                 "2": "1.54",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FirstQuarter"
+                "period": "FirstQuarter",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "2.00",
                 "2": "1.50",
                 "bookmaker_name": "bwin.fr",
-                "period": "FirstQuarter"
+                "period": "FirstQuarter",
+                "submarket_name": "Home/Away"
             }
         ]
     },
@@ -45,13 +47,15 @@
                 "1": "2.21",
                 "2": "1.54",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FirstQuarter"
+                "period": "FirstQuarter",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "2.00",
                 "2": "1.50",
                 "bookmaker_name": "bwin.fr",
-                "period": "FirstQuarter"
+                "period": "FirstQuarter",
+                "submarket_name": "Home/Away"
             }
         ]
     },
@@ -73,13 +77,15 @@
                 "1": "2.21",
                 "2": "1.54",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FirstQuarter"
+                "period": "FirstQuarter",
+                "submarket_name": "Home/Away"
             },
             {
                 "1": "2.00",
                 "2": "1.50",
                 "bookmaker_name": "bwin.fr",
-                "period": "FirstQuarter"
+                "period": "FirstQuarter",
+                "submarket_name": "Home/Away"
             }
         ]
     }

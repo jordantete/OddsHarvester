@@ -18,28 +18,32 @@
                 "X": "3.67",
                 "2": "1.96",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "3.60",
                 "X": "3.70",
                 "2": "1.95",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "3.60",
                 "X": "3.80",
                 "2": "1.96",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "3.65",
                 "X": "3.80",
                 "2": "1.96",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             }
         ]
     },
@@ -62,28 +66,32 @@
                 "X": "3.67",
                 "2": "1.96",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "3.60",
                 "X": "3.70",
                 "2": "1.95",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "3.60",
                 "X": "3.80",
                 "2": "1.96",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "3.65",
                 "X": "3.80",
                 "2": "1.96",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             }
         ]
     },
@@ -106,28 +114,32 @@
                 "X": "3.67",
                 "2": "1.96",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "3.60",
                 "X": "3.70",
                 "2": "1.95",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "3.60",
                 "X": "3.80",
                 "2": "1.96",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "3.65",
                 "X": "3.80",
                 "2": "1.96",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             }
         ]
     },
@@ -150,28 +162,32 @@
                 "X": "3.67",
                 "2": "1.96",
                 "bookmaker_name": "Betclic.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "3.60",
                 "X": "3.70",
                 "2": "1.95",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "3.60",
                 "X": "3.80",
                 "2": "1.96",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             },
             {
                 "1": "3.65",
                 "X": "3.80",
                 "2": "1.96",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime"
+                "period": "FullTime",
+                "submarket_name": "1X2"
             }
         ]
     }
