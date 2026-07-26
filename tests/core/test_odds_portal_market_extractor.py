@@ -293,8 +293,8 @@ class TestOddsPortalMarketExtractor:
         assert [entry["submarket_name"] for entry in result] == ["Over/Under +2.5", "Over/Under +2.5"]
 
     @pytest.mark.asyncio
-    async def test_extract_market_odds_no_submarket_name_for_main_markets(self, extractor, page_mock):
-        """Main markets (no specific_market): dicts must NOT gain a submarket_name key."""
+    async def test_extract_market_odds_stamps_main_market_name(self, extractor, page_mock):
+        """Main markets (no specific_market): dicts carry the market label itself."""
         # Arrange
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
@@ -308,7 +308,45 @@ class TestOddsPortalMarketExtractor:
         result = await extractor.extract_market_odds(page=page_mock, main_market="1X2", odds_labels=["1", "X", "2"])
 
         # Assert
-        assert "submarket_name" not in result[0]
+        assert result[0]["submarket_name"] == "1X2"
+
+    @pytest.mark.asyncio
+    async def test_extract_market_odds_main_market_stamp_lands_last(self, extractor, page_mock):
+        """The stamp is appended, never inserted before the odds or the bookmaker."""
+        # Arrange
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_page_load = AsyncMock()
+        extractor.odds_parser.parse_market_odds = MagicMock(
+            return_value=[{"btts_yes": "1.72", "btts_no": "2.12", "bookmaker_name": "Bookmaker1", "period": "FullTime"}]
+        )
+        page_mock.content = AsyncMock(return_value="<div>test</div>")
+
+        # Act
+        result = await extractor.extract_market_odds(
+            page=page_mock, main_market="Both Teams to Score", odds_labels=["btts_yes", "btts_no"]
+        )
+
+        # Assert
+        assert list(result[0]) == ["btts_yes", "btts_no", "bookmaker_name", "period", "submarket_name"]
+
+    @pytest.mark.asyncio
+    async def test_extract_market_odds_main_market_does_not_overwrite_existing_name(self, extractor, page_mock):
+        """A name already set upstream wins over the main market label."""
+        # Arrange
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_page_load = AsyncMock()
+        extractor.odds_parser.parse_market_odds = MagicMock(
+            return_value=[{"bookmaker_name": "Bookmaker1", "1": "1.90", "submarket_name": "Already set"}]
+        )
+        page_mock.content = AsyncMock(return_value="<div>test</div>")
+
+        # Act
+        result = await extractor.extract_market_odds(page=page_mock, main_market="1X2", odds_labels=["1", "X", "2"])
+
+        # Assert
+        assert result[0]["submarket_name"] == "Already set"
 
     @pytest.mark.asyncio
     async def test_extract_market_odds_preserves_passive_submarket_name(self, extractor, page_mock):
