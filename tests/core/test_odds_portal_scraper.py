@@ -151,7 +151,7 @@ async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
     scraper._prepare_page_for_scraping.assert_called_once_with(page=page_mock)
     scraper._get_pagination_info.assert_called_once_with(page=page_mock, max_pages=2)
     scraper._collect_match_links.assert_called_once_with(
-        base_url="https://oddsportal.com/football/england/premier-league-2023", pages_to_scrape=[1, 2]
+        base_url="https://oddsportal.com/football/england/premier-league-2023", pages_to_scrape=[1, 2], page_limit=2
     )
     scraper.extract_match_odds.assert_called_once_with(
         sport="football",
@@ -516,6 +516,7 @@ async def test_collect_match_links(setup_scraper_mocks):
     tab_mock.wait_for_timeout = AsyncMock()
     tab_mock.close = AsyncMock()
     context_mock.new_page.return_value = tab_mock
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[])
 
     # Mock extract_match_links method
     scraper.extract_match_links = AsyncMock()
@@ -825,6 +826,7 @@ async def test_collect_match_links_treats_empty_page_as_failure(setup_scraper_mo
     tab = AsyncMock()
     mocks["playwright_manager_mock"].context.new_page = AsyncMock(return_value=tab)
     scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[])
     # page 1 renders, pages 2 and 3 come back empty
     scraper.extract_match_links = AsyncMock(side_effect=[["https://m1", "https://m2"], [], []])
 
@@ -847,6 +849,7 @@ async def test_collect_match_links_keeps_single_empty_page_successful(setup_scra
     tab = AsyncMock()
     mocks["playwright_manager_mock"].context.new_page = AsyncMock(return_value=tab)
     scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[])
     scraper.extract_match_links = AsyncMock(return_value=[])
 
     result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1])
@@ -854,3 +857,109 @@ async def test_collect_match_links_keeps_single_empty_page_successful(setup_scra
     assert result.links == []
     assert result.successful_pages == 1
     assert result.failed_pages == []
+
+
+def _walk_tab(mocks):
+    tab = AsyncMock()
+    mocks["playwright_manager_mock"].context.new_page = AsyncMock(return_value=tab)
+    return tab
+
+
+@pytest.mark.asyncio
+async def test_collect_match_links_walks_past_an_empty_widget(setup_scraper_mocks):
+    """Issue 79: an unreadable widget must not cap collection at one page.
+
+    Page 1's widget read comes back empty, so the floor is [1]. Page 2's widget
+    reports 8, which is when the true count becomes known.
+    """
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    _walk_tab(mocks)
+    scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+    scraper.pagination_walker.read_widget = AsyncMock(side_effect=[[], *([list(range(1, 9))] * 7)])
+    pages = [[f"https://m{p}-{i}" for i in range(50)] for p in range(1, 8)] + [[f"https://m8-{i}" for i in range(30)]]
+    scraper.extract_match_links = AsyncMock(side_effect=pages)
+
+    result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1])
+
+    assert len(result.links) == 380
+    assert result.successful_pages == 8
+    assert result.failed_pages == []
+
+
+@pytest.mark.asyncio
+async def test_collect_match_links_walks_past_an_underreporting_widget(setup_scraper_mocks):
+    """A widget that reports fewer pages than exist must not end collection either."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    _walk_tab(mocks)
+    scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[1, 2, 3])
+    pages = [[f"https://m{p}-{i}" for i in range(50)] for p in range(1, 8)] + [[f"https://m8-{i}" for i in range(30)]]
+    scraper.extract_match_links = AsyncMock(side_effect=pages)
+
+    result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1, 2, 3])
+
+    assert len(result.links) == 380
+    assert result.failed_pages == []
+
+
+@pytest.mark.asyncio
+async def test_collect_match_links_stops_clean_one_page_past_the_end(setup_scraper_mocks):
+    """A season whose last page is exactly full: page 9 renders nothing but the widget still says 8."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    _walk_tab(mocks)
+    scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=list(range(1, 9)))
+    pages = [[f"https://m{p}-{i}" for i in range(50)] for p in range(1, 9)] + [[]]
+    scraper.extract_match_links = AsyncMock(side_effect=pages)
+
+    result = await scraper._collect_match_links(
+        base_url="https://oddsportal.com/x/results/", pages_to_scrape=list(range(1, 9))
+    )
+
+    assert len(result.links) == 400
+    assert result.failed_pages == [], "walking one past the end is not a failure"
+
+
+@pytest.mark.asyncio
+async def test_collect_match_links_flags_an_empty_page_the_widget_says_exists(setup_scraper_mocks):
+    """Gotcha 17: the widget says 8 pages and page 4 renders nothing, so page 4 was degraded."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    _walk_tab(mocks)
+    scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=list(range(1, 9)))
+    pages = (
+        [[f"https://m{p}-{i}" for i in range(50)] for p in range(1, 4)]
+        + [[]]
+        + [[f"https://m{p}-{i}" for i in range(50)] for p in range(5, 8)]
+        + [[f"https://m8-{i}" for i in range(30)]]
+    )
+    scraper.extract_match_links = AsyncMock(side_effect=pages)
+
+    result = await scraper._collect_match_links(
+        base_url="https://oddsportal.com/x/results/", pages_to_scrape=list(range(1, 9))
+    )
+
+    assert result.failed_pages == [4]
+    assert len(result.links) == 330, "the run continues past a failed page"
+
+
+@pytest.mark.asyncio
+async def test_collect_match_links_respects_the_page_limit(setup_scraper_mocks):
+    """An explicit --max-pages bounds the walk even when every page is full."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    _walk_tab(mocks)
+    scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[])
+    scraper.extract_match_links = AsyncMock(side_effect=[[f"https://m{p}-{i}" for i in range(50)] for p in range(1, 9)])
+
+    result = await scraper._collect_match_links(
+        base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1], page_limit=3
+    )
+
+    assert len(result.links) == 150
+    assert result.successful_pages == 3

@@ -6,6 +6,7 @@ import random
 from playwright.async_api import Page
 
 from oddsharvester.core.base_scraper import BaseScraper
+from oddsharvester.core.browser.pagination import WalkVerdict
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult, ScrapeStats
 from oddsharvester.core.url_builder import URLBuilder, normalize_inplay_match_url
@@ -113,7 +114,11 @@ class OddsPortalScraper(BaseScraper):
 
         # Collect match links from all pages
         self.logger.info("Step 2: Collecting match links from all pages...")
-        link_result = await self._collect_match_links(base_url=base_url, pages_to_scrape=pages_to_scrape)
+        link_result = await self._collect_match_links(
+            base_url=base_url,
+            pages_to_scrape=pages_to_scrape,
+            page_limit=self._effective_page_limit(max_pages),
+        )
 
         if link_result.failed_pages:
             self.logger.warning(f"Failed to collect links from pages: {link_result.failed_pages}")
@@ -506,40 +511,52 @@ class OddsPortalScraper(BaseScraper):
 
         return all_pages
 
-    async def _collect_match_links(self, base_url: str, pages_to_scrape: list[int]) -> LinkCollectionResult:
+    async def _collect_match_links(
+        self,
+        base_url: str,
+        pages_to_scrape: list[int],
+        page_limit: int = MAX_PAGINATION_PAGES,
+    ) -> LinkCollectionResult:
         """
-        Collects match links from multiple pages.
+        Walks listing pages, collecting match links.
+
+        `pages_to_scrape` is a floor, not a plan: the widget it came from can be
+        missing or under-report, so the walk continues while pages come back full
+        (issue #79). See gotchas 2 and 17.
 
         Args:
             base_url (str): The base URL of the historic matches.
-            pages_to_scrape (List[int]): Pages to scrape.
+            pages_to_scrape (List[int]): Pages the pagination widget promised.
+            page_limit (int): Hard bound on how many pages the walk may visit.
 
         Returns:
             LinkCollectionResult: Contains links found and tracking of successful/failed pages.
         """
-        self.logger.info(f"Starting collection of match links from {len(pages_to_scrape)} pages")
-        self.logger.info(f"Pages to process: {pages_to_scrape}")
+        planned_max = max(pages_to_scrape) if pages_to_scrape else 1
+        self.logger.info(f"Starting collection of match links from a floor of {planned_max} page(s)")
 
         result = LinkCollectionResult()
         all_links = []
+        frontier = planned_max
+        observed_max: int | None = None
+        page_number = 1
 
-        for i, page_number in enumerate(pages_to_scrape, 1):
-            self.logger.info(f"Processing page {i}/{len(pages_to_scrape)}: {page_number}")
+        while page_number <= page_limit:
+            self.logger.info(f"Processing page {page_number} (frontier: {frontier}, limit: {page_limit})")
             tab = None
+            past_frontier = page_number >= frontier
 
             try:
                 tab = await self.playwright_manager.context.new_page()
-                self.logger.debug(f"Created new tab for page {page_number}")
 
                 page_url = f"{base_url}#/page/{page_number}"
                 self.logger.info(f"Navigating to: {page_url}")
                 await tab.goto(page_url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
                 delay = random.randint(PAGE_COLLECTION_DELAY_MIN_MS, PAGE_COLLECTION_DELAY_MAX_MS)  # noqa: S311
-                self.logger.debug(f"Waiting {delay}ms before processing...")
                 await tab.wait_for_timeout(delay)
 
                 self.logger.info(f"Scrolling page {page_number} to load all matches...")
-                scroll_success = await self.scroller.scroll_until_loaded(
+                await self.scroller.scroll_until_loaded(
                     page=tab,
                     timeout=30,
                     scroll_pause_time=2,
@@ -547,41 +564,67 @@ class OddsPortalScraper(BaseScraper):
                     content_check_selector="div[class*='eventRow']",
                 )
 
-                if scroll_success:
-                    self.logger.debug(f"Successfully scrolled page {page_number}")
-                else:
-                    self.logger.warning(f"Scrolling may not have completed for page {page_number}")
-
-                self.logger.info(f"Extracting match links from page {page_number}...")
                 links = await self.extract_match_links(page=tab)
 
-                # Pagination promised this page exists, so zero rows means it did not
-                # render: throttled, blocked, or a parse failure that extract_match_links
-                # swallowed into an empty list. Counting it as collected is how a run
-                # silently returns page 1 only while reporting no failures at all.
-                # A single planned page is different: an empty season legitimately has
-                # one empty page, which is the documented way to spot an invalid combo.
-                if not links and len(pages_to_scrape) > 1:
+                # Read on every page, not just empty ones: the tab is already loaded, so
+                # this costs no request, and a widget missing from page 1 is often present
+                # on page 2. That is how the true count is recovered (issue #79).
+                widget_pages = await self.pagination_walker.read_widget(page=tab)
+                if widget_pages:
+                    observed_max = max(observed_max or 0, max(widget_pages))
+                    frontier = max(frontier, observed_max)
+                past_frontier = page_number >= frontier
+
+                verdict = self.pagination_walker.decide(
+                    requested_page=page_number,
+                    link_count=len(links),
+                    frontier=frontier,
+                    observed_max=observed_max,
+                )
+
+                if verdict is WalkVerdict.PAGE_FAILED:
                     result.failed_pages.append(page_number)
                     self.logger.warning(f"Page {page_number} returned no links; treating it as failed.")
+                    if past_frontier:
+                        break
+                    page_number += 1
                     continue
 
                 all_links.extend(links)
                 result.successful_pages += 1
                 self.logger.info(f"Extracted {len(links)} links from page {page_number}")
 
+                if verdict is WalkVerdict.STOP_COMPLETE:
+                    break
+
             except Exception as e:
                 result.failed_pages.append(page_number)
                 self.logger.error(f"Error processing page {page_number}: {e}")
+                if past_frontier:
+                    break
 
             finally:
                 if tab:
                     await tab.close()
-                    self.logger.debug(f"Closed tab for page {page_number}")
+
+            page_number += 1
+
+        pages_walked = result.successful_pages + len(result.failed_pages)
+        if pages_walked > planned_max:
+            self.logger.warning(
+                f"Pagination widget reported {planned_max} page(s) but collection reached page {pages_walked}. "
+                "The widget read was incomplete; walked past it to avoid truncation."
+            )
+        if page_number > page_limit:
+            self.logger.warning(
+                f"Walk stopped at the {page_limit}-page limit. The season may be incomplete; "
+                "raise --max-pages to collect the rest."
+            )
 
         result.links = list(dict.fromkeys(all_links))
         self.logger.info("Collection Summary:")
-        self.logger.info(f"   - Total pages processed: {len(pages_to_scrape)}")
+        self.logger.info(f"   - Pages planned from widget: {planned_max}")
+        self.logger.info(f"   - Pages actually walked: {pages_walked}")
         self.logger.info(f"   - Successful pages: {result.successful_pages}")
         self.logger.info(f"   - Failed pages: {len(result.failed_pages)}")
         self.logger.info(f"   - Total links found: {len(all_links)}")
