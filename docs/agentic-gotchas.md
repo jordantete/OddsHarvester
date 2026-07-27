@@ -1189,6 +1189,36 @@ Both were measured and refuted on 2026-07-20, so do not spend time on them again
   within ~250ms even with `wait_until="domcontentloaded"`. The page shows no rows
   at all before that, never page 1's rows.
 
+### The same degradation also hits the pagination read (issue #79, 2026-07-27)
+
+Observed on `italy-serie-a --season 2025-2026 --links-only`: one cold run in four
+logged `Found 0 pagination links`, planned `[1]`, collected 50 links and reported
+`Failed pages: 0`. The other three runs read 8 pages and collected all 380.
+
+The detection signal above cannot match this variant. It keys on
+`Final pages to scrape: [1..8]` with 50 links, but here the widget itself read
+empty, so only one page was ever planned and the `len(pages_to_scrape) > 1` guard
+exempted itself by construction.
+
+Do not re-open the race hypothesis refuted above: the countermeasure is
+corroboration across pages, not timing. Two facts make it work, both verified live:
+
+- A results page renders 50 links when full (`RESULTS_PAGE_SIZE`). Serie A
+  2025-2026 gave 50 on pages 1-7 and 30 on page 8, totalling 380. A full page
+  therefore implies another page exists, whatever the widget says.
+- A page past the end (page 9 of 8) renders **zero** rows but still shows a
+  pagination widget reporting max 8. So an empty page is only "past the end" when
+  the widget on that page corroborates it; otherwise it was degraded.
+
+The widget is now read on every page rather than only the first, which costs no
+extra request since the tab is already loaded. When page 1's response is degraded,
+page 2's widget still reports 8 and the true count is recovered immediately.
+
+Current markup, for when it drifts again: `<a class="pagination-link"
+data-number="2">2</a>`, with `Next`/`Prev` sharing the class and carrying **no**
+`rel` attribute. The long-standing `:not([rel='next'])` clause in the old selector
+was therefore inert; digit filtering is what excludes them.
+
 ### When investigating, do not hammer the site
 
 The truncation is triggered by degradation, so the instinct is to run the scrape
