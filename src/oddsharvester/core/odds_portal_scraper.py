@@ -118,6 +118,7 @@ class OddsPortalScraper(BaseScraper):
             base_url=base_url,
             pages_to_scrape=pages_to_scrape,
             page_limit=self._effective_page_limit(max_pages),
+            max_pages=max_pages,
         )
 
         if link_result.failed_pages:
@@ -461,8 +462,9 @@ class OddsPortalScraper(BaseScraper):
         total_pages = await self.pagination_walker.read_widget(page=page)
 
         if not total_pages:
-            self.logger.warning(
-                "Pagination widget could not be read. Collection will determine the page count by walking."
+            self.logger.info(
+                "No pagination widget on this page: either a single-page league or a degraded response. "
+                "The walk will determine the page count."
             )
             return [1]
 
@@ -491,7 +493,8 @@ class OddsPortalScraper(BaseScraper):
 
         OddsPortal renders pagination with an ellipsis for large page ranges
         (e.g. ``[1,2,3,...,28]``), so the HTML only contains the endpoints.
-        This method fills the gap so all intermediate pages are scraped.
+        This determines the maximum under the page cap; the walk is what
+        actually ensures intermediate pages are scraped.
 
         Args:
             raw_pages (List[int]): Raw page numbers found in pagination.
@@ -516,18 +519,21 @@ class OddsPortalScraper(BaseScraper):
         base_url: str,
         pages_to_scrape: list[int],
         page_limit: int = MAX_PAGINATION_PAGES,
+        max_pages: int | None = None,
     ) -> LinkCollectionResult:
         """
         Walks listing pages, collecting match links.
 
-        `pages_to_scrape` is a floor, not a plan: the widget it came from can be
-        missing or under-report, so the walk continues while pages come back full
-        (issue #79). See gotchas 2 and 17.
+        `pages_to_scrape` is a floor, not a plan: only its maximum is used, and the
+        walk always visits 1, 2, 3... contiguously from there, continuing while pages
+        come back full (issue #79). See gotchas 2 and 17.
 
         Args:
             base_url (str): The base URL of the historic matches.
-            pages_to_scrape (List[int]): Pages the pagination widget promised.
+            pages_to_scrape (List[int]): Only the maximum is used, as the walk's floor.
             page_limit (int): Hard bound on how many pages the walk may visit.
+            max_pages (Optional[int]): The user-supplied --max-pages, if any; distinguishes
+                an intentional limit from the default safety cap in the truncation warning.
 
         Returns:
             LinkCollectionResult: Contains links found and tracking of successful/failed pages.
@@ -609,6 +615,8 @@ class OddsPortalScraper(BaseScraper):
             except Exception as e:
                 result.failed_pages.append(page_number)
                 self.logger.error(f"Error processing page {page_number}: {e}")
+                # Deliberate: a timeout past the frontier stops the walk same as PAGE_FAILED,
+                # even though a timeout doesn't prove the page is absent. Loud failure, not silent.
                 if past_frontier:
                     break
 
@@ -618,17 +626,23 @@ class OddsPortalScraper(BaseScraper):
 
             page_number += 1
 
-        pages_walked = result.successful_pages + len(result.failed_pages)
+        pages_walked = result.total_pages
         if pages_walked > planned_max:
             self.logger.warning(
-                f"Pagination widget reported {planned_max} page(s) but collection reached page {pages_walked}. "
+                f"Pagination widget reported {planned_max} page(s) but the walk collected {pages_walked} page(s). "
                 "The widget read was incomplete; walked past it to avoid truncation."
             )
         if page_number > page_limit:
-            self.logger.warning(
-                f"Walk stopped at the {page_limit}-page limit. The season may be incomplete; "
-                "raise --max-pages to collect the rest."
-            )
+            if max_pages:
+                self.logger.warning(
+                    f"Walk stopped at the {page_limit}-page limit set by --max-pages. Result is intentionally "
+                    "truncated."
+                )
+            else:
+                self.logger.warning(
+                    f"Walk stopped at the {page_limit}-page safety cap. The season may be incomplete; "
+                    "raise --max-pages to collect the rest."
+                )
 
         result.links = list(dict.fromkeys(all_links))
         self.logger.info("Collection Summary:")

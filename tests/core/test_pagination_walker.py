@@ -37,6 +37,12 @@ class TestDecideInsideFloor:
         verdict = walker.decide(requested_page=5, link_count=0, frontier=8, observed_max=8, scroll_ok=True)
         assert verdict is WalkVerdict.PAGE_FAILED
 
+    def test_empty_page_below_frontier_with_scroll_ok_still_fails(self, walker):
+        """scroll_ok must not leak into the empty-page branches: below the frontier an empty
+        page is anomalous no matter how the scroll went."""
+        verdict = walker.decide(requested_page=2, link_count=0, frontier=5, observed_max=None, scroll_ok=True)
+        assert verdict is WalkVerdict.PAGE_FAILED
+
 
 class TestDecidePastFloor:
     """At or beyond the frontier the walk is exploring, so fullness governs."""
@@ -81,12 +87,6 @@ class TestDecidePastFloor:
 
     def test_empty_later_page_without_widget_fails(self, walker):
         verdict = walker.decide(requested_page=2, link_count=0, frontier=2, observed_max=None, scroll_ok=True)
-        assert verdict is WalkVerdict.PAGE_FAILED
-
-    def test_empty_page_below_frontier_with_scroll_ok_still_fails(self, walker):
-        """scroll_ok must not leak into the empty-page branches: below the frontier an empty
-        page is anomalous no matter how the scroll went."""
-        verdict = walker.decide(requested_page=2, link_count=0, frontier=5, observed_max=None, scroll_ok=True)
         assert verdict is WalkVerdict.PAGE_FAILED
 
 

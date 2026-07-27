@@ -1,4 +1,5 @@
 from datetime import date
+import logging
 from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 from playwright.async_api import Browser, BrowserContext, Page
@@ -151,7 +152,10 @@ async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
     scraper._prepare_page_for_scraping.assert_called_once_with(page=page_mock)
     scraper._get_pagination_info.assert_called_once_with(page=page_mock, max_pages=2)
     scraper._collect_match_links.assert_called_once_with(
-        base_url="https://oddsportal.com/football/england/premier-league-2023", pages_to_scrape=[1, 2], page_limit=2
+        base_url="https://oddsportal.com/football/england/premier-league-2023",
+        pages_to_scrape=[1, 2],
+        page_limit=2,
+        max_pages=2,
     )
     scraper.extract_match_odds.assert_called_once_with(
         sport="football",
@@ -474,7 +478,7 @@ async def test_get_pagination_info(setup_scraper_mocks):
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
     page_mock = mocks["page_mock"]
-    scraper.pagination_walker.read_widget = AsyncMock(return_value=[1, 2, 3])
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[1, 3])
 
     assert await scraper._get_pagination_info(page=page_mock, max_pages=None) == [1, 2, 3]
     assert await scraper._get_pagination_info(page=page_mock, max_pages=1) == [1]
@@ -866,7 +870,7 @@ def _walk_tab(mocks):
 
 
 @pytest.mark.asyncio
-async def test_collect_match_links_walks_past_an_empty_widget(setup_scraper_mocks):
+async def test_collect_match_links_walks_past_an_empty_widget(setup_scraper_mocks, caplog):
     """Issue 79: an unreadable widget must not cap collection at one page.
 
     Page 1's widget read comes back empty, so the floor is [1]. Page 2's widget
@@ -880,11 +884,13 @@ async def test_collect_match_links_walks_past_an_empty_widget(setup_scraper_mock
     pages = [[f"https://m{p}-{i}" for i in range(50)] for p in range(1, 8)] + [[f"https://m8-{i}" for i in range(30)]]
     scraper.extract_match_links = AsyncMock(side_effect=pages)
 
-    result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1])
+    with caplog.at_level(logging.WARNING):
+        result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1])
 
     assert len(result.links) == 380
     assert result.successful_pages == 8
     assert result.failed_pages == []
+    assert any("but the walk collected" in r.message for r in caplog.records)
 
 
 @pytest.mark.asyncio
@@ -997,7 +1003,7 @@ async def test_collect_match_links_fails_a_short_page_with_incomplete_scroll(set
 
 
 @pytest.mark.asyncio
-async def test_collect_match_links_respects_the_page_limit(setup_scraper_mocks):
+async def test_collect_match_links_respects_the_page_limit(setup_scraper_mocks, caplog):
     """An explicit --max-pages bounds the walk even when every page is full."""
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
@@ -1006,9 +1012,11 @@ async def test_collect_match_links_respects_the_page_limit(setup_scraper_mocks):
     scraper.pagination_walker.read_widget = AsyncMock(return_value=[])
     scraper.extract_match_links = AsyncMock(side_effect=[[f"https://m{p}-{i}" for i in range(50)] for p in range(1, 9)])
 
-    result = await scraper._collect_match_links(
-        base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1], page_limit=3
-    )
+    with caplog.at_level(logging.WARNING):
+        result = await scraper._collect_match_links(
+            base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1], page_limit=3
+        )
 
     assert len(result.links) == 150
     assert result.successful_pages == 3
+    assert any("raise --max-pages" in r.message for r in caplog.records)
