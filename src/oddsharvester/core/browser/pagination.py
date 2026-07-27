@@ -53,12 +53,17 @@ class PaginationWalker:
         link_count: int,
         frontier: int,
         observed_max: int | None,
+        scroll_ok: bool,
     ) -> WalkVerdict:
         """Verdict for a page that was just collected.
 
         Below the frontier the widget promised the page exists, so only an empty
         page is anomalous. At or beyond it the walk is exploring, so a page that
-        is not full ends the season. See gotchas 15 and 17.
+        is not full ends the season, unless its scroll did not complete: a short
+        page from a truncated scroll must not be read as a genuine last page, or
+        the season ends looking complete with zero failures reported (issue #79).
+        `scroll_ok` only affects that short-page case; empty pages are already
+        governed by the widget-corroboration rules above. See gotchas 15 and 17.
         """
         if requested_page < frontier:
             return WalkVerdict.PAGE_FAILED if link_count == 0 else WalkVerdict.CONTINUE
@@ -68,4 +73,7 @@ class PaginationWalker:
                 return WalkVerdict.STOP_COMPLETE if requested_page > observed_max else WalkVerdict.PAGE_FAILED
             return WalkVerdict.STOP_COMPLETE if requested_page == 1 else WalkVerdict.PAGE_FAILED
 
-        return WalkVerdict.CONTINUE if self.is_full_page(link_count) else WalkVerdict.STOP_COMPLETE
+        if self.is_full_page(link_count):
+            return WalkVerdict.CONTINUE
+
+        return WalkVerdict.STOP_COMPLETE if scroll_ok else WalkVerdict.PAGE_FAILED

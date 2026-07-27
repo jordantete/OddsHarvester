@@ -901,6 +901,7 @@ async def test_collect_match_links_walks_past_an_underreporting_widget(setup_scr
     result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1, 2, 3])
 
     assert len(result.links) == 380
+    assert result.successful_pages == 8
     assert result.failed_pages == []
 
 
@@ -920,6 +921,7 @@ async def test_collect_match_links_stops_clean_one_page_past_the_end(setup_scrap
     )
 
     assert len(result.links) == 400
+    assert result.successful_pages == 8, "the zero-link confirmation page is not itself collected"
     assert result.failed_pages == [], "walking one past the end is not a failure"
 
 
@@ -945,6 +947,27 @@ async def test_collect_match_links_flags_an_empty_page_the_widget_says_exists(se
 
     assert result.failed_pages == [4]
     assert len(result.links) == 330, "the run continues past a failed page"
+
+
+@pytest.mark.asyncio
+async def test_collect_match_links_fails_a_short_page_with_incomplete_scroll(setup_scraper_mocks):
+    """Issue 79 recreated via scroll failure: a short page at the frontier whose scroll did not
+    finish must be flagged as failed, not silently read as a clean, complete season.
+    """
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    _walk_tab(mocks)
+    scraper.scroller.scroll_until_loaded = AsyncMock(side_effect=[True, True, True, True, True, True, True, False])
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=list(range(1, 9)))
+    pages = [[f"https://m{p}-{i}" for i in range(50)] for p in range(1, 8)] + [[f"https://m8-{i}" for i in range(30)]]
+    scraper.extract_match_links = AsyncMock(side_effect=pages)
+
+    result = await scraper._collect_match_links(
+        base_url="https://oddsportal.com/x/results/", pages_to_scrape=list(range(1, 9))
+    )
+
+    assert result.successful_pages == 7
+    assert result.failed_pages == [8], "an incompletely scrolled short page must not read as a clean stop"
 
 
 @pytest.mark.asyncio

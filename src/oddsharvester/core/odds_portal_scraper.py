@@ -556,13 +556,15 @@ class OddsPortalScraper(BaseScraper):
                 await tab.wait_for_timeout(delay)
 
                 self.logger.info(f"Scrolling page {page_number} to load all matches...")
-                await self.scroller.scroll_until_loaded(
+                scroll_success = await self.scroller.scroll_until_loaded(
                     page=tab,
                     timeout=30,
                     scroll_pause_time=2,
                     max_scroll_attempts=3,
                     content_check_selector="div[class*='eventRow']",
                 )
+                if not scroll_success:
+                    self.logger.warning(f"Scrolling may not have completed for page {page_number}")
 
                 links = await self.extract_match_links(page=tab)
 
@@ -580,6 +582,7 @@ class OddsPortalScraper(BaseScraper):
                     link_count=len(links),
                     frontier=frontier,
                     observed_max=observed_max,
+                    scroll_ok=scroll_success,
                 )
 
                 if verdict is WalkVerdict.PAGE_FAILED:
@@ -591,7 +594,13 @@ class OddsPortalScraper(BaseScraper):
                     continue
 
                 all_links.extend(links)
-                result.successful_pages += 1
+                # A zero-link STOP_COMPLETE past the planned floor is the widget-corroboration
+                # page confirming the season already ended; it rendered nothing, so it was not
+                # collected and must not inflate successful_pages (that count feeds the
+                # widget-mismatch warning below).
+                phantom_page = verdict is WalkVerdict.STOP_COMPLETE and not links and page_number > planned_max
+                if not phantom_page:
+                    result.successful_pages += 1
                 self.logger.info(f"Extracted {len(links)} links from page {page_number}")
 
                 if verdict is WalkVerdict.STOP_COMPLETE:

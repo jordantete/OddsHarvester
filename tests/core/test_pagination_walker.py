@@ -26,15 +26,15 @@ class TestDecideInsideFloor:
     """
 
     def test_short_page_continues(self, walker):
-        verdict = walker.decide(requested_page=1, link_count=2, frontier=3, observed_max=None)
+        verdict = walker.decide(requested_page=1, link_count=2, frontier=3, observed_max=None, scroll_ok=True)
         assert verdict is WalkVerdict.CONTINUE
 
     def test_full_page_continues(self, walker):
-        verdict = walker.decide(requested_page=1, link_count=50, frontier=8, observed_max=8)
+        verdict = walker.decide(requested_page=1, link_count=50, frontier=8, observed_max=8, scroll_ok=True)
         assert verdict is WalkVerdict.CONTINUE
 
     def test_empty_page_fails(self, walker):
-        verdict = walker.decide(requested_page=5, link_count=0, frontier=8, observed_max=8)
+        verdict = walker.decide(requested_page=5, link_count=0, frontier=8, observed_max=8, scroll_ok=True)
         assert verdict is WalkVerdict.PAGE_FAILED
 
 
@@ -42,29 +42,45 @@ class TestDecidePastFloor:
     """At or beyond the frontier the walk is exploring, so fullness governs."""
 
     def test_full_page_continues(self, walker):
-        verdict = walker.decide(requested_page=1, link_count=50, frontier=1, observed_max=None)
+        verdict = walker.decide(requested_page=1, link_count=50, frontier=1, observed_max=None, scroll_ok=True)
+        assert verdict is WalkVerdict.CONTINUE
+
+    def test_full_page_continues_even_with_failed_scroll(self, walker):
+        """A full page still implies more pages exist regardless of scroll completeness."""
+        verdict = walker.decide(requested_page=1, link_count=50, frontier=1, observed_max=None, scroll_ok=False)
         assert verdict is WalkVerdict.CONTINUE
 
     def test_short_page_stops_complete(self, walker):
-        verdict = walker.decide(requested_page=8, link_count=30, frontier=8, observed_max=8)
+        verdict = walker.decide(requested_page=8, link_count=30, frontier=8, observed_max=8, scroll_ok=True)
         assert verdict is WalkVerdict.STOP_COMPLETE
+
+    def test_short_page_with_failed_scroll_fails(self, walker):
+        """Issue 79: a short page from a truncated scroll must not be read as a genuine last page."""
+        verdict = walker.decide(requested_page=8, link_count=30, frontier=8, observed_max=8, scroll_ok=False)
+        assert verdict is WalkVerdict.PAGE_FAILED
 
     def test_empty_page_past_widget_max_stops_complete(self, walker):
         """Page 9 of an 8-page season renders zero rows but still shows a widget saying 8."""
-        verdict = walker.decide(requested_page=9, link_count=0, frontier=8, observed_max=8)
+        verdict = walker.decide(requested_page=9, link_count=0, frontier=8, observed_max=8, scroll_ok=True)
         assert verdict is WalkVerdict.STOP_COMPLETE
 
     def test_empty_page_within_widget_max_fails(self, walker):
-        verdict = walker.decide(requested_page=8, link_count=0, frontier=8, observed_max=8)
+        verdict = walker.decide(requested_page=8, link_count=0, frontier=8, observed_max=8, scroll_ok=True)
         assert verdict is WalkVerdict.PAGE_FAILED
 
     def test_empty_first_page_without_widget_stops_complete(self, walker):
         """Gotcha 15: a dead league/season pair answers 200 with an empty first page."""
-        verdict = walker.decide(requested_page=1, link_count=0, frontier=1, observed_max=None)
+        verdict = walker.decide(requested_page=1, link_count=0, frontier=1, observed_max=None, scroll_ok=True)
         assert verdict is WalkVerdict.STOP_COMPLETE
 
     def test_empty_later_page_without_widget_fails(self, walker):
-        verdict = walker.decide(requested_page=2, link_count=0, frontier=2, observed_max=None)
+        verdict = walker.decide(requested_page=2, link_count=0, frontier=2, observed_max=None, scroll_ok=True)
+        assert verdict is WalkVerdict.PAGE_FAILED
+
+    def test_empty_page_below_frontier_with_scroll_ok_still_fails(self, walker):
+        """scroll_ok must not leak into the empty-page branches: below the frontier an empty
+        page is anomalous no matter how the scroll went."""
+        verdict = walker.decide(requested_page=2, link_count=0, frontier=5, observed_max=None, scroll_ok=True)
         assert verdict is WalkVerdict.PAGE_FAILED
 
 
