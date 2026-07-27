@@ -8,6 +8,9 @@ class OddsPortalSelectors:
     # Cookie banner
     COOKIE_BANNER = "#onetrust-accept-btn-handler"
 
+    # Listing pagination. The Next/Prev anchors share the class and carry no rel attribute.
+    PAGINATION_LINK = "a.pagination-link"
+
     # Market navigation tabs
     MARKET_TAB_SELECTORS: ClassVar[list[str]] = [
         "ul.visible-links.bg-black-main.odds-tabs > li",

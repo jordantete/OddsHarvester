@@ -397,6 +397,11 @@ class OddsPortalScraper(BaseScraper):
         await self.cookie_dismisser.dismiss(page=page)
 
     @staticmethod
+    def _effective_page_limit(max_pages: int | None) -> int:
+        """Explicit --max-pages overrides the default safety cap."""
+        return max_pages if max_pages else MAX_PAGINATION_PAGES
+
+    @staticmethod
     def _listing_page_failures(base_url: str, failed_pages: list[int]) -> list[FailedUrl]:
         """Build the failure entries for listing pages that could not be collected."""
         return [
@@ -448,35 +453,21 @@ class OddsPortalScraper(BaseScraper):
         """
         self.logger.info("Analyzing pagination information...")
 
-        # Find all pagination links
-        pagination_links = await page.query_selector_all("a.pagination-link:not([rel='next'])")
-        self.logger.info(f"Found {len(pagination_links)} pagination links")
-
-        # Extract page numbers
-        total_pages = []
-        for link in pagination_links:
-            try:
-                text = await link.inner_text()
-                if text.isdigit():
-                    page_num = int(text)
-                    total_pages.append(page_num)
-                    self.logger.debug(f"Found pagination link: {page_num}")
-            except Exception as e:
-                self.logger.warning(f"Error processing pagination link: {e}")
+        total_pages = await self.pagination_walker.read_widget(page=page)
 
         if not total_pages:
-            self.logger.info("No pagination found; scraping only the current page.")
+            self.logger.warning(
+                "Pagination widget could not be read. Collection will determine the page count by walking."
+            )
             return [1]
 
-        # Sort and log all available pages
-        total_pages = sorted(total_pages)
         self.logger.info(f"Raw pagination pages found: {total_pages}")
 
         # Check for gaps in pagination (e.g., [1,2,3,4,5,6,7,8,9,10,27] -> missing 11-26)
         pages_to_scrape = self._fill_pagination_gaps(total_pages)
 
         # Apply page limit: explicit --max-pages overrides the default safety cap
-        effective_limit = max_pages if max_pages else MAX_PAGINATION_PAGES
+        effective_limit = self._effective_page_limit(max_pages)
         if len(pages_to_scrape) > effective_limit:
             self.logger.warning(
                 f"Pagination has {len(pages_to_scrape)} pages, limiting to {effective_limit} "

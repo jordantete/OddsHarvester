@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 
 from oddsharvester.core.browser.pagination import PaginationWalker, WalkVerdict
@@ -64,3 +66,46 @@ class TestDecidePastFloor:
     def test_empty_later_page_without_widget_fails(self, walker):
         verdict = walker.decide(requested_page=2, link_count=0, frontier=2, observed_max=None)
         assert verdict is WalkVerdict.PAGE_FAILED
+
+
+def _link(text):
+    link = MagicMock()
+    link.inner_text = AsyncMock(return_value=text)
+    return link
+
+
+def _page_with(texts):
+    page = MagicMock()
+    page.query_selector_all = AsyncMock(return_value=[_link(t) for t in texts])
+    return page
+
+
+class TestReadWidget:
+    """The live widget renders digits plus localized Prev/Next anchors."""
+
+    @pytest.mark.asyncio
+    async def test_keeps_digits_and_drops_navigation_labels(self, walker):
+        page = _page_with(["1", "2", "3", "4", "5", "6", "7", "8", "Next"])
+        assert await walker.read_widget(page=page) == [1, 2, 3, 4, 5, 6, 7, 8]
+
+    @pytest.mark.asyncio
+    async def test_drops_prev_label(self, walker):
+        page = _page_with(["Prev", "1", "2", "3", "4", "5", "6", "7", "8"])
+        assert await walker.read_widget(page=page) == [1, 2, 3, 4, 5, 6, 7, 8]
+
+    @pytest.mark.asyncio
+    async def test_absent_widget_returns_empty(self, walker):
+        page = _page_with([])
+        assert await walker.read_widget(page=page) == []
+
+    @pytest.mark.asyncio
+    async def test_ellipsis_range_keeps_endpoints(self, walker):
+        """Gotcha 2a: long ranges collapse to endpoints, gap filling happens downstream."""
+        page = _page_with(["1", "2", "3", "27", "Next"])
+        assert await walker.read_widget(page=page) == [1, 2, 3, 27]
+
+    @pytest.mark.asyncio
+    async def test_query_failure_returns_empty(self, walker):
+        page = MagicMock()
+        page.query_selector_all = AsyncMock(side_effect=RuntimeError("detached"))
+        assert await walker.read_widget(page=page) == []

@@ -470,36 +470,17 @@ async def test_prepare_page_for_scraping(setup_scraper_mocks):
 
 @pytest.mark.asyncio
 async def test_get_pagination_info(setup_scraper_mocks):
-    """Test extracting pagination information."""
+    """_get_pagination_info returns a floor: gaps filled, capped, never a verdict."""
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
     page_mock = mocks["page_mock"]
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[1, 2, 3])
 
-    # Mock the pagination links
-    pagination_link1 = AsyncMock()
-    pagination_link1.inner_text = AsyncMock(return_value="1")
+    assert await scraper._get_pagination_info(page=page_mock, max_pages=None) == [1, 2, 3]
+    assert await scraper._get_pagination_info(page=page_mock, max_pages=1) == [1]
 
-    pagination_link2 = AsyncMock()
-    pagination_link2.inner_text = AsyncMock(return_value="2")
-
-    pagination_link3 = AsyncMock()
-    pagination_link3.inner_text = AsyncMock(return_value="Next")
-
-    page_mock.query_selector_all.return_value = [pagination_link1, pagination_link2, pagination_link3]
-
-    # Test with no max_pages
-    result = await scraper._get_pagination_info(page=page_mock, max_pages=None)
-    page_mock.query_selector_all.assert_called_with("a.pagination-link:not([rel='next'])")
-    assert result == [1, 2]
-
-    # Test with max_pages=1
-    result = await scraper._get_pagination_info(page=page_mock, max_pages=1)
-    assert result == [1]
-
-    # Test with no pagination
-    page_mock.query_selector_all.return_value = []
-    result = await scraper._get_pagination_info(page=page_mock, max_pages=None)
-    assert result == [1]
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[])
+    assert await scraper._get_pagination_info(page=page_mock, max_pages=None) == [1]
 
 
 @pytest.mark.asyncio
@@ -510,13 +491,7 @@ async def test_get_pagination_info_max_pages_overrides_safety_cap(setup_scraper_
     page_mock = mocks["page_mock"]
 
     total = MAX_PAGINATION_PAGES + 20
-    links = []
-    for i in range(1, total + 1):
-        link = AsyncMock()
-        link.inner_text = AsyncMock(return_value=str(i))
-        links.append(link)
-
-    page_mock.query_selector_all.return_value = links
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=list(range(1, total + 1)))
 
     # Without max_pages: safety cap applies
     result = await scraper._get_pagination_info(page=page_mock, max_pages=None)

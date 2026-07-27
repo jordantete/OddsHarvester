@@ -3,6 +3,9 @@
 from enum import Enum, auto
 import logging
 
+from playwright.async_api import Page
+
+from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import RESULTS_PAGE_SIZE
 
 
@@ -19,6 +22,25 @@ class PaginationWalker:
 
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
+
+    async def read_widget(self, page: Page) -> list[int]:
+        """Page numbers rendered by the pagination widget, empty when absent or unreadable."""
+        try:
+            links = await page.query_selector_all(OddsPortalSelectors.PAGINATION_LINK)
+        except Exception as e:
+            self.logger.warning(f"Could not query the pagination widget: {e}")
+            return []
+
+        pages: set[int] = set()
+        for link in links:
+            try:
+                text = (await link.inner_text()).strip()
+            except Exception as e:
+                self.logger.warning(f"Could not read a pagination link: {e}")
+                continue
+            if text.isdigit():
+                pages.add(int(text))
+        return sorted(pages)
 
     @staticmethod
     def is_full_page(link_count: int) -> bool:

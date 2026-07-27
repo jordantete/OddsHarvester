@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError
 
 from oddsharvester.core.browser.cookies import CookieDismisser
+from oddsharvester.core.browser.pagination import PaginationWalker
 from oddsharvester.core.browser.scrolling import PageScroller
 from oddsharvester.core.browser.selection import (
     BOOKIES_FILTER_STRATEGY,
@@ -360,6 +361,7 @@ class BaseScraper:
         self.local_kickoff = local_kickoff
         self.base_url = base_url
         self._warmed_proxy_keys: set[str] = set()
+        self.pagination_walker = PaginationWalker()
 
     async def set_odds_format(self, page: Page, odds_format: OddsFormat = OddsFormat.DECIMAL_ODDS):
         """
