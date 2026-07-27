@@ -906,6 +906,32 @@ async def test_collect_match_links_walks_past_an_underreporting_widget(setup_scr
 
 
 @pytest.mark.asyncio
+async def test_collect_match_links_fails_empty_page_despite_lower_mid_walk_observed_max(setup_scraper_mocks):
+    """A mid-walk widget read that only sees up to page 3 must not shrink the frontier.
+
+    The base page promised 8 pages (frontier=8). Every in-walk widget read reports only
+    [1, 2, 3], so observed_max stays 3, well below the frontier. Page 8 renders nothing.
+    Comparing against observed_max instead of frontier would read this as STOP_COMPLETE
+    and silently drop page 8; it must be PAGE_FAILED instead.
+    """
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    _walk_tab(mocks)
+    scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[1, 2, 3])
+    pages = [[f"https://m{p}-{i}" for i in range(50)] for p in range(1, 8)] + [[]]
+    scraper.extract_match_links = AsyncMock(side_effect=pages)
+
+    result = await scraper._collect_match_links(
+        base_url="https://oddsportal.com/x/results/", pages_to_scrape=list(range(1, 9))
+    )
+
+    assert result.failed_pages == [8]
+    assert len(result.links) == 350
+    assert result.successful_pages == 7
+
+
+@pytest.mark.asyncio
 async def test_collect_match_links_stops_clean_one_page_past_the_end(setup_scraper_mocks):
     """A season whose last page is exactly full: page 9 renders nothing but the widget still says 8."""
     mocks = setup_scraper_mocks

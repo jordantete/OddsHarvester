@@ -70,7 +70,7 @@ class PaginationWalker:
 
         if link_count == 0:
             if observed_max is not None:
-                return WalkVerdict.STOP_COMPLETE if requested_page > observed_max else WalkVerdict.PAGE_FAILED
+                return WalkVerdict.STOP_COMPLETE if requested_page > frontier else WalkVerdict.PAGE_FAILED
             return WalkVerdict.STOP_COMPLETE if requested_page == 1 else WalkVerdict.PAGE_FAILED
 
         if self.is_full_page(link_count):

@@ -68,6 +68,12 @@ class TestDecidePastFloor:
         verdict = walker.decide(requested_page=8, link_count=0, frontier=8, observed_max=8, scroll_ok=True)
         assert verdict is WalkVerdict.PAGE_FAILED
 
+    def test_empty_page_within_frontier_despite_lower_observed_max_fails(self, walker):
+        """A mid-walk partial widget read must not shrink the protected range: frontier
+        stays at the planned 8 even though this read only saw up to 3."""
+        verdict = walker.decide(requested_page=8, link_count=0, frontier=8, observed_max=3, scroll_ok=True)
+        assert verdict is WalkVerdict.PAGE_FAILED
+
     def test_empty_first_page_without_widget_stops_complete(self, walker):
         """Gotcha 15: a dead league/season pair answers 200 with an empty first page."""
         verdict = walker.decide(requested_page=1, link_count=0, frontier=1, observed_max=None, scroll_ok=True)
