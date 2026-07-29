@@ -53,6 +53,55 @@ class TestOddsParser:
     </div>
     """
 
+    # Mirrors the live DOM of a blocked row: the `line-through` class sits on a
+    # <p class="odds-text"> two levels below the cell matched by
+    # ODDS_BLOCK_CLASS_PATTERN. Captured from an Albania Superliga match where
+    # Betclic.fr had all three 1X2 outcomes struck through.
+    SAMPLE_HTML_BLOCKED_ODDS = """
+    <div class="border-black-borders flex h-9">
+        <img class="bookmaker-logo" title="Betclic.fr">
+        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
+            <div class="flex flex-row items-center gap-[3px]">
+                <div class=""><p class="odds-text line-through">1.60</p></div>
+            </div>
+        </div>
+        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
+            <div class="flex flex-row items-center gap-[3px]">
+                <div class=""><p class="odds-text line-through">3.30</p></div>
+            </div>
+        </div>
+        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
+            <div class="flex flex-row items-center gap-[3px]">
+                <div class=""><p class="odds-text line-through">4.75</p></div>
+            </div>
+        </div>
+    </div>
+    """
+
+    # Only the draw is blocked. Not observed live, but the feed indexes the
+    # `act` flag per outcome (`act[bookmakerId]` per odd), so a partial row is
+    # representable and must yield exactly one label.
+    SAMPLE_HTML_PARTIALLY_BLOCKED_ODDS = """
+    <div class="border-black-borders flex h-9">
+        <img class="bookmaker-logo" title="Winamax">
+        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
+            <div class="flex flex-row items-center gap-[3px]">
+                <div class=""><p class="odds-text">1.44</p></div>
+            </div>
+        </div>
+        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
+            <div class="flex flex-row items-center gap-[3px]">
+                <div class=""><p class="odds-text line-through">4.10</p></div>
+            </div>
+        </div>
+        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
+            <div class="flex flex-row items-center gap-[3px]">
+                <div class=""><p class="odds-text">5.00</p></div>
+            </div>
+        </div>
+    </div>
+    """
+
     def test_parse_market_odds_success(self, odds_parser):
         """Test successful parsing of market odds."""
         # Arrange
@@ -371,6 +420,61 @@ class TestOddsParser:
         # outside the scoped search root and must not be inspected).
         team_warnings = [r for r in caplog.records if "Kiel" in r.message or "Fuchse Berlin" in r.message]
         assert team_warnings == []
+
+    def test_parse_market_odds_flags_fully_blocked_row(self, odds_parser):
+        """A row whose every odds cell is struck through reports all labels and keeps its values."""
+        result = odds_parser.parse_market_odds(self.SAMPLE_HTML_BLOCKED_ODDS, "FullTime", ["1", "X", "2"])
+
+        assert len(result) == 1
+        assert result[0]["bookmaker_name"] == "Betclic.fr"
+        assert result[0]["blocked_outcomes"] == ["1", "X", "2"]
+        # A struck-through price is still the last price the bookmaker showed.
+        assert result[0]["1"] == "1.60"
+        assert result[0]["X"] == "3.30"
+        assert result[0]["2"] == "4.75"
+
+    def test_parse_market_odds_flags_partially_blocked_row(self, odds_parser):
+        """Only the struck-through outcome is reported, in odds_labels order."""
+        result = odds_parser.parse_market_odds(self.SAMPLE_HTML_PARTIALLY_BLOCKED_ODDS, "FullTime", ["1", "X", "2"])
+
+        assert len(result) == 1
+        assert result[0]["blocked_outcomes"] == ["X"]
+        assert result[0]["1"] == "1.44"
+        assert result[0]["X"] == "4.10"
+        assert result[0]["2"] == "5.00"
+
+    def test_parse_market_odds_omits_key_when_nothing_blocked(self, odds_parser):
+        """Output for the nominal case is unchanged: no blocked_outcomes key at all."""
+        result = odds_parser.parse_market_odds(self.SAMPLE_HTML_ODDS, "FullTime", ["1", "X", "2"])
+
+        assert len(result) == 2
+        assert "blocked_outcomes" not in result[0]
+        assert "blocked_outcomes" not in result[1]
+
+    def test_parse_market_odds_does_not_flag_bookmaker_without_odds(self, odds_parser):
+        """A bookmaker with no price renders ' - ' through a branch that carries no
+        `line-through` class. 'no odds' and 'blocked' must stay distinguishable.
+        """
+        html = """
+        <div class="border-black-borders flex h-9">
+            <img class="bookmaker-logo" title="Bets.io">
+            <div class="flex-center flex-col font-bold text-[#2F2F2F]">
+                <div class="flex flex-row items-center gap-[3px]">
+                    <div class=""><p class="odds-text"> - </p></div>
+                </div>
+            </div>
+            <div class="flex-center flex-col font-bold text-[#2F2F2F]">
+                <div class="flex flex-row items-center gap-[3px]">
+                    <div class=""><p class="odds-text"> - </p></div>
+                </div>
+            </div>
+        </div>
+        """
+        result = odds_parser.parse_market_odds(html, "FullTime", ["home", "away"])
+
+        assert len(result) == 1
+        assert "blocked_outcomes" not in result[0]
+        assert result[0]["home"] == "-"
 
     def test_logger_initialization(self, odds_parser):
         """Test that logger is properly initialized."""

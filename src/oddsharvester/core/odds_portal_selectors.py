@@ -201,6 +201,10 @@ class OddsPortalSelectors:
     BOOKMAKER_ROW_FALLBACK_CLASS = r"^border-black-borders flex h-9"
     BOOKMAKER_LOGO_CLASS = "bookmaker-logo"
     ODDS_BLOCK_CLASS_PATTERN = r"flex-center.*flex-col.*font-bold"
+    # OddsPortal strikes through an odds value when the feed's per-outcome `act`
+    # flag is false (bookmaker no longer offering that bet). A CSS selector, not a
+    # class regex: soupsieve matches class tokens exactly. See gotchas §18.
+    ODDS_BLOCKED_SELECTOR = ".line-through"
     # Scope marker: the bookmaker table header sits inside the container that holds
     # only the real bookmaker rows. Used to scope row search and skip peripheral
     # sections (Previous Matches, H2H, etc.) whose rows share `border-black-borders`.

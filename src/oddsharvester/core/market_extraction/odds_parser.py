@@ -86,8 +86,16 @@ class OddsParser:
                 for key, value in extracted_odds.items():
                     extracted_odds[key] = re.sub(r"(\d+\.\d+)\1", r"\1", value)
 
+                blocked_outcomes = [
+                    label
+                    for i, label in enumerate(odds_labels)
+                    if odds_blocks[i].select_one(OddsPortalSelectors.ODDS_BLOCKED_SELECTOR)
+                ]
+
                 extracted_odds["bookmaker_name"] = bookmaker_name
                 extracted_odds["period"] = period
+                if blocked_outcomes:
+                    extracted_odds["blocked_outcomes"] = blocked_outcomes
                 odds_data.append(extracted_odds)
 
             except Exception as e:
