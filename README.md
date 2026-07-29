@@ -390,12 +390,14 @@ OddsPortal strikes through a price when that bookmaker has stopped offering the 
 ```json
 {
   "bookmaker_name": "Unibet.fr",
-  "odds_home": "1.32",
-  "odds_draw": "4.55",
-  "odds_away": "6.10",
-  "blocked_outcomes": ["odds_home", "odds_draw", "odds_away"]
+  "1": "1.32",
+  "X": "4.55",
+  "2": "6.10",
+  "blocked_outcomes": ["1", "X", "2"]
 }
 ```
+
+The labels are the market's own, so they differ per market: `1` / `X` / `2` for 1X2, `odds_over` / `odds_under` for Over/Under, and so on.
 
 The field is always collected, with no flag to enable, and is **omitted entirely when nothing is blocked**, so records for available odds are unchanged. Odds values are kept exactly as rendered: a struck-through price is still the last price that bookmaker showed. A bookmaker with no price at all renders `-` and is not flagged, so "no odds" and "blocked" stay distinguishable.
 
