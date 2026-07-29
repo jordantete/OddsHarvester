@@ -401,8 +401,6 @@ The labels are the market's own, so they differ per market: `1` / `X` / `2` for 
 
 The field is always collected, with no flag to enable, and is **omitted entirely when nothing is blocked**, so records for available odds are unchanged. Odds values are kept exactly as rendered: a struck-through price is still the last price that bookmaker showed. A bookmaker with no price at all renders `-` and is not flagged, so "no odds" and "blocked" stay distinguishable.
 
-Expect it to be rare. A sweep of 63 matches across twelve lower-profile leagues found it on three, each time as a single bookmaker withdrawing while the rest of the market stayed open.
-
 ---
 
 ## Environment Variables
