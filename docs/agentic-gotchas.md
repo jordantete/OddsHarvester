@@ -1256,6 +1256,16 @@ those two elements based on `window.innerWidth >= 1150` and on whether a betslip
 link exists for that bookmaker. Both are runtime variables the scraper does not
 control.
 
+The probe (`select_one`) is descendant-only, matching against whatever is inside the
+cell matched by `ODDS_BLOCK_CLASS_PATTERN`. If OddsPortal ever moved `line-through`
+onto the cell element itself rather than a child, detection would silently return
+nothing — if blocked odds stop showing up, check the class's target element first.
+
+On a multi-value cell (e.g. Betfair back/lay, two prices in one cell) the flag is
+any-of: either sub-value struck through flags the whole outcome. Text extraction on
+such cells is already lossy on its own — the two prices concatenate (e.g.
+`1.601.62`) — pre-existing behaviour, out of scope here.
+
 ### Two traps
 
 **A bookmaker with no odds is not a blocked bookmaker.** The placeholder row is
