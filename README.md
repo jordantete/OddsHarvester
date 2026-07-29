@@ -54,6 +54,7 @@ oddsharvester community -s football --headless
 | **Live**         | Snapshot in-play odds   | One-shot capture of matches in play, with live score, period and scrape timestamp |
 | **Community**    | Scrape community data   | Top predictions, tipster profiles (stats + picks), and per-match community votes |
 | **Multi-market** | Advanced parsing        | Structured data: dates, teams, scores, venues, and per-bookmaker odds      |
+| **Blocked odds** | Detect pulled markets   | Flags which outcomes a bookmaker has stopped offering (struck-through odds) |
 | **Storage**      | Flexible output         | JSON, CSV (local), or direct upload to AWS S3                              |
 | **Docker**       | Container-ready         | Run seamlessly in Docker with environment variable configuration           |
 | **Proxy**        | Proxy support           | Route through SOCKS/HTTP proxies for geolocation and anti-blocking         |
@@ -381,6 +382,24 @@ Resolution is best-effort from the record's venue country/town. Single-timezone 
 Not compatible with `--links-only` (no match pages are visited, so there's no venue to resolve). Distinct from `--timezone`, which sets the browser's context timezone and does not affect the output fields.
 
 If you `--append` onto an existing CSV file, the header is frozen on the first write, so start a fresh file when you turn the flag on.
+
+### Blocked odds
+
+OddsPortal strikes through a price when that bookmaker has stopped offering the bet. Each per-bookmaker odds record then carries a `blocked_outcomes` field listing which outcomes are struck through, using the same labels as the odds themselves:
+
+```json
+{
+  "bookmaker_name": "Unibet.fr",
+  "odds_home": "1.32",
+  "odds_draw": "4.55",
+  "odds_away": "6.10",
+  "blocked_outcomes": ["odds_home", "odds_draw", "odds_away"]
+}
+```
+
+The field is always collected, with no flag to enable, and is **omitted entirely when nothing is blocked**, so records for available odds are unchanged. Odds values are kept exactly as rendered: a struck-through price is still the last price that bookmaker showed. A bookmaker with no price at all renders `-` and is not flagged, so "no odds" and "blocked" stay distinguishable.
+
+Expect it to be rare. A sweep of 63 matches across twelve lower-profile leagues found it on three, each time as a single bookmaker withdrawing while the rest of the market stayed open.
 
 ---
 
