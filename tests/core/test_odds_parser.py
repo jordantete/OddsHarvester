@@ -102,6 +102,28 @@ class TestOddsParser:
     </div>
     """
 
+    # OddsPortal swaps <p class="odds-text"> for <a class="odds-link underline"> when the
+    # bookmaker has a betslip link; the `line-through` class lands on whichever element is
+    # rendered. Matching on the class rather than the element is what makes this fixture pass.
+    SAMPLE_HTML_BLOCKED_ODDS_LINK_VARIANT = """
+    <div class="border-black-borders flex h-9">
+        <img class="bookmaker-logo" title="Bet365">
+        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
+            <div class="flex flex-row items-center gap-[3px]">
+                <div class="">
+                    <a class="odds-link underline line-through" href="https://example.test/betslip"
+                        target="_blank" rel="nofollow">1.85</a>
+                </div>
+            </div>
+        </div>
+        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
+            <div class="flex flex-row items-center gap-[3px]">
+                <div class=""><p class="odds-text">3.40</p></div>
+            </div>
+        </div>
+    </div>
+    """
+
     def test_parse_market_odds_success(self, odds_parser):
         """Test successful parsing of market odds."""
         # Arrange
@@ -442,6 +464,17 @@ class TestOddsParser:
         assert result[0]["1"] == "1.44"
         assert result[0]["X"] == "4.10"
         assert result[0]["2"] == "5.00"
+
+    def test_parse_market_odds_flags_blocked_odds_link_variant(self, odds_parser):
+        """Bookmakers with a betslip link render `<a class="odds-link">` instead of
+        `<p class="odds-text">`; the same `line-through` class must still be detected there.
+        """
+        result = odds_parser.parse_market_odds(self.SAMPLE_HTML_BLOCKED_ODDS_LINK_VARIANT, "FullTime", ["1", "X"])
+
+        assert len(result) == 1
+        assert result[0]["blocked_outcomes"] == ["1"]
+        assert result[0]["1"] == "1.85"
+        assert result[0]["X"] == "3.40"
 
     def test_parse_market_odds_omits_key_when_nothing_blocked(self, odds_parser):
         """Output for the nominal case is unchanged: no blocked_outcomes key at all."""
