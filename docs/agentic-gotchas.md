@@ -1229,6 +1229,72 @@ with spaced cold runs, and prefer a unit test over live repetition.
 
 ---
 
+## §18 — Struck-through odds are a real state; `odds-status-indicator` is not
+
+**Severity:** Medium — the state is invisible to text-only parsing, and the obvious neighbouring signal means something else entirely.
+
+OddsPortal renders a bookmaker's odds with a strikethrough when that price is no
+longer on offer. The marker is a `line-through` class on the odds node inside the
+cell, driven by a per-outcome boolean from the decrypted feed:
+
+```js
+// build/assets/Event-*.js
+(a(), n("p", {key: 1, class: T(["odds-text", {"line-through": !g.active}])}, v(_e(te)), 3))
+// and, when the bookmaker has a betslip link:
+n("a", {class: T(["odds-link underline", {"line-through": !g.active}]), ...})
+// active is fed straight from the feed, indexed per bookmaker AND per outcome:
+active: r[y].act[b]
+```
+
+`OddsParser.parse_market_odds` reads cells with `get_text(strip=True)`, which drops
+the class, so a struck-through price used to be indistinguishable from a live one.
+It now probes each cell with `OddsPortalSelectors.ODDS_BLOCKED_SELECTOR` and emits a
+`blocked_outcomes` list on the row (key omitted when empty, odds values untouched).
+
+Match on the class, not on `p.odds-text` / `a.odds-link`: the bundle picks between
+those two elements based on `window.innerWidth >= 1150` and on whether a betslip
+link exists for that bookmaker. Both are runtime variables the scraper does not
+control.
+
+### Two traps
+
+**A bookmaker with no odds is not a blocked bookmaker.** The placeholder row is
+built with `active: !1`, but it renders through a separate branch emitting `" - "`
+with no `line-through` class. Reading the class only ever flags cells holding a
+real value.
+
+**`odds-status-indicator` is a false friend.** Each row also carries a 6px coloured
+bar (`data-testid="odds-status-indicator"`) fed by a different field, `status`/`st`:
+`1 = FRESH ODDS`, `2 = DELAYED ODDS`, `3 = OLD ODDS`, forced to 3 once the match has
+started or finished. That is odds *freshness*, not availability — all seven rows of
+a finished match carried it with zero struck-through cells. Never read it as a
+blocking signal.
+
+### Detection signal
+
+- A feature request mentions "blocked", "suspended" or "crossed-out" odds, and the
+  instinct is to diff consecutive scrape runs to infer it.
+- Odds parsing is being changed and only the cell's text is being read.
+
+### Finding a live example
+
+It is rare on well-covered fixtures and easy to conclude, wrongly, that it does not
+exist. Two facts, both measured on 2026-07-29:
+
+- Seven hand-checked pages (finished, upcoming and live football, live tennis) gave
+  zero hits. A scripted sweep of lower-profile league listings hit one within
+  minutes — Albania Superliga.
+- Geography is a weak lever. A French residential IP is served seven bookmakers, a
+  datacenter IP a geo-generic panel of about nine, measured across ten rendering
+  geographies for the odds-evolution collector. More bookmakers is not what makes
+  the state appear.
+
+Browser-extension automation is the wrong tool for such a sweep: Chrome throttles
+timers in a hidden tab and any long loop stalls. Drive the project's own Playwright
+instead.
+
+---
+
 ## Adding a new gotcha
 
 When a fix lands that exposes an OddsPortal-specific behaviour an agent
