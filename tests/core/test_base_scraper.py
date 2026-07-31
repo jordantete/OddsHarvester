@@ -1615,6 +1615,21 @@ def test_resolved_browser_timezone_falls_back_on_unknown(setup_base_scraper_mock
     assert any("Not/A/Real/Zone" in rec.message for rec in caplog.records)
 
 
+def test_resolved_browser_timezone_falls_back_on_malformed_key(setup_base_scraper_mocks, caplog):
+    """ZoneInfo raises ValueError (not ZoneInfoNotFoundError) for malformed keys,
+    e.g. ones containing "..". Must fall back to UTC like the unknown-zone case.
+    """
+    import logging
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    mocks["playwright_manager_mock"].timezone_id = "../Europe/Brussels"
+    with caplog.at_level(logging.WARNING):
+        result = scraper._resolved_browser_timezone()
+    assert result.utcoffset(datetime(2024, 1, 1)) == timedelta(0)
+    assert any("../Europe/Brussels" in rec.message for rec in caplog.records)
+
+
 def test_resolved_browser_timezone_survives_missing_tzdata(setup_base_scraper_mocks, caplog):
     """Regression: when the tz database is unavailable, ZoneInfo("UTC") itself
     raises ZoneInfoNotFoundError. The fallback must not construct a ZoneInfo at

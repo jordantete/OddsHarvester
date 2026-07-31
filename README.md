@@ -111,6 +111,9 @@ oddsharvester upcoming -s football -d 20250301 -m over_under --preview-only --he
 
 # Only matches kicking off within the next 6 hours (fewer requests)
 oddsharvester upcoming -s football -l england-premier-league -m 1x2 --kickoff-within-hours 6 --headless
+
+# Collect links plus kickoff only (fixture plan; no odds scraped)
+oddsharvester upcoming -s football -d 20250301 --links-only -f csv -o upcoming_links.csv
 ```
 
 ### `oddsharvester historic`
@@ -364,7 +367,7 @@ offline which matches are close enough to be worth scraping.
 oddsharvester upcoming -s football -d 20260731 --links-only -f csv -o upcoming_links.csv
 ```
 
-Output rows contain `match_link`, `sport`, `league`, and `season` (`date` and `kickoff_utc` for `upcoming`; `live` emits neither), in the site's listing order. `kickoff_utc` holds the match's own kickoff in UTC, in the same shape as `match_date` (`2026-07-31 18:30:00 UTC`), and is empty when the listing exposes no parseable kickoff. Under the default upcoming-only behaviour that means the date header could not be read; with `--include-started`, started matches also come back empty since their kickoff is no longer displayed. Options that only affect odds scraping (`--market`, `--period`, `--odds-history`, `--preview-only`, `--target-bookmaker`, `--bookies-filter`) are ignored when `--links-only` is set. `--links-only` cannot be combined with `--match-link`.
+Output rows contain `match_link`, `sport`, `league`, and `season` (`date` and `kickoff_utc` for `upcoming`; `live` emits neither), in the site's listing order. `kickoff_utc` holds the match's own kickoff in UTC, in the same shape as `match_date` (`2026-07-31 18:30:00 UTC`), and is empty when the listing exposes no parseable kickoff. Under the default upcoming-only behaviour that means the date header could not be read, the row had no `time-item` element, or its clock text was not `HH:MM`; with `--include-started`, only live rows come back empty, since their clock is replaced by a period marker — finished, postponed and cancelled rows keep the clock and get a populated `kickoff_utc` holding the originally scheduled kickoff. Options that only affect odds scraping (`--market`, `--period`, `--odds-history`, `--preview-only`, `--target-bookmaker`, `--bookies-filter`) are ignored when `--links-only` is set. `--links-only` cannot be combined with `--match-link`.
 
 ### Bulk scraping: multiple leagues, multiple seasons
 

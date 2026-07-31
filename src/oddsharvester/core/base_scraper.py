@@ -424,7 +424,7 @@ class BaseScraper:
         collect_kickoff: bool = False,
     ) -> list[dict[str, Any]]:
         """
-        Extract and parse match links from the current page.
+        Extract and parse match rows from the current page.
 
         Event rows on OddsPortal listing pages are grouped by date: the first
         row of a group carries a `[data-testid='date-header']` element, and
@@ -956,7 +956,7 @@ class BaseScraper:
         tz_id = getattr(self.playwright_manager, "timezone_id", None) or "UTC"
         try:
             return ZoneInfo(tz_id)
-        except ZoneInfoNotFoundError:
+        except (ZoneInfoNotFoundError, ValueError):
             self.logger.warning(f"Unknown timezone '{tz_id}', falling back to UTC for DOM date parsing")
             return UTC
 

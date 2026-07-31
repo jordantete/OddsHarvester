@@ -679,8 +679,11 @@ the match is real and upcoming, just filed under the next calendar day.
 - `core/playwright_manager.py` — effective-timezone resolution.
 - `base_scraper._parse_date_header` / `_resolved_browser_timezone`.
 - `upcoming --links-only`: a null `kickoff_utc` under the default
-  `--no-include-started` means the date header failed to parse, the same
-  signal as the WARNING `extract_match_rows` already emits.
+  `--no-include-started` has two causes. Usual: the date header failed to
+  parse, the same signal as the WARNING `extract_match_rows` already emits.
+  Silent: if OddsPortal renames the `time-item` testid, `_row_has_started`
+  degrades open (see §9) and every row's kickoff comes back null with no
+  log output at all.
 - GitHub issue #58 follow-up.
 
 ---
