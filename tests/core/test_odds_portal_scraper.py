@@ -240,8 +240,11 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
 
     # Mock methods
     scraper._prepare_page_for_scraping = AsyncMock()
-    scraper.extract_match_links = AsyncMock(
-        return_value=["https://oddsportal.com/match1", "https://oddsportal.com/match2"]
+    scraper.extract_match_rows = AsyncMock(
+        return_value=[
+            {"match_link": "https://oddsportal.com/match1", "kickoff_utc": None},
+            {"match_link": "https://oddsportal.com/match2", "kickoff_utc": None},
+        ]
     )
 
     # Mock extract_match_odds to return ScrapeResult
@@ -268,8 +271,8 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
     )
     page_mock.goto.assert_called_once()
     scraper._prepare_page_for_scraping.assert_called_once_with(page=page_mock)
-    scraper.extract_match_links.assert_called_once()
-    _, extract_kwargs = scraper.extract_match_links.call_args
+    scraper.extract_match_rows.assert_called_once()
+    _, extract_kwargs = scraper.extract_match_rows.call_args
     assert extract_kwargs["page"] is page_mock
     assert extract_kwargs["date_filter"] == date(2026, 6, 1)
     scraper.extract_match_odds.assert_called_once_with(
@@ -296,13 +299,16 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
 async def test_scrape_upcoming_links_only(url_builder_mock, setup_scraper_mocks):
     """links_only=True returns link rows with a date column; league may be None.
 
-    `season` is always present (None here) so every row of every command carries the column (finding 3).
+    `season` is always present (None here) so every row of every command carries
+    the column. `kickoff_utc` is last and always present (issue #81).
     """
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
 
     url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/matches/football/20260720/"
-    scraper.extract_match_links = AsyncMock(return_value=["https://oddsportal.com/m1"])
+    scraper.extract_match_rows = AsyncMock(
+        return_value=[{"match_link": "https://oddsportal.com/m1", "kickoff_utc": "2026-07-20 18:30:00 UTC"}]
+    )
     scraper.extract_match_odds = AsyncMock()
     scraper._prepare_page_for_scraping = AsyncMock()
 
@@ -316,12 +322,64 @@ async def test_scrape_upcoming_links_only(url_builder_mock, setup_scraper_mocks)
             "league": None,
             "date": "20260720",
             "season": None,
+            "kickoff_utc": "2026-07-20 18:30:00 UTC",
         }
     ]
-    assert list(result.success[0].keys()) == ["match_link", "sport", "league", "date", "season"]
+    assert list(result.success[0].keys()) == [
+        "match_link",
+        "sport",
+        "league",
+        "date",
+        "season",
+        "kickoff_utc",
+    ]
     assert result.failed == []
     assert result.stats.successful == 1
     assert result.stats.total_urls == 1
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_upcoming_links_only_keeps_the_column_when_kickoff_is_unknown(
+    url_builder_mock, setup_scraper_mocks
+):
+    """A null kickoff must still occupy the column, or CSV writing raises (issue #81)."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/matches/football/20260720/"
+    scraper.extract_match_rows = AsyncMock(
+        return_value=[
+            {"match_link": "https://oddsportal.com/m1", "kickoff_utc": "2026-07-20 18:30:00 UTC"},
+            {"match_link": "https://oddsportal.com/m2", "kickoff_utc": None},
+        ]
+    )
+    scraper.extract_match_odds = AsyncMock()
+    scraper._prepare_page_for_scraping = AsyncMock()
+
+    result = await scraper.scrape_upcoming(sport="football", date="20260720", league=None, links_only=True)
+
+    assert [row["kickoff_utc"] for row in result.success] == ["2026-07-20 18:30:00 UTC", None]
+    assert all("kickoff_utc" in row for row in result.success)
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_upcoming_requests_kickoff_only_in_links_only_mode(url_builder_mock, setup_scraper_mocks):
+    """Odds runs get the match date from the match page, so they pay nothing here."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+
+    url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/matches/football/20260720/"
+    scraper.extract_match_rows = AsyncMock(
+        return_value=[{"match_link": "https://oddsportal.com/m1", "kickoff_utc": None}]
+    )
+    scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
+    scraper._prepare_page_for_scraping = AsyncMock()
+
+    await scraper.scrape_upcoming(sport="football", date="20260720", links_only=False)
+
+    assert scraper.extract_match_rows.call_args.kwargs.get("collect_kickoff") is False
 
 
 @pytest.mark.asyncio
@@ -384,7 +442,9 @@ async def test_scrape_upcoming_forwards_concurrent_scraping_task(url_builder_moc
 
     url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/football/matches/20260601"
     scraper._prepare_page_for_scraping = AsyncMock()
-    scraper.extract_match_links = AsyncMock(return_value=["https://oddsportal.com/m1"])
+    scraper.extract_match_rows = AsyncMock(
+        return_value=[{"match_link": "https://oddsportal.com/m1", "kickoff_utc": None}]
+    )
     scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
 
     await scraper.scrape_upcoming(sport="football", date="20260601", concurrent_scraping_task=10)
@@ -395,18 +455,20 @@ async def test_scrape_upcoming_forwards_concurrent_scraping_task(url_builder_moc
 @pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_scrape_upcoming_forwards_kickoff_within_hours(url_builder_mock, setup_scraper_mocks):
-    """scrape_upcoming must forward kickoff_within_hours to extract_match_links (issue #77)."""
+    """scrape_upcoming must forward kickoff_within_hours to extract_match_rows (issue #77)."""
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
 
     url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/football/matches/20260601"
     scraper._prepare_page_for_scraping = AsyncMock()
-    scraper.extract_match_links = AsyncMock(return_value=["https://oddsportal.com/m1"])
+    scraper.extract_match_rows = AsyncMock(
+        return_value=[{"match_link": "https://oddsportal.com/m1", "kickoff_utc": None}]
+    )
     scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
 
     await scraper.scrape_upcoming(sport="football", date="20260601", kickoff_within_hours=6)
 
-    assert scraper.extract_match_links.call_args.kwargs.get("kickoff_within_hours") == 6
+    assert scraper.extract_match_rows.call_args.kwargs.get("kickoff_within_hours") == 6
 
 
 @pytest.mark.asyncio

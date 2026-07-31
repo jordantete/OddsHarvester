@@ -127,7 +127,7 @@ class OddsPortalScraper(BaseScraper):
         if links_only:
             self.logger.info(f"Links-only mode: returning {len(link_result.links)} match links without odds.")
             return self._links_only_result(
-                links=link_result.links,
+                rows=[{"match_link": link} for link in link_result.links],
                 context={"sport": sport, "league": league, "season": season},
                 failed_page_urls=[f"{base_url}#/page/{p}" for p in link_result.failed_pages],
             )
@@ -230,23 +230,26 @@ class OddsPortalScraper(BaseScraper):
             except ValueError:
                 self.logger.warning(f"Could not parse date '{date}' for filtering; returning all league matches.")
 
-        match_links = await self.extract_match_links(
+        rows = await self.extract_match_rows(
             page=current_page,
             date_filter=date_filter,
             skip_started=not include_started,
             kickoff_within_hours=kickoff_within_hours,
+            collect_kickoff=links_only,
         )
 
-        if not match_links:
+        if not rows:
             self.logger.warning("No match links found for upcoming matches.")
             return ScrapeResult()
 
         if links_only:
-            self.logger.info(f"Links-only mode: returning {len(match_links)} match links without odds.")
+            self.logger.info(f"Links-only mode: returning {len(rows)} match links without odds.")
             return self._links_only_result(
-                links=match_links,
+                rows=rows,
                 context={"sport": sport, "league": league, "date": date, "season": None},
             )
+
+        match_links = [row["match_link"] for row in rows]
 
         return await self.extract_match_odds(
             sport=sport,
@@ -323,7 +326,10 @@ class OddsPortalScraper(BaseScraper):
 
         if links_only:
             self.logger.info(f"Links-only mode: returning {len(links)} live match links without odds.")
-            return self._links_only_result(links=links, context={"sport": sport, "league": league})
+            return self._links_only_result(
+                rows=[{"match_link": link} for link in links],
+                context={"sport": sport, "league": league},
+            )
 
         result = await self.extract_match_odds(
             sport=sport,
@@ -421,13 +427,20 @@ class OddsPortalScraper(BaseScraper):
 
     def _links_only_result(
         self,
-        links: list[str],
+        rows: list[dict],
         context: dict,
         failed_page_urls: list[str] | None = None,
     ) -> ScrapeResult:
-        """Builds a ScrapeResult carrying collected match links instead of odds data."""
+        """Builds a ScrapeResult carrying collected match rows instead of odds data.
+
+        Each row must carry `match_link`. Any other key it holds is appended
+        after the context columns, so the link stays first and per-row extras last.
+        """
         failed_page_urls = failed_page_urls or []
-        success = [{"match_link": link, **context} for link in links]
+        success = [
+            {"match_link": row["match_link"], **context, **{k: v for k, v in row.items() if k != "match_link"}}
+            for row in rows
+        ]
         failed = [
             FailedUrl(
                 url=url,
