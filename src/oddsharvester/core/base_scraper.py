@@ -415,13 +415,14 @@ class BaseScraper:
         except Exception as e:
             self.logger.error(f"Error while setting odds format: {e}", exc_info=True)
 
-    async def extract_match_links(
+    async def extract_match_rows(
         self,
         page: Page,
         date_filter: date | None = None,
         skip_started: bool = False,
         kickoff_within_hours: float | None = None,
-    ) -> list[str]:
+        collect_kickoff: bool = False,
+    ) -> list[dict[str, Any]]:
         """
         Extract and parse match links from the current page.
 
@@ -444,9 +445,13 @@ class BaseScraper:
                 kickoff cannot be computed are kept (fail-safe). Combines the
                 row's date-header with its HH:MM in the browser timezone (issue
                 #77); pair with skip_started to bound the window on both sides.
+            collect_kickoff (bool): If True, resolve each row's kickoff and emit
+                it as `kickoff_utc`. Off by default because it forces date-header
+                tracking, which the historic pagination path does not need.
 
         Returns:
-            List[str]: A list of unique match links found on the page.
+            List[dict]: One entry per unique match link, each carrying
+                `match_link` and `kickoff_utc` (None when undeterminable).
         """
         try:
             html_content = await page.content()
@@ -454,20 +459,17 @@ class BaseScraper:
             event_rows = soup.find_all(class_=re.compile(OddsPortalSelectors.EVENT_ROW_CLASS_PATTERN))
             self.logger.info(f"Found {len(event_rows)} event rows.")
 
-            track_headers = date_filter is not None or kickoff_within_hours is not None
+            need_kickoff = kickoff_within_hours is not None or collect_kickoff
+            track_headers = date_filter is not None or need_kickoff
             tz_name = getattr(self.playwright_manager, "timezone_id", None) if track_headers else None
+            ref_tz = self._resolved_browser_timezone() if need_kickoff else None
 
             window_cutoff: datetime | None = None
-            ref_tz = None
             if kickoff_within_hours is not None:
-                try:
-                    ref_tz = ZoneInfo(tz_name) if tz_name else UTC
-                except (ZoneInfoNotFoundError, ValueError):
-                    ref_tz = UTC
                 window_cutoff = datetime.now(ref_tz) + timedelta(hours=kickoff_within_hours)
 
             seen: set[str] = set()
-            match_links: list[str] = []
+            rows_out: list[dict[str, Any]] = []
             current_row_date: date | None = None
             seen_header_dates: set[date] = set()
             filtered_out_count = 0
@@ -503,11 +505,13 @@ class BaseScraper:
                     started_filtered_out_count += 1
                     continue
 
-                if window_cutoff is not None:
-                    kickoff_dt = _row_kickoff_datetime(row, current_row_date, ref_tz)
-                    if kickoff_dt is not None and kickoff_dt > window_cutoff:
-                        window_filtered_out_count += 1
-                        continue
+                kickoff_dt = _row_kickoff_datetime(row, current_row_date, ref_tz) if need_kickoff else None
+
+                if window_cutoff is not None and kickoff_dt is not None and kickoff_dt > window_cutoff:
+                    window_filtered_out_count += 1
+                    continue
+
+                kickoff_utc = format_utc(kickoff_dt) if collect_kickoff and kickoff_dt is not None else None
 
                 for link in row.find_all("a", href=True):
                     href = link["href"]
@@ -516,7 +520,7 @@ class BaseScraper:
                     full_url = f"{self.base_url or ODDSPORTAL_BASE_URL}{href}"
                     if full_url not in seen:
                         seen.add(full_url)
-                        match_links.append(full_url)
+                        rows_out.append({"match_link": full_url, "kickoff_utc": kickoff_utc})
 
             started_suffix = f", {started_filtered_out_count} started/finished rows skipped" if skip_started else ""
             window_suffix = (
@@ -526,13 +530,13 @@ class BaseScraper:
             )
             if date_filter is not None:
                 self.logger.info(
-                    f"Extracted {len(match_links)} unique match links after date filtering "
+                    f"Extracted {len(rows_out)} unique match links after date filtering "
                     f"(filter={date_filter.isoformat()}, filtered out {filtered_out_count} rows, "
                     f"{unparseable_header_count} unparseable headers, "
                     f"{offscreen_skipped_count} offscreen rows skipped"
                     f"{started_suffix}{window_suffix})."
                 )
-                if not match_links and filtered_out_count:
+                if not rows_out and filtered_out_count:
                     headers_label = ", ".join(d.isoformat() for d in sorted(seen_header_dates)) or "none"
                     self.logger.warning(
                         f"Date filter {date_filter.isoformat()} matched 0 matches although "
@@ -543,16 +547,35 @@ class BaseScraper:
                     )
             else:
                 self.logger.info(
-                    f"Extracted {len(match_links)} unique match links "
+                    f"Extracted {len(rows_out)} unique match links "
                     f"({offscreen_skipped_count} offscreen rows skipped"
                     f"{started_suffix}{window_suffix})."
                 )
 
-            return match_links
+            return rows_out
 
         except Exception as e:
             self.logger.error(f"Error extracting match links: {e}", exc_info=True)
             return []
+
+    async def extract_match_links(
+        self,
+        page: Page,
+        date_filter: date | None = None,
+        skip_started: bool = False,
+        kickoff_within_hours: float | None = None,
+    ) -> list[str]:
+        """Collect match links from a listing page.
+
+        Thin wrapper over `extract_match_rows` for callers that need only URLs.
+        """
+        rows = await self.extract_match_rows(
+            page=page,
+            date_filter=date_filter,
+            skip_started=skip_started,
+            kickoff_within_hours=kickoff_within_hours,
+        )
+        return [row["match_link"] for row in rows]
 
     async def extract_live_match_links(
         self,

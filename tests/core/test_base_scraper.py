@@ -789,6 +789,159 @@ class TestRowKickoffDatetime:
         assert _row_kickoff_datetime(row, date(2026, 4, 18), UTC) is None
 
 
+# -- extract_match_rows kickoff column (GitHub issue #81) --------------------
+
+
+def _make_kickoff_column_html() -> str:
+    """One date group, a normal row and a started row (live period marker)."""
+    return """
+    <html><body>
+      <div class="eventRow">
+        <div data-testid="date-header">18 Apr 2026</div>
+        <div data-testid="time-item"><p>20:30</p></div>
+        <a href="/football/england/premier-league/normal-match/aaaaaaa1">Normal</a>
+      </div>
+      <div class="eventRow">
+        <div data-testid="time-item"><p>1H</p></div>
+        <a href="/football/england/premier-league/started-match/aaaaaaa2">Started</a>
+      </div>
+    </body></html>
+    """
+
+
+@pytest.mark.asyncio
+async def test_extract_match_rows_converts_kickoff_from_browser_tz_to_utc(setup_base_scraper_mocks):
+    """Listing times render in the browser timezone (gotcha 10); output is UTC."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    mocks["playwright_manager_mock"].timezone_id = "Europe/Paris"
+    page_mock.content = AsyncMock(return_value=_make_kickoff_column_html())
+
+    rows = await scraper.extract_match_rows(page=page_mock, collect_kickoff=True)
+
+    normal = next(r for r in rows if "normal-match/aaaaaaa1" in r["match_link"])
+    assert normal["kickoff_utc"] == "2026-04-18 18:30:00 UTC"
+
+
+@pytest.mark.asyncio
+async def test_extract_match_rows_without_collect_kickoff_leaves_every_kickoff_null(setup_base_scraper_mocks):
+    """The default keeps the historic pagination path at its current behaviour."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    mocks["playwright_manager_mock"].timezone_id = "Europe/Paris"
+    page_mock.content = AsyncMock(return_value=_make_kickoff_column_html())
+
+    rows = await scraper.extract_match_rows(page=page_mock)
+
+    assert len(rows) == 2
+    assert all(row["kickoff_utc"] is None for row in rows)
+
+
+@pytest.mark.asyncio
+async def test_extract_match_rows_started_row_has_null_kickoff(setup_base_scraper_mocks):
+    """A started row (time-item is a period marker) yields no kickoff, and is
+    only reachable at all because skip_started defaults to False."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    mocks["playwright_manager_mock"].timezone_id = "UTC"
+    page_mock.content = AsyncMock(return_value=_make_kickoff_column_html())
+
+    rows = await scraper.extract_match_rows(page=page_mock, collect_kickoff=True)
+
+    started = next(r for r in rows if "started-match/aaaaaaa2" in r["match_link"])
+    assert started["kickoff_utc"] is None
+
+
+@pytest.mark.asyncio
+async def test_extract_match_rows_unparseable_date_header_yields_null_kickoff(setup_base_scraper_mocks):
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    mocks["playwright_manager_mock"].timezone_id = "UTC"
+    page_mock.content = AsyncMock(
+        return_value="""
+        <html><body>
+          <div class="eventRow">
+            <div data-testid="date-header">Not A Date</div>
+            <div data-testid="time-item"><p>20:30</p></div>
+            <a href="/football/england/premier-league/orphan-match/aaaaaaa3">Orphan</a>
+          </div>
+        </body></html>
+        """
+    )
+
+    rows = await scraper.extract_match_rows(page=page_mock, collect_kickoff=True)
+
+    assert len(rows) == 1
+    assert rows[0]["kickoff_utc"] is None
+
+
+@pytest.mark.asyncio
+async def test_extract_match_rows_missing_time_item_yields_null_kickoff(setup_base_scraper_mocks):
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    mocks["playwright_manager_mock"].timezone_id = "UTC"
+    page_mock.content = AsyncMock(
+        return_value="""
+        <html><body>
+          <div class="eventRow">
+            <div data-testid="date-header">18 Apr 2026</div>
+            <a href="/football/england/premier-league/no-time/aaaaaaa4">No time</a>
+          </div>
+        </body></html>
+        """
+    )
+
+    rows = await scraper.extract_match_rows(page=page_mock, collect_kickoff=True)
+
+    assert len(rows) == 1
+    assert rows[0]["kickoff_utc"] is None
+
+
+@pytest.mark.asyncio
+async def test_extract_match_rows_shares_one_kickoff_across_a_rows_links(setup_base_scraper_mocks):
+    """A row can yield several links; each carries that row's kickoff."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    mocks["playwright_manager_mock"].timezone_id = "UTC"
+    page_mock.content = AsyncMock(
+        return_value="""
+        <html><body>
+          <div class="eventRow">
+            <div data-testid="date-header">18 Apr 2026</div>
+            <div data-testid="time-item"><p>20:30</p></div>
+            <a href="/football/england/premier-league/first-match/aaaaaaa5">First</a>
+            <a href="/football/england/premier-league/second-match/aaaaaaa6">Second</a>
+          </div>
+        </body></html>
+        """
+    )
+
+    rows = await scraper.extract_match_rows(page=page_mock, collect_kickoff=True)
+
+    assert len(rows) == 2
+    assert {row["kickoff_utc"] for row in rows} == {"2026-04-18 20:30:00 UTC"}
+
+
+@pytest.mark.asyncio
+async def test_extract_match_links_still_returns_plain_strings(setup_base_scraper_mocks):
+    """Contract guard: the historic pagination path reads bare URLs."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(return_value=_make_kickoff_column_html())
+
+    result = await scraper.extract_match_links(page=page_mock)
+
+    assert len(result) == 2
+    assert all(isinstance(url, str) for url in result)
+
+
 # -- _is_offscreen_row + offscreen filtering (regression: issue #61) ---------
 
 
