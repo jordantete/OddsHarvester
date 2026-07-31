@@ -4,11 +4,11 @@ from datetime import UTC, datetime
 import logging
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from oddsharvester.utils.datetime_format import UTC_TIMESTAMP_FORMAT
 from oddsharvester.utils.venue_timezone_constants import resolve_venue_timezone
 
 logger = logging.getLogger(__name__)
 
-_UTC_MATCH_DATE_FORMAT = "%Y-%m-%d %H:%M:%S %Z"
 _LOCAL_OUTPUT_FORMAT = "%Y-%m-%d %H:%M:%S %Z%z"
 
 
@@ -34,7 +34,7 @@ def compute_local_kickoff(
         return None, None
 
     try:
-        naive = datetime.strptime(match_date_utc, _UTC_MATCH_DATE_FORMAT)
+        naive = datetime.strptime(match_date_utc, UTC_TIMESTAMP_FORMAT)
         aware_utc = naive.replace(tzinfo=UTC)
         local_dt = aware_utc.astimezone(ZoneInfo(venue_timezone))
         return venue_timezone, local_dt.strftime(_LOCAL_OUTPUT_FORMAT)
