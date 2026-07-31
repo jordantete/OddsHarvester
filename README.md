@@ -239,7 +239,7 @@ pagination) and does not emit per-prediction win/loss (use the monthly stats tab
 
 **`--match-link` usage:** `--sport` is still required. Prefer `upcoming` over `historic` for arbitrary match URLs: match links bypass the listing pages entirely, so `upcoming` also works for matches already played, while `historic` would additionally demand a `--season` it never uses.
 
-**`upcoming` only:** `--date` is required unless `--league` or `--match-link` is provided. `--date` and `--league` can be combined to filter the league's upcoming matches down to a specific calendar day. When combining both, the reference timezone for resolving the date is `--timezone` if provided, otherwise UTC. `--kickoff-within-hours N` keeps only matches starting within `N` hours from now; the filter runs during link collection, so far-off matches are never visited. It pairs with the default upcoming-only behaviour to bound the window on both sides, and uses `--timezone` (else UTC) as the reference clock.
+**`upcoming` only:** `--date` is required unless `--league` or `--match-link` is provided. `--date` and `--league` can be combined to filter the league's upcoming matches down to a specific calendar day. When combining both, the reference timezone for resolving the date is `--timezone` if provided, otherwise UTC. `--kickoff-within-hours N` keeps only matches starting within `N` hours from now; the filter runs during link collection, so far-off matches are never visited. It pairs with the default upcoming-only behaviour to bound the window on both sides, and uses `--timezone` (else UTC) as the reference clock. Combined with `--links-only`, each row also carries `kickoff_utc`, so a scheduler can plan a day of fixtures from one listing request instead of re-fetching the listing on every cycle.
 
 **`historic` only:**
 
@@ -273,6 +273,12 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 > `--match-link` runs. Appending to a file produced by an earlier version
 > yields a file with two different column layouts, so start a new output file
 > rather than appending across the upgrade.
+
+> **Breaking change:** `upcoming --links-only` rows now carry a `kickoff_utc`
+> column, appended at the end. Appending to a file produced by an earlier
+> version yields a file with two different column layouts, so start a new
+> output file rather than appending across the upgrade. `historic` and `live`
+> links-only rows are unchanged.
 
 #### Browser & Scraping Options
 
@@ -349,7 +355,16 @@ oddsharvester historic -s football --season 2022-2023 -m 1x2 -f csv -o odds.csv 
     --match-link "https://www.oddsportal.com/football/england/premier-league-2022-2023/..."
 ```
 
-Output rows contain `match_link`, `sport`, `league`, and `season` (`date` for `upcoming`; `live` emits neither), in the site's listing order. Options that only affect odds scraping (`--market`, `--period`, `--odds-history`, `--preview-only`, `--target-bookmaker`, `--bookies-filter`) are ignored when `--links-only` is set. `--links-only` cannot be combined with `--match-link`.
+On `upcoming`, the same pass 1 doubles as a fixture plan: one listing request
+returns every match of the day with its kickoff, so a scheduler can decide
+offline which matches are close enough to be worth scraping.
+
+```bash
+# Plan the day's fixtures: links plus kickoff, no odds scraped
+oddsharvester upcoming -s football -d 20260731 --links-only -f csv -o upcoming_links.csv
+```
+
+Output rows contain `match_link`, `sport`, `league`, and `season` (`date` and `kickoff_utc` for `upcoming`; `live` emits neither), in the site's listing order. `kickoff_utc` holds the match's own kickoff in UTC, in the same shape as `match_date` (`2026-07-31 18:30:00 UTC`), and is empty when the listing exposes no parseable kickoff. Under the default upcoming-only behaviour that means the date header could not be read; with `--include-started`, started matches also come back empty since their kickoff is no longer displayed. Options that only affect odds scraping (`--market`, `--period`, `--odds-history`, `--preview-only`, `--target-bookmaker`, `--bookies-filter`) are ignored when `--links-only` is set. `--links-only` cannot be combined with `--match-link`.
 
 ### Bulk scraping: multiple leagues, multiple seasons
 

@@ -678,6 +678,9 @@ the match is real and upcoming, just filed under the next calendar day.
 
 - `core/playwright_manager.py` — effective-timezone resolution.
 - `base_scraper._parse_date_header` / `_resolved_browser_timezone`.
+- `upcoming --links-only`: a null `kickoff_utc` under the default
+  `--no-include-started` means the date header failed to parse, the same
+  signal as the WARNING `extract_match_rows` already emits.
 - GitHub issue #58 follow-up.
 
 ---
