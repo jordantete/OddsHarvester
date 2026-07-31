@@ -211,3 +211,34 @@ def test_json_save_error_handling(local_data_storage, sample_data):
             local_data_storage._save_as_json(sample_data, "test_data.json")
 
     mock_logger.assert_called()
+
+
+def test_save_as_csv_keeps_a_null_column_from_the_first_row(local_data_storage, tmp_path):
+    """DictWriter takes its header from the first record only, so an optional
+    column must be present-and-null rather than absent (issue #81)."""
+    rows = [
+        {"match_link": "https://oddsportal.com/m1", "kickoff_utc": "2026-07-20 18:30:00 UTC"},
+        {"match_link": "https://oddsportal.com/m2", "kickoff_utc": None},
+    ]
+    target = tmp_path / "links.csv"
+
+    local_data_storage.save_data(rows, file_path=str(target), storage_format="csv")
+
+    with open(target, newline="", encoding="utf-8") as handle:
+        written = list(csv.DictReader(handle))
+
+    assert list(written[0].keys()) == ["match_link", "kickoff_utc"]
+    assert written[0]["kickoff_utc"] == "2026-07-20 18:30:00 UTC"
+    assert written[1]["kickoff_utc"] == ""
+
+
+def test_save_as_csv_raises_when_a_later_row_adds_a_column(local_data_storage, tmp_path):
+    """The failure mode the test above exists to prevent."""
+    rows = [
+        {"match_link": "https://oddsportal.com/m1"},
+        {"match_link": "https://oddsportal.com/m2", "kickoff_utc": "2026-07-20 18:30:00 UTC"},
+    ]
+    target = tmp_path / "links.csv"
+
+    with pytest.raises(ValueError):
+        local_data_storage.save_data(rows, file_path=str(target), storage_format="csv")
