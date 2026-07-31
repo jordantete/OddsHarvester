@@ -46,6 +46,7 @@ from oddsharvester.utils.constants import (
     REQUEST_DELAY_JITTER_FACTOR,
     SELECTOR_TIMEOUT_MS,
 )
+from oddsharvester.utils.datetime_format import format_utc
 from oddsharvester.utils.local_kickoff import compute_local_kickoff
 from oddsharvester.utils.odds_format_enum import OddsFormat
 from oddsharvester.utils.utils import clean_html_text
@@ -957,7 +958,7 @@ class BaseScraper:
             time_part = paragraphs[2].get_text(strip=True)
             local_dt = datetime.strptime(f"{date_part} {time_part}", "%d %b %Y %H:%M")
             local_dt = local_dt.replace(tzinfo=self._resolved_browser_timezone())
-            return local_dt.astimezone(UTC).strftime("%Y-%m-%d %H:%M:%S %Z")
+            return format_utc(local_dt)
         except Exception as e:
             self.logger.warning(f"DOM parse failed for match_date: {e}")
             return None
@@ -1170,7 +1171,7 @@ class BaseScraper:
             event_id = event_data.get("id")
             if fragment and event_id and fragment != event_id:
                 ssr_json_date = (
-                    datetime.fromtimestamp(event_body["startDate"], tz=UTC).strftime("%Y-%m-%d %H:%M:%S %Z")
+                    format_utc(datetime.fromtimestamp(event_body["startDate"], tz=UTC))
                     if event_body.get("startDate")
                     else None
                 )
@@ -1194,7 +1195,7 @@ class BaseScraper:
                     event_data = json_data.get("eventData", {})
 
             json_match_date = (
-                datetime.fromtimestamp(event_body["startDate"], tz=UTC).strftime("%Y-%m-%d %H:%M:%S %Z")
+                format_utc(datetime.fromtimestamp(event_body["startDate"], tz=UTC))
                 if event_body.get("startDate")
                 else None
             )
@@ -1233,7 +1234,7 @@ class BaseScraper:
             self.logger.info(f"match_details extracted dom={dom_fields} json_fallback={json_fields}")
 
             details = {
-                "scraped_date": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S %Z"),
+                "scraped_date": format_utc(datetime.now(UTC)),
                 "match_date": match_date,
                 "season": None,
                 "match_link": match_link,
