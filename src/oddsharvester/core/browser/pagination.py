@@ -57,16 +57,19 @@ class PaginationWalker:
     ) -> WalkVerdict:
         """Verdict for a page that was just collected.
 
-        Below the frontier the widget promised the page exists, so only an empty
-        page is anomalous. At or beyond it the walk is exploring, so a page that
-        is not full ends the season, unless its scroll did not complete: a short
-        page from a truncated scroll must not be read as a genuine last page, or
-        the season ends looking complete with zero failures reported (issue #79).
-        `scroll_ok` only affects that short-page case; empty pages are already
-        governed by the widget-corroboration rules above. See gotchas 15 and 17.
+        Below the frontier the widget promised a later page exists, so this one is
+        not the last and must come back full: anything short of a full page lost
+        rows, whether it rendered none or five (issue #78). At or beyond the
+        frontier the walk is exploring, so a page that is not full ends the season,
+        unless its scroll did not complete: a short page from a truncated scroll
+        must not be read as a genuine last page, or the season ends looking
+        complete with zero failures reported (issue #79). `scroll_ok` only affects
+        that short-page case; below the frontier fullness alone decides, since a
+        stalled lazy-load stabilizes at a partial count and still reports success.
+        See gotchas 15 and 17.
         """
         if requested_page < frontier:
-            return WalkVerdict.PAGE_FAILED if link_count == 0 else WalkVerdict.CONTINUE
+            return WalkVerdict.CONTINUE if self.is_full_page(link_count) else WalkVerdict.PAGE_FAILED
 
         if link_count == 0:
             if observed_max is not None:

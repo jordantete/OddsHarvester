@@ -1225,6 +1225,35 @@ data-number="2">2</a>`, with `Next`/`Prev` sharing the class and carrying **no**
 `rel` attribute. The long-standing `:not([rel='next'])` clause in the old selector
 was therefore inert; digit filtering is what excludes them.
 
+### The same silence covers *partial* pages, not just empty ones (issue #78, 2026-08-01)
+
+Reported on a 40-combo run: `Collected 6787 match links (0 listing pages failed)`
+while Bundesliga 2024-2025 returned 173 against 308 in every other season of the
+same league, Serie A 290 against 380, Ligue 1 219 against 310. Watching the run,
+some mid-season listing pages rendered 5 rows instead of 50.
+
+The empty-page guard above did not apply, because the page was not empty. Two
+behaviours composed:
+
+- The verdict only tested `link_count == 0` below the frontier, so 5 links out of
+  50 read as a normal page: collected, counted in `successful_pages`, absent from
+  `failed_pages`, exit code 0.
+- `scroll_until_loaded` judges stability **relatively**: the element count
+  unchanged across `MAX_SCROLL_ATTEMPTS` polls returns `True`. It holds no
+  expected count, so a lazy-load stalled at 5 rows stabilizes at 5 and reports a
+  successful scroll. `scroll_ok` therefore cannot discriminate a truncated page
+  from a complete one, and any guard built on it would have missed this.
+
+The invariant that does work is positional, not behavioural: **below the frontier
+the widget has promised a later page exists, so this page is not the last and must
+be full**. Fullness alone decides there; `scroll_ok` stays out of it. At or beyond
+the frontier the existing rule stands, since the last page is legitimately short.
+
+Residual hole, accepted: if the widget read is *also* degraded on page 1
+(`frontier == 1`) and page 1 is truncated, nothing corroborates, and a truncated
+page 1 is indistinguishable from a genuinely small single-page league. No signal
+exists to separate them, which is what the page-level re-fetch is for.
+
 ### When investigating, do not hammer the site
 
 The truncation is triggered by degradation, so the instinct is to run the scrape

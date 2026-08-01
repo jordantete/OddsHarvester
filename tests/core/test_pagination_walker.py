@@ -19,15 +19,21 @@ class TestIsFullPage:
 
 
 class TestDecideInsideFloor:
-    """Below the frontier the widget has promised the page exists, so fullness never stops the walk.
+    """Below the frontier the widget has promised a later page exists, so this one must be full.
 
-    Regression guard: a short page inside the floor must not end collection, or the
-    gotcha 17 protection (empty pages inside the plan are failures) silently disappears.
+    Regression guard: a short page inside the floor must be reported, not silently
+    collected, and it must never end the walk either.
     """
 
-    def test_short_page_continues(self, walker):
+    def test_short_page_fails(self, walker):
+        """A page that is not the last one has lost rows if it is not full (issue #78)."""
         verdict = walker.decide(requested_page=1, link_count=2, frontier=3, observed_max=None, scroll_ok=True)
-        assert verdict is WalkVerdict.CONTINUE
+        assert verdict is WalkVerdict.PAGE_FAILED
+
+    def test_short_page_with_failed_scroll_fails(self, walker):
+        """scroll_ok is not the discriminator: a stalled lazy-load still reports success."""
+        verdict = walker.decide(requested_page=1, link_count=2, frontier=3, observed_max=None, scroll_ok=False)
+        assert verdict is WalkVerdict.PAGE_FAILED
 
     def test_full_page_continues(self, walker):
         verdict = walker.decide(requested_page=1, link_count=50, frontier=8, observed_max=8, scroll_ok=True)

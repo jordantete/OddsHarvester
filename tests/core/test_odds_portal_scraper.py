@@ -9,7 +9,7 @@ from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtr
 from oddsharvester.core.odds_portal_scraper import LinkCollectionResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.scrape_result import ErrorType, ScrapeResult, ScrapeStats
-from oddsharvester.utils.constants import GOTO_TIMEOUT_LONG_MS, MAX_PAGINATION_PAGES
+from oddsharvester.utils.constants import GOTO_TIMEOUT_LONG_MS, MAX_PAGINATION_PAGES, RESULTS_PAGE_SIZE
 from oddsharvester.utils.proxy_manager import ProxyManager
 
 
@@ -569,6 +569,11 @@ async def test_get_pagination_info_max_pages_overrides_safety_cap(setup_scraper_
     assert result == list(range(1, total + 1))
 
 
+def full_page(prefix: str) -> list[str]:
+    """A listing page that is not the last one renders RESULTS_PAGE_SIZE links (issue #78)."""
+    return [f"https://oddsportal.com/{prefix}m{i}" for i in range(RESULTS_PAGE_SIZE)]
+
+
 @pytest.mark.asyncio
 async def test_collect_match_links(setup_scraper_mocks):
     """Test collecting match links from multiple pages."""
@@ -585,10 +590,11 @@ async def test_collect_match_links(setup_scraper_mocks):
     scraper.pagination_walker.read_widget = AsyncMock(return_value=[])
 
     # Mock extract_match_links method
+    page1 = full_page("page1")
     scraper.extract_match_links = AsyncMock()
     scraper.extract_match_links.side_effect = [
-        ["https://oddsportal.com/match1", "https://oddsportal.com/match2"],
-        ["https://oddsportal.com/match2", "https://oddsportal.com/match3"],
+        page1,
+        [page1[-1], "https://oddsportal.com/match3"],
     ]
 
     # Call the method under test
@@ -605,9 +611,7 @@ async def test_collect_match_links(setup_scraper_mocks):
 
     # Verify the result is LinkCollectionResult with unique links
     assert isinstance(result, LinkCollectionResult)
-    assert sorted(result.links) == sorted(
-        ["https://oddsportal.com/match1", "https://oddsportal.com/match2", "https://oddsportal.com/match3"]
-    )
+    assert sorted(result.links) == sorted([*page1, "https://oddsportal.com/match3"])
     assert result.successful_pages == 2
     assert result.failed_pages == []
 
@@ -627,8 +631,9 @@ async def test_collect_match_links_error_handling(setup_scraper_mocks):
     context_mock.new_page.return_value = tab_mock
 
     # Mock extract_match_links method with error on second page
+    page1 = full_page("page1")
     scraper.extract_match_links = AsyncMock()
-    scraper.extract_match_links.side_effect = [["https://oddsportal.com/match1"], Exception("Page error")]
+    scraper.extract_match_links.side_effect = [page1, Exception("Page error")]
 
     # Call the method under test
     result = await scraper._collect_match_links(
@@ -637,7 +642,7 @@ async def test_collect_match_links_error_handling(setup_scraper_mocks):
 
     # Verify the result is LinkCollectionResult with successful page links and tracked failure
     assert isinstance(result, LinkCollectionResult)
-    assert result.links == ["https://oddsportal.com/match1"]
+    assert result.links == page1
     assert result.successful_pages == 1
     assert result.failed_pages == [2]
     assert tab_mock.close.call_count == 2  # Should still close tabs even after error
@@ -653,8 +658,8 @@ async def test_collect_match_links_preserves_listing_order(setup_scraper_mocks):
     mocks["context_mock"].new_page = AsyncMock(return_value=tab_mock)
     scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
 
-    page1_links = [f"https://www.oddsportal.com/match{i}" for i in range(1, 6)]
-    page2_links = ["https://www.oddsportal.com/match3", "https://www.oddsportal.com/match6"]
+    page1_links = full_page("page1")
+    page2_links = [page1_links[2], "https://www.oddsportal.com/match6"]
     scraper.extract_match_links = AsyncMock(side_effect=[page1_links, page2_links])
 
     result = await scraper._collect_match_links(base_url="https://base", pages_to_scrape=[1, 2])
@@ -894,13 +899,40 @@ async def test_collect_match_links_treats_empty_page_as_failure(setup_scraper_mo
     scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
     scraper.pagination_walker.read_widget = AsyncMock(return_value=[])
     # page 1 renders, pages 2 and 3 come back empty
-    scraper.extract_match_links = AsyncMock(side_effect=[["https://m1", "https://m2"], [], []])
+    page1 = full_page("page1")
+    scraper.extract_match_links = AsyncMock(side_effect=[page1, [], []])
 
     result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1, 2, 3])
 
-    assert result.links == ["https://m1", "https://m2"]
+    assert result.links == page1
     assert result.successful_pages == 1, "an empty page must not count as collected"
     assert result.failed_pages == [2, 3]
+
+
+@pytest.mark.asyncio
+async def test_collect_match_links_treats_partial_page_as_failure(setup_scraper_mocks):
+    """A page below the frontier is not the last one, so it must come back full (issue #78).
+
+    A stalled lazy-load renders a handful of rows and the scroll still reports
+    success, so fullness is the only signal left. Counting the page as collected
+    is how a season loses 3 pages and still reports zero failures.
+    """
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock()
+    mocks["playwright_manager_mock"].context.new_page = AsyncMock(return_value=tab)
+    scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[1, 2, 3])
+    page1 = [f"https://p1m{i}" for i in range(RESULTS_PAGE_SIZE)]
+    page2 = [f"https://p2m{i}" for i in range(5)]  # stalled lazy-load: 5 rows out of 50
+    page3 = ["https://p3m1"]
+    scraper.extract_match_links = AsyncMock(side_effect=[page1, page2, page3])
+
+    result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1, 2, 3])
+
+    assert result.failed_pages == [2], "a page short of a full listing hides rows that were never discovered"
+    assert result.successful_pages == 2, "a truncated page must not count as collected"
+    assert "https://p2m0" in result.links, "the rows it did render are still real data"
 
 
 @pytest.mark.asyncio

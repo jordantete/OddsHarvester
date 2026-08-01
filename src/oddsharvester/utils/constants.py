@@ -49,7 +49,8 @@ PAGE_COLLECTION_DELAY_MAX_MS = 8000
 # =============================================================================
 
 MAX_PAGINATION_PAGES = 50
-# Links a full results listing page yields. A page returning fewer is the last one.
+# Links a full results listing page yields. A page returning fewer is the last one,
+# unless the pagination widget promised a later page: then it was truncated (issue #78).
 RESULTS_PAGE_SIZE = 50
 
 # =============================================================================

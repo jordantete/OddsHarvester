@@ -19,6 +19,7 @@ from oddsharvester.utils.constants import (
     ODDSPORTAL_BASE_URL,
     PAGE_COLLECTION_DELAY_MAX_MS,
     PAGE_COLLECTION_DELAY_MIN_MS,
+    RESULTS_PAGE_SIZE,
 )
 
 
@@ -606,7 +607,13 @@ class OddsPortalScraper(BaseScraper):
 
                 if verdict is WalkVerdict.PAGE_FAILED:
                     result.failed_pages.append(page_number)
-                    self.logger.warning(f"Page {page_number} returned no links; treating it as failed.")
+                    self.logger.warning(
+                        f"Page {page_number} returned {len(links)} of {RESULTS_PAGE_SIZE} links; treating it as failed."
+                    )
+                    # Keep what it did render: the page is already reported and the exit code
+                    # already non-zero, so dropping real rows only costs a re-scrape of links
+                    # the user is holding. They dedupe on match_link, which is unique.
+                    all_links.extend(links)
                     if past_frontier:
                         break
                     page_number += 1
