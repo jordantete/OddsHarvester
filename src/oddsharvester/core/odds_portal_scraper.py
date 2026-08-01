@@ -1,3 +1,4 @@
+import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -15,6 +16,8 @@ from oddsharvester.utils.constants import (
     DEFAULT_REQUEST_DELAY_S,
     GOTO_TIMEOUT_LONG_MS,
     GOTO_TIMEOUT_MS,
+    LISTING_PAGE_RETRY_ATTEMPTS,
+    LISTING_PAGE_RETRY_DELAY_S,
     MAX_PAGINATION_PAGES,
     ODDSPORTAL_BASE_URL,
     PAGE_COLLECTION_DELAY_MAX_MS,
@@ -560,6 +563,7 @@ class OddsPortalScraper(BaseScraper):
         frontier = planned_max
         observed_max: int | None = None
         page_number = 1
+        attempt = 1
 
         while page_number <= page_limit:
             self.logger.info(f"Processing page {page_number} (frontier: {frontier}, limit: {page_limit})")
@@ -606,9 +610,20 @@ class OddsPortalScraper(BaseScraper):
                 )
 
                 if verdict is WalkVerdict.PAGE_FAILED:
+                    # The truncation is transient, so fetch the page again before writing it
+                    # off: losing it costs a full re-run of the season to recover one page.
+                    if attempt <= LISTING_PAGE_RETRY_ATTEMPTS:
+                        self.logger.warning(
+                            f"Page {page_number} returned {len(links)} of {RESULTS_PAGE_SIZE} links; re-fetching it."
+                        )
+                        attempt += 1
+                        await asyncio.sleep(LISTING_PAGE_RETRY_DELAY_S)
+                        continue
+
                     result.failed_pages.append(page_number)
                     self.logger.warning(
-                        f"Page {page_number} returned {len(links)} of {RESULTS_PAGE_SIZE} links; treating it as failed."
+                        f"Page {page_number} returned {len(links)} of {RESULTS_PAGE_SIZE} links after "
+                        f"{attempt} attempts; treating it as failed."
                     )
                     # Keep what it did render: the page is already reported and the exit code
                     # already non-zero, so dropping real rows only costs a re-scrape of links
@@ -616,6 +631,7 @@ class OddsPortalScraper(BaseScraper):
                     all_links.extend(links)
                     if past_frontier:
                         break
+                    attempt = 1
                     page_number += 1
                     continue
 
@@ -644,6 +660,7 @@ class OddsPortalScraper(BaseScraper):
                 if tab:
                     await tab.close()
 
+            attempt = 1
             page_number += 1
 
         pages_walked = result.total_pages

@@ -1249,10 +1249,18 @@ the widget has promised a later page exists, so this page is not the last and mu
 be full**. Fullness alone decides there; `scroll_ok` stays out of it. At or beyond
 the frontier the existing rule stands, since the last page is legitimately short.
 
+A page ruled failed is now fetched once more before being written off
+(`LISTING_PAGE_RETRY_ATTEMPTS`). None of the three existing retry layers covers
+this: `retry_with_backoff` only fires inside an `except` and only on
+`TRANSIENT_ERROR_KEYWORDS`, and a truncated page answers 200 and raises nothing.
+The combo-level retry would also be the wrong grain, since it replays the whole
+season to recover one page.
+
 Residual hole, accepted: if the widget read is *also* degraded on page 1
 (`frontier == 1`) and page 1 is truncated, nothing corroborates, and a truncated
 page 1 is indistinguishable from a genuinely small single-page league. No signal
-exists to separate them, which is what the page-level re-fetch is for.
+exists to separate them; the re-fetch is what covers it in practice, since a
+second attempt usually restores both the widget and the rows.
 
 ### When investigating, do not hammer the site
 

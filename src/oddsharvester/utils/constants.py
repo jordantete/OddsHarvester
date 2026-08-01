@@ -67,6 +67,12 @@ MATCH_RETRY_MAX_ATTEMPTS = 2
 MATCH_RETRY_BASE_DELAY = 2.0
 MATCH_RETRY_MAX_DELAY = 30.0
 
+# Listing-page re-fetch (for a page that came back truncated during link collection).
+# Not handled by retry_with_backoff: the page answers 200 and raises nothing, so
+# there is no exception to classify as transient.
+LISTING_PAGE_RETRY_ATTEMPTS = 1
+LISTING_PAGE_RETRY_DELAY_S = 5.0
+
 # =============================================================================
 # RATE LIMITING CONSTANTS
 # =============================================================================

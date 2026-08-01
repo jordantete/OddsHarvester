@@ -574,6 +574,17 @@ def full_page(prefix: str) -> list[str]:
     return [f"https://oddsportal.com/{prefix}m{i}" for i in range(RESULTS_PAGE_SIZE)]
 
 
+@pytest.fixture(autouse=True)
+def instant_listing_retry():
+    """Skip the backoff between a failed listing page and its re-fetch.
+
+    asyncio.sleep is the module's only use of asyncio, so nothing else in the walk
+    depends on this.
+    """
+    with patch("oddsharvester.core.odds_portal_scraper.asyncio.sleep", new_callable=AsyncMock) as sleep_mock:
+        yield sleep_mock
+
+
 @pytest.mark.asyncio
 async def test_collect_match_links(setup_scraper_mocks):
     """Test collecting match links from multiple pages."""
@@ -926,13 +937,56 @@ async def test_collect_match_links_treats_partial_page_as_failure(setup_scraper_
     page1 = [f"https://p1m{i}" for i in range(RESULTS_PAGE_SIZE)]
     page2 = [f"https://p2m{i}" for i in range(5)]  # stalled lazy-load: 5 rows out of 50
     page3 = ["https://p3m1"]
-    scraper.extract_match_links = AsyncMock(side_effect=[page1, page2, page3])
+    scraper.extract_match_links = AsyncMock(side_effect=[page1, page2, page2, page3])
 
     result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1, 2, 3])
 
     assert result.failed_pages == [2], "a page short of a full listing hides rows that were never discovered"
     assert result.successful_pages == 2, "a truncated page must not count as collected"
     assert "https://p2m0" in result.links, "the rows it did render are still real data"
+
+
+@pytest.mark.asyncio
+async def test_collect_match_links_refetches_a_truncated_page(setup_scraper_mocks):
+    """The truncation is transient, so the page is fetched again before being written off.
+
+    Recovering in place beats losing the page: the alternative costs the user a full
+    re-run of the season to recover one page (issue #78).
+    """
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock()
+    mocks["playwright_manager_mock"].context.new_page = AsyncMock(return_value=tab)
+    scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[1, 2])
+    page1 = full_page("page1")
+    page2 = full_page("page2")
+    # page 1 stalls at 5 rows, then renders in full on the second attempt
+    scraper.extract_match_links = AsyncMock(side_effect=[page1[:5], page1, page2[:3]])
+
+    result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1, 2])
+
+    assert result.failed_pages == [], "a page that recovers on the second attempt was not lost"
+    assert result.links == [*page1, *page2[:3]]
+    assert scraper.extract_match_links.call_count == 3, "page 1 fetched twice, page 2 once"
+
+
+@pytest.mark.asyncio
+async def test_collect_match_links_refetches_a_truncated_page_only_once(setup_scraper_mocks):
+    """A page that stays truncated is reported, not retried forever."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock()
+    mocks["playwright_manager_mock"].context.new_page = AsyncMock(return_value=tab)
+    scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[1, 2])
+    page1 = full_page("page1")
+    scraper.extract_match_links = AsyncMock(side_effect=[page1[:5], page1[:5], page1[:3]])
+
+    result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1, 2])
+
+    assert result.failed_pages == [1]
+    assert scraper.extract_match_links.call_count == 3, "page 1 fetched twice, then the walk moves on"
 
 
 @pytest.mark.asyncio
@@ -1019,7 +1073,7 @@ async def test_collect_match_links_fails_empty_page_despite_lower_mid_walk_obser
     _walk_tab(mocks)
     scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
     scraper.pagination_walker.read_widget = AsyncMock(return_value=[1, 2, 3])
-    pages = [[f"https://m{p}-{i}" for i in range(50)] for p in range(1, 8)] + [[]]
+    pages = [[f"https://m{p}-{i}" for i in range(50)] for p in range(1, 8)] + [[], []]
     scraper.extract_match_links = AsyncMock(side_effect=pages)
 
     result = await scraper._collect_match_links(
@@ -1061,7 +1115,7 @@ async def test_collect_match_links_flags_an_empty_page_the_widget_says_exists(se
     scraper.pagination_walker.read_widget = AsyncMock(return_value=list(range(1, 9)))
     pages = (
         [[f"https://m{p}-{i}" for i in range(50)] for p in range(1, 4)]
-        + [[]]
+        + [[], []]  # page 4 stays empty across its re-fetch
         + [[f"https://m{p}-{i}" for i in range(50)] for p in range(5, 8)]
         + [[f"https://m8-{i}" for i in range(30)]]
     )
@@ -1083,9 +1137,11 @@ async def test_collect_match_links_fails_a_short_page_with_incomplete_scroll(set
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
     _walk_tab(mocks)
-    scraper.scroller.scroll_until_loaded = AsyncMock(side_effect=[True, True, True, True, True, True, True, False])
+    scraper.scroller.scroll_until_loaded = AsyncMock(side_effect=[True] * 7 + [False, False])
     scraper.pagination_walker.read_widget = AsyncMock(return_value=list(range(1, 9)))
-    pages = [[f"https://m{p}-{i}" for i in range(50)] for p in range(1, 8)] + [[f"https://m8-{i}" for i in range(30)]]
+    page8 = [f"https://m8-{i}" for i in range(30)]
+    # page 8 scrolls short on both attempts
+    pages = [[f"https://m{p}-{i}" for i in range(50)] for p in range(1, 8)] + [page8, page8]
     scraper.extract_match_links = AsyncMock(side_effect=pages)
 
     result = await scraper._collect_match_links(
