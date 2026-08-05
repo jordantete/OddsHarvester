@@ -885,7 +885,8 @@ class BaseScraper:
         # Navigation is the proxy-sensitive step: let its failures propagate so
         # retry/backoff and multi-proxy failover can attribute them to the proxy.
         # Errors after a successful load are content/DOM issues and must not
-        # blacklist a proxy, so they stay swallowed to None below.
+        # blacklist a proxy, so they are swallowed to None below except
+        # H2HFragmentResolutionError, which is deliberately re-raised.
         await page.goto(match_link, timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded")
 
         try:
