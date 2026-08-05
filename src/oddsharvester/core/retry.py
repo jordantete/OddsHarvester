@@ -12,6 +12,7 @@ import logging
 import random
 from typing import Any
 
+from oddsharvester.core.exceptions import ScraperError
 from oddsharvester.core.scrape_result import ErrorType
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,7 @@ class RetryResult:
     attempts: int
     last_error: str | None
     error_type: ErrorType | None
+    is_retryable: bool = False
 
 
 def is_retryable_error(error_message: str) -> bool:
@@ -137,6 +139,7 @@ async def retry_with_backoff[T](
 
     last_error: str | None = None
     error_type: ErrorType | None = None
+    is_retryable = False
 
     for attempt in range(1, config.max_attempts + 1):
         try:
@@ -147,12 +150,17 @@ async def retry_with_backoff[T](
                 attempts=attempt,
                 last_error=None,
                 error_type=None,
+                is_retryable=False,
             )
 
         except Exception as e:
             last_error = str(e)
-            error_type = classify_error(last_error)
-            is_retryable = is_retryable_error(last_error)
+            if isinstance(e, ScraperError):
+                error_type = e.error_type or classify_error(last_error)
+                is_retryable = e.is_retryable
+            else:
+                error_type = classify_error(last_error)
+                is_retryable = is_retryable_error(last_error)
 
             if not is_retryable or attempt == config.max_attempts:
                 logger.debug(f"Attempt {attempt}/{config.max_attempts} failed (not retrying): {last_error[:100]}")
@@ -162,6 +170,7 @@ async def retry_with_backoff[T](
                     attempts=attempt,
                     last_error=last_error,
                     error_type=error_type,
+                    is_retryable=is_retryable,
                 )
 
             # Calculate delay with exponential backoff and jitter
@@ -184,4 +193,5 @@ async def retry_with_backoff[T](
         attempts=config.max_attempts,
         last_error=last_error,
         error_type=error_type,
+        is_retryable=is_retryable,
     )

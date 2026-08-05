@@ -227,3 +227,78 @@ class TestProxyAttributableError:
 
     def test_none_is_not_proxy_attributable(self):
         assert is_proxy_attributable_error(None) is False
+
+
+@pytest.mark.asyncio
+async def test_retry_honours_scraper_error_is_retryable():
+    """A ScraperError marked retryable must be retried even though its message
+    matches no TRANSIENT_ERROR_KEYWORDS entry."""
+    from oddsharvester.core.exceptions import H2HFragmentResolutionError
+    from oddsharvester.core.scrape_result import ErrorType
+
+    calls = []
+
+    async def always_fails():
+        calls.append(1)
+        raise H2HFragmentResolutionError("page never updated eventData.id to match the fragment")
+
+    result = await retry_with_backoff(
+        always_fails,
+        config=RetryConfig(max_attempts=3, base_delay=0, max_delay=0),
+    )
+
+    assert len(calls) == 3
+    assert result.success is False
+    assert result.attempts == 3
+    assert result.is_retryable is True
+    assert result.error_type is ErrorType.HEADER_NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_retry_honours_scraper_error_non_retryable():
+    """A ScraperError marked non-retryable must stop after the first attempt."""
+    from oddsharvester.core.exceptions import ParsingError
+
+    calls = []
+
+    async def always_fails():
+        calls.append(1)
+        raise ParsingError("structure changed", url="https://x/")
+
+    result = await retry_with_backoff(
+        always_fails,
+        config=RetryConfig(max_attempts=3, base_delay=0, max_delay=0),
+    )
+
+    assert len(calls) == 1
+    assert result.attempts == 1
+    assert result.is_retryable is False
+
+
+@pytest.mark.asyncio
+async def test_retry_plain_exception_still_uses_message_classification():
+    """Regression guard: non-ScraperError paths keep the string-sniffing behaviour."""
+    calls = []
+
+    async def always_fails():
+        calls.append(1)
+        raise Exception("Page.goto: Timeout 15000ms exceeded.")
+
+    result = await retry_with_backoff(
+        always_fails,
+        config=RetryConfig(max_attempts=2, base_delay=0, max_delay=0),
+    )
+
+    assert len(calls) == 2
+    assert result.is_retryable is True
+
+
+@pytest.mark.asyncio
+async def test_retry_success_reports_not_retryable():
+    async def succeeds():
+        return {"ok": True}
+
+    result = await retry_with_backoff(succeeds, config=RetryConfig(max_attempts=2))
+
+    assert result.success is True
+    assert result.is_retryable is False
