@@ -785,7 +785,7 @@ class BaseScraper:
                             error_type=error_type,
                             error_message=retry_result.last_error or "Unknown error",
                             attempts=retry_result.attempts,
-                            is_retryable=is_retryable_error(retry_result.last_error or ""),
+                            is_retryable=retry_result.is_retryable,
                         )
                         self.logger.warning(
                             f"Failed to scrape {link} after {retry_result.attempts} attempts: {retry_result.last_error}"

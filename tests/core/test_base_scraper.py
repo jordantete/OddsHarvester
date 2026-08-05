@@ -2665,3 +2665,64 @@ async def test_scrape_match_data_without_live_mode_adds_no_live_fields(setup_bas
     data = await scraper._scrape_match_data(page=page_mock, sport="tennis", match_link="https://x/")
 
     assert data == {"home_team": "A"}
+
+
+@pytest.mark.asyncio
+async def test_extract_match_odds_retries_h2h_fragment_failure(setup_base_scraper_mocks):
+    """Issue #83: a resync timeout must be retried in-run, and a second attempt
+    that succeeds must land in result.success rather than in the failed list."""
+    from oddsharvester.core.exceptions import H2HFragmentResolutionError
+    from oddsharvester.core.retry import RetryConfig
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+
+    scraper._extract_match_details_event_header = AsyncMock(
+        side_effect=[
+            H2HFragmentResolutionError("page never updated eventData.id to match the fragment"),
+            {"match_link": "https://www.oddsportal.com/football/h2h/a/b/#WbDmMwm1", "home_team": "A"},
+        ]
+    )
+
+    result = await scraper.extract_match_odds(
+        sport="football",
+        match_links=["https://www.oddsportal.com/football/h2h/a/b/#WbDmMwm1"],
+        retry_config=RetryConfig(max_attempts=2, base_delay=0, max_delay=0),
+        request_delay=0,
+    )
+
+    assert result.stats.successful == 1
+    assert result.stats.failed == 0
+    assert scraper._extract_match_details_event_header.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_extract_match_odds_h2h_failure_is_reported_retryable(setup_base_scraper_mocks):
+    """When every attempt times out, the URL is reported retryable and typed
+    HEADER_NOT_FOUND, and the proxy is not blamed for a client-side render race."""
+    from oddsharvester.core.exceptions import H2HFragmentResolutionError
+    from oddsharvester.core.retry import RetryConfig
+    from oddsharvester.core.scrape_result import ErrorType
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+
+    scraper._extract_match_details_event_header = AsyncMock(
+        side_effect=H2HFragmentResolutionError("page never updated eventData.id to match the fragment")
+    )
+
+    result = await scraper.extract_match_odds(
+        sport="football",
+        match_links=["https://www.oddsportal.com/football/h2h/a/b/#WbDmMwm1"],
+        retry_config=RetryConfig(max_attempts=2, base_delay=0, max_delay=0),
+        request_delay=0,
+    )
+
+    assert result.stats.failed == 1
+    failed = result.failed[0]
+    assert failed.attempts == 2
+    assert failed.is_retryable is True
+    assert failed.error_type is ErrorType.HEADER_NOT_FOUND
+    assert result.get_retryable_urls() == ["https://www.oddsportal.com/football/h2h/a/b/#WbDmMwm1"]
+
+    mocks["playwright_manager_mock"].report_page_result.assert_called_once_with("direct", is_proxy_failure=False)
