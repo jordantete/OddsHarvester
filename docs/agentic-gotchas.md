@@ -42,12 +42,18 @@ match, a phantom hidden duplicate, etc.).
 swap is a client-side render race: on a full Turkish Süper Lig season (issue
 #83, 306 matches) 262 URLs tripped the fragment mismatch, 239 recovered via the
 case-a DOM path and 23 timed out in the resync. Re-running the same URLs
-succeeds. So a resync timeout must be raised as a **retryable** error
+succeeds. On that log the resync itself succeeded 0 times out of 23 attempts;
+the other 239 mismatches recovered through the case-a DOM path without ever
+entering the resync, so recovery on retry comes from landing on the case-a
+path on a later page load, not from the resync eventually working. So a
+resync timeout must be raised as a **retryable** error
 (`H2HFragmentResolutionError`), never returned as `None` and never typed
-`NAVIGATION` (that would count it against the proxy that served a perfectly
-good page). Leagues where every team pair has one alphabetically normalized
-H2H URL, with `#fragment` as the only discriminator between the two legs, hit
-this on nearly every match.
+`NAVIGATION`; instead it is typed `HEADER_NOT_FOUND`, since that type is
+absent from `PROXY_ATTRIBUTABLE_ERROR_TYPES` in `core/retry.py`, so the
+failure never counts against the proxy that served a perfectly good page.
+Leagues where every team pair has one alphabetically normalized H2H URL, with
+`#fragment` as the only discriminator between the two legs, hit this on
+nearly every match.
 
 ### Detection signal (general rule)
 
