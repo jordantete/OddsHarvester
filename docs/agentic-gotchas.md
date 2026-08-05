@@ -38,6 +38,17 @@ match, a phantom hidden duplicate, etc.).
 | **b.** DOM **and** JSON both wrong because the SSR for `/sport/h2h/home/away/#fragment` renders the *upcoming* matchup, the SPA hasn't swapped yet | H2H pages where teams play each other repeatedly (MLB, NBA, ATP) | `match_date` is in the future on a historic scrape | Issue #60 — force `hashchange` via `page.evaluate`, wait for `eventData.id === fragment` |
 | **c.** League listings include duplicate "phantom" event rows hidden in CSS, whose href points to a corrupted slug that 301-redirects to an unrelated match | `<tr style="left:-9999px">` (also `display:none`, `visibility:hidden`, `top:-9999px`) on `/results/` listings | Random unrelated matches scraped from a league listing | `f7c6ee4` — `_is_offscreen_row` helper, skip before processing |
 
+**Case b fails intermittently, and that is not a structure change.** The SPA
+swap is a client-side render race: on a full Turkish Süper Lig season (issue
+#83, 306 matches) 262 URLs tripped the fragment mismatch, 239 recovered via the
+case-a DOM path and 23 timed out in the resync. Re-running the same URLs
+succeeds. So a resync timeout must be raised as a **retryable** error
+(`H2HFragmentResolutionError`), never returned as `None` and never typed
+`NAVIGATION` (that would count it against the proxy that served a perfectly
+good page). Leagues where every team pair has one alphabetically normalized
+H2H URL, with `#fragment` as the only discriminator between the two legs, hit
+this on nearly every match.
+
 ### Detection signal (general rule)
 
 **Never trust the first thing you parse.** Cross-reference with at least one
