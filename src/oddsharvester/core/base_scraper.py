@@ -19,6 +19,7 @@ from oddsharvester.core.browser.selection import (
     BOOKIES_FILTER_STRATEGY,
     SelectionManager,
 )
+from oddsharvester.core.exceptions import H2HFragmentResolutionError
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
@@ -942,6 +943,8 @@ class BaseScraper:
 
             return match_details
 
+        except H2HFragmentResolutionError:
+            raise
         except Exception as e:
             self.logger.error(f"Error scraping match data from {match_link}: {e}")
             return None
@@ -1077,8 +1080,9 @@ class BaseScraper:
         to nudge it, then wait until `react-event-header`'s `eventData.id`
         matches the requested fragment.
 
-        Returns the updated (soup, json_data) on success, or None if the wait
-        times out (the page would not show the requested match).
+        Returns the updated (soup, json_data) on success, or None if the page
+        payload is unreadable afterwards. Raises H2HFragmentResolutionError if
+        the SPA never swaps to the requested match.
         """
         trigger_js = """
         (desired) => {
@@ -1106,12 +1110,14 @@ class BaseScraper:
                 arg=fragment,
                 timeout=H2H_FRAGMENT_RESOLVE_TIMEOUT_MS,
             )
-        except TimeoutError:
-            self.logger.error(
+        except TimeoutError as e:
+            # Transient render race, not a structure change: raise so retry sees it.
+            message = (
                 f"H2H fragment resolution failed after retry: requested={fragment}; "
                 f"page never updated eventData.id to match the fragment"
             )
-            return None
+            self.logger.error(message)
+            raise H2HFragmentResolutionError(message) from e
         except Exception as e:
             self.logger.error(f"H2H fragment resolution raised unexpected error for fragment={fragment}: {e}")
             return None
@@ -1294,6 +1300,8 @@ class BaseScraper:
 
             return details
 
+        except H2HFragmentResolutionError:
+            raise
         except Exception as e:
             self.logger.error(f"Error extracting match details while parsing React event header: {e}")
             return None

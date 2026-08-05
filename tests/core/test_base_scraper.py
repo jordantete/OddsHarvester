@@ -2024,9 +2024,9 @@ async def test_resolve_h2h_fragment_mismatch_success_returns_updated_payload(set
 
 
 @pytest.mark.asyncio
-async def test_resolve_h2h_fragment_mismatch_timeout_returns_none(setup_base_scraper_mocks, caplog):
-    """When wait_for_function times out, the resolver returns None and logs ERROR."""
-    import logging
+async def test_resolve_h2h_fragment_mismatch_timeout_raises_retryable(setup_base_scraper_mocks):
+    """A resync timeout is a transient render race: raise so retry/backoff can see it."""
+    from oddsharvester.core.exceptions import H2HFragmentResolutionError
 
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
@@ -2035,14 +2035,11 @@ async def test_resolve_h2h_fragment_mismatch_timeout_returns_none(setup_base_scr
     page_mock.evaluate = AsyncMock()
     page_mock.wait_for_function = AsyncMock(side_effect=TimeoutError("timeout"))
 
-    with caplog.at_level(logging.ERROR):
-        result = await scraper._resolve_h2h_fragment_mismatch(
-            page=page_mock,
-            fragment="WbDmMwm1",
-        )
+    with pytest.raises(H2HFragmentResolutionError) as excinfo:
+        await scraper._resolve_h2h_fragment_mismatch(page=page_mock, fragment="WbDmMwm1")
 
-    assert result is None
-    assert any("H2H fragment resolution failed" in rec.message for rec in caplog.records)
+    assert excinfo.value.is_retryable is True
+    assert "WbDmMwm1" in str(excinfo.value)
 
 
 @pytest.mark.asyncio
@@ -2119,8 +2116,10 @@ async def test_extract_match_details_h2h_fragment_mismatch_resolved(setup_base_s
 
 
 @pytest.mark.asyncio
-async def test_extract_match_details_h2h_fragment_resync_timeout_returns_none(setup_base_scraper_mocks):
-    """When resync times out, the method returns None instead of emitting wrong data."""
+async def test_extract_match_details_h2h_fragment_resync_timeout_propagates(setup_base_scraper_mocks):
+    """The resync failure must survive the broad handler in _extract_match_details_event_header."""
+    from oddsharvester.core.exceptions import H2HFragmentResolutionError
+
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
     page_mock = mocks["page_mock"]
@@ -2129,12 +2128,11 @@ async def test_extract_match_details_h2h_fragment_resync_timeout_returns_none(se
     page_mock.evaluate = AsyncMock()
     page_mock.wait_for_function = AsyncMock(side_effect=TimeoutError("timeout"))
 
-    result = await scraper._extract_match_details_event_header(
-        page=page_mock,
-        match_link="https://www.oddsportal.com/baseball/h2h/a/b/#WbDmMwm1",
-    )
-
-    assert result is None
+    with pytest.raises(H2HFragmentResolutionError):
+        await scraper._extract_match_details_event_header(
+            page=page_mock,
+            match_link="https://www.oddsportal.com/baseball/h2h/a/b/#WbDmMwm1",
+        )
 
 
 @pytest.mark.asyncio
@@ -2192,6 +2190,63 @@ async def test_extract_match_details_h2h_fragment_mismatch_dom_resolved_no_resyn
     assert result["away_score"] == "0"
     page_mock.evaluate.assert_not_awaited()
     page_mock.wait_for_function.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_scrape_match_data_propagates_h2h_fragment_error(setup_base_scraper_mocks):
+    """The resync failure must also survive the broad handler in _scrape_match_data."""
+    from oddsharvester.core.exceptions import H2HFragmentResolutionError
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+
+    scraper._extract_match_details_event_header = AsyncMock(
+        side_effect=H2HFragmentResolutionError("page never updated eventData.id to match the fragment")
+    )
+
+    with pytest.raises(H2HFragmentResolutionError):
+        await scraper._scrape_match_data(
+            page=mocks["page_mock"],
+            sport="football",
+            match_link="https://www.oddsportal.com/football/h2h/a/b/#WbDmMwm1",
+        )
+
+
+@pytest.mark.asyncio
+async def test_extract_match_details_missing_header_div_still_returns_none(setup_base_scraper_mocks):
+    """Regression guard: a genuinely absent react-event-header stays a soft None,
+    not a retryable error. Retrying a structural failure would waste a full page load."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    page_mock.content = AsyncMock(return_value="<html><body>no header here</body></html>")
+
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/baseball/h2h/a/b/#WbDmMwm1",
+    )
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_extract_match_details_unparseable_header_data_still_returns_none(setup_base_scraper_mocks):
+    """Regression guard: malformed embedded JSON stays a soft None."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    page_mock.content = AsyncMock(
+        return_value="<html><body><div id=\"react-event-header\" data='{not json'></div></body></html>"
+    )
+
+    result = await scraper._extract_match_details_event_header(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/baseball/h2h/a/b/#WbDmMwm1",
+    )
+
+    assert result is None
 
 
 # -- base_url storage and match-link join -------------------------------------
