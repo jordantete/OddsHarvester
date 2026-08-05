@@ -5,14 +5,23 @@ This module provides a hierarchy of exceptions to distinguish between
 different types of scraping failures and enable targeted error handling.
 """
 
+from oddsharvester.core.scrape_result import ErrorType
+
 
 class ScraperError(Exception):
     """Base class for all scraper exceptions."""
 
-    def __init__(self, message: str, url: str | None = None, is_retryable: bool = True):
+    def __init__(
+        self,
+        message: str,
+        url: str | None = None,
+        is_retryable: bool = True,
+        error_type: ErrorType | None = None,
+    ):
         super().__init__(message)
         self.url = url
         self.is_retryable = is_retryable
+        self.error_type = error_type
         self.message = message
 
     def __str__(self) -> str:
@@ -100,3 +109,14 @@ class AllProxiesExhaustedError(ScraperError):
 
     Signals that no healthy IP remains for further requests.
     """
+
+
+class H2HFragmentResolutionError(ScraperError):
+    """The H2H SPA never swapped to the fragment-targeted match.
+
+    Transient: the swap is a client-side render race, not a structure change.
+    Typed HEADER_NOT_FOUND so proxy failover does not count it against the IP.
+    """
+
+    def __init__(self, message: str, url: str | None = None):
+        super().__init__(message, url, is_retryable=True, error_type=ErrorType.HEADER_NOT_FOUND)

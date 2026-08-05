@@ -159,3 +159,31 @@ class TestAllProxiesExhaustedError:
     def test_message_preserved(self):
         err = AllProxiesExhaustedError("all proxies blacklisted")
         assert str(err) == "all proxies blacklisted"
+
+
+class TestH2HFragmentResolutionError:
+    def test_is_retryable_and_typed_as_header_not_found(self):
+        from oddsharvester.core.exceptions import H2HFragmentResolutionError
+        from oddsharvester.core.scrape_result import ErrorType
+
+        error = H2HFragmentResolutionError(
+            "H2H fragment resolution failed after retry: requested=WbDmMwm1",
+            url="https://www.oddsportal.com/football/h2h/a/b/#WbDmMwm1",
+        )
+
+        assert error.is_retryable is True
+        assert error.error_type is ErrorType.HEADER_NOT_FOUND
+
+    def test_is_not_proxy_attributable(self):
+        """A client-side render race must never blacklist the proxy that served the page."""
+        from oddsharvester.core.exceptions import H2HFragmentResolutionError
+        from oddsharvester.core.retry import is_proxy_attributable_error
+
+        error = H2HFragmentResolutionError("boom")
+
+        assert is_proxy_attributable_error(error.error_type) is False
+
+    def test_base_scraper_error_defaults_error_type_to_none(self):
+        from oddsharvester.core.exceptions import ScraperError
+
+        assert ScraperError("boom").error_type is None
