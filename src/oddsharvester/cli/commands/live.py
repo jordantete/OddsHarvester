@@ -6,7 +6,7 @@ import sys
 
 import click
 
-from oddsharvester.cli.options import common_options
+from oddsharvester.cli.options import common_options, merged_match_links
 from oddsharvester.core.scraper_app import run_scraper
 from oddsharvester.storage.storage_manager import store_data
 
@@ -27,8 +27,9 @@ def live(ctx, **kwargs):
     if leagues and len(leagues) > 1:
         raise click.UsageError("live supports at most one --league.")
 
+    match_links = merged_match_links(kwargs)
     links_only = kwargs.get("links_only", False)
-    if links_only and kwargs.get("match_links"):
+    if links_only and match_links:
         raise click.UsageError("--links-only cannot be combined with --match-link (links are already collected).")
 
     sport = kwargs["sport"]
@@ -40,7 +41,7 @@ def live(ctx, **kwargs):
         scraped_data = asyncio.run(
             run_scraper(
                 command="scrape_live",
-                match_links=kwargs.get("match_links"),
+                match_links=match_links,
                 sport=sport.value if sport else None,
                 leagues=leagues,
                 markets=kwargs.get("markets"),

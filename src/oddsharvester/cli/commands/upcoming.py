@@ -6,7 +6,7 @@ import sys
 
 import click
 
-from oddsharvester.cli.options import common_options
+from oddsharvester.cli.options import common_options, merged_match_links
 from oddsharvester.cli.validators import validate_date
 from oddsharvester.core.scraper_app import run_scraper
 from oddsharvester.storage.storage_manager import store_data
@@ -39,13 +39,15 @@ logger = logging.getLogger(__name__)
 @click.pass_context
 def upcoming(ctx, **kwargs):
     """Scrape odds for upcoming matches."""
+    match_links = merged_match_links(kwargs)
+
     # Validate: need either date, leagues, or match_links
-    if not kwargs.get("date") and not kwargs.get("leagues") and not kwargs.get("match_links"):
+    if not kwargs.get("date") and not kwargs.get("leagues") and not match_links:
         raise click.UsageError("You must provide --date, --league, or --match-link for upcoming matches.")
 
     links_only = kwargs.get("links_only", False)
     local_kickoff = kwargs.get("local_kickoff", False)
-    if links_only and kwargs.get("match_links"):
+    if links_only and match_links:
         raise click.UsageError("--links-only cannot be combined with --match-link (links are already collected).")
     if links_only and local_kickoff:
         raise click.UsageError("--links-only cannot be combined with --local-kickoff (no match pages are visited).")
@@ -60,7 +62,7 @@ def upcoming(ctx, **kwargs):
         scraped_data = asyncio.run(
             run_scraper(
                 command="scrape_upcoming",
-                match_links=kwargs.get("match_links"),
+                match_links=match_links,
                 sport=sport.value if sport else None,
                 date=kwargs.get("date"),
                 leagues=kwargs.get("leagues"),

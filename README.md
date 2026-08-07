@@ -238,9 +238,10 @@ pagination) and does not emit per-prediction win/loss (use the monthly stats tab
 | `--date`       | `-d`  | Target date in `YYYYMMDD` format                                           | —          |
 | `--league`     | `-l`  | Comma-separated league slugs (e.g. `england-premier-league`)               | —          |
 | `--market`     | `-m`  | Comma-separated markets (e.g. `1x2,btts`)                                  | —          |
-| `--match-link` |       | Specific match URL (repeatable). Skips listing pages; `--date`/`--league`/`--season` are then ignored | —          |
+| `--match-link` |       | Specific match URLs, comma-separated and/or repeated. Skips listing pages; `--date`/`--league`/`--season` are then ignored | —          |
+| `--match-links-file` |       | File with match URLs to scrape, one per line. Combines with `--match-link`; duplicates are dropped | —          |
 
-**`--match-link` usage:** `--sport` is still required. Prefer `upcoming` over `historic` for arbitrary match URLs: match links bypass the listing pages entirely, so `upcoming` also works for matches already played, while `historic` would additionally demand a `--season` it never uses.
+**`--match-link` usage:** `--sport` is still required. Prefer `upcoming` over `historic` for arbitrary match URLs: match links bypass the listing pages entirely, so `upcoming` also works for matches already played, while `historic` would additionally demand a `--season` it never uses. For large link sets (a `--links-only` output, re-running failures), prefer `--match-links-file`: a pasted command line gets silently truncated by the terminal past a few hundred URLs.
 
 **`upcoming` only:** `--date` is required unless `--league` or `--match-link` is provided. `--date` and `--league` can be combined to filter the league's upcoming matches down to a specific calendar day. When combining both, the reference timezone for resolving the date is `--timezone` if provided, otherwise UTC. `--kickoff-within-hours N` keeps only matches starting within `N` hours from now; the filter runs during link collection, so far-off matches are never visited. It pairs with the default upcoming-only behaviour to bound the window on both sides, and uses `--timezone` (else UTC) as the reference clock. Combined with `--links-only`, each row also carries `kickoff_utc`, so a scheduler can plan a day of fixtures from one listing request instead of re-fetching the listing on every cycle.
 
@@ -353,9 +354,10 @@ For large runs it can be safer to collect all match links first, then scrape odd
 oddsharvester historic -s football -l england-premier-league --season 2022-2023 \
     --links-only -f csv -o links.csv
 
-# Pass 2 - scrape odds per link (repeat --match-link; --append fills recovered failures)
-oddsharvester historic -s football --season 2022-2023 -m 1x2 -f csv -o odds.csv --append \
-    --match-link "https://www.oddsportal.com/football/england/premier-league-2022-2023/..."
+# Pass 2 - scrape odds from the collected links (--append fills recovered failures)
+tail -n +2 links.csv | cut -d, -f1 | sort -u > links.txt
+oddsharvester upcoming -s football -m 1x2 -f csv -o odds.csv --append \
+    --match-links-file links.txt
 ```
 
 On `upcoming`, the same pass 1 doubles as a fixture plan: one listing request

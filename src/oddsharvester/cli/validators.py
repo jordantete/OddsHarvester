@@ -61,18 +61,34 @@ def validate_seasons(ctx, param, value):
     return list(seen)
 
 
-def validate_match_links(ctx, param, value):
-    """Validate match links format."""
-    if not value:
-        return None
-
+def _validate_link_list(links: list[str]) -> list[str]:
+    """Validate a flat list of match links against the OddsPortal URL shape."""
     url_pattern = re.compile(r"https?://www\.oddsportal\.com/.+")
-    invalid = [link for link in value if not url_pattern.match(link)]
+    invalid = [link for link in links if not url_pattern.match(link)]
 
     if invalid:
         raise click.BadParameter(f"Invalid match link(s): {', '.join(invalid)}")
 
-    return list(value)
+    return links
+
+
+def validate_match_links(ctx, param, value):
+    """Validate match links; each occurrence may itself be a comma-separated list."""
+    if not value:
+        return None
+
+    return _validate_link_list([link for chunk in value for link in chunk])
+
+
+def validate_match_links_file(ctx, param, value):
+    """Read match links from a file (one URL per line, blank lines ignored) and validate them."""
+    if value is None:
+        return None
+
+    with open(value, encoding="utf-8") as file:
+        links = [line.strip() for line in file if line.strip()]
+
+    return _validate_link_list(links) or None
 
 
 def validate_markets(ctx, param, value):

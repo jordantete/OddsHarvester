@@ -12,6 +12,7 @@ from oddsharvester.cli.validators import (
     validate_leagues,
     validate_markets,
     validate_match_links,
+    validate_match_links_file,
     validate_period,
     validate_proxy_url,
 )
@@ -50,6 +51,12 @@ def _get_all_periods():
     ]:
         periods.update(p.value for p in period_enum)
     return sorted(periods)
+
+
+def merged_match_links(kwargs) -> list[str] | None:
+    """Combine --match-link and --match-links-file values, deduped, flag links first."""
+    merged = list(dict.fromkeys((kwargs.get("match_links") or []) + (kwargs.get("match_links_file") or [])))
+    return merged or None
 
 
 def common_options(func):
@@ -147,8 +154,16 @@ def common_options(func):
         "--match-link",
         "match_links",
         multiple=True,
+        type=COMMA_LIST,
         callback=validate_match_links,
-        help="Specific match URL(s) to scrape. Can be repeated.",
+        help="Specific match URL(s) to scrape. Comma-separated and/or repeated.",
+    )
+    @click.option(
+        "--match-links-file",
+        "match_links_file",
+        type=click.Path(exists=True, dir_okay=False),
+        callback=validate_match_links_file,
+        help="File with match URLs to scrape, one per line. Combines with --match-link.",
     )
     @click.option(
         "--proxy-url",

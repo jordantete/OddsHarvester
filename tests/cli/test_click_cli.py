@@ -417,6 +417,93 @@ class TestLinksOnly:
         store_mock.assert_called_once()
 
 
+class TestMatchLinkBatching:
+    """Tests for comma-separated --match-link and --match-links-file (issue #83)."""
+
+    URL_1 = "https://www.oddsportal.com/football/england/premier-league/arsenal-chelsea-abc123/"
+    URL_2 = "https://www.oddsportal.com/football/england/premier-league/liverpool-everton-def456/"
+    URL_3 = "https://www.oddsportal.com/football/england/premier-league/spurs-west-ham-ghi789/"
+
+    def test_match_link_splits_on_commas(self, runner, mock_run_scraper):
+        result = runner.invoke(
+            cli,
+            ["upcoming", "-s", "football", "--match-link", f"{self.URL_1},{self.URL_2}"],
+        )
+        assert "Invalid match link" not in result.output
+        assert mock_run_scraper["upcoming"].call_args.kwargs["match_links"] == [self.URL_1, self.URL_2]
+
+    def test_match_link_comma_and_repeated_forms_combine(self, runner, mock_run_scraper):
+        result = runner.invoke(
+            cli,
+            ["upcoming", "-s", "football", "--match-link", f"{self.URL_1},{self.URL_2}", "--match-link", self.URL_3],
+        )
+        assert "Invalid match link" not in result.output
+        assert mock_run_scraper["upcoming"].call_args.kwargs["match_links"] == [self.URL_1, self.URL_2, self.URL_3]
+
+    def test_match_link_invalid_url_in_comma_list_rejected(self, runner):
+        result = runner.invoke(
+            cli,
+            ["upcoming", "-s", "football", "--match-link", f"{self.URL_1},https://example.com/nope"],
+        )
+        assert result.exit_code != 0
+        assert "Invalid match link" in result.output
+
+    def test_match_links_file_read_and_forwarded(self, runner, mock_run_scraper, tmp_path):
+        links_file = tmp_path / "links.txt"
+        links_file.write_text(f"{self.URL_1}\n\n  {self.URL_2}  \n")
+
+        result = runner.invoke(cli, ["upcoming", "-s", "football", "--match-links-file", str(links_file)])
+        assert "Invalid match link" not in result.output
+        assert mock_run_scraper["upcoming"].call_args.kwargs["match_links"] == [self.URL_1, self.URL_2]
+
+    def test_match_links_file_merges_with_flags_and_dedupes(self, runner, mock_run_scraper, tmp_path):
+        links_file = tmp_path / "links.txt"
+        links_file.write_text(f"{self.URL_2}\n{self.URL_3}\n")
+
+        result = runner.invoke(
+            cli,
+            [
+                "upcoming",
+                "-s",
+                "football",
+                "--match-link",
+                f"{self.URL_1},{self.URL_2}",
+                "--match-links-file",
+                str(links_file),
+            ],
+        )
+        assert "Invalid match link" not in result.output
+        assert mock_run_scraper["upcoming"].call_args.kwargs["match_links"] == [self.URL_1, self.URL_2, self.URL_3]
+
+    def test_match_links_file_invalid_url_rejected(self, runner, tmp_path):
+        links_file = tmp_path / "links.txt"
+        links_file.write_text(f"{self.URL_1}\nhttps://example.com/nope\n")
+
+        result = runner.invoke(cli, ["upcoming", "-s", "football", "--match-links-file", str(links_file)])
+        assert result.exit_code != 0
+        assert "Invalid match link" in result.output
+
+    def test_match_links_file_missing_rejected(self, runner, tmp_path):
+        result = runner.invoke(cli, ["upcoming", "-s", "football", "--match-links-file", str(tmp_path / "missing.txt")])
+        assert result.exit_code != 0
+
+    def test_links_only_conflicts_with_match_links_file(self, runner, tmp_path):
+        links_file = tmp_path / "links.txt"
+        links_file.write_text(f"{self.URL_1}\n")
+
+        for command, extra in [
+            ("historic", ["--season", "2024-2025"]),
+            ("upcoming", []),
+            ("live", []),
+        ]:
+            result = runner.invoke(
+                cli,
+                [command, "-s", "football", *extra, "--links-only", "--match-links-file", str(links_file)],
+            )
+            assert result.exit_code != 0
+            assert "--links-only cannot be combined with --match-link" in result.output
+
+
 class TestComboSummaryRendering:
     """Tests for the per-combo summary table gate in `historic` (findings 2 and 4)."""
 

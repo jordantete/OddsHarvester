@@ -6,7 +6,7 @@ import sys
 
 import click
 
-from oddsharvester.cli.options import common_options
+from oddsharvester.cli.options import common_options, merged_match_links
 from oddsharvester.cli.types import COMMA_LIST
 from oddsharvester.cli.validators import validate_max_pages, validate_seasons
 from oddsharvester.core.scrape_result import ErrorType
@@ -69,9 +69,10 @@ def historic(ctx, **kwargs):
     seasons = kwargs.get("seasons")
     sport_value = sport.value if isinstance(sport, Sport) else sport
 
+    match_links = merged_match_links(kwargs)
     links_only = kwargs.get("links_only", False)
     local_kickoff = kwargs.get("local_kickoff", False)
-    if links_only and kwargs.get("match_links"):
+    if links_only and match_links:
         raise click.UsageError("--links-only cannot be combined with --match-link (links are already collected).")
     if links_only and local_kickoff:
         raise click.UsageError("--links-only cannot be combined with --local-kickoff (no match pages are visited).")
@@ -80,7 +81,7 @@ def historic(ctx, **kwargs):
         scraped_data = asyncio.run(
             run_scraper(
                 command="scrape_historic",
-                match_links=kwargs.get("match_links"),
+                match_links=match_links,
                 sport=sport_value,
                 date=None,
                 leagues=kwargs.get("leagues"),
