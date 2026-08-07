@@ -75,9 +75,14 @@ class LocalDataStorage:
     def _save_as_csv(self, data: list[dict], file_path: str, append: bool = False):
         """Save data in CSV format. Overwrites by default; appends when append=True."""
         try:
+            # Union of all rows' keys in first-seen order: line markets (Over/Under,
+            # Asian Handicap) yield different columns per match, so the first row
+            # alone cannot define the header (issue #78).
+            fieldnames = list(dict.fromkeys(key for row in data for key in row))
+
             mode = "a" if append else "w"
             with open(file_path, mode=mode, newline="", encoding="utf-8") as file:
-                writer = csv.DictWriter(file, fieldnames=data[0].keys())
+                writer = csv.DictWriter(file, fieldnames=fieldnames)
 
                 # In append mode, only write a header if the file is newly created (empty).
                 # In overwrite mode, the header is always written.

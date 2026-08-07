@@ -214,8 +214,8 @@ def test_json_save_error_handling(local_data_storage, sample_data):
 
 
 def test_save_as_csv_keeps_a_null_column_from_the_first_row(local_data_storage, tmp_path):
-    """DictWriter takes its header from the first record only, so an optional
-    column must be present-and-null rather than absent (issue #81)."""
+    """An optional column must be present-and-null rather than absent so its
+    value lands in its own column, not merged into a union header (issue #81)."""
     rows = [
         {"match_link": "https://oddsportal.com/m1", "kickoff_utc": "2026-07-20 18:30:00 UTC"},
         {"match_link": "https://oddsportal.com/m2", "kickoff_utc": None},
@@ -232,13 +232,25 @@ def test_save_as_csv_keeps_a_null_column_from_the_first_row(local_data_storage, 
     assert written[1]["kickoff_utc"] == ""
 
 
-def test_save_as_csv_raises_when_a_later_row_adds_a_column(local_data_storage, tmp_path):
-    """The failure mode the test above exists to prevent."""
+def test_save_as_csv_unions_columns_across_rows(local_data_storage, tmp_path):
+    """Line markets (Over/Under, AH) yield different columns per match, so the
+    header must be the union of all rows' keys, not the first row's (issue #78)."""
     rows = [
-        {"match_link": "https://oddsportal.com/m1"},
-        {"match_link": "https://oddsportal.com/m2", "kickoff_utc": "2026-07-20 18:30:00 UTC"},
+        {"match_link": "https://oddsportal.com/m1", "over_under_2_5_market": "a"},
+        {"match_link": "https://oddsportal.com/m2", "over_under_3_5_market": "b"},
     ]
-    target = tmp_path / "links.csv"
+    target = tmp_path / "odds.csv"
 
-    with pytest.raises(ValueError):
-        local_data_storage.save_data(rows, file_path=str(target), storage_format="csv")
+    local_data_storage.save_data(rows, file_path=str(target), storage_format="csv")
+
+    with open(target, newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        written = list(reader)
+        header = reader.fieldnames
+
+    # First-seen order: first row's columns first, later additions appended.
+    assert header == ["match_link", "over_under_2_5_market", "over_under_3_5_market"]
+    assert written[0]["over_under_2_5_market"] == "a"
+    assert written[0]["over_under_3_5_market"] == ""
+    assert written[1]["over_under_2_5_market"] == ""
+    assert written[1]["over_under_3_5_market"] == "b"
