@@ -219,7 +219,7 @@ async def test_scrape_historic_links_only(url_builder_mock, setup_scraper_mocks)
         },
     ]
     assert list(result.success[0].keys()) == ["match_link", "sport", "league", "season"]
-    assert [f.url for f in result.failed] == [f"{base}#/page/3"]
+    assert [f.url for f in result.failed] == [f"{base}#page/3"]
     assert result.stats.successful == 2
     assert result.stats.failed == 1
     assert result.stats.total_urls == 3

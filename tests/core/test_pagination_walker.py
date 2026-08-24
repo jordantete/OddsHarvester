@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from oddsharvester.core.browser.pagination import PaginationWalker, WalkVerdict
+from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 
 
 @pytest.fixture
@@ -98,18 +99,25 @@ class TestDecidePastFloor:
 
 def _link(text):
     link = MagicMock()
-    link.inner_text = AsyncMock(return_value=text)
+    # text_content, not inner_text: the widget's parent can be display:none
+    # until the listing is scrolled to the bottom (2026-08 redesign).
+    link.text_content = AsyncMock(return_value=text)
     return link
 
 
 def _page_with(texts):
     page = MagicMock()
-    page.query_selector_all = AsyncMock(return_value=[_link(t) for t in texts])
+
+    async def query(selector):
+        assert selector == OddsPortalSelectors.PAGINATION_ITEM
+        return [_link(t) for t in texts]
+
+    page.query_selector_all = AsyncMock(side_effect=query)
     return page
 
 
 class TestReadWidget:
-    """The live widget renders digits plus localized Prev/Next anchors."""
+    """The widget renders digit buttons/spans plus localized Prev/Next items."""
 
     @pytest.mark.asyncio
     async def test_keeps_digits_and_drops_navigation_labels(self, walker):

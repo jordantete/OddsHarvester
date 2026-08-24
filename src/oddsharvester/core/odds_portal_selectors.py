@@ -8,9 +8,6 @@ class OddsPortalSelectors:
     # Cookie banner
     COOKIE_BANNER = "#onetrust-accept-btn-handler"
 
-    # Listing pagination. The Next/Prev anchors share the class and carry no rel attribute.
-    PAGINATION_LINK = "a.pagination-link"
-
     # 2026-08 redesign (issue #85). Digits are <button>s, the current page a <span>;
     # the widget's parent stays display:none until the listing is scrolled to the
     # bottom, so read text_content (not inner_text) on the items.
@@ -255,8 +252,6 @@ class OddsPortalSelectors:
     # Match the tooltip header by class: its text is localized on regional mirrors.
     ODDS_MOVEMENT_HEADER = "h3.font-semibold.uppercase.leading-6"
 
-    # Event listing — BeautifulSoup class pattern
-    EVENT_ROW_CLASS_PATTERN = "^eventRow"
     # Per-row status indicators on the listing page (issue #58 / gotchas §9).
     # Both are required to detect started matches: live flips only time-item,
     # finished fills only game-status-box.

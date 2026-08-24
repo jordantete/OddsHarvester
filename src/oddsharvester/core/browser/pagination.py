@@ -26,7 +26,7 @@ class PaginationWalker:
     async def read_widget(self, page: Page) -> list[int]:
         """Page numbers rendered by the pagination widget, empty when absent or unreadable."""
         try:
-            links = await page.query_selector_all(OddsPortalSelectors.PAGINATION_LINK)
+            links = await page.query_selector_all(OddsPortalSelectors.PAGINATION_ITEM)
         except Exception as e:
             self.logger.warning(f"Could not query the pagination widget: {e}")
             return []
@@ -34,7 +34,9 @@ class PaginationWalker:
         pages: set[int] = set()
         for link in links:
             try:
-                text = (await link.inner_text()).strip()
+                # text_content: the widget's parent is display:none until the page
+                # is scrolled to the bottom, and inner_text of hidden nodes is ''.
+                text = (await link.text_content() or "").strip()
             except Exception as e:
                 self.logger.warning(f"Could not read a pagination link: {e}")
                 continue
