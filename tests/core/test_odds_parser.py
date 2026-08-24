@@ -289,11 +289,13 @@ class TestOddsParser:
         assert result[0]["bookmaker_name"] == "BetVictor"
 
     def test_parse_market_odds_no_bookmaker_name_skips_row(self, odds_parser):
-        """Rows with no resolvable name are skipped: collapsed submarket line rows
-        carry odd-container-default cells but no bookmaker."""
+        """Collapsed submarket line rows carry odd-container-default cells and must
+        never be parsed as bookmakers, even when a decorative <img alt="arrow">
+        would resolve a name through the fallback chain (live regression)."""
         html = self._table(
             [
-                '<tr class="h-9 cursor-pointer"><td><span class="max-sm:hidden">Over/Under +2.5</span></td>'
+                '<tr class="h-9 cursor-pointer"><td><span class="max-sm:hidden">Over/Under +2.5</span>'
+                '<img alt="arrow" src="arrow.svg"></td>'
                 '<td><div data-testid="odd-container-default">1.68</div></td>'
                 '<td><div data-testid="odd-container-default">1.98</div></td>'
                 "<td>89.2%</td></tr>"

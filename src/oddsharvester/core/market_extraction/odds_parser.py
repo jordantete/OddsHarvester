@@ -48,13 +48,14 @@ class OddsParser:
         self.logger.info("Parsing odds from HTML content.")
         soup = BeautifulSoup(html_content, "html.parser")
 
-        # 2026-08 redesign: odds are a real <table>, one leaf <tr> per bookmaker
-        # (odds cells carry data-testid='odd-container*'). Non-leaf rows (an
-        # expanded submarket row wraps a nested table), Betting Exchanges rows
-        # (Back/Lay prices, not fixed odds) and peripheral rows (My coupon,
-        # User Predictions, OddsAlert) are excluded. Collapsed submarket line
-        # rows carry odds but no bookmaker name and are skipped by name lookup.
-        odd_cell_re = re.compile(rf"^{OddsPortalSelectors.ODD_CELL_TESTID_PREFIX}")
+        # 2026-08 redesign: odds are a real <table>, one leaf <tr> per bookmaker.
+        # Per-bookmaker cells carry data-testid='odd-container' (or the -winning
+        # variant); collapsed submarket line rows carry '-default' cells and must
+        # not be parsed as bookmakers. Non-leaf rows (an expanded submarket row
+        # wraps a nested table), Betting Exchanges rows (Back/Lay prices, not
+        # fixed odds) and peripheral rows (My coupon, User Predictions,
+        # OddsAlert) are excluded.
+        odd_cell_re = re.compile(rf"^{OddsPortalSelectors.ODD_CELL_TESTID_PREFIX}(-winning)?$")
         bookmaker_rows = []
         for tr in soup.find_all("tr"):
             if tr.find("tr") is not None:
