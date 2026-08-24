@@ -1454,13 +1454,33 @@ loading in a real browser, while `[data-testid='game-row']` counts are non-zero
 where the old selector finds nothing. Distinguish from anti-bot (§6): a block
 zeroes *both* selector generations.
 
-### Known open edges (as of 2026-08-24)
+### Community and in-play specifics (resolved 2026-08-24, same rework)
 
-- The community product moved: `/predictions/` is 404, replaced by a
-  `/community/` feed; match-page vote data is DOM-only percentages
-  (`user-predictions-row`). The `community` command needs its own rework.
-- In-play match views did not render `live-info` or odds on the (exotic) live
-  matches available during validation — re-verify on a mainstream live match.
+- **Community moved**: `/predictions/` is 404; Top Predictions live at
+  `/community/predictions/#sport/<sport>/` with the same testids except that
+  `betting-tip-header` cells now sit *inside* each `game-row`, and
+  `participant-name` is a data-testid (no longer a class). Wait for
+  `sport-country-league-item`, not a bare `game-row` — other widgets render
+  game-rows earlier and parse as skippable rows.
+- **Match votes**: `window.pageVar.predictionData.communityData` (absolute
+  counts, all markets) is gone. Votes surface only as the "User Predictions"
+  percentage row (`user-predictions-row` > `prediction-container`) of the
+  hydrated market view, labeled by the `betting-tip-header` cells.
+- **User profiles** (`/profile/<name>/`): the header and the statistics table
+  (a real `<table>`, header line `stats-table-header-line` as a `<tr>`) render
+  on load; the predictions list moved behind the **Feed** tab
+  (`navigation-inactive-tab`, click-only) whose AJAX
+  (`/proxy/ajax-communityFeed/profile/<id>/<timestamp>/`) is cache-busted and
+  therefore not HAR-replayable — the one residual replay hole.
+- **In-play match views** (`/…/inplay-odds/#<id>`): they hydrate on their own
+  (no full-form hash nudge — forcing `#<id>:1X2;2` can flip the view to
+  Pre-match Odds) and use their *own* hash market codes (`O/U`, not
+  `over-under`), so market switching is click-first there. There is no
+  `live-info`: the live score is the red digits (`text-red*`) flanking the
+  names in `game-participants`, and the page shows no period/clock
+  (`live_period` is now always None). The default bookies filter is
+  Classic Bookies, which hides the crypto bookmakers that carry most live
+  odds for a French IP — "All Bookies" is what makes live odds appear.
 
 **Reference:** issue #85; branch `fix/oddsportal-redesign-85`.
 
