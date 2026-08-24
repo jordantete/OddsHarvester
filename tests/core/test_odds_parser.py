@@ -13,21 +13,47 @@ class TestOddsParser:
         """Create an instance of OddsParser."""
         return OddsParser()
 
-    # Sample HTML for testing
-    SAMPLE_HTML_ODDS = """
-    <div class="border-black-borders flex h-9">
-        <img class="bookmaker-logo" title="Bookmaker1">
-        <div class="flex-center flex-col font-bold">1.90</div>
-        <div class="flex-center flex-col font-bold">3.50</div>
-        <div class="flex-center flex-col font-bold">4.20</div>
-    </div>
-    <div class="border-black-borders flex h-9">
-        <img class="bookmaker-logo" title="Bookmaker2">
-        <div class="flex-center flex-col font-bold">1.85</div>
-        <div class="flex-center flex-col font-bold">3.60</div>
-        <div class="flex-center flex-col font-bold">4.10</div>
-    </div>
-    """
+    # Table-based odds markup (2026-08 redesign). One leaf <tr> per bookmaker;
+    # odds cells carry data-testid='odd-container*'.
+    @staticmethod
+    def _bm_row(name="Bookmaker1", odds=("1.90", "3.50", "4.20"), name_via="testid", blocked=()):
+        if name_via == "testid":
+            name_html = f'<a data-testid="outrights-expanded-bookmaker-name">{name}</a>'
+        elif name_via == "a_title":
+            name_html = f'<a title="{name}"><img src="logo.png"></a>'
+        elif name_via == "img_alt":
+            name_html = f'<img alt="{name}" src="logo.png">'
+        else:
+            name_html = ""
+        cells = "".join(
+            f'<td><div data-testid="odd-container">'
+            f"{'<span class=' + chr(34) + 'line-through' + chr(34) + '>' + o + '</span>' if i in blocked else o}"
+            f"</div></td>"
+            for i, o in enumerate(odds)
+        )
+        return (
+            f'<tr class="h-9 cursor-pointer"><td>'
+            f'<div data-testid="outrights-expanded-bookmaker-logo"><img data-testid="bookie-logo" src="x.png"></div>'
+            f"{name_html}"
+            f'<div data-testid="outrights-expanded-bonus-icon">claim bonus</div></td>'
+            f'{cells}<td><div data-testid="payout-container">94.1%</div></td></tr>'
+        )
+
+    @classmethod
+    def _table(cls, rows, extra_rows=""):
+        return (
+            "<table><thead><tr><th>Bookmakers</th><th>1</th><th>X</th><th>2</th><th>Payout</th></tr></thead>"
+            f"<tbody>{''.join(rows)}{extra_rows}</tbody></table>"
+        )
+
+    @property
+    def SAMPLE_HTML_ODDS(self):  # noqa: N802 - keeps the historical fixture name
+        return self._table(
+            [
+                self._bm_row("Bookmaker1", ("1.90", "3.50", "4.20")),
+                self._bm_row("Bookmaker2", ("1.85", "3.60", "4.10")),
+            ]
+        )
 
     SAMPLE_HTML_ODDS_HISTORY = """
     <div>
@@ -48,77 +74,6 @@ class TestOddsParser:
             <div class="flex gap-1">
                 <div>10 Jun, 08:00</div>
                 <div class="font-bold">1.85</div>
-            </div>
-        </div>
-    </div>
-    """
-
-    # Mirrors the live DOM of a blocked row: the `line-through` class sits on a
-    # <p class="odds-text"> two levels below the cell matched by
-    # ODDS_BLOCK_CLASS_PATTERN. Captured from an Albania Superliga match where
-    # Betclic.fr had all three 1X2 outcomes struck through.
-    SAMPLE_HTML_BLOCKED_ODDS = """
-    <div class="border-black-borders flex h-9">
-        <img class="bookmaker-logo" title="Betclic.fr">
-        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
-            <div class="flex flex-row items-center gap-[3px]">
-                <div class=""><p class="odds-text line-through">1.60</p></div>
-            </div>
-        </div>
-        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
-            <div class="flex flex-row items-center gap-[3px]">
-                <div class=""><p class="odds-text line-through">3.30</p></div>
-            </div>
-        </div>
-        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
-            <div class="flex flex-row items-center gap-[3px]">
-                <div class=""><p class="odds-text line-through">4.75</p></div>
-            </div>
-        </div>
-    </div>
-    """
-
-    # Only the draw is blocked. Not observed live, but the feed indexes the
-    # `act` flag per outcome (`act[bookmakerId]` per odd), so a partial row is
-    # representable and must yield exactly one label.
-    SAMPLE_HTML_PARTIALLY_BLOCKED_ODDS = """
-    <div class="border-black-borders flex h-9">
-        <img class="bookmaker-logo" title="Winamax">
-        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
-            <div class="flex flex-row items-center gap-[3px]">
-                <div class=""><p class="odds-text">1.44</p></div>
-            </div>
-        </div>
-        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
-            <div class="flex flex-row items-center gap-[3px]">
-                <div class=""><p class="odds-text line-through">4.10</p></div>
-            </div>
-        </div>
-        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
-            <div class="flex flex-row items-center gap-[3px]">
-                <div class=""><p class="odds-text">5.00</p></div>
-            </div>
-        </div>
-    </div>
-    """
-
-    # OddsPortal swaps <p class="odds-text"> for <a class="odds-link underline"> when the
-    # bookmaker has a betslip link; the `line-through` class lands on whichever element is
-    # rendered. Matching on the class rather than the element is what makes this fixture pass.
-    SAMPLE_HTML_BLOCKED_ODDS_LINK_VARIANT = """
-    <div class="border-black-borders flex h-9">
-        <img class="bookmaker-logo" title="Bet365">
-        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
-            <div class="flex flex-row items-center gap-[3px]">
-                <div class="">
-                    <a class="odds-link underline line-through" href="https://example.test/betslip"
-                        target="_blank" rel="nofollow">1.85</a>
-                </div>
-            </div>
-        </div>
-        <div class="flex-center flex-col font-bold text-[#2F2F2F]">
-            <div class="flex flex-row items-center gap-[3px]">
-                <div class=""><p class="odds-text">3.40</p></div>
             </div>
         </div>
     </div>
@@ -181,57 +136,32 @@ class TestOddsParser:
         assert len(result) == 0
 
     def test_parse_market_odds_error_handling(self, odds_parser):
-        """Test error handling during odds parsing."""
-        # Arrange
+        """A bookmaker row with no odds cells at all is not a bookmaker row."""
         odds_labels = ["1", "X", "2"]
-        broken_html = """
-        <div class="border-black-borders flex h-9">
-            <img class="bookmaker-logo" title="Bookmaker1">
-            <!-- Data manquante/corrompue -->
-        </div>
-        """
+        broken_html = self._table(
+            ['<tr><td><a data-testid="outrights-expanded-bookmaker-name">Bookmaker1</a></td></tr>']
+        )
 
-        # Act
         result = odds_parser.parse_market_odds(broken_html, "FullTime", odds_labels)
 
-        # Assert
-        assert len(result) == 0  # Should handle error gracefully
+        assert len(result) == 0
 
     def test_parse_market_odds_duplicate_odds_removal(self, odds_parser):
-        """Test that duplicate odds values are properly cleaned."""
-        # Arrange
-        html_with_duplicates = """
-        <div class="border-black-borders flex h-9">
-            <img class="bookmaker-logo" title="Bookmaker1">
-            <div class="flex-center flex-col font-bold">1.901.90</div>
-            <div class="flex-center flex-col font-bold">3.50</div>
-        </div>
-        """
-        odds_labels = ["1", "X"]
+        """Doubled odds strings ('1.901.90') are collapsed to a single value."""
+        html = self._table([self._bm_row("Bookmaker1", ("1.901.90", "3.50"))])
 
-        # Act
-        result = odds_parser.parse_market_odds(html_with_duplicates, "FullTime", odds_labels)
+        result = odds_parser.parse_market_odds(html, "FullTime", ["1", "X"])
 
-        # Assert
         assert len(result) == 1
-        assert result[0]["1"] == "1.90"  # Duplicate should be removed
+        assert result[0]["1"] == "1.90"
 
-    def test_parse_market_odds_fallback_selector(self, odds_parser):
-        """Test parsing with fallback selector when primary selector fails."""
-        # Arrange
-        html_with_fallback = """
-        <div class="border-black-borders flex h-9">
-            <img class="bookmaker-logo" title="Bookmaker1">
-            <div class="flex-center flex-col font-bold">1.90</div>
-            <div class="flex-center flex-col font-bold">3.50</div>
-        </div>
-        """
-        odds_labels = ["1", "X"]
+    def test_parse_market_odds_skips_nested_wrapper_rows(self, odds_parser):
+        """An expanded submarket <tr> wraps a nested table; only leaf rows count."""
+        inner = self._table([self._bm_row("Bookmaker1", ("1.90", "3.50", "4.20"))])
+        html = f"<table><tbody><tr><td>{inner}</td></tr></tbody></table>"
 
-        # Act
-        result = odds_parser.parse_market_odds(html_with_fallback, "FullTime", odds_labels)
+        result = odds_parser.parse_market_odds(html, "FullTime", ["1", "X", "2"])
 
-        # Assert
         assert len(result) == 1
         assert result[0]["bookmaker_name"] == "Bookmaker1"
 
@@ -333,119 +263,76 @@ class TestOddsParser:
             assert result["opening_odds"]["odds"] == pytest.approx(5.5)  # 9/2 + 1
 
     def test_parse_market_odds_bookmaker_name_fallback_a_tag(self, odds_parser):
-        """Test bookmaker name resolution via <a title> when img.bookmaker-logo is absent."""
-        html = """
-        <div class="border-black-borders flex h-9">
-            <a title="Betfred">
-                <img src="logo.png">
-            </a>
-            <div class="flex-center flex-col font-bold">1.90</div>
-            <div class="flex-center flex-col font-bold">2.10</div>
-        </div>
-        """
+        """Name resolution falls back to <a title> when the name testid is absent."""
+        html = self._table([self._bm_row("Betfred", ("1.90", "2.10"), name_via="a_title")])
+
         result = odds_parser.parse_market_odds(html, "FullTime", ["home", "away"])
 
         assert len(result) == 1
         assert result[0]["bookmaker_name"] == "Betfred"
 
     def test_parse_market_odds_bookmaker_name_cta_normalised(self, odds_parser):
-        """Test that CTA-style <a title> values are normalised to clean bookmaker names."""
-        html = """
-        <div class="border-black-borders flex h-9">
-            <a title="Go to Betfair Exchange website!">
-                <img src="logo.png">
-            </a>
-            <div class="flex-center flex-col font-bold">1.90</div>
-            <div class="flex-center flex-col font-bold">2.10</div>
-        </div>
-        """
+        """CTA-style <a title> values are normalised to clean bookmaker names."""
+        html = self._table([self._bm_row("Go to Betfair Exchange website!", ("1.90", "2.10"), name_via="a_title")])
+
         result = odds_parser.parse_market_odds(html, "FullTime", ["home", "away"])
 
         assert len(result) == 1
         assert result[0]["bookmaker_name"] == "Betfair Exchange"
 
     def test_parse_market_odds_bookmaker_name_fallback_img_alt(self, odds_parser):
-        """Test bookmaker name resolution via img[alt] as last resort."""
-        html = """
-        <div class="border-black-borders flex h-9">
-            <img alt="BetVictor" src="logo.png">
-            <div class="flex-center flex-col font-bold">1.90</div>
-            <div class="flex-center flex-col font-bold">2.10</div>
-        </div>
-        """
+        """Name resolution falls back to img[alt] as last resort."""
+        html = self._table([self._bm_row("BetVictor", ("1.90", "2.10"), name_via="img_alt")])
+
         result = odds_parser.parse_market_odds(html, "FullTime", ["home", "away"])
 
         assert len(result) == 1
         assert result[0]["bookmaker_name"] == "BetVictor"
 
     def test_parse_market_odds_no_bookmaker_name_skips_row(self, odds_parser):
-        """Test that rows with no resolvable bookmaker name are skipped."""
-        html = """
-        <div class="border-black-borders flex h-9">
-            <div class="flex-center flex-col font-bold">1.90</div>
-            <div class="flex-center flex-col font-bold">2.10</div>
-        </div>
-        """
-        result = odds_parser.parse_market_odds(html, "FullTime", ["home", "away"])
+        """Rows with no resolvable name are skipped: collapsed submarket line rows
+        carry odd-container-default cells but no bookmaker."""
+        html = self._table(
+            [
+                '<tr class="h-9 cursor-pointer"><td><span class="max-sm:hidden">Over/Under +2.5</span></td>'
+                '<td><div data-testid="odd-container-default">1.68</div></td>'
+                '<td><div data-testid="odd-container-default">1.98</div></td>'
+                "<td>89.2%</td></tr>"
+            ]
+        )
+
+        result = odds_parser.parse_market_odds(html, "FullTime", ["odds_over", "odds_under"])
 
         assert len(result) == 0
 
-    def test_parse_market_odds_ignores_previous_matches_rows(self, odds_parser, caplog):
-        """Real OddsPortal pages embed a 'Previous Matches' section whose rows reuse
-        `border-black-borders` and carry team logos with `<img alt="<team>">`. Without
-        scoping, the parser used to pick those team names as bookmaker names and
-        emit `Incomplete odds data for bookmaker: <team>` warnings. The fix scopes
-        the search to the bookmaker table container (parent of the header testid).
-        """
-        # Structure mirrors the live DOM: a wrapper containing the bookmaker table
-        # (header + 2 real rows) and, as a sibling outside that wrapper, a
-        # "Previous Matches" row whose team-logo alt would otherwise be parsed.
-        html = """
-        <div class="event-container">
-            <div class="flex flex-col">
-                <div data-testid="bookmaker-table-header-line" class="border-black-borders bg-gray-med_light">
-                    Bookmakers 1 X 2 Payout
-                </div>
-                <div class="border-black-borders flex h-9">
-                    <img class="bookmaker-logo" title="Betclic.fr">
-                    <div class="flex-center flex-col font-bold">1.10</div>
-                    <div class="flex-center flex-col font-bold">14.00</div>
-                    <div class="flex-center flex-col font-bold">7.05</div>
-                </div>
-                <div class="border-black-borders flex h-9">
-                    <img class="bookmaker-logo" title="Winamax">
-                    <div class="flex-center flex-col font-bold">1.09</div>
-                    <div class="flex-center flex-col font-bold">11.00</div>
-                    <div class="flex-center flex-col font-bold">6.50</div>
-                </div>
-            </div>
-        </div>
-        <div class="last-matches-section">
-            <div class="border-black-borders flex h-9">
-                <img alt="Kiel" src="kiel-logo.png">
-                <img alt="Fuchse Berlin" src="berlin-logo.png">
-                <div class="flex-center flex-col font-bold">4.00</div>
-                <div class="flex-center flex-col font-bold">9.50</div>
-                <div class="flex-center flex-col font-bold">1.38</div>
-            </div>
-        </div>
-        """
+    def test_parse_market_odds_skips_peripheral_and_exchange_rows(self, odds_parser):
+        """My coupon / User Predictions / OddsAlert rows and the Betting Exchanges
+        table (Back/Lay prices) must not be parsed as bookmaker odds."""
+        coupon = (
+            '<tr><td>My coupon</td><td><div data-testid="my-coupon-row">'
+            '<div data-testid="odd-container">+</div></div></td></tr>'
+        )
+        predictions = (
+            '<tr data-testid="user-predictions-row"><td>User Predictions</td>'
+            '<td><div data-testid="odd-container">0%</div></td></tr>'
+        )
+        exchanges = (
+            '<div data-testid="betting-exchanges-section"><table><tbody>'
+            + self._bm_row("bwin.fr", ("1.68", "1.95"))
+            + "</tbody></table></div>"
+        )
+        html = self._table([self._bm_row("Betclic.fr", ("1.10", "14.00", "7.05"))], extra_rows=coupon + predictions)
+        html += exchanges
 
-        with caplog.at_level("WARNING", logger="OddsParser"):
-            result = odds_parser.parse_market_odds(html, "FullTime", ["1", "X", "2"])
+        result = odds_parser.parse_market_odds(html, "FullTime", ["1", "X", "2"])
 
-        bookmakers = [r["bookmaker_name"] for r in result]
-        assert bookmakers == ["Betclic.fr", "Winamax"]
-        assert "Kiel" not in bookmakers
-        assert "Fuchse Berlin" not in bookmakers
-        # No team-name warning should leak through (the Previous Matches row sits
-        # outside the scoped search root and must not be inspected).
-        team_warnings = [r for r in caplog.records if "Kiel" in r.message or "Fuchse Berlin" in r.message]
-        assert team_warnings == []
+        assert [r["bookmaker_name"] for r in result] == ["Betclic.fr"]
 
     def test_parse_market_odds_flags_fully_blocked_row(self, odds_parser):
         """A row whose every odds cell is struck through reports all labels and keeps its values."""
-        result = odds_parser.parse_market_odds(self.SAMPLE_HTML_BLOCKED_ODDS, "FullTime", ["1", "X", "2"])
+        html = self._table([self._bm_row("Betclic.fr", ("1.60", "3.30", "4.75"), blocked=(0, 1, 2))])
+
+        result = odds_parser.parse_market_odds(html, "FullTime", ["1", "X", "2"])
 
         assert len(result) == 1
         assert result[0]["bookmaker_name"] == "Betclic.fr"
@@ -457,7 +344,9 @@ class TestOddsParser:
 
     def test_parse_market_odds_flags_partially_blocked_row(self, odds_parser):
         """Only the struck-through outcome is reported, in odds_labels order."""
-        result = odds_parser.parse_market_odds(self.SAMPLE_HTML_PARTIALLY_BLOCKED_ODDS, "FullTime", ["1", "X", "2"])
+        html = self._table([self._bm_row("Winamax", ("1.44", "4.10", "5.00"), blocked=(1,))])
+
+        result = odds_parser.parse_market_odds(html, "FullTime", ["1", "X", "2"])
 
         assert len(result) == 1
         assert result[0]["blocked_outcomes"] == ["X"]
@@ -466,10 +355,16 @@ class TestOddsParser:
         assert result[0]["2"] == "5.00"
 
     def test_parse_market_odds_flags_blocked_odds_link_variant(self, odds_parser):
-        """Bookmakers with a betslip link render `<a class="odds-link">` instead of
-        `<p class="odds-text">`; the same `line-through` class must still be detected there.
-        """
-        result = odds_parser.parse_market_odds(self.SAMPLE_HTML_BLOCKED_ODDS_LINK_VARIANT, "FullTime", ["1", "X"])
+        """The line-through class must be detected on <a> odds links too."""
+        row = (
+            '<tr><td><a data-testid="outrights-expanded-bookmaker-name">Bet365</a></td>'
+            '<td><div data-testid="odd-container"><a class="odds-link underline line-through" '
+            'href="https://example.test/betslip">1.85</a></div></td>'
+            '<td><div data-testid="odd-container">3.40</div></td></tr>'
+        )
+        html = self._table([row])
+
+        result = odds_parser.parse_market_odds(html, "FullTime", ["1", "X"])
 
         assert len(result) == 1
         assert result[0]["blocked_outcomes"] == ["1"]
@@ -485,24 +380,10 @@ class TestOddsParser:
         assert "blocked_outcomes" not in result[1]
 
     def test_parse_market_odds_does_not_flag_bookmaker_without_odds(self, odds_parser):
-        """A bookmaker with no price renders ' - ' through a branch that carries no
-        `line-through` class. 'no odds' and 'blocked' must stay distinguishable.
-        """
-        html = """
-        <div class="border-black-borders flex h-9">
-            <img class="bookmaker-logo" title="Bets.io">
-            <div class="flex-center flex-col font-bold text-[#2F2F2F]">
-                <div class="flex flex-row items-center gap-[3px]">
-                    <div class=""><p class="odds-text"> - </p></div>
-                </div>
-            </div>
-            <div class="flex-center flex-col font-bold text-[#2F2F2F]">
-                <div class="flex flex-row items-center gap-[3px]">
-                    <div class=""><p class="odds-text"> - </p></div>
-                </div>
-            </div>
-        </div>
-        """
+        """A bookmaker with no price renders '-' with no line-through class:
+        'no odds' and 'blocked' must stay distinguishable."""
+        html = self._table([self._bm_row("Bets.io", ("-", "-"))])
+
         result = odds_parser.parse_market_odds(html, "FullTime", ["home", "away"])
 
         assert len(result) == 1

@@ -48,40 +48,44 @@ class OddsParser:
         self.logger.info("Parsing odds from HTML content.")
         soup = BeautifulSoup(html_content, "html.parser")
 
-        # Scope to the bookmaker table container if present — its parent holds only
-        # the real bookmaker rows. Without scoping, peripheral sections
-        # (Previous Matches, H2H) leak in: their rows share `border-black-borders`
-        # and their team logos get picked up as bookmaker names.
-        header = soup.find("div", attrs={"data-testid": OddsPortalSelectors.BOOKMAKER_TABLE_HEADER_TESTID})
-        search_root = header.parent if header and header.parent else soup
+        # 2026-08 redesign: odds are a real <table>, one leaf <tr> per bookmaker
+        # (odds cells carry data-testid='odd-container*'). Non-leaf rows (an
+        # expanded submarket row wraps a nested table), Betting Exchanges rows
+        # (Back/Lay prices, not fixed odds) and peripheral rows (My coupon,
+        # User Predictions, OddsAlert) are excluded. Collapsed submarket line
+        # rows carry odds but no bookmaker name and are skipped by name lookup.
+        odd_cell_re = re.compile(rf"^{OddsPortalSelectors.ODD_CELL_TESTID_PREFIX}")
+        bookmaker_rows = []
+        for tr in soup.find_all("tr"):
+            if tr.find("tr") is not None:
+                continue
+            if not tr.find(attrs={"data-testid": odd_cell_re}):
+                continue
+            if tr.find_parent(attrs={"data-testid": "betting-exchanges-section"}):
+                continue
+            if tr.find(attrs={"data-testid": list(OddsPortalSelectors.TABLE_SKIP_ROW_TESTIDS)}):
+                continue
+            bookmaker_rows.append(tr)
 
-        bookmaker_blocks = search_root.find_all("div", class_=re.compile(OddsPortalSelectors.BOOKMAKER_ROW_CLASS))
-
-        if not bookmaker_blocks:
-            # Fallback to broader selector
-            bookmaker_blocks = search_root.find_all(
-                "div", class_=re.compile(OddsPortalSelectors.BOOKMAKER_ROW_FALLBACK_CLASS)
-            )
-
-        if not bookmaker_blocks:
-            self.logger.warning("No bookmaker blocks found.")
+        if not bookmaker_rows:
+            self.logger.warning("No bookmaker rows found.")
             return []
 
         odds_data = []
-        for block in bookmaker_blocks:
+        for row in bookmaker_rows:
             try:
-                bookmaker_name = self._extract_bookmaker_name(block)
+                bookmaker_name = self._extract_bookmaker_name(row)
 
                 if not bookmaker_name or (target_bookmaker and bookmaker_name.lower() != target_bookmaker.lower()):
                     continue
 
-                odds_blocks = block.find_all("div", class_=re.compile(OddsPortalSelectors.ODDS_BLOCK_CLASS_PATTERN))
+                odds_cells = row.find_all(attrs={"data-testid": odd_cell_re})
 
-                if len(odds_blocks) < len(odds_labels):
+                if len(odds_cells) < len(odds_labels):
                     self.logger.warning(f"Incomplete odds data for bookmaker: {bookmaker_name}. Skipping...")
                     continue
 
-                extracted_odds = {label: odds_blocks[i].get_text(strip=True) for i, label in enumerate(odds_labels)}
+                extracted_odds = {label: odds_cells[i].get_text(strip=True) for i, label in enumerate(odds_labels)}
 
                 for key, value in extracted_odds.items():
                     extracted_odds[key] = re.sub(r"(\d+\.\d+)\1", r"\1", value)
@@ -89,7 +93,7 @@ class OddsParser:
                 blocked_outcomes = [
                     label
                     for i, label in enumerate(odds_labels)
-                    if odds_blocks[i].select_one(OddsPortalSelectors.ODDS_BLOCKED_SELECTOR)
+                    if odds_cells[i].select_one(OddsPortalSelectors.ODDS_BLOCKED_SELECTOR)
                 ]
 
                 extracted_odds["bookmaker_name"] = bookmaker_name
@@ -160,14 +164,16 @@ class OddsParser:
         """Extract bookmaker name from a row using a fallback chain.
 
         Strategies tried in order:
-        1. ``<img class="bookmaker-logo" title="...">``
+        1. ``[data-testid='outrights-expanded-bookmaker-name']`` text
         2. ``<a title="...">`` wrapping the logo / name
         3. ``<img>`` with an ``alt`` attribute containing the name
         """
-        # 1. Primary: img.bookmaker-logo[title]
-        img_tag = block.find("img", class_=OddsPortalSelectors.BOOKMAKER_LOGO_CLASS)
-        if img_tag and img_tag.get("title"):
-            return img_tag["title"]
+        # 1. Primary (redesign): the bookmaker-name testid element
+        name_el = block.find(attrs={"data-testid": OddsPortalSelectors.BOOKMAKER_NAME_TESTID})
+        if name_el:
+            name = name_el.get_text(strip=True)
+            if name:
+                return name
 
         # 2. Fallback: <a> with a title attribute (logo links)
         a_tag = block.find("a", attrs={"title": True})

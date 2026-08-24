@@ -8,20 +8,24 @@ from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtr
 from oddsharvester.core.sport_market_registry import SportMarketRegistry
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 
-# Sample HTML for testing
+# Sample HTML for testing (table markup, 2026-08 redesign)
 SAMPLE_HTML_ODDS = """
-<div class="border-black-borders flex h-9">
-    <img class="bookmaker-logo" title="Bookmaker1">
-    <div class="flex-center flex-col font-bold">1.90</div>
-    <div class="flex-center flex-col font-bold">3.50</div>
-    <div class="flex-center flex-col font-bold">4.20</div>
-</div>
-<div class="border-black-borders flex h-9">
-    <img class="bookmaker-logo" title="Bookmaker2">
-    <div class="flex-center flex-col font-bold">1.85</div>
-    <div class="flex-center flex-col font-bold">3.60</div>
-    <div class="flex-center flex-col font-bold">4.10</div>
-</div>
+<table><tbody>
+<tr class="h-9">
+    <td><a data-testid="outrights-expanded-bookmaker-name">Bookmaker1</a></td>
+    <td><div data-testid="odd-container">1.90</div></td>
+    <td><div data-testid="odd-container">3.50</div></td>
+    <td><div data-testid="odd-container">4.20</div></td>
+    <td><div data-testid="payout-container">94.1%</div></td>
+</tr>
+<tr class="h-9">
+    <td><a data-testid="outrights-expanded-bookmaker-name">Bookmaker2</a></td>
+    <td><div data-testid="odd-container">1.85</div></td>
+    <td><div data-testid="odd-container">3.60</div></td>
+    <td><div data-testid="odd-container">4.10</div></td>
+    <td><div data-testid="payout-container">94.0%</div></td>
+</tr>
+</tbody></table>
 """
 
 SAMPLE_HTML_ODDS_HISTORY = """
