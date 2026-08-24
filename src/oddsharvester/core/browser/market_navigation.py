@@ -12,7 +12,7 @@ from oddsharvester.utils.constants import (
 
 # In-page hash switch: the SPA routes the match view off location.hash
 # ('#<id>:<market>;<scope>') and re-renders on hashchange (2026-08 redesign).
-_HASH_SWITCH_JS = """
+HASH_SWITCH_JS = """
 (args) => {
     window.location.hash = '#' + args.fragment + ':' + args.code + ';' + args.scope;
     window.dispatchEvent(new HashChangeEvent('hashchange', { newURL: window.location.href }));
@@ -55,7 +55,7 @@ class MarketTabNavigator:
         # Preserve the current period scope so a market switch keeps the period.
         scope = OddsPortalSelectors.period_scope_from_url(page.url) or 2
         try:
-            await page.evaluate(_HASH_SWITCH_JS, {"fragment": fragment, "code": code, "scope": scope})
+            await page.evaluate(HASH_SWITCH_JS, {"fragment": fragment, "code": code, "scope": scope})
             await page.wait_for_timeout(TAB_SWITCH_WAIT_MS)
             if OddsPortalSelectors.market_code_from_url(page.url) != code:
                 return False

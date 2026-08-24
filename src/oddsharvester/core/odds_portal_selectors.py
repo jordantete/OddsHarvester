@@ -66,17 +66,6 @@ class OddsPortalSelectors:
     SUB_MARKET_SELECTOR = "tr.cursor-pointer span"
     SUB_MARKET_CLICK_ANCESTOR = "tr"
 
-    # Bookmaker filter navigation
-    BOOKIES_FILTER_CONTAINER = "div[data-testid='bookies-filter-nav']"
-    BOOKIES_FILTER_ACTIVE_CLASS = "active-item-calendar"
-
-    # Period selection navigation
-    PERIOD_SELECTOR_CONTAINER = "div[data-testid='kickoff-events-nav']"
-    PERIOD_ACTIVE_CLASS = "active-item-calendar"
-    # Real period tabs carry data-testid='sub-nav-active-tab'/'sub-nav-inactive-tab';
-    # peripheral entries (e.g. a 'Todos los bonos' bonus link) do not.
-    PERIOD_TAB_SELECTOR = f"{PERIOD_SELECTOR_CONTAINER} > div[data-testid^='sub-nav-']"
-
     # Language-independent period scope codes — the ';<scope>' segment of the URL
     # fragment ('#<id>:<market>;<scope>'). Scope ids are global OddsPortal period
     # ids, identical across localized mirrors (gotchas §7). Only values verified
@@ -191,19 +180,6 @@ class OddsPortalSelectors:
             if tail:
                 return tail
         return specific_market
-
-    @staticmethod
-    def get_bookies_filter_selector(filter_value: str) -> str:
-        """
-        Generate selector for a specific bookmaker filter option.
-
-        Args:
-            filter_value: The filter value (e.g., 'all', 'classic', 'crypto').
-
-        Returns:
-            str: CSS selector for the filter option.
-        """
-        return f"div[data-testid='bookies-filter-nav'] div[data-testid='{filter_value}']"
 
     # Bookmaker elements — BeautifulSoup class patterns
     BOOKMAKER_ROW_CLASS = "border-black-borders"

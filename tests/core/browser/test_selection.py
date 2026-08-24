@@ -8,21 +8,33 @@ from oddsharvester.core.browser.selection import (
     PeriodSelector,
     SelectionManager,
 )
+from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 
-STRATEGIES = [
-    pytest.param(BOOKIES_FILTER_STRATEGY, "all-bookies", "All bookies", id="bookies"),
-    pytest.param(PERIOD_STRATEGY, "Full Time", "Full Time", id="period"),
+STRATEGY_CASES = [
+    pytest.param(BOOKIES_FILTER_STRATEGY, "classic", "Classic Bookies", id="bookies"),
+    pytest.param(PERIOD_STRATEGY, "1st Half", "1st Half", id="period"),
 ]
 
 
-def _make_active_elem(strategy, returned_value):
-    """Build a mock active element that returns `returned_value` for the strategy's read mode."""
-    elem = AsyncMock()
-    if strategy is BOOKIES_FILTER_STRATEGY:
-        elem.get_attribute = AsyncMock(return_value=returned_value)
-    else:
-        elem.text_content = AsyncMock(return_value=returned_value)
-    return elem
+def _tab(text: str, active: bool = False):
+    el = MagicMock()
+    el.text_content = AsyncMock(return_value=text)
+    el.get_attribute = AsyncMock(return_value="sub-nav-active-tab" if active else "sub-nav-inactive-tab")
+    el.click = AsyncMock()
+    return el
+
+
+def _page(tab_sets):
+    """Page whose query_selector_all returns each tab set in sequence (last one repeats)."""
+    page = MagicMock()
+    page.wait_for_timeout = AsyncMock()
+    sets = list(tab_sets)
+
+    async def query(_selector):
+        return sets.pop(0) if len(sets) > 1 else sets[0]
+
+    page.query_selector_all = AsyncMock(side_effect=query)
+    return page
 
 
 class TestSelectionManager:
@@ -31,180 +43,103 @@ class TestSelectionManager:
         return SelectionManager()
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize(("strategy", "target_value", "display_label"), STRATEGIES)
-    async def test_returns_false_when_container_absent(self, manager, mock_page, strategy, target_value, display_label):
-        mock_page.query_selector = AsyncMock(return_value=None)
-        result = await manager.ensure_selected(mock_page, target_value, display_label, strategy)
+    @pytest.mark.parametrize(("strategy", "target_value", "display_label"), STRATEGY_CASES)
+    async def test_returns_false_when_tabs_absent(self, manager, strategy, target_value, display_label):
+        page = _page([[]])
+        assert await manager.ensure_selected(page, target_value, display_label, strategy) is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(("strategy", "target_value", "display_label"), STRATEGY_CASES)
+    async def test_returns_true_noop_when_already_active(self, manager, strategy, target_value, display_label):
+        target = _tab(display_label, active=True)
+        page = _page([[_tab("All Bookies"), target, _tab("Full Time")]])
+
+        assert await manager.ensure_selected(page, target_value, display_label, strategy) is True
+
+        target.click.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(("strategy", "target_value", "display_label"), STRATEGY_CASES)
+    async def test_clicks_and_verifies_activation(self, manager, strategy, target_value, display_label):
+        before = _tab(display_label, active=False)
+        after = _tab(display_label, active=True)
+        page = _page([[_tab("Other"), before], [_tab("Other"), after]])
+
+        assert await manager.ensure_selected(page, target_value, display_label, strategy) is True
+
+        before.click.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(("strategy", "target_value", "display_label"), STRATEGY_CASES)
+    async def test_returns_false_when_activation_never_confirms(self, manager, strategy, target_value, display_label):
+        before = _tab(display_label, active=False)
+        page = _page([[before]])
+
+        assert await manager.ensure_selected(page, target_value, display_label, strategy) is False
+
+        before.click.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_returns_false_when_no_tab_matches_label(self, manager):
+        page = _page([[_tab("All Bookies"), _tab("Crypto Bookies")]])
+
+        result = await manager.ensure_selected(page, "classic", "Classic Bookies", BOOKIES_FILTER_STRATEGY)
+
         assert result is False
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(("strategy", "target_value", "display_label"), STRATEGIES)
-    async def test_returns_true_noop_when_already_active(
-        self, manager, mock_page, strategy, target_value, display_label
-    ):
-        active_elem = _make_active_elem(strategy, target_value)
-        mock_page.query_selector = AsyncMock(
-            side_effect=[
-                MagicMock(),  # container present
-                active_elem,  # active value lookup
-            ]
-        )
-        mock_page.click = AsyncMock()
-        result = await manager.ensure_selected(mock_page, target_value, display_label, strategy)
-        assert result is True
-        mock_page.click.assert_not_called()
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(("strategy", "target_value", "display_label"), STRATEGIES)
-    async def test_returns_true_when_click_and_wait_succeed(
-        self, manager, mock_page, strategy, target_value, display_label
-    ):
-        # Active element returns a different value than target → click required
-        active_elem = _make_active_elem(strategy, "different-value")
-
-        click_target = AsyncMock()
-        click_target.click = AsyncMock()
-
-        mock_page.query_selector = AsyncMock(
-            side_effect=[
-                MagicMock(),  # container present
-                active_elem,  # current value lookup
-                click_target,  # the option to click
-            ]
-        )
-        mock_page.wait_for_function = AsyncMock()  # success
-
-        result = await manager.ensure_selected(mock_page, target_value, display_label, strategy)
-        assert result is True
-        click_target.click.assert_awaited_once()
-        mock_page.wait_for_function.assert_awaited_once()
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(("strategy", "target_value", "display_label"), STRATEGIES)
-    async def test_fallback_verify_succeeds(self, manager, mock_page, strategy, target_value, display_label):
-        active_old = _make_active_elem(strategy, "different-value")
-        active_new = _make_active_elem(strategy, target_value)
-
-        click_target = AsyncMock()
-        click_target.click = AsyncMock()
-
-        mock_page.query_selector = AsyncMock(
-            side_effect=[
-                MagicMock(),  # container
-                active_old,  # initial current
-                click_target,  # click target
-                active_new,  # fallback verify (re-read active)
-            ]
-        )
-        mock_page.wait_for_function = AsyncMock(side_effect=Exception("timeout"))
-        mock_page.wait_for_timeout = AsyncMock()
-
-        result = await manager.ensure_selected(mock_page, target_value, display_label, strategy)
-        assert result is True
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(("strategy", "target_value", "display_label"), STRATEGIES)
-    async def test_fallback_verify_fails(self, manager, mock_page, strategy, target_value, display_label):
-        active_old = _make_active_elem(strategy, "different-value")
-        active_still_wrong = _make_active_elem(strategy, "still-wrong")
-
-        click_target = AsyncMock()
-        click_target.click = AsyncMock()
-
-        mock_page.query_selector = AsyncMock(
-            side_effect=[
-                MagicMock(),
-                active_old,
-                click_target,
-                active_still_wrong,
-            ]
-        )
-        mock_page.wait_for_function = AsyncMock(side_effect=Exception("timeout"))
-        mock_page.wait_for_timeout = AsyncMock()
-
-        result = await manager.ensure_selected(mock_page, target_value, display_label, strategy)
-        assert result is False
-
-    @pytest.mark.asyncio
-    async def test_target_value_with_quote_does_not_break_js_predicate(self, manager, mock_page):
-        """Regression: target_value containing a single quote must be passed via arg=, not interpolated into JS."""
-        target_value = "o'reilly's"
-        display_label = "O'Reilly's"
-
-        active_elem = _make_active_elem(BOOKIES_FILTER_STRATEGY, "different")
-        click_target = AsyncMock()
-        click_target.click = AsyncMock()
-
-        mock_page.query_selector = AsyncMock(side_effect=[MagicMock(), active_elem, click_target])
-        mock_page.wait_for_function = AsyncMock()
-
-        result = await manager.ensure_selected(mock_page, target_value, display_label, BOOKIES_FILTER_STRATEGY)
-        assert result is True
-
-        call_args = mock_page.wait_for_function.await_args
-        # The first positional arg is the JS predicate string
-        js_predicate = call_args.args[0] if call_args.args else call_args.kwargs.get("expression")
-        assert "o'reilly" not in js_predicate, "target_value must not be interpolated into the JS string"
-
-        arg_payload = call_args.kwargs.get("arg")
-        assert arg_payload is not None
-        assert arg_payload["targetValue"] == target_value
 
 
 class TestPeriodSelector:
-    """Language-independent period selection via the URL-fragment scope code."""
-
     @pytest.fixture
     def selector(self):
         return PeriodSelector()
 
-    @pytest.mark.asyncio
-    async def test_returns_none_when_no_scope_code(self, selector, mock_page):
-        """Unknown (sport, period) -> None so the caller falls back to label matching."""
-        result = await selector.select_by_scope(mock_page, sport="basketball", internal_period="FirstQuarter")
-        assert result is None
+    def _page(self, url):
+        page = MagicMock()
+        page.url = url
+        page.wait_for_timeout = AsyncMock()
+        page.evaluate = AsyncMock()
+        return page
 
     @pytest.mark.asyncio
-    async def test_already_active_skips_click(self, selector, mock_page):
-        """FullTime is the default scope (2); no tab click needed."""
-        mock_page.url = "https://x/#abcd:over-under;2"
-        mock_page.query_selector_all = AsyncMock()
-        result = await selector.select_by_scope(mock_page, sport="tennis", internal_period="FullTime")
-        assert result is True
-        mock_page.query_selector_all.assert_not_called()
+    async def test_returns_none_when_no_scope_code(self, selector):
+        page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;2")
+        assert await selector.select_by_scope(page, "football", "NotAPeriod") is None
+        page.evaluate.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_clicks_tab_until_target_scope_active(self, selector, mock_page):
-        """Click period tabs and read the resulting fragment scope until it matches."""
-        # Start on FullTime (scope 2); target is 1st Set (scope 12).
-        urls = iter(
-            [
-                "https://x/#abcd:over-under;2",  # initial read
-                "https://x/#abcd:over-under;12",  # after clicking tab[0]
-            ]
-        )
-
-        tab0 = AsyncMock()
-        tab1 = AsyncMock()
-
-        def url_getter():
-            return next(urls)
-
-        type(mock_page).url = property(lambda self: url_getter())
-        mock_page.query_selector_all = AsyncMock(return_value=[tab0, tab1])
-        mock_page.wait_for_timeout = AsyncMock()
-
-        result = await selector.select_by_scope(mock_page, sport="tennis", internal_period="FirstSet")
-        assert result is True
-        tab0.click.assert_awaited_once()
+    async def test_already_active_skips_hash_switch(self, selector):
+        page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;3")
+        assert await selector.select_by_scope(page, "football", "FirstHalf") is True
+        page.evaluate.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_returns_false_when_target_scope_never_reached(self, selector, mock_page):
-        """If no tab yields the target scope, return False (never select a wrong period)."""
-        type(mock_page).url = property(lambda self: "https://x/#abcd:over-under;2")
-        tab0 = AsyncMock()
-        mock_page.query_selector_all = AsyncMock(return_value=[tab0])
-        mock_page.wait_for_timeout = AsyncMock()
+    async def test_switches_scope_via_hash(self, selector):
+        page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:over-under;2")
 
-        result = await selector.select_by_scope(mock_page, sport="tennis", internal_period="FirstSet")
-        assert result is False
+        async def evaluate(_js, args):
+            page.url = f"https://www.oddsportal.com/x/h2h/a/b/#{args['fragment']}:{args['code']};{args['scope']}"
+
+        page.evaluate = AsyncMock(side_effect=evaluate)
+
+        assert await selector.select_by_scope(page, "football", "FirstHalf") is True
+
+        args, kwargs = page.evaluate.await_args
+        payload = args[1] if len(args) >= 2 else kwargs.get("arg")
+        assert payload == {"fragment": "id1", "code": "over-under", "scope": 3}
+
+    @pytest.mark.asyncio
+    async def test_returns_false_when_scope_never_applies(self, selector):
+        page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;2")
+        assert await selector.select_by_scope(page, "football", "FirstHalf") is False
+
+    @pytest.mark.asyncio
+    async def test_returns_false_without_market_fragment(self, selector):
+        page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1")
+        assert await selector.select_by_scope(page, "football", "FirstHalf") is False
+        page.evaluate.assert_not_awaited()
+
+
+def test_strategies_target_sub_nav_tabs():
+    assert BOOKIES_FILTER_STRATEGY.tab_selector == OddsPortalSelectors.SUB_NAV_TAB_ANY
+    assert PERIOD_STRATEGY.tab_selector == OddsPortalSelectors.SUB_NAV_TAB_ANY
+    assert BOOKIES_FILTER_STRATEGY.active_testid == "sub-nav-active-tab"
