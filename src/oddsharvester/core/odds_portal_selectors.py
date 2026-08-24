@@ -46,32 +46,6 @@ class OddsPortalSelectors:
         """Listing page fragment for the redesigned SPA ('#page/N', no leading slash)."""
         return f"#page/{n}"
 
-    # Market navigation tabs
-    MARKET_TAB_SELECTORS: ClassVar[list[str]] = [
-        "ul.visible-links.bg-black-main.odds-tabs > li",
-        "ul.odds-tabs > li",
-        "ul[class*='odds-tabs'] > li",
-        "div[class*='odds-tabs'] li",
-        "li[class*='tab']",
-        "nav li",
-    ]
-
-    # Every market tab (visible + 'More' overflow) carries the `odds-item` class.
-    MARKET_TAB_ITEM_SELECTOR = "li.odds-item"
-
-    # `data-testid='more-button'` is language-independent (text is localized).
-    MORE_BUTTON_SELECTORS: ClassVar[list[str]] = [
-        "button[data-testid='more-button']",
-        "button.toggle-odds:has-text('More')",
-        "button[class*='toggle-odds']",
-        ".visible-btn-odds:has-text('More')",
-        "li:has-text('More')",
-        "li:has-text('more')",
-        "li[class*='more']",
-        "li button:has-text('More')",
-        "li a:has-text('More')",
-    ]
-
     # English main_market -> language-independent market code in the URL fragment
     # (e.g. '#<id>:over-under;2'). Localized-mirror fallback; see gotchas §7.
     MARKET_TAB_CODES: ClassVar[dict[str, str]] = {
@@ -155,6 +129,16 @@ class OddsPortalSelectors:
     GAME_ROW_TESTID = "game-row"
 
     @staticmethod
+    def event_id_from_url(url: str) -> str | None:
+        """Return the event id from a '#<id>' or '#<id>:<market>;<scope>' fragment, else None."""
+        if not isinstance(url, str) or "#" not in url:
+            return None
+        fragment = url.split("#", 1)[1].strip().split(":", 1)[0]
+        if not fragment or "/" in fragment:
+            return None
+        return fragment
+
+    @staticmethod
     def market_code_from_url(url: str) -> str | None:
         """Return the market code from a `#<id>:<code>;<scope>` fragment, else None."""
         if not isinstance(url, str) or "#" not in url:
@@ -207,17 +191,6 @@ class OddsPortalSelectors:
         return specific_market
 
     @staticmethod
-    def get_dropdown_selectors_for_market(market_name: str) -> list[str]:
-        """Generate dropdown selectors for a specific market name."""
-        return [
-            f"li:has-text('{market_name}')",
-            f"a:has-text('{market_name}')",
-            f"button:has-text('{market_name}')",
-            f"div:has-text('{market_name}')",
-            f"span:has-text('{market_name}')",
-        ]
-
-    @staticmethod
     def get_bookies_filter_selector(filter_value: str) -> str:
         """
         Generate selector for a specific bookmaker filter option.
@@ -259,6 +232,3 @@ class OddsPortalSelectors:
 
     # Submarket name — BeautifulSoup class
     SUBMARKET_CLEAN_NAME_CLASS = "max-sm:!hidden"
-
-    # Debug selectors
-    DROPDOWN_DEBUG_ELEMENTS = "li, a, button, div, span"

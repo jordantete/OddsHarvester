@@ -49,7 +49,7 @@ class NavigationManager:
                     self.logger.info(f"Market switch confirmed via URL code: {market_name} is active")
                     return True
 
-                active_tab = await page.query_selector("li.active, li[class*='active'], .active")
+                active_tab = await page.query_selector(OddsPortalSelectors.MARKET_TAB_ACTIVE)
                 if active_tab:
                     tab_text = await active_tab.text_content()
                     if tab_text and market_name.lower() in tab_text.lower():

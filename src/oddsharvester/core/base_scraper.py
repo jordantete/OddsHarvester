@@ -298,15 +298,7 @@ def _extract_fragment_match_id(match_link: str) -> str | None:
     when no fragment is present, the fragment is empty, or it contains a
     slash (which would indicate it isn't a bare match id).
     """
-    if "#" not in match_link:
-        return None
-    fragment = match_link.split("#", 1)[1].strip()
-    # The hydrated SPA rewrites the fragment to '<id>:<market>;<scope>'; only
-    # the id identifies the match.
-    fragment = fragment.split(":", 1)[0]
-    if not fragment or "/" in fragment:
-        return None
-    return fragment
+    return OddsPortalSelectors.event_id_from_url(match_link)
 
 
 class BaseScraper:
