@@ -61,8 +61,10 @@ class OddsPortalSelectors:
         "Draw No Bet": "dnb",
     }
 
-    # Market navigation - sub-market selection
-    SUB_MARKET_SELECTOR = "div.flex.w-full.items-center.justify-start.pl-3.font-bold p"
+    # Market navigation - sub-market selection. Line rows are clickable <tr>s
+    # whose full label sits in a span (redesign); click the enclosing <tr>.
+    SUB_MARKET_SELECTOR = "tr.cursor-pointer span"
+    SUB_MARKET_CLICK_ANCESTOR = "tr"
 
     # Bookmaker filter navigation
     BOOKIES_FILTER_CONTAINER = "div[data-testid='bookies-filter-nav']"
@@ -231,4 +233,4 @@ class OddsPortalSelectors:
     EVENT_ROW_GAME_STATUS_BOX_TESTID = "game-status-box"
 
     # Submarket name — BeautifulSoup class
-    SUBMARKET_CLEAN_NAME_CLASS = "max-sm:!hidden"
+    SUBMARKET_CLEAN_NAME_CLASS = "max-sm:hidden"

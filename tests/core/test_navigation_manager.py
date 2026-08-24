@@ -5,6 +5,7 @@ import pytest
 from oddsharvester.core.browser.market_navigation import MarketTabNavigator
 from oddsharvester.core.browser.scrolling import PageScroller
 from oddsharvester.core.market_extraction.navigation_manager import NavigationManager
+from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import DEFAULT_MARKET_TIMEOUT_MS, MARKET_SWITCH_WAIT_TIME_MS, SCROLL_PAUSE_TIME_MS
 
 
@@ -133,8 +134,9 @@ class TestNavigationManager:
         assert result is True
         scroller_mock.scroll_until_visible_and_click_parent.assert_called_once_with(
             page=page_mock,
-            selector="div.flex.w-full.items-center.justify-start.pl-3.font-bold p",
+            selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
             text=specific_market,
+            click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
         )
 
     @pytest.mark.asyncio
@@ -154,8 +156,9 @@ class TestNavigationManager:
         assert result is True
         scroller_mock.scroll_until_visible_and_click_parent.assert_called_once_with(
             page=page_mock,
-            selector="div.flex.w-full.items-center.justify-start.pl-3.font-bold p",
+            selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
             text="+20.5 Games",
+            click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
         )
 
     @pytest.mark.asyncio
@@ -185,8 +188,9 @@ class TestNavigationManager:
         assert result is True
         scroller_mock.scroll_until_visible_and_click_parent.assert_called_once_with(
             page=page_mock,
-            selector="div.flex.w-full.items-center.justify-start.pl-3.font-bold p",
+            selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
             text=specific_market,
+            click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
         )
 
     @pytest.mark.asyncio
@@ -206,8 +210,9 @@ class TestNavigationManager:
         assert result is True
         scroller_mock.scroll_until_visible_and_click_parent.assert_called_once_with(
             page=page_mock,
-            selector="div.flex.w-full.items-center.justify-start.pl-3.font-bold p",
+            selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
             text="+20.5 Games",
+            click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
         )
 
     @pytest.mark.asyncio

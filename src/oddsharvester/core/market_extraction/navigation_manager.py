@@ -73,6 +73,7 @@ class NavigationManager:
             page=page,
             selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
             text=text,
+            click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
         )
 
     async def close_specific_market(self, page: Page, specific_market: str, main_market: str | None = None) -> bool:
@@ -83,6 +84,7 @@ class NavigationManager:
             page=page,
             selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
             text=text,
+            click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
         )
 
     async def wait_for_page_load(self, page: Page) -> None:

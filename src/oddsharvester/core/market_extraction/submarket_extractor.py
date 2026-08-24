@@ -8,6 +8,22 @@ from playwright.async_api import Page
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import SCROLL_PAUSE_TIME_MS
 
+# Collapsed submarket line rows (2026-08 redesign): one leaf <tr> per line,
+# preview odds in data-testid='odd-container-default' cells.
+_ODD_DEFAULT_RE = re.compile(r"^odd-container-default")
+
+
+def _find_line_rows(soup: BeautifulSoup) -> list:
+    """Leaf <tr> rows carrying collapsed preview odds (odd-container-default)."""
+    rows = []
+    for tr in soup.find_all("tr"):
+        if tr.find("tr") is not None:
+            continue
+        if not tr.find(attrs={"data-testid": _ODD_DEFAULT_RE}):
+            continue
+        rows.append(tr)
+    return rows
+
 
 class SubmarketExtractor:
     """Handles extraction of visible submarkets in passive mode."""
@@ -30,23 +46,21 @@ class SubmarketExtractor:
             bool: True if the market supports preview mode, False otherwise.
         """
         try:
-            # Get current page HTML
             html_content = await page.content()
             if not isinstance(html_content, str):
                 html_content = ""
             soup = BeautifulSoup(html_content, "html.parser")
 
-            # Look for submarket containers
-            submarket_containers = soup.find_all("div", class_=OddsPortalSelectors.BOOKMAKER_ROW_CLASS)
+            line_rows = _find_line_rows(soup)
 
-            if submarket_containers:
-                visible_submarkets_count = len(submarket_containers)
+            if line_rows:
+                visible_submarkets_count = len(line_rows)
                 self.logger.debug(f"Found {visible_submarkets_count} visible submarkets for {main_market}")
 
                 # Check if any of these submarkets have visible odds
                 submarkets_with_odds = 0
-                for container in submarket_containers[:5]:  # Check first 5 submarkets
-                    odds_containers = container.find_all("p", attrs={"data-testid": "odd-container-default"})
+                for row in line_rows[:5]:  # Check first 5 submarkets
+                    odds_containers = row.find_all(attrs={"data-testid": _ODD_DEFAULT_RE})
                     if len(odds_containers) >= 2:  # Need at least 2 odds to be useful
                         submarkets_with_odds += 1
 
@@ -98,28 +112,24 @@ class SubmarketExtractor:
                 html_content = ""
             soup = BeautifulSoup(html_content, "html.parser")
 
-            # Find all submarket rows (these contain the handicap names and odds)
-            submarket_rows = soup.find_all("div", class_=re.compile(OddsPortalSelectors.BOOKMAKER_ROW_CLASS))
+            line_rows = _find_line_rows(soup)
 
-            if not submarket_rows:
+            if not line_rows:
                 self.logger.warning("No submarket rows found in passive mode")
                 return []
 
             submarkets_data = []
 
-            for row in submarket_rows:
+            for row in line_rows:
                 try:
-                    # Extract submarket name - improved parsing for different market types
                     submarket_name = self._extract_submarket_name(row, main_market)
 
                     if not submarket_name:
                         continue
 
-                    # Log the extracted submarket name for debugging
                     self.logger.debug(f"Extracted submarket name: '{submarket_name}'")
 
-                    # Find all odds containers in this row
-                    odds_containers = row.find_all("p", attrs={"data-testid": "odd-container-default"})
+                    odds_containers = row.find_all(attrs={"data-testid": _ODD_DEFAULT_RE})
 
                     # Use provided odds_labels or determine based on market type
                     if odds_labels is None:
@@ -179,54 +189,27 @@ class SubmarketExtractor:
             return []
 
     def _extract_submarket_name(self, row, main_market: str) -> str | None:
-        """Extract submarket name from a row using multiple strategies."""
-        # First, try to find the div with data-testid pattern (for Over/Under markets)
-        market_key = main_market.lower().replace("/", "-").replace(" ", "-")
-        data_testid_pattern = f"{market_key}-collapsed-option-box"
-        submarket_name_element = row.find("div", attrs={"data-testid": re.compile(data_testid_pattern)})
+        """Extract submarket name from a line row.
 
-        if submarket_name_element:
-            # For markets like Over/Under, look for the clean name in max-sm:!hidden class
-            clean_name_p = submarket_name_element.find("p", class_=OddsPortalSelectors.SUBMARKET_CLEAN_NAME_CLASS)
-            if clean_name_p:
-                return clean_name_p.get_text(strip=True)
-            else:
-                # Fallback to any <p> in the div
-                first_p = submarket_name_element.find("p")
-                if first_p:
-                    return first_p.get_text(strip=True)
-
-        # If not found, try to find any div with the flex classes (for other markets)
-        flex_div = row.find("div", class_=re.compile(r"flex.*items-center.*justify-start"))
-        if flex_div:
-            # Look for the clean name in max-sm:!hidden class first
-            clean_name_p = flex_div.find("p", class_=OddsPortalSelectors.SUBMARKET_CLEAN_NAME_CLASS)
-            if clean_name_p:
-                return clean_name_p.get_text(strip=True)
-            else:
-                # Fallback to any <p> in the div
-                first_p = flex_div.find("p")
-                if first_p:
-                    return first_p.get_text(strip=True)
-
-        # If still not found, try to find any <p> with font-bold class
-        bold_p = row.find("p", class_=re.compile(r"font-bold"))
-        if bold_p:
-            return bold_p.get_text(strip=True)
-
-        # If still not found, try to find any <p> that looks like a submarket name
-        all_p_tags = row.find_all("p")
-        for p_tag in all_p_tags:
-            text = p_tag.get_text(strip=True)
-            # Skip percentage values, odds values, and other non-submarket text
-            if (
-                text
-                and not text.endswith("%")
-                and not text.replace(".", "").isdigit()  # Skip pure numbers like "2.80"
-                and len(text) > 1
-                and not text.startswith("data-testid")  # Skip any data attributes
-                and ":" in text
-            ):  # Correct Score submarkets contain ":"
+        Strategy 1: the clean-name element (`max-sm:hidden` class) carrying the
+        full label (the short form sits in a sibling `sm:hidden` element).
+        Strategy 2: first span/p text outside the odds cells that is neither a
+        percentage nor a bare number (covers Correct Score '1:0' labels).
+        """
+        clean = row.find(["span", "p"], class_=OddsPortalSelectors.SUBMARKET_CLEAN_NAME_CLASS)
+        if clean:
+            text = clean.get_text(strip=True)
+            if text:
                 return text
+
+        for el in row.find_all(["span", "p"]):
+            if el.find_parent(attrs={"data-testid": re.compile(rf"^{OddsPortalSelectors.ODD_CELL_TESTID_PREFIX}")}):
+                continue
+            text = el.get_text(strip=True)
+            if not text or text.endswith("%"):
+                continue
+            if text.replace(".", "").isdigit():
+                continue
+            return text
 
         return None

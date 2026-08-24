@@ -96,8 +96,14 @@ class PageScroller:
         text: str | None = None,
         timeout: int = SCROLL_UNTIL_CLICK_TIMEOUT_S,
         scroll_pause_time: int = SCROLL_UNTIL_CLICK_PAUSE_S,
+        click_ancestor: str | None = None,
     ) -> bool:
-        """Scroll until an element matching selector (and optional text) is visible, then click its parent."""
+        """Scroll until an element matching selector (and optional text) is visible, then click its parent.
+
+        When `click_ancestor` is given, the closest ancestor matching that
+        selector is clicked instead of the direct parent (e.g. the enclosing
+        <tr> of a submarket label span).
+        """
         end_time = time.time() + timeout
 
         while time.time() < end_time:
@@ -110,14 +116,20 @@ class PageScroller:
                         bounding_box = await element.bounding_box()
                         if bounding_box:
                             self.logger.info(f"Element with text '{text}' is visible. Clicking its parent.")
-                            parent_element = await element.evaluate_handle("element => element.parentElement")
+                            parent_element = await element.evaluate_handle(
+                                "(element, ancestor) => ancestor ? element.closest(ancestor) : element.parentElement",
+                                click_ancestor,
+                            )
                             await parent_element.click()
                             return True
                 else:
                     bounding_box = await element.bounding_box()
                     if bounding_box:
                         self.logger.info("Element is visible. Clicking its parent.")
-                        parent_element = await element.evaluate_handle("element => element.parentElement")
+                        parent_element = await element.evaluate_handle(
+                            "(element, ancestor) => ancestor ? element.closest(ancestor) : element.parentElement",
+                            click_ancestor,
+                        )
                         await parent_element.click()
                         return True
 
