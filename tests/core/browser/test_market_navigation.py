@@ -127,3 +127,17 @@ class TestMarketTabNavigator:
         assert await navigator.navigate_to_tab(page, "Over/Under") is False
 
         page.query_selector_all.assert_awaited()
+
+    @pytest.mark.asyncio
+    async def test_inplay_page_goes_straight_to_click(self, navigator):
+        """In-play views use their own hash market codes (e.g. 'O/U'); the
+        pre-match hash path must be skipped in favor of clicking the tab."""
+        page = _page(url="https://www.oddsportal.com/tennis/h2h/a-x/b-y/inplay-odds/#niGX35MH")
+        tab = _tab("Over/Under")
+        page.query_selector_all = AsyncMock(return_value=[tab])
+        page.query_selector = AsyncMock(return_value=_tab("Over/Under"))
+
+        assert await navigator.navigate_to_tab(page, "Over/Under") is True
+
+        page.evaluate.assert_not_awaited()
+        tab.click.assert_awaited_once()

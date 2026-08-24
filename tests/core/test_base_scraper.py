@@ -2394,3 +2394,104 @@ async def test_hydrate_match_view_without_fragment_waits_directly(setup_base_scr
 
     page_mock.evaluate.assert_not_awaited()
     page_mock.wait_for_selector.assert_awaited_once()
+
+
+# -- live (in-play) on the redesigned DOM (issue #85 follow-up) ---------------
+
+_INPLAY_HEADER_HTML = """
+<div data-testid="game-participants">
+  <div class="my-3 flex w-full gap-2">
+    <div data-testid="game-host"><a data-testid="participant-name" href="/tennis/team/x/">Kopp S.</a></div>
+    <div class="shrink-0 text-right font-semibold text-red-dark">1</div>
+  </div>
+  <div class="relative inline-block"><span class="max-mm:!hidden text-red-dark">:</span></div>
+  <div class="flex w-full gap-2">
+    <div data-testid="game-guest"><a data-testid="participant-name" href="/tennis/team/y/">Ribeiro E.</a></div>
+    <div class="shrink-0 text-right font-semibold text-red-dark">2</div>
+  </div>
+</div>
+"""
+
+
+class TestParseLiveInfoInplayRedesign:
+    def _soup(self, html: str) -> BeautifulSoup:
+        return BeautifulSoup(html, "lxml")
+
+    def test_parses_red_score_digits_from_game_participants(self):
+        """In-play pages carry no live-info element; the live score is the red
+        digits flanking the participant names (verified live 2026-08-24)."""
+        result = _parse_live_info(self._soup(f"<html><body>{_INPLAY_HEADER_HTML}</body></html>"))
+        assert result == {
+            "live_period": None,
+            "live_score_home": 1,
+            "live_score_away": 2,
+            "live_score_raw": "1:2",
+        }
+
+    def test_header_without_red_digits_means_not_live(self):
+        html = """
+        <html><body><div data-testid="game-participants">
+          <div data-testid="game-host"><a data-testid="participant-name">LASK</a></div>
+          <div data-testid="game-guest"><a data-testid="participant-name">Celtic</a></div>
+        </div></body></html>
+        """
+        assert _parse_live_info(self._soup(html)) is None
+
+    def test_live_info_element_still_wins_when_present(self):
+        """Legacy live-info containers (older captures) keep working unchanged."""
+        html = '<div data-testid="live-info"><div>HT</div><div>2:1</div></div>'
+        result = _parse_live_info(self._soup(html))
+        assert result["live_score_home"] == 2
+        assert result["live_period"] == "HT"
+
+    def test_finished_match_standard_page_still_none(self):
+        html = f"""
+        <html><body>
+          <div data-testid="live-info">Final result 1:2 (0:1, 1:1)</div>
+          {_INPLAY_HEADER_HTML}
+        </body></html>
+        """
+        assert _parse_live_info(self._soup(html)) is None
+
+
+@pytest.mark.asyncio
+async def test_hydrate_match_view_inplay_waits_without_market_nudge(setup_base_scraper_mocks):
+    """/inplay-odds/ pages hydrate on their own and route their own market codes;
+    forcing '#id:1X2;2' can flip the view to Pre-match Odds. Wait first."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.evaluate = AsyncMock()
+    page_mock.wait_for_selector = AsyncMock()
+
+    await scraper._hydrate_match_view(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/tennis/h2h/a/b/inplay-odds/#niGX35MH",
+        sport="tennis",
+    )
+
+    page_mock.evaluate.assert_not_awaited()
+    page_mock.wait_for_selector.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_hydrate_match_view_inplay_nudges_bare_id_on_timeout(setup_base_scraper_mocks):
+    from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.evaluate = AsyncMock()
+    page_mock.query_selector = AsyncMock(return_value=None)
+    page_mock.wait_for_selector = AsyncMock(side_effect=[PlaywrightTimeoutError("t"), None])
+
+    await scraper._hydrate_match_view(
+        page=page_mock,
+        match_link="https://www.oddsportal.com/tennis/h2h/a/b/inplay-odds/#niGX35MH",
+        sport="tennis",
+    )
+
+    args, kwargs = page_mock.evaluate.await_args
+    payload = args[1] if len(args) >= 2 else kwargs.get("arg")
+    assert payload["fragment"] == "niGX35MH"
+    assert payload.get("bare") is True

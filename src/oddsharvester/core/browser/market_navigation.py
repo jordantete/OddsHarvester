@@ -36,8 +36,11 @@ class MarketTabNavigator:
         """
         self.logger.info(f"Attempting to navigate to market tab: {market_tab_name}")
 
+        # In-play views route their own market codes (e.g. 'O/U', not
+        # 'over-under'); the pre-match hash path would flip or break the view.
+        inplay = "/inplay-odds/" in page.url
         code = OddsPortalSelectors.MARKET_TAB_CODES.get(market_tab_name)
-        if code and await self._navigate_by_hash(page, code, timeout):
+        if not inplay and code and await self._navigate_by_hash(page, code, timeout):
             self.logger.info(f"Successfully navigated to {market_tab_name} tab (hash code '{code}').")
             return True
 

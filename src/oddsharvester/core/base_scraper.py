@@ -239,6 +239,33 @@ _LIVE_ENDED_PERIOD_MARKERS = frozenset(
 )
 
 
+def _parse_inplay_live_score(soup: BeautifulSoup) -> dict[str, Any] | None:
+    """Live score from the redesigned in-play match header.
+
+    In-play pages render no `live-info` element; the running score is the red
+    digits flanking the participant names inside `game-participants` (verified
+    live 2026-08-24). The page shows no period/clock, so `live_period` is None
+    (site regression). Returns None when no red digits are present (not live).
+    """
+    participants = soup.find(attrs={"data-testid": "game-participants"})
+    if participants is None:
+        return None
+    digits = [
+        el.get_text(strip=True)
+        for el in participants.find_all(class_=re.compile(r"text-red"))
+        if el.get_text(strip=True).isdigit()
+    ]
+    if len(digits) < 2:
+        return None
+    home, away = int(digits[0]), int(digits[1])
+    return {
+        "live_period": None,
+        "live_score_home": home,
+        "live_score_away": away,
+        "live_score_raw": f"{home}:{away}",
+    }
+
+
 def _parse_live_info(soup: BeautifulSoup) -> dict[str, Any] | None:
     """Parse the in-play match header into live context fields.
 
@@ -251,7 +278,7 @@ def _parse_live_info(soup: BeautifulSoup) -> dict[str, Any] | None:
     """
     container = soup.find(attrs={"data-testid": OddsPortalSelectors.LIVE_INFO_TESTID})
     if container is None:
-        return None
+        return _parse_inplay_live_score(soup)
 
     partial_text = None
     partial_el = container.find(attrs={"data-testid": OddsPortalSelectors.LIVE_PARTIAL_RESULT_TESTID})
@@ -1080,6 +1107,14 @@ class BaseScraper:
     # assignment is a change even when the page URL already carried the full form.
     _HASH_NUDGE_JS = """
     (args) => {
+        if (args.bare) {
+            window.location.hash = '';
+            setTimeout(() => {
+                window.location.hash = '#' + args.fragment;
+                window.dispatchEvent(new HashChangeEvent('hashchange', { newURL: window.location.href }));
+            }, args.delayMs);
+            return;
+        }
         window.location.hash = '#' + args.fragment;
         setTimeout(() => {
             window.location.hash = '#' + args.fragment + ':' + args.code + ';' + args.scope;
@@ -1120,6 +1155,30 @@ class BaseScraper:
                     f"match view hydration failed: {match_link} never rendered match content", url=match_link
                 ) from e
             return
+
+        if "/inplay-odds/" in match_link:
+            # In-play pages hydrate on their own and route their own market codes
+            # (e.g. 'O/U', not 'over-under'); forcing the pre-match full-form hash
+            # can flip the view to Pre-match Odds. Wait first, nudge the bare id
+            # only as a retry.
+            for attempt in range(1, MATCH_HYDRATION_ATTEMPTS + 1):
+                try:
+                    await page.wait_for_selector(
+                        OddsPortalSelectors.MATCH_CONTENT_READY_SELECTOR, timeout=MATCH_HYDRATION_TIMEOUT_MS
+                    )
+                    return
+                except TimeoutError:
+                    self.logger.warning(
+                        f"In-play hydration attempt {attempt}/{MATCH_HYDRATION_ATTEMPTS} timed out for {match_link}"
+                    )
+                    await self._dismiss_login_modal(page)
+                    await page.evaluate(
+                        self._HASH_NUDGE_JS,
+                        {"fragment": fragment, "bare": True, "delayMs": HASH_NUDGE_DELAY_MS},
+                    )
+            raise H2HFragmentResolutionError(
+                f"match view hydration failed: {match_link} never rendered match content", url=match_link
+            )
 
         code = self._DEFAULT_MARKET_CODE_BY_SPORT.get((sport or "").lower(), "1X2")
         scope = OddsPortalSelectors.period_scope_code(sport, "FullTime") or 2
