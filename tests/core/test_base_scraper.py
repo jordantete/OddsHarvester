@@ -2291,6 +2291,29 @@ async def test_local_kickoff_enabled_unresolved_venue_sets_none(setup_base_scrap
     assert result["match_date_venue_local"] is None
 
 
+@pytest.mark.asyncio
+async def test_extract_match_details_teams_via_participant_name_testid(setup_base_scraper_mocks):
+    """Live pages carry the team name in a [data-testid='participant-name'] element
+    that is not necessarily a <p>."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    mocks["playwright_manager_mock"].timezone_id = "UTC"
+    html = (
+        _make_hydrated_match_html()
+        .replace(
+            '<p class="participant-name">Crystal Palace</p>', '<div data-testid="participant-name">Crystal Palace</div>'
+        )
+        .replace('<p class="participant-name">Arsenal</p>', '<div data-testid="participant-name">Arsenal</div>')
+    )
+    page_mock.content = AsyncMock(return_value=html)
+
+    result = await scraper._extract_match_details(page=page_mock, match_link="https://example.test/m#id1")
+
+    assert result["home_team"] == "Crystal Palace"
+    assert result["away_team"] == "Arsenal"
+
+
 def test_extract_fragment_match_id_strips_market_suffix():
     # The hydrated SPA rewrites the fragment to '<id>:<market>;<scope>'.
     assert _extract_fragment_match_id("https://www.oddsportal.com/x/h2h/a/b/#OOklm0j3:1X2;2") == "OOklm0j3"

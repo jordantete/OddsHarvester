@@ -986,14 +986,23 @@ class BaseScraper:
         and <div data-testid="game-guest">. Returns (None, None) if either
         side is missing - caller falls back to JSON for both fields.
         """
+
+        def _name(container):
+            if container is None:
+                return None
+            el = container.find(attrs={"data-testid": "participant-name"}) or container.find(class_="participant-name")
+            el = el or container.find("p")
+            text = el.get_text(strip=True) if el else None
+            return text or None
+
         try:
             host = soup.find("div", attrs={"data-testid": OddsPortalSelectors.MATCH_DETAILS_GAME_HOST_TESTID})
             guest = soup.find("div", attrs={"data-testid": OddsPortalSelectors.MATCH_DETAILS_GAME_GUEST_TESTID})
-            host_p = host.find("p") if host else None
-            guest_p = guest.find("p") if guest else None
-            if not host_p or not guest_p:
+            host_name = _name(host)
+            guest_name = _name(guest)
+            if not host_name or not guest_name:
                 return None, None
-            return host_p.get_text(strip=True), guest_p.get_text(strip=True)
+            return host_name, guest_name
         except Exception as e:
             self.logger.warning(f"DOM parse failed for teams: {e}")
             return None, None
