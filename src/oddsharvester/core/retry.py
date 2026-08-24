@@ -92,7 +92,7 @@ def classify_error(error_message: str | None) -> ErrorType:
 
     if any(kw in error_lower for kw in ["timeout", "navigation", "connection", "network", "proxy"]):
         return ErrorType.NAVIGATION
-    elif any(kw in error_lower for kw in ["react-event-header", "header", "selector not found"]):
+    elif any(kw in error_lower for kw in ["react-event-header", "header", "selector not found", "hydration"]):
         return ErrorType.HEADER_NOT_FOUND
     elif any(kw in error_lower for kw in ["parse", "json", "decode", "lxml", "beautifulsoup"]):
         return ErrorType.PARSING

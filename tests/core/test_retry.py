@@ -3,6 +3,7 @@
 import pytest
 
 from oddsharvester.core.retry import (
+    PROXY_ATTRIBUTABLE_ERROR_TYPES,
     RetryConfig,
     classify_error,
     is_proxy_attributable_error,
@@ -302,3 +303,11 @@ async def test_retry_success_reports_not_retryable():
 
     assert result.success is True
     assert result.is_retryable is False
+
+
+def test_classify_error_hydration_failure_is_header_not_found():
+    """The redesign's hydration failure must keep the proxy-neutral typing
+    (HEADER_NOT_FOUND is absent from PROXY_ATTRIBUTABLE_ERROR_TYPES)."""
+    error_type = classify_error("match view hydration failed: https://x/h2h/a/b/#id1 never rendered match content")
+    assert error_type == ErrorType.HEADER_NOT_FOUND
+    assert error_type not in PROXY_ATTRIBUTABLE_ERROR_TYPES
