@@ -160,50 +160,33 @@ async def test_set_odds_format_timeout(setup_base_scraper_mocks):
 
 
 @pytest.mark.asyncio
-@patch("oddsharvester.core.base_scraper.BeautifulSoup")
-@patch("oddsharvester.core.base_scraper.re")
-async def test_extract_match_links(re_mock, bs4_mock, setup_base_scraper_mocks):
-    """Test extracting match links from a page."""
+async def test_extract_match_links(setup_base_scraper_mocks):
+    """Rows are [data-testid='game-row'] elements linking to H2H-fragment URLs
+    (2026-08 redesign); short hrefs (<= 3 path segments) are filtered out."""
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
     page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(
+        return_value="""
+        <html><body>
+          <div data-testid="game-row">
+            <a href="/football/h2h/h-beer-sheva-EXAD1YZP/sabah-baku-fNGcxbyr/#0KccwcGq">m1</a>
+            <a href="/">short - filtered</a>
+          </div>
+          <div data-testid="game-row">
+            <a href="/football/h2h/celtic-QFKRRD8M/lask-linz-MipWYeKQ/#OOklm0j3">m2</a>
+          </div>
+        </body></html>
+        """
+    )
 
-    # Mock BeautifulSoup and its methods
-    soup_mock = MagicMock()
-    bs4_mock.return_value = soup_mock
-
-    # Mock regex compile
-    pattern_mock = MagicMock()
-    re_mock.compile.return_value = pattern_mock
-
-    # Mock finding event rows and links
-    event_row1 = MagicMock()
-    event_row2 = MagicMock()
-
-    link1 = {"href": "/football/england/premier-league/arsenal-chelsea/abcd1234"}
-    link2 = {"href": "/football/england/premier-league/liverpool-man-utd/efgh5678"}
-    link3 = {"href": "/"}  # Should be filtered out
-
-    event_row1.find_all.return_value = [link1, link3]
-    event_row2.find_all.return_value = [link2]
-
-    soup_mock.find_all.return_value = [event_row1, event_row2]
-
-    # Call the method under test
     result = await scraper.extract_match_links(page=page_mock)
 
-    # Verify interactions
     page_mock.content.assert_called_once()
-    bs4_mock.assert_called_once()
-    re_mock.compile.assert_called_once_with("^eventRow")
-    soup_mock.find_all.assert_called_once_with(class_=pattern_mock)
-
-    # Verify results
-    expected_links = [
-        f"{ODDSPORTAL_BASE_URL}/football/england/premier-league/arsenal-chelsea/abcd1234",
-        f"{ODDSPORTAL_BASE_URL}/football/england/premier-league/liverpool-man-utd/efgh5678",
+    assert result == [
+        f"{ODDSPORTAL_BASE_URL}/football/h2h/h-beer-sheva-EXAD1YZP/sabah-baku-fNGcxbyr/#0KccwcGq",
+        f"{ODDSPORTAL_BASE_URL}/football/h2h/celtic-QFKRRD8M/lask-linz-MipWYeKQ/#OOklm0j3",
     ]
-    assert sorted(result) == sorted(expected_links)
 
 
 @pytest.mark.asyncio
@@ -235,20 +218,20 @@ async def test_extract_match_links_error(bs4_mock, setup_base_scraper_mocks):
 # - Edge: row missing both elements (DOM drift fail-safe -> keep)
 _LISTING_HTML = """
 <html><body>
-<div class="eventRow row-a">
+<div data-testid="game-row">
   <div data-testid="time-item"><p>21:00</p></div>
   <div data-testid="game-status-box"></div>
   <a href="/football/england/premier-league/upcoming-match/aaaa1111">link</a>
 </div>
-<div class="eventRow row-b">
+<div data-testid="game-row">
   <div data-testid="time-item"><p>18:00</p></div>
   <div data-testid="game-status-box">FinishedFIN</div>
   <a href="/football/england/premier-league/finished-match/bbbb2222">link</a>
 </div>
-<div class="eventRow row-c">
+<div data-testid="game-row">
   <a href="/football/england/premier-league/no-status-box/cccc3333">link</a>
 </div>
-<div class="eventRow row-d">
+<div data-testid="game-row">
   <div data-testid="time-item"><p class="text-red-dark">1S</p></div>
   <div data-testid="game-status-box"></div>
   <a href="/volleyball/world/friendly/live-match/dddd4444">link</a>
@@ -295,7 +278,9 @@ class TestRowHasStarted:
     """Unit tests for the _row_has_started helper (GitHub issue #58)."""
 
     def _row(self, html: str):
-        return BeautifulSoup(f"<div class='eventRow'>{html}</div>", "lxml").find(class_="eventRow")
+        return BeautifulSoup(f'<div data-testid="game-row">{html}</div>', "lxml").find(
+            attrs={"data-testid": "game-row"}
+        )
 
     def test_upcoming_clock_time_means_not_started(self):
         assert (
@@ -413,22 +398,22 @@ def _make_league_page_html() -> str:
     """Build a minimal OddsPortal-like HTML page with 3 date groups."""
     return """
     <html><body>
-      <div class="eventRow">
-        <div data-testid="date-header">Today, 14 Apr</div>
+        <div data-testid="secondary-header"><div data-testid="date-header">Today, 14 Apr</div></div>
+        <div data-testid="game-row">
         <a href="/football/england/premier-league/match-one/aaaaaaa1">Match 1</a>
       </div>
-      <div class="eventRow">
+      <div data-testid="game-row">
         <a href="/football/england/premier-league/match-two/aaaaaaa2">Match 2</a>
       </div>
-      <div class="eventRow">
-        <div data-testid="date-header">18 Apr 2026</div>
+        <div data-testid="secondary-header"><div data-testid="date-header">18 Apr 2026</div></div>
+        <div data-testid="game-row">
         <a href="/football/england/premier-league/match-three/aaaaaaa3">Match 3</a>
       </div>
-      <div class="eventRow">
+      <div data-testid="game-row">
         <a href="/football/england/premier-league/match-four/aaaaaaa4">Match 4</a>
       </div>
-      <div class="eventRow">
-        <div data-testid="date-header">19 Apr 2026</div>
+        <div data-testid="secondary-header"><div data-testid="date-header">19 Apr 2026</div></div>
+        <div data-testid="game-row">
         <a href="/football/england/premier-league/match-five/aaaaaaa5">Match 5</a>
       </div>
     </body></html>
@@ -486,12 +471,12 @@ async def test_extract_match_links_unparseable_header_fails_safe(setup_base_scra
     page_mock.content = AsyncMock(
         return_value="""
         <html><body>
-          <div class="eventRow">
-            <div data-testid="date-header">Some gibberish</div>
+            <div data-testid="secondary-header"><div data-testid="date-header">Some gibberish</div></div>
+            <div data-testid="game-row">
             <a href="/football/england/premier-league/match-x/xxxxxxx1">Match X</a>
           </div>
-          <div class="eventRow">
-            <div data-testid="date-header">18 Apr 2026</div>
+            <div data-testid="secondary-header"><div data-testid="date-header">18 Apr 2026</div></div>
+            <div data-testid="game-row">
             <a href="/football/england/premier-league/match-y/yyyyyyy1">Match Y</a>
           </div>
         </body></html>
@@ -550,11 +535,11 @@ async def test_extract_match_links_deduplicates_preserving_order(setup_base_scra
     page_mock.content = AsyncMock(
         return_value="""
         <html><body>
-          <div class="eventRow">
+          <div data-testid="game-row">
             <a href="/football/england/premier-league/match-one/aaaaaaa1">L1</a>
             <a href="/football/england/premier-league/match-one/aaaaaaa1">L1 dup</a>
           </div>
-          <div class="eventRow">
+          <div data-testid="game-row">
             <a href="/football/england/premier-league/match-two/aaaaaaa2">L2</a>
           </div>
         </body></html>
@@ -581,8 +566,8 @@ async def test_extract_match_links_uses_playwright_manager_timezone(setup_base_s
     page_mock.content = AsyncMock(
         return_value="""
         <html><body>
-          <div class="eventRow">
-            <div data-testid="date-header">Today, 14 Apr</div>
+            <div data-testid="secondary-header"><div data-testid="date-header">Today, 14 Apr</div></div>
+            <div data-testid="game-row">
             <a href="/football/england/premier-league/tokyo-match/tttttttt">Tokyo match</a>
           </div>
         </body></html>
@@ -615,16 +600,16 @@ def _make_kickoff_window_html() -> str:
     """
     return """
     <html><body>
-      <div class="eventRow">
-        <div data-testid="date-header">18 Apr 2026</div>
+        <div data-testid="secondary-header"><div data-testid="date-header">18 Apr 2026</div></div>
+        <div data-testid="game-row">
         <div data-testid="time-item"><p>13:00</p></div>
         <a href="/football/england/premier-league/soon-match/aaaaaaa1">Soon</a>
       </div>
-      <div class="eventRow">
+      <div data-testid="game-row">
         <div data-testid="time-item"><p>13:30</p></div>
         <a href="/football/england/premier-league/edge-match/aaaaaaa2">Edge</a>
       </div>
-      <div class="eventRow">
+      <div data-testid="game-row">
         <div data-testid="time-item"><p>16:00</p></div>
         <a href="/football/england/premier-league/late-match/aaaaaaa3">Late</a>
       </div>
@@ -671,12 +656,12 @@ async def test_extract_match_links_kickoff_window_unparseable_time_fails_safe(se
     page_mock.content = AsyncMock(
         return_value="""
         <html><body>
-          <div class="eventRow">
-            <div data-testid="date-header">18 Apr 2026</div>
+            <div data-testid="secondary-header"><div data-testid="date-header">18 Apr 2026</div></div>
+            <div data-testid="game-row">
             <div data-testid="time-item"><p class="text-red-dark">1H</p></div>
             <a href="/football/england/premier-league/live-match/bbbbbbb1">Live</a>
           </div>
-          <div class="eventRow">
+          <div data-testid="game-row">
             <div data-testid="time-item"><p>16:00</p></div>
             <a href="/football/england/premier-league/late-match/bbbbbbb2">Late</a>
           </div>
@@ -700,7 +685,7 @@ async def test_extract_match_links_kickoff_window_row_without_date_header_fails_
     page_mock.content = AsyncMock(
         return_value="""
         <html><body>
-          <div class="eventRow">
+          <div data-testid="game-row">
             <div data-testid="time-item"><p>16:00</p></div>
             <a href="/football/england/premier-league/orphan-match/ccccccc1">Orphan</a>
           </div>
@@ -725,18 +710,18 @@ async def test_extract_match_links_kickoff_window_composes_with_skip_started(set
     page_mock.content = AsyncMock(
         return_value="""
         <html><body>
-          <div class="eventRow">
-            <div data-testid="date-header">18 Apr 2026</div>
+            <div data-testid="secondary-header"><div data-testid="date-header">18 Apr 2026</div></div>
+            <div data-testid="game-row">
             <div data-testid="time-item"><p>13:00</p></div>
             <div data-testid="game-status-box"></div>
             <a href="/football/england/premier-league/near-upcoming/ddddddd1">Near</a>
           </div>
-          <div class="eventRow">
+          <div data-testid="game-row">
             <div data-testid="time-item"><p>11:00</p></div>
             <div data-testid="game-status-box">FinishedFIN</div>
             <a href="/football/england/premier-league/finished/ddddddd2">Finished</a>
           </div>
-          <div class="eventRow">
+          <div data-testid="game-row">
             <div data-testid="time-item"><p>16:00</p></div>
             <div data-testid="game-status-box"></div>
             <a href="/football/england/premier-league/far-future/ddddddd3">Far</a>
@@ -758,7 +743,9 @@ class TestRowKickoffDatetime:
     """Unit tests for the _row_kickoff_datetime helper (GitHub issue #77)."""
 
     def _row(self, html: str):
-        return BeautifulSoup(f"<div class='eventRow'>{html}</div>", "lxml").find(class_="eventRow")
+        return BeautifulSoup(f'<div data-testid="game-row">{html}</div>', "lxml").find(
+            attrs={"data-testid": "game-row"}
+        )
 
     def test_valid_time_and_date_returns_aware_datetime(self):
         row = self._row('<div data-testid="time-item"><p>21:00</p></div>')
@@ -796,12 +783,12 @@ def _make_kickoff_column_html() -> str:
     """One date group, a normal row and a started row (live period marker)."""
     return """
     <html><body>
-      <div class="eventRow">
-        <div data-testid="date-header">18 Apr 2026</div>
+        <div data-testid="secondary-header"><div data-testid="date-header">18 Apr 2026</div></div>
+        <div data-testid="game-row">
         <div data-testid="time-item"><p>20:30</p></div>
         <a href="/football/england/premier-league/normal-match/aaaaaaa1">Normal</a>
       </div>
-      <div class="eventRow">
+      <div data-testid="game-row">
         <div data-testid="time-item"><p>1H</p></div>
         <a href="/football/england/premier-league/started-match/aaaaaaa2">Started</a>
       </div>
@@ -864,8 +851,8 @@ async def test_extract_match_rows_unparseable_date_header_yields_null_kickoff(se
     page_mock.content = AsyncMock(
         return_value="""
         <html><body>
-          <div class="eventRow">
-            <div data-testid="date-header">Not A Date</div>
+            <div data-testid="secondary-header"><div data-testid="date-header">Not A Date</div></div>
+            <div data-testid="game-row">
             <div data-testid="time-item"><p>20:30</p></div>
             <a href="/football/england/premier-league/orphan-match/aaaaaaa3">Orphan</a>
           </div>
@@ -888,8 +875,8 @@ async def test_extract_match_rows_missing_time_item_yields_null_kickoff(setup_ba
     page_mock.content = AsyncMock(
         return_value="""
         <html><body>
-          <div class="eventRow">
-            <div data-testid="date-header">18 Apr 2026</div>
+            <div data-testid="secondary-header"><div data-testid="date-header">18 Apr 2026</div></div>
+            <div data-testid="game-row">
             <a href="/football/england/premier-league/no-time/aaaaaaa4">No time</a>
           </div>
         </body></html>
@@ -912,8 +899,8 @@ async def test_extract_match_rows_shares_one_kickoff_across_a_rows_links(setup_b
     page_mock.content = AsyncMock(
         return_value="""
         <html><body>
-          <div class="eventRow">
-            <div data-testid="date-header">18 Apr 2026</div>
+            <div data-testid="secondary-header"><div data-testid="date-header">18 Apr 2026</div></div>
+            <div data-testid="game-row">
             <div data-testid="time-item"><p>20:30</p></div>
             <a href="/football/england/premier-league/first-match/aaaaaaa5">First</a>
             <a href="/football/england/premier-league/second-match/aaaaaaa6">Second</a>
@@ -949,39 +936,39 @@ class TestIsOffscreenRow:
     """Unit tests for the _is_offscreen_row helper."""
 
     def test_no_style_attr_is_visible(self):
-        row = BeautifulSoup('<div class="eventRow"></div>', "lxml").div
+        row = BeautifulSoup('<div data-testid="game-row"></div>', "lxml").div
         assert _is_offscreen_row(row) is False
 
     def test_empty_style_is_visible(self):
-        row = BeautifulSoup('<div class="eventRow" style=""></div>', "lxml").div
+        row = BeautifulSoup('<div data-testid="game-row" style=""></div>', "lxml").div
         assert _is_offscreen_row(row) is False
 
     def test_left_minus_9999_marks_offscreen(self):
         row = BeautifulSoup(
-            '<div class="eventRow" style="position: absolute; left: -9999px;"></div>',
+            '<div data-testid="game-row" style="position: absolute; left: -9999px;"></div>',
             "lxml",
         ).div
         assert _is_offscreen_row(row) is True
 
     def test_top_minus_9999_marks_offscreen(self):
-        row = BeautifulSoup('<div class="eventRow" style="top:-9999px"></div>', "lxml").div
+        row = BeautifulSoup('<div data-testid="game-row" style="top:-9999px"></div>', "lxml").div
         assert _is_offscreen_row(row) is True
 
     def test_display_none_marks_offscreen(self):
-        row = BeautifulSoup('<div class="eventRow" style="display: none;"></div>', "lxml").div
+        row = BeautifulSoup('<div data-testid="game-row" style="display: none;"></div>', "lxml").div
         assert _is_offscreen_row(row) is True
 
     def test_visibility_hidden_marks_offscreen(self):
-        row = BeautifulSoup('<div class="eventRow" style="visibility:hidden"></div>', "lxml").div
+        row = BeautifulSoup('<div data-testid="game-row" style="visibility:hidden"></div>', "lxml").div
         assert _is_offscreen_row(row) is True
 
     def test_uppercase_style_normalized(self):
-        row = BeautifulSoup('<div class="eventRow" style="DISPLAY: NONE"></div>', "lxml").div
+        row = BeautifulSoup('<div data-testid="game-row" style="DISPLAY: NONE"></div>', "lxml").div
         assert _is_offscreen_row(row) is True
 
     def test_unrelated_style_is_visible(self):
         row = BeautifulSoup(
-            '<div class="eventRow" style="color: red; padding-left: 9999px;"></div>',
+            '<div data-testid="game-row" style="color: red; padding-left: 9999px;"></div>',
             "lxml",
         ).div
         assert _is_offscreen_row(row) is False
@@ -1004,11 +991,11 @@ async def test_extract_match_links_skips_offscreen_phantom_row(setup_base_scrape
     page_mock.content = AsyncMock(
         return_value="""
         <html><body>
-          <div class="eventRow" id="4CyOBFbK" set="92939"
+          <div data-testid="game-row" id="4CyOBFbK" set="92939"
                style="position: absolute; left: -9999px; height: 0px; overflow: hidden;">
             <a href="/football/h2h/galatasaray-0j2eUlMC/kasimpasa-EXCPojim/#Aonqhgqt">phantom</a>
           </div>
-          <div class="eventRow" id="4CyOBFbK" set="92939">
+          <div data-testid="game-row" id="4CyOBFbK" set="92939">
             <a href="/football/h2h/galatasaray-riaqqurF/kasimpasa-dOlaIG4l/#4CyOBFbK">real</a>
           </div>
         </body></html>
@@ -1032,11 +1019,11 @@ async def test_extract_match_links_offscreen_skipped_before_date_filter(setup_ba
     page_mock.content = AsyncMock(
         return_value="""
         <html><body>
-          <div class="eventRow">
-            <div data-testid="date-header">17 May 2026</div>
+            <div data-testid="secondary-header"><div data-testid="date-header">17 May 2026</div></div>
+            <div data-testid="game-row">
             <a href="/football/h2h/real-aaa/match-bbb/#x1">real</a>
           </div>
-          <div class="eventRow" style="position:absolute;left:-9999px;">
+          <div data-testid="game-row" style="position:absolute;left:-9999px;">
             <a href="/football/h2h/phantom-ccc/match-ddd/#x2">phantom</a>
           </div>
         </body></html>
@@ -1058,12 +1045,12 @@ async def test_extract_match_links_offscreen_row_does_not_carry_date_header(setu
     page_mock.content = AsyncMock(
         return_value="""
         <html><body>
-          <div class="eventRow" style="display:none;">
+          <div data-testid="game-row" style="display:none;">
             <div data-testid="date-header">17 May 2026</div>
             <a href="/football/h2h/phantom-ccc/match-ddd/#x2">phantom</a>
           </div>
-          <div class="eventRow">
-            <div data-testid="date-header">17 May 2026</div>
+            <div data-testid="secondary-header"><div data-testid="date-header">17 May 2026</div></div>
+            <div data-testid="game-row">
             <a href="/football/h2h/real-aaa/match-bbb/#x1">real</a>
           </div>
         </body></html>
@@ -2254,7 +2241,7 @@ async def test_extract_match_details_unparseable_header_data_still_returns_none(
 _SERIE_A_HREF = "/football/italy/serie-a/match-xyz/"
 _SERIE_A_HTML = f"""
 <html><body>
-  <div class="eventRow">
+  <div data-testid="game-row">
     <a href="{_SERIE_A_HREF}">Serie A match</a>
   </div>
 </body></html>

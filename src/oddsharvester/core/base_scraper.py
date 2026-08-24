@@ -457,8 +457,14 @@ class BaseScraper:
         try:
             html_content = await page.content()
             soup = BeautifulSoup(html_content, "lxml")
-            event_rows = soup.find_all(class_=re.compile(OddsPortalSelectors.EVENT_ROW_CLASS_PATTERN))
-            self.logger.info(f"Found {len(event_rows)} event rows.")
+            # 2026-08 redesign: rows are [data-testid='game-row'] and date headers
+            # are *siblings* (inside a 'secondary-header' element), no longer
+            # children of the first row of a group. Walk both in document order.
+            elements = soup.find_all(
+                attrs={"data-testid": [OddsPortalSelectors.DATE_HEADER_TESTID, OddsPortalSelectors.GAME_ROW_TESTID]}
+            )
+            row_count = sum(1 for el in elements if el.get("data-testid") == OddsPortalSelectors.GAME_ROW_TESTID)
+            self.logger.info(f"Found {row_count} event rows.")
 
             need_kickoff = kickoff_within_hours is not None or collect_kickoff
             track_headers = date_filter is not None or need_kickoff
@@ -479,15 +485,10 @@ class BaseScraper:
             started_filtered_out_count = 0
             window_filtered_out_count = 0
 
-            for row in event_rows:
-                if _is_offscreen_row(row):
-                    offscreen_skipped_count += 1
-                    continue
-
-                if track_headers:
-                    header_el = row.find(attrs={"data-testid": "date-header"})
-                    if header_el is not None:
-                        header_text = header_el.get_text(" ", strip=True)
+            for el in elements:
+                if el.get("data-testid") == OddsPortalSelectors.DATE_HEADER_TESTID:
+                    if track_headers:
+                        header_text = el.get_text(" ", strip=True)
                         parsed = _parse_date_header(header_text, tz_name=tz_name)
                         if parsed is None:
                             unparseable_header_count += 1
@@ -497,6 +498,12 @@ class BaseScraper:
                         else:
                             seen_header_dates.add(parsed)
                         current_row_date = parsed
+                    continue
+
+                row = el
+                if _is_offscreen_row(row):
+                    offscreen_skipped_count += 1
+                    continue
 
                 if date_filter is not None and current_row_date is not None and current_row_date != date_filter:
                     filtered_out_count += 1
