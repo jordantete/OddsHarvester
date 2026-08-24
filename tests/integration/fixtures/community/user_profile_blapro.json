@@ -11,7 +11,7 @@
                 "month": "06/2026",
                 "total_predictions": 15,
                 "won": 5.28,
-                "lost": 9,
+                "lost": 9.0,
                 "plus_minus": -3.72,
                 "roi_pct": -24.8
             },
@@ -19,7 +19,7 @@
                 "month": "05/2026",
                 "total_predictions": 11,
                 "won": 8.44,
-                "lost": 0,
+                "lost": 0.0,
                 "plus_minus": 8.44,
                 "roi_pct": 76.7
             },
@@ -27,7 +27,7 @@
                 "month": "Total",
                 "total_predictions": 26,
                 "won": 13.72,
-                "lost": 9,
+                "lost": 9.0,
                 "plus_minus": 4.72,
                 "roi_pct": 18.2
             }
@@ -35,11 +35,28 @@
         "predictions": [
             {
                 "kickoff": "2026-06-20T12:10",
-                "kickoff_text": "20/Jun, 12:10 AH -1.5 Sets",
+                "kickoff_text": "20/Jun 12:10 20/Jun, 12:10 CS",
+                "market": "CS",
+                "home_team": "Sabalenka A.",
+                "away_team": "Pegula J.",
+                "score": null,
+                "pick_odds": 2.08,
+                "outcomes": [
+                    {
+                        "odds": 2.08,
+                        "community_pct": 50,
+                        "picked": true
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/tennis/h2h/pegula-jessica-KdojxrAR/sabalenka-aryna-vyhksgUB/#CC4A2q0L:cs;2;"
+            },
+            {
+                "kickoff": "2026-06-20T12:10",
+                "kickoff_text": "20/Jun 12:10 20/Jun, 12:10 AH -1.5 Sets",
                 "market": "AH -1.5 Sets",
                 "home_team": "Sabalenka A.",
                 "away_team": "Pegula J.",
-                "score": "1 - 2",
+                "score": null,
                 "pick_odds": 2.3,
                 "outcomes": [
                     {
@@ -56,29 +73,34 @@
                 "match_url": "https://www.oddsportal.com/tennis/h2h/pegula-jessica-KdojxrAR/sabalenka-aryna-vyhksgUB/#CC4A2q0L:ah;2;-1.50;1"
             },
             {
-                "kickoff": "2026-06-20T12:10",
-                "kickoff_text": "20/Jun, 12:10 CS",
-                "market": "CS",
-                "home_team": "Sabalenka A.",
-                "away_team": "Pegula J.",
-                "score": "1 - 2",
-                "pick_odds": 2.08,
+                "kickoff": "2026-06-20T05:00",
+                "kickoff_text": "20/Jun 05:00 20/Jun, 05:00 AH -0.5",
+                "market": "AH -0.5",
+                "home_team": "Turkey",
+                "away_team": "Paraguay",
+                "score": null,
+                "pick_odds": 2.02,
                 "outcomes": [
                     {
-                        "odds": 2.08,
-                        "community_pct": 50,
+                        "odds": 2.02,
+                        "community_pct": 100,
                         "picked": true
+                    },
+                    {
+                        "odds": 1.8,
+                        "community_pct": 0,
+                        "picked": false
                     }
                 ],
-                "match_url": "https://www.oddsportal.com/tennis/h2h/pegula-jessica-KdojxrAR/sabalenka-aryna-vyhksgUB/#CC4A2q0L:cs;2;"
+                "match_url": "https://www.oddsportal.com/football/h2h/paraguay-YaNlqp6j/turkey-QeijuHo5/#KnyuOLXH:ah;2;-0.50;0"
             },
             {
                 "kickoff": "2026-06-20T05:00",
-                "kickoff_text": "20/Jun, 05:00 1X2",
+                "kickoff_text": "20/Jun 05:00 20/Jun, 05:00 1X2",
                 "market": "1X2",
                 "home_team": "Turkey",
                 "away_team": "Paraguay",
-                "score": "0 - 1",
+                "score": null,
                 "pick_odds": 2.05,
                 "outcomes": [
                     {
@@ -100,34 +122,12 @@
                 "match_url": "https://www.oddsportal.com/football/h2h/paraguay-YaNlqp6j/turkey-QeijuHo5/#KnyuOLXH:1X2;2"
             },
             {
-                "kickoff": "2026-06-20T05:00",
-                "kickoff_text": "20/Jun, 05:00 AH -0.5",
-                "market": "AH -0.5",
-                "home_team": "Turkey",
-                "away_team": "Paraguay",
-                "score": "0 - 1",
-                "pick_odds": 2.02,
-                "outcomes": [
-                    {
-                        "odds": 2.02,
-                        "community_pct": 100,
-                        "picked": true
-                    },
-                    {
-                        "odds": 1.8,
-                        "community_pct": 0,
-                        "picked": false
-                    }
-                ],
-                "match_url": "https://www.oddsportal.com/football/h2h/paraguay-YaNlqp6j/turkey-QeijuHo5/#KnyuOLXH:ah;2;-0.50;0"
-            },
-            {
                 "kickoff": "2026-06-20T00:00",
-                "kickoff_text": "20/Jun, 00:00 BTTS",
+                "kickoff_text": "20/Jun 00:00 20/Jun, 00:00 BTTS",
                 "market": "BTTS",
                 "home_team": "Scotland",
                 "away_team": "Morocco",
-                "score": "0 - 1",
+                "score": null,
                 "pick_odds": 2.22,
                 "outcomes": [
                     {
@@ -137,13 +137,343 @@
                     },
                     {
                         "odds": 1.69,
-                        "community_pct": 12,
+                        "community_pct": 13,
                         "picked": false
                     }
                 ],
                 "match_url": "https://www.oddsportal.com/football/h2h/morocco-IDKYO3R8/scotland-fZRU25WH/#nRafcAyG:bts;2"
+            },
+            {
+                "kickoff": "2026-06-19T21:00",
+                "kickoff_text": "19/Jun 21:00 19/Jun, 21:00 BTTS",
+                "market": "BTTS",
+                "home_team": "USA",
+                "away_team": "Australia",
+                "score": null,
+                "pick_odds": 1.94,
+                "outcomes": [
+                    {
+                        "odds": 1.94,
+                        "community_pct": 92,
+                        "picked": true
+                    },
+                    {
+                        "odds": 1.86,
+                        "community_pct": 8,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/football/h2h/australia-xSrf6qMM/usa-fuitL4CF/#S0aAVubs:bts;2"
+            },
+            {
+                "kickoff": "2026-06-18T04:00",
+                "kickoff_text": "18/Jun 04:00 18/Jun, 04:00 AH +1.25",
+                "market": "AH +1.25",
+                "home_team": "Uzbekistan",
+                "away_team": "Colombia",
+                "score": null,
+                "pick_odds": 1.86,
+                "outcomes": [
+                    {
+                        "odds": 1.95,
+                        "community_pct": 33,
+                        "picked": false
+                    },
+                    {
+                        "odds": 1.86,
+                        "community_pct": 67,
+                        "picked": true
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/football/h2h/colombia-G02s4PCS/uzbekistan-EZYKKRMc/#jaMlPbx1:ah;2;1.25;0"
+            },
+            {
+                "kickoff": "2026-06-14T19:00",
+                "kickoff_text": "14/Jun 19:00 14/Jun, 19:00 AH -3.25",
+                "market": "AH -3.25",
+                "home_team": "Germany",
+                "away_team": "Curacao",
+                "score": null,
+                "pick_odds": 1.76,
+                "outcomes": [
+                    {
+                        "odds": 1.76,
+                        "community_pct": 100,
+                        "picked": true
+                    },
+                    {
+                        "odds": 2.09,
+                        "community_pct": 0,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/football/h2h/curacao-bLLGpOkQ/germany-ptQide1O/#dtiRRcc6:ah;2;-3.25;0"
+            },
+            {
+                "kickoff": "2026-06-14T00:00",
+                "kickoff_text": "14/Jun 00:00 14/Jun, 00:00 BTTS",
+                "market": "BTTS",
+                "home_team": "Brazil",
+                "away_team": "Morocco",
+                "score": null,
+                "pick_odds": 2.11,
+                "outcomes": [
+                    {
+                        "odds": 2.11,
+                        "community_pct": 92,
+                        "picked": true
+                    },
+                    {
+                        "odds": 1.76,
+                        "community_pct": 8,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/football/h2h/brazil-I9l9aqLq/morocco-IDKYO3R8/#b5JayTEd:bts;2"
+            },
+            {
+                "kickoff": "2026-06-13T03:00",
+                "kickoff_text": "13/Jun 03:00 13/Jun, 03:00 AH -0.5",
+                "market": "AH -0.5",
+                "home_team": "USA",
+                "away_team": "Paraguay",
+                "score": null,
+                "pick_odds": 2.05,
+                "outcomes": [
+                    {
+                        "odds": 2.05,
+                        "community_pct": 42,
+                        "picked": true
+                    },
+                    {
+                        "odds": 1.79,
+                        "community_pct": 58,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/football/h2h/paraguay-YaNlqp6j/usa-fuitL4CF/#bo9vy2zK:ah;2;-0.50;0"
+            },
+            {
+                "kickoff": "2026-06-11T21:00",
+                "kickoff_text": "11/Jun 21:00 11/Jun, 21:00 AH -1",
+                "market": "AH -1",
+                "home_team": "Mexico",
+                "away_team": "South Africa",
+                "score": null,
+                "pick_odds": 1.72,
+                "outcomes": [
+                    {
+                        "odds": 1.72,
+                        "community_pct": 89,
+                        "picked": true
+                    },
+                    {
+                        "odds": 2.13,
+                        "community_pct": 11,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/football/h2h/mexico-O6iHcNkd/south-africa-W2ijYvlr/#h4EoUB7T:ah;2;-1.00;0"
+            },
+            {
+                "kickoff": "2026-06-06T21:00",
+                "kickoff_text": "06/Jun 21:00 06/Jun, 21:00 AH -0.75",
+                "market": "AH -0.75",
+                "home_team": "Switzerland",
+                "away_team": "Australia",
+                "score": null,
+                "pick_odds": 1.75,
+                "outcomes": [
+                    {
+                        "odds": 1.75,
+                        "community_pct": 100,
+                        "picked": true
+                    },
+                    {
+                        "odds": 2.04,
+                        "community_pct": 0,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/football/h2h/australia-xSrf6qMM/switzerland-rHJ2vy1B/#ruc3zsQH:ah;2;-0.75;0"
+            },
+            {
+                "kickoff": "2026-06-06T15:25",
+                "kickoff_text": "06/Jun 15:25 06/Jun, 15:25 AH +1.5 Sets",
+                "market": "AH +1.5 Sets",
+                "home_team": "Chwalinska M.",
+                "away_team": "Andreeva M.",
+                "score": null,
+                "pick_odds": 2.47,
+                "outcomes": [
+                    {
+                        "odds": 2.47,
+                        "community_pct": 63,
+                        "picked": true
+                    },
+                    {
+                        "odds": 1.6,
+                        "community_pct": 38,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/tennis/h2h/andreeva-mirra-lI6fOOat/chwalinska-maja-OIxOD54s/#dddfTkHb:ah;2;1.50;1"
+            },
+            {
+                "kickoff": "2026-06-02T20:00",
+                "kickoff_text": "02/Jun 20:00 02/Jun, 20:00 AH +1.5",
+                "market": "AH +1.5",
+                "home_team": "Dunkerque",
+                "away_team": "Limoges",
+                "score": null,
+                "pick_odds": 1.78,
+                "outcomes": [
+                    {
+                        "odds": 2.02,
+                        "community_pct": 0,
+                        "picked": false
+                    },
+                    {
+                        "odds": 1.78,
+                        "community_pct": 100,
+                        "picked": true
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/handball/h2h/dunkerque-nTbpx35s/limoges-hpaaUGpO/#COkPHkDF:ah;2;1.50;0"
+            },
+            {
+                "kickoff": "2026-06-01T14:55",
+                "kickoff_text": "01/Jun 14:55 01/Jun, 14:55 H/A",
+                "market": "H/A",
+                "home_team": "Chwalinska M.",
+                "away_team": "Parry D.",
+                "score": null,
+                "pick_odds": 2.68,
+                "outcomes": [
+                    {
+                        "odds": 1.56,
+                        "community_pct": 35,
+                        "picked": false
+                    },
+                    {
+                        "odds": 2.68,
+                        "community_pct": 65,
+                        "picked": true
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/tennis/h2h/chwalinska-maja-OIxOD54s/parry-diane-hQQLzcNT/#nVQtBlHc:home-away;2"
+            },
+            {
+                "kickoff": "2026-05-31T20:35",
+                "kickoff_text": "31/May 20:35 31/May, 20:35 H/A",
+                "market": "H/A",
+                "home_team": "Ruud C.",
+                "away_team": "Fonseca J.",
+                "score": null,
+                "pick_odds": 2.55,
+                "outcomes": [
+                    {
+                        "odds": 1.57,
+                        "community_pct": 76,
+                        "picked": false
+                    },
+                    {
+                        "odds": 2.55,
+                        "community_pct": 24,
+                        "picked": true
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/tennis/h2h/fonseca-joao-tv073LUc/ruud-casper-zN9UpRqp/#0UhXFklC:home-away;2"
+            },
+            {
+                "kickoff": "2026-05-30T18:00",
+                "kickoff_text": "30/May 18:00 30/May, 18:00 AH 0",
+                "market": "AH 0",
+                "home_team": "PSG",
+                "away_team": "Arsenal",
+                "score": null,
+                "pick_odds": 1.76,
+                "outcomes": [
+                    {
+                        "odds": 1.76,
+                        "community_pct": 61,
+                        "picked": true
+                    },
+                    {
+                        "odds": 2.14,
+                        "community_pct": 39,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/football/h2h/arsenal-hA1Zm19f/psg-CjhkPw0k/#EJZRaQ15:ah;2;0.00;0"
+            },
+            {
+                "kickoff": "2026-05-29T20:45",
+                "kickoff_text": "29/May 20:45 29/May, 20:45 AH -0.5",
+                "market": "AH -0.5",
+                "home_team": "Nice",
+                "away_team": "St Etienne",
+                "score": null,
+                "pick_odds": 1.98,
+                "outcomes": [
+                    {
+                        "odds": 1.98,
+                        "community_pct": 33,
+                        "picked": true
+                    },
+                    {
+                        "odds": 1.88,
+                        "community_pct": 67,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/football/h2h/nice-YagoQJpq/st-etienne-YL2QybFe/#dIyJLZhe:ah;2;-0.50;0"
+            },
+            {
+                "kickoff": "2026-05-27T21:00",
+                "kickoff_text": "27/May 21:00 27/May, 21:00 AH -0.5",
+                "market": "AH -0.5",
+                "home_team": "Crystal Palace",
+                "away_team": "Rayo Vallecano",
+                "score": null,
+                "pick_odds": 2.16,
+                "outcomes": [
+                    {
+                        "odds": 2.16,
+                        "community_pct": 30,
+                        "picked": true
+                    },
+                    {
+                        "odds": 1.76,
+                        "community_pct": 70,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/football/h2h/crystal-palace-AovF1Mia/rayo-vallecano-8bcjFy6O/#Q17aZoV7:ah;2;-0.50;0"
+            },
+            {
+                "kickoff": "2026-05-31T18:30",
+                "kickoff_text": "31/May 18:30 31/May, 18:30 AH +0.5",
+                "market": "AH +0.5",
+                "home_team": "Gent",
+                "away_team": "Genk",
+                "score": null,
+                "pick_odds": 1.68,
+                "outcomes": [
+                    {
+                        "odds": 1.68,
+                        "community_pct": 100,
+                        "picked": true
+                    },
+                    {
+                        "odds": 2.27,
+                        "community_pct": 0,
+                        "picked": false
+                    }
+                ],
+                "match_url": "https://www.oddsportal.com/football/h2h/genk-r3jWUIiN/gent-MgkzUx7T/#Cf3QMydJ:ah;2;0.50;0"
             }
         ],
-        "scraped_at": "2026-07-17T09:23:25.277395+00:00"
+        "scraped_at": "2026-08-24T14:22:58.426909+00:00"
     }
 ]

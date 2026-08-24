@@ -1,110 +1,70 @@
 [
     {
-        "country": "Europe",
-        "league": "Conference League",
-        "home_team": "Yelimay Semey (Kaz)",
-        "away_team": "Alashkert (Arm)",
-        "kickoff": "2026-07-16T17:00",
-        "kickoff_text": "Today, 17:00 1X2",
+        "country": "England",
+        "league": "Premier League",
+        "home_team": "Fulham",
+        "away_team": "Chelsea",
+        "kickoff": "2026-08-24T21:00",
+        "kickoff_text": "Today 21:00 Today, 21:00 1X2",
         "market": "1X2",
         "odds": [
             {
                 "outcome": "1",
-                "odds": 1.67
+                "odds": 4.15
             },
             {
                 "outcome": "X",
-                "odds": 3.86
+                "odds": 3.9
             },
             {
                 "outcome": "2",
-                "odds": 4.75
+                "odds": 1.92
             }
         ],
         "community_votes_pct": [
             {
                 "outcome": "1",
-                "pct": 88
+                "pct": 5
             },
             {
                 "outcome": "X",
-                "pct": 10
-            },
-            {
-                "outcome": "2",
-                "pct": 2
-            }
-        ],
-        "match_url": "https://www.oddsportal.com/football/h2h/alashkert-lpzQXDLF/yelimay-semey-GEwrHVl3/#vRr9gFme:1X2;2",
-        "sport": "football",
-        "scraped_at": "2026-07-16T13:15:09.919627+00:00"
-    },
-    {
-        "country": "Europe",
-        "league": "Europa League",
-        "home_team": "Derry City (Nir)",
-        "away_team": "CSKA Sofia (Bul)",
-        "kickoff": "2026-07-16T19:30",
-        "kickoff_text": "Today, 19:30 1X2",
-        "market": "1X2",
-        "odds": [
-            {
-                "outcome": "1",
-                "odds": 3.6
-            },
-            {
-                "outcome": "X",
-                "odds": 3.75
-            },
-            {
-                "outcome": "2",
-                "odds": 1.9
-            }
-        ],
-        "community_votes_pct": [
-            {
-                "outcome": "1",
-                "pct": 6
-            },
-            {
-                "outcome": "X",
-                "pct": 10
+                "pct": 11
             },
             {
                 "outcome": "2",
                 "pct": 84
             }
         ],
-        "match_url": "https://www.oddsportal.com/football/h2h/cska-sofia-0xFNNECi/derry-city-MyD3Jn1A/#zozl13I0:1X2;2",
+        "match_url": "https://www.oddsportal.com/football/h2h/chelsea-4fGZN2oK/fulham-69ZiU2Om/#C2Nfvg77:1X2;2",
         "sport": "football",
-        "scraped_at": "2026-07-16T13:15:09.919627+00:00"
+        "scraped_at": "2026-08-24T14:22:54.713238+00:00"
     },
     {
-        "country": "Europe",
-        "league": "Conference League",
-        "home_team": "Linfield (Nir)",
-        "away_team": "Kalju (Est)",
-        "kickoff": "2026-07-16T20:45",
-        "kickoff_text": "Today, 20:45 1X2",
+        "country": "Italy",
+        "league": "Serie A",
+        "home_team": "AS Roma",
+        "away_team": "Fiorentina",
+        "kickoff": "2026-08-24T20:45",
+        "kickoff_text": "Today 20:45 Today, 20:45 1X2",
         "market": "1X2",
         "odds": [
             {
                 "outcome": "1",
-                "odds": 1.57
+                "odds": 1.73
             },
             {
                 "outcome": "X",
-                "odds": 4.2
+                "odds": 3.9
             },
             {
                 "outcome": "2",
-                "odds": 5.6
+                "odds": 5.0
             }
         ],
         "community_votes_pct": [
             {
                 "outcome": "1",
-                "pct": 85
+                "pct": 86
             },
             {
                 "outcome": "X",
@@ -112,243 +72,251 @@
             },
             {
                 "outcome": "2",
-                "pct": 6
-            }
-        ],
-        "match_url": "https://www.oddsportal.com/football/h2h/kalju-6sqJGMx9/linfield-YiTk9JCq/#0xeV5qwI:1X2;2",
-        "sport": "football",
-        "scraped_at": "2026-07-16T13:15:09.919627+00:00"
-    },
-    {
-        "country": "Europe",
-        "league": "Europa League",
-        "home_team": "Zilina (Svk)",
-        "away_team": "Hajduk Split (Cro)",
-        "kickoff": "2026-07-16T20:30",
-        "kickoff_text": "Today, 20:30 1X2",
-        "market": "1X2",
-        "odds": [
-            {
-                "outcome": "1",
-                "odds": 3.05
-            },
-            {
-                "outcome": "X",
-                "odds": 3.5
-            },
-            {
-                "outcome": "2",
-                "odds": 2.23
-            }
-        ],
-        "community_votes_pct": [
-            {
-                "outcome": "1",
-                "pct": 4
-            },
-            {
-                "outcome": "X",
-                "pct": 7
-            },
-            {
-                "outcome": "2",
-                "pct": 89
-            }
-        ],
-        "match_url": "https://www.oddsportal.com/football/h2h/hajduk-split-2w5qgpq0/zilina-8tSMqaer/#A7lJ2ex8:1X2;2",
-        "sport": "football",
-        "scraped_at": "2026-07-16T13:15:09.919627+00:00"
-    },
-    {
-        "country": "Europe",
-        "league": "Conference League",
-        "home_team": "Mornar Bar (Mne)",
-        "away_team": "Atletic Escaldes (And)",
-        "kickoff": "2026-07-16T20:45",
-        "kickoff_text": "Today, 20:45 1X2",
-        "market": "1X2",
-        "odds": [
-            {
-                "outcome": "1",
-                "odds": 1.6
-            },
-            {
-                "outcome": "X",
-                "odds": 3.87
-            },
-            {
-                "outcome": "2",
-                "odds": 6.3
-            }
-        ],
-        "community_votes_pct": [
-            {
-                "outcome": "1",
-                "pct": 88
-            },
-            {
-                "outcome": "X",
                 "pct": 5
-            },
-            {
-                "outcome": "2",
-                "pct": 7
             }
         ],
-        "match_url": "https://www.oddsportal.com/football/h2h/atletic-escaldes-hQcdh3te/mornar-bar-pU3CDOHp/#xxu3KrhB:1X2;2",
+        "match_url": "https://www.oddsportal.com/football/h2h/as-roma-zVqqL0ma/fiorentina-Q3A3IbXH/#OCgNUQYH:1X2;2",
         "sport": "football",
-        "scraped_at": "2026-07-16T13:15:09.919627+00:00"
+        "scraped_at": "2026-08-24T14:22:54.713238+00:00"
     },
     {
-        "country": "Europe",
-        "league": "Conference League",
-        "home_team": "Inter Turku (Fin)",
-        "away_team": "FK Sarajevo (Bih)",
-        "kickoff": "2026-07-16T17:00",
-        "kickoff_text": "Today, 17:00 1X2",
+        "country": "Spain",
+        "league": "LaLiga",
+        "home_team": "Osasuna",
+        "away_team": "Levante",
+        "kickoff": "2026-08-24T19:30",
+        "kickoff_text": "Today 19:30 Today, 19:30 1X2",
         "market": "1X2",
         "odds": [
             {
                 "outcome": "1",
-                "odds": 1.7
+                "odds": 1.89
             },
             {
                 "outcome": "X",
-                "odds": 4.0
+                "odds": 3.55
             },
             {
                 "outcome": "2",
-                "odds": 4.5
+                "odds": 4.4
             }
         ],
         "community_votes_pct": [
             {
                 "outcome": "1",
-                "pct": 83
+                "pct": 84
             },
             {
                 "outcome": "X",
-                "pct": 15
+                "pct": 13
             },
             {
                 "outcome": "2",
                 "pct": 3
             }
         ],
-        "match_url": "https://www.oddsportal.com/football/h2h/fk-sarajevo-MNOCxFD0/inter-turku-QwkNUoNH/#vN8LYgUI:1X2;2",
+        "match_url": "https://www.oddsportal.com/football/h2h/levante-G8FL0ShI/osasuna-ETdxjU8a/#b1nulsUp:1X2;2",
         "sport": "football",
-        "scraped_at": "2026-07-16T13:15:09.919627+00:00"
+        "scraped_at": "2026-08-24T14:22:54.713238+00:00"
     },
     {
-        "country": "Europe",
-        "league": "Europa League",
-        "home_team": "Vestri (Ice)",
-        "away_team": "Qarabag (Aze)",
-        "kickoff": "2026-07-16T22:00",
-        "kickoff_text": "Today, 22:00 BTTS",
-        "market": "BTTS",
+        "country": "Italy",
+        "league": "Serie A",
+        "home_team": "Bologna",
+        "away_team": "Lazio",
+        "kickoff": "2026-08-24T18:30",
+        "kickoff_text": "Today 18:30 Today, 18:30 1X2",
+        "market": "1X2",
         "odds": [
             {
-                "outcome": "Yes",
-                "odds": 2.5
+                "outcome": "1",
+                "odds": 2.36
             },
             {
-                "outcome": "No",
-                "odds": 1.58
+                "outcome": "X",
+                "odds": 3.15
+            },
+            {
+                "outcome": "2",
+                "odds": 3.4
             }
         ],
         "community_votes_pct": [
             {
-                "outcome": "Yes",
-                "pct": 100
+                "outcome": "1",
+                "pct": 56
             },
             {
-                "outcome": "No",
+                "outcome": "X",
+                "pct": 36
+            },
+            {
+                "outcome": "2",
+                "pct": 8
+            }
+        ],
+        "match_url": "https://www.oddsportal.com/football/h2h/bologna-0M9xNN8N/lazio-URcSl02h/#vm6sImkC:1X2;2",
+        "sport": "football",
+        "scraped_at": "2026-08-24T14:22:54.713238+00:00"
+    },
+    {
+        "country": "Spain",
+        "league": "LaLiga",
+        "home_team": "Malaga",
+        "away_team": "Dep. A Coruna",
+        "kickoff": "2026-08-24T21:30",
+        "kickoff_text": "Today 21:30 Today, 21:30 1X2",
+        "market": "1X2",
+        "odds": [
+            {
+                "outcome": "1",
+                "odds": 2.37
+            },
+            {
+                "outcome": "X",
+                "odds": 3.15
+            },
+            {
+                "outcome": "2",
+                "odds": 3.41
+            }
+        ],
+        "community_votes_pct": [
+            {
+                "outcome": "1",
+                "pct": 50
+            },
+            {
+                "outcome": "X",
+                "pct": 45
+            },
+            {
+                "outcome": "2",
+                "pct": 5
+            }
+        ],
+        "match_url": "https://www.oddsportal.com/football/h2h/dep-a-coruna-Q51ZzMS6/malaga-25tIqYiJ/#2V09g36N:1X2;2",
+        "sport": "football",
+        "scraped_at": "2026-08-24T14:22:54.713238+00:00"
+    },
+    {
+        "country": "Denmark",
+        "league": "Superliga",
+        "home_team": "Brondby",
+        "away_team": "Silkeborg",
+        "kickoff": "2026-08-24T19:00",
+        "kickoff_text": "Today 19:00 Today, 19:00 1X2",
+        "market": "1X2",
+        "odds": [
+            {
+                "outcome": "1",
+                "odds": 1.43
+            },
+            {
+                "outcome": "X",
+                "odds": 5.0
+            },
+            {
+                "outcome": "2",
+                "odds": 6.6
+            }
+        ],
+        "community_votes_pct": [
+            {
+                "outcome": "1",
+                "pct": 94
+            },
+            {
+                "outcome": "X",
+                "pct": 6
+            },
+            {
+                "outcome": "2",
                 "pct": 0
             }
         ],
-        "match_url": "https://www.oddsportal.com/football/h2h/qarabag-agdam-Qgd3eSin/vestri-Y9PMInnH/#Eyq68Q8T:bts;2",
+        "match_url": "https://www.oddsportal.com/football/h2h/brondby-67R5vKqt/silkeborg-4dCl8IE5/#8GyjUo9T:1X2;2",
         "sport": "football",
-        "scraped_at": "2026-07-16T13:15:09.919627+00:00"
+        "scraped_at": "2026-08-24T14:22:54.713238+00:00"
     },
     {
-        "country": "Europe",
-        "league": "Europa League",
-        "home_team": "U. Cluj (Rou)",
-        "away_team": "Dyn. Kyiv (Ukr)",
-        "kickoff": "2026-07-16T19:30",
-        "kickoff_text": "Today, 19:30 1X2",
+        "country": "Bulgaria",
+        "league": "efbet League",
+        "home_team": "Botev Vratsa",
+        "away_team": "Botev Plovdiv",
+        "kickoff": "2026-08-24T18:00",
+        "kickoff_text": "Today 18:00 Today, 18:00 1X2",
         "market": "1X2",
         "odds": [
             {
                 "outcome": "1",
-                "odds": 5.2
+                "odds": 4.2
             },
             {
                 "outcome": "X",
-                "odds": 3.97
+                "odds": 3.4
             },
             {
                 "outcome": "2",
-                "odds": 1.62
+                "odds": 1.79
             }
         ],
         "community_votes_pct": [
             {
                 "outcome": "1",
-                "pct": 7
+                "pct": 0
             },
             {
                 "outcome": "X",
-                "pct": 15
+                "pct": 25
             },
             {
                 "outcome": "2",
-                "pct": 78
+                "pct": 75
             }
         ],
-        "match_url": "https://www.oddsportal.com/football/h2h/dynamo-kyiv-nNpqXMwH/universitatea-cluj-Us6gkXaT/#UTn36wwq:1X2;2",
+        "match_url": "https://www.oddsportal.com/football/h2h/botev-plovdiv-xzz3KroU/botev-vratsa-revfhoot/#Uo6tQPi3:1X2;2",
         "sport": "football",
-        "scraped_at": "2026-07-16T13:15:09.919627+00:00"
+        "scraped_at": "2026-08-24T14:22:54.713238+00:00"
     },
     {
-        "country": "World",
-        "league": "World Championship 2026",
-        "home_team": "Spain",
-        "away_team": "Argentina",
-        "kickoff": "2026-07-19T21:00",
-        "kickoff_text": "19/Jul, 21:00 1X2",
+        "country": "France",
+        "league": "Ligue 2",
+        "home_team": "Reims",
+        "away_team": "Annecy",
+        "kickoff": "2026-08-24T20:45",
+        "kickoff_text": "Today 20:45 Today, 20:45 1X2",
         "market": "1X2",
         "odds": [
             {
                 "outcome": "1",
-                "odds": 2.35
+                "odds": 1.8
             },
             {
                 "outcome": "X",
-                "odds": 3.05
+                "odds": 3.78
             },
             {
                 "outcome": "2",
-                "odds": 3.55
+                "odds": 4.4
             }
         ],
         "community_votes_pct": [
             {
                 "outcome": "1",
-                "pct": 68
+                "pct": 64
             },
             {
                 "outcome": "X",
-                "pct": 16
+                "pct": 14
             },
             {
                 "outcome": "2",
-                "pct": 16
+                "pct": 21
             }
         ],
-        "match_url": "https://www.oddsportal.com/football/h2h/argentina-f9OppQjp/spain-bLyo6mco/#UgbUKPmT:1X2;2",
+        "match_url": "https://www.oddsportal.com/football/h2h/annecy-25dB6Eto/reims-tItR6sEf/#0CDVwY6e:1X2;2",
         "sport": "football",
-        "scraped_at": "2026-07-16T13:15:09.919627+00:00"
+        "scraped_at": "2026-08-24T14:22:54.713238+00:00"
     }
 ]

@@ -1,0 +1,32 @@
+[
+    {
+        "mode": "match",
+        "match_url": "https://www.oddsportal.com/football/h2h/chelsea-4fGZN2oK/fulham-69ZiU2Om/#C2Nfvg77",
+        "event_id": "C2Nfvg77",
+        "home_team": "Fulham",
+        "away_team": "Chelsea",
+        "kickoff": "Today, 24 Aug 2026, 21:00",
+        "is_prematch": true,
+        "markets": [
+            {
+                "market": "1X2",
+                "scope": "Full Time",
+                "outcomes": [
+                    {
+                        "outcome": "1",
+                        "votes_pct": 5
+                    },
+                    {
+                        "outcome": "X",
+                        "votes_pct": 11
+                    },
+                    {
+                        "outcome": "2",
+                        "votes_pct": 84
+                    }
+                ]
+            }
+        ],
+        "scraped_at": "2026-08-24T14:23:01.035444+00:00"
+    }
+]
