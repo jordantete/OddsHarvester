@@ -85,9 +85,10 @@ class TestVolleyballBasicMarkets:
         home_away = actual[0].get("home_away_market")
         assert home_away, "Volleyball regression: home_away_market missing — scraper stored metadata only"
 
-        # End-to-end coverage for match_info: this playoff match carries a populated
-        # eventData.staticInfo (the only captured fixture that does).
-        assert actual[0].get("match_info") == "Perugia wins series 3-0., Third leg."
+        # match_info is always None since the 2026-08 redesign: the react-event-header
+        # JSON (eventData.staticInfo) no longer exists and the DOM carries no
+        # equivalent note. Locked in as a known data regression (issue #85).
+        assert actual[0].get("match_info") is None
 
         expected = load_fixture(
             SUPERLEGA_MATCH["sport"],

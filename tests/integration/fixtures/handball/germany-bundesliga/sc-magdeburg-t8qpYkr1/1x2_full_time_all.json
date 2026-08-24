@@ -1,7 +1,8 @@
 [
     {
-        "scraped_date": "2026-05-18 13:17:43 UTC",
-        "match_date": "2026-05-10 16:30:00 UTC",
+        "scraped_date": "2026-08-24 13:20:13 UTC",
+        "match_date": "2026-05-10 14:30:00 UTC",
+        "season": null,
         "match_link": "https://www.oddsportal.com/handball/h2h/hsv-hamburg-2XSOzhbr/sc-magdeburg-t8qpYkr1/#vglQ4eEN",
         "home_team": "SC Magdeburg",
         "away_team": "Hamburg",
@@ -11,7 +12,8 @@
         "partial_results": "(21:12, 20:16)",
         "venue": null,
         "venue_town": null,
-        "venue_country": "",
+        "venue_country": null,
+        "match_info": null,
         "1x2_market": [
             {
                 "1": "1.08",
@@ -19,14 +21,11 @@
                 "2": "8.35",
                 "bookmaker_name": "Betclic.fr",
                 "period": "FullTime",
-                "submarket_name": "1X2"
-            },
-            {
-                "1": "1.09",
-                "X": "15.00",
-                "2": "11.00",
-                "bookmaker_name": "Bets.io",
-                "period": "FullTime",
+                "blocked_outcomes": [
+                    "1",
+                    "X",
+                    "2"
+                ],
                 "submarket_name": "1X2"
             },
             {
@@ -34,22 +33,6 @@
                 "X": "11.00",
                 "2": "6.50",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime",
-                "submarket_name": "1X2"
-            },
-            {
-                "1": "1.11",
-                "X": "14.00",
-                "2": "8.50",
-                "bookmaker_name": "Roobet",
-                "period": "FullTime",
-                "submarket_name": "1X2"
-            },
-            {
-                "1": "1.08",
-                "X": "23.00",
-                "2": "11.00",
-                "bookmaker_name": "Stake.com",
                 "period": "FullTime",
                 "submarket_name": "1X2"
             },

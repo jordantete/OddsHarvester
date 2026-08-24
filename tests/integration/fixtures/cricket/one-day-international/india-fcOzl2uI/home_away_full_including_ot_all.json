@@ -1,18 +1,41 @@
 [
     {
-        "scraped_date": "2026-07-18 23:27:28 UTC",
+        "scraped_date": "2026-08-24 13:20:54 UTC",
         "match_date": "2026-07-19 10:00:00 UTC",
+        "season": null,
         "match_link": "https://www.oddsportal.com/cricket/h2h/england-UJC5mtAU/india-fcOzl2uI/",
         "home_team": "England",
         "away_team": "India",
         "league_name": "One Day International",
-        "home_score": "",
-        "away_score": "",
-        "partial_results": "",
+        "home_score": null,
+        "away_score": null,
+        "partial_results": null,
         "venue": null,
         "venue_town": null,
-        "venue_country": "",
+        "venue_country": "World",
         "match_info": null,
-        "home_away_market": []
+        "home_away_market": [
+            {
+                "1": "1.83",
+                "2": "1.97",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Home/Away"
+            },
+            {
+                "1": "1.65",
+                "2": "2.08",
+                "bookmaker_name": "Roobet",
+                "period": "FullIncludingOT",
+                "submarket_name": "Home/Away"
+            },
+            {
+                "1": "1.75",
+                "2": "2.10",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Home/Away"
+            }
+        ]
     }
 ]

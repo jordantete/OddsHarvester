@@ -11,8 +11,8 @@
     },
     "match_date": "2026-05-10 16:30:00 UTC",
     "notes": "",
-    "captured_at": "2026-05-18T13:17:55.913712+00:00",
-    "oddsharvester_version": "0.2.1",
+    "captured_at": "2026-08-24T13:20:19.203136+00:00",
+    "oddsharvester_version": "0.10.0",
     "available_fixtures": [
         "1x2_full_time_all.json"
     ]

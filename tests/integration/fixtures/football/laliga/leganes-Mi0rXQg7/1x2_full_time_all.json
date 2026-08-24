@@ -1,7 +1,8 @@
 [
     {
-        "scraped_date": "2026-04-28 22:04:31 UTC",
+        "scraped_date": "2026-08-24 13:20:01 UTC",
         "match_date": "2020-06-16 20:00:00 UTC",
+        "season": null,
         "match_link": "https://www.oddsportal.com/football/h2h/barcelona-SKbpVP5K/leganes-Mi0rXQg7/#hYV97ShC",
         "home_team": "Barcelona",
         "away_team": "Leganes",
@@ -9,9 +10,10 @@
         "home_score": "2",
         "away_score": "0",
         "partial_results": "(1:0, 1:0)",
-        "venue": "Estadio Municipal de Butarque",
-        "venue_town": "Leganes",
-        "venue_country": "Spain",
+        "venue": null,
+        "venue_town": null,
+        "venue_country": null,
+        "match_info": null,
         "1x2_market": [
             {
                 "1": "1.18",

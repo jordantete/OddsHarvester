@@ -91,13 +91,12 @@ class TestCricketBasicMarkets:
         assert actual[0].get("away_team") == "India"
         assert actual[0].get("league_name") == "One Day International"
 
-        # Documented OddsPortal behavior: cricket detail pages carry no per-bookmaker
-        # odds table, so home_away_market is empty. This is the inverse of the other
-        # sports' non-empty odds guard.
-        assert actual[0].get("home_away_market") == [], (
-            "Cricket now returns odds: OddsPortal may have added a cricket odds table; "
-            "revisit the home_away registration and this assertion (see module docstring)."
-        )
+        # Since the 2026-08 redesign cricket detail pages DO render a per-bookmaker
+        # odds table (they did not before — gotchas §14). Guard odds presence like
+        # the other sports.
+        home_away = actual[0].get("home_away_market")
+        assert home_away, "Cricket regression: home_away_market missing — scraper stored metadata only"
+        assert all(e.get("bookmaker_name") for e in home_away)
 
         expected = load_fixture(
             ENGLAND_INDIA_MATCH["sport"],

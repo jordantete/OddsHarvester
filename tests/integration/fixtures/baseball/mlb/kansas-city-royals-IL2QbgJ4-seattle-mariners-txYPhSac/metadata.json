@@ -9,10 +9,10 @@
         "home": "6",
         "away": "7"
     },
-    "match_date": "2026-05-02 03:45:00 UTC",
+    "match_date": "2026-05-02 01:45:00 UTC",
     "notes": "",
-    "captured_at": "2026-05-11T09:14:17.930674+00:00",
-    "oddsharvester_version": "0.1.0",
+    "captured_at": "2026-08-24T13:20:49.314375+00:00",
+    "oddsharvester_version": "0.10.0",
     "available_fixtures": [
         "home_away_full_time_all.json"
     ]

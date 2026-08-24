@@ -11,7 +11,7 @@ LEICESTER_BRENTFORD = {
     "sport": "football",
     "league": "premier-league",
     "match_id": "leicester-brentford-xQ77QTN0",
-    "url": "https://www.oddsportal.com/football/england/premier-league/leicester-brentford-xQ77QTN0",
+    "url": "https://www.oddsportal.com/football/h2h/brentford-xYe7DwID/leicester-KrrdAMyI/#xQ77QTN0",
 }
 
 REAL_MADRID_BARCELONA = {

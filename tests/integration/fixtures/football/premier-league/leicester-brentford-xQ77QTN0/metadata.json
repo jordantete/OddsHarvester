@@ -1,6 +1,6 @@
 {
-    "match_id": "xQ77QTN0",
-    "match_url": "https://www.oddsportal.com/football/england/premier-league/leicester-brentford-xQ77QTN0",
+    "match_id": "KrrdAMyI",
+    "match_url": "https://www.oddsportal.com/football/h2h/brentford-xYe7DwID/leicester-KrrdAMyI/#xQ77QTN0",
     "sport": "football",
     "league": "premier-league",
     "home_team": "Leicester",
@@ -11,8 +11,8 @@
     },
     "match_date": "2025-02-21 20:00:00 UTC",
     "notes": "",
-    "captured_at": "2026-04-28T14:15:53.074216+00:00",
-    "oddsharvester_version": "0.1.0",
+    "captured_at": "2026-08-24T13:25:32.399134+00:00",
+    "oddsharvester_version": "0.10.0",
     "available_fixtures": [
         "1x2_1st_half_all.json",
         "1x2_btts_double_chance_full_time_all.json",

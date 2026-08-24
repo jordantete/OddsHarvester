@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-FOOTBALL_MATCH_URL = "https://www.oddsportal.com/football/england/premier-league/leicester-brentford-xQ77QTN0"
+FOOTBALL_MATCH_URL = "https://www.oddsportal.com/football/h2h/brentford-xYe7DwID/leicester-KrrdAMyI/#xQ77QTN0"
 BASKETBALL_MATCH_URL = "https://www.oddsportal.com/basketball/usa/nba/los-angeles-lakers-boston-celtics-0fwUQJEk/"
 TENNIS_MATCH_URL = (
     "https://www.oddsportal.com/tennis/australia/atp-australian-open-2024/djokovic-novak-sinner-jannik-IwSMNP62/"
