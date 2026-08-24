@@ -56,28 +56,27 @@ class TestOddsParser:
         )
 
     SAMPLE_HTML_ODDS_HISTORY = """
-    <div>
-        <h3>Odds movement</h3>
+<div class="flex w-max flex-col gap-2">
+    <h3 class="text-sm font-semibold uppercase leading-6">Odds movement</h3>
+    <div class="flex flex-row gap-3">
         <div class="flex flex-col gap-1">
-            <div class="flex gap-3">
-                <div class="font-normal">10 Jun, 14:30</div>
-            </div>
-            <div class="flex gap-3">
-                <div class="font-normal">10 Jun, 12:00</div>
-            </div>
+            <div class="text-[10px] font-normal">10 Jun, 14:30</div>
+            <div class="text-[10px] font-normal">10 Jun, 12:00</div>
         </div>
         <div class="flex flex-col gap-1">
-            <div class="font-bold">1.95</div>
-            <div class="font-bold">1.90</div>
+            <div class="text-[10px] font-bold">1.95</div>
+            <div class="text-[10px] font-bold">1.90</div>
         </div>
-        <div class="mt-2 gap-1">
-            <div class="flex gap-1">
-                <div>10 Jun, 08:00</div>
-                <div class="font-bold">1.85</div>
-            </div>
+        <div class="flex flex-col gap-1">
+            <div class="text-[10px] font-bold text-green-dark">+0.05</div>
         </div>
     </div>
-    """
+    <div class="mt-2 gap-1">
+        <div class="text-[10px] font-bold">Opening odds:</div>
+        <div class="flex gap-1"><div class="font-normal">10 Jun, 08:00</div><div class="font-bold">1.85</div></div>
+    </div>
+</div>
+"""
 
     def test_parse_market_odds_success(self, odds_parser):
         """Test successful parsing of market odds."""
@@ -224,25 +223,25 @@ class TestOddsParser:
     def test_parse_odds_history_modal_fractional_odds(self, odds_parser):
         """Test parsing odds history when bookmaker returns fractional odds."""
         fractional_html = """
-        <div>
-            <h3>Odds movement</h3>
-            <div class="flex flex-col gap-1">
-                <div class="flex gap-3">
-                    <div class="font-normal">10 Jun, 14:30</div>
+        <div class="flex w-max flex-col gap-2">
+            <h3 class="text-sm font-semibold uppercase leading-6">Odds movement</h3>
+            <div class="flex flex-row gap-3">
+                <div class="flex flex-col gap-1">
+                    <div class="text-[10px] font-normal">10 Jun, 14:30</div>
+                    <div class="text-[10px] font-normal">10 Jun, 12:00</div>
                 </div>
-                <div class="flex gap-3">
-                    <div class="font-normal">10 Jun, 12:00</div>
+                <div class="flex flex-col gap-1">
+                    <div class="text-[10px] font-bold">4/5</div>
+                    <div class="text-[10px] font-bold">21/20</div>
                 </div>
-            </div>
-            <div class="flex flex-col gap-1">
-                <div class="font-bold">4/5</div>
-                <div class="font-bold">21/20</div>
+                <div class="flex flex-col gap-1">
+                    <div class="text-[10px] font-bold text-green-dark">-0.11</div>
+                </div>
             </div>
             <div class="mt-2 gap-1">
-                <div class="flex gap-1">
-                    <div>10 Jun, 08:00</div>
-                    <div class="font-bold">9/2</div>
-                </div>
+                <div class="text-[10px] font-bold">Opening odds:</div>
+                <div class="flex gap-1"><div class="font-normal">10 Jun, 08:00</div>
+                <div class="font-bold">9/2</div></div>
             </div>
         </div>
         """

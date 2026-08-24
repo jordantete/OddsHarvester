@@ -33,19 +33,19 @@ class OddsHistoryExtractor:
         modals_data = []
 
         try:
-            # Find all bookmaker rows
-            rows = await page.query_selector_all(OddsPortalSelectors.BOOKMAKER_ROW_CSS)
+            # Find all bookmaker rows (redesign: one <tr> per bookmaker)
+            rows = await page.query_selector_all(OddsPortalSelectors.BOOKMAKER_ROW_WITH_NAME_CSS)
 
             for row in rows:
                 try:
-                    logo_img = await row.query_selector(OddsPortalSelectors.BOOKMAKER_LOGO_CSS)
+                    name_el = await row.query_selector(OddsPortalSelectors.BOOKMAKER_NAME_CSS)
 
-                    if logo_img:
-                        title = await logo_img.get_attribute("title")
+                    if name_el:
+                        title = ((await name_el.text_content()) or "").strip()
 
                         if title and bookmaker_name.lower() in title.lower():
                             self.logger.info(f"Found matching bookmaker row: {title}")
-                            odds_blocks = await row.query_selector_all(OddsPortalSelectors.ODDS_BLOCK_CSS)
+                            odds_blocks = await row.query_selector_all(OddsPortalSelectors.ODD_CELL_CSS)
 
                             for odds in odds_blocks:
                                 await odds.hover()

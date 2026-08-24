@@ -29,25 +29,24 @@ SAMPLE_HTML_ODDS = """
 """
 
 SAMPLE_HTML_ODDS_HISTORY = """
-<div>
-    <h3>Odds movement</h3>
-    <div class="flex flex-col gap-1">
-        <div class="flex gap-3">
-            <div class="font-normal">10 Jun, 14:30</div>
+<div class="flex w-max flex-col gap-2">
+    <h3 class="text-sm font-semibold uppercase leading-6">Odds movement</h3>
+    <div class="flex flex-row gap-3">
+        <div class="flex flex-col gap-1">
+            <div class="text-[10px] font-normal">10 Jun, 14:30</div>
+            <div class="text-[10px] font-normal">10 Jun, 12:00</div>
         </div>
-        <div class="flex gap-3">
-            <div class="font-normal">10 Jun, 12:00</div>
+        <div class="flex flex-col gap-1">
+            <div class="text-[10px] font-bold">1.95</div>
+            <div class="text-[10px] font-bold">1.90</div>
         </div>
-    </div>
-    <div class="flex flex-col gap-1">
-        <div class="font-bold">1.95</div>
-        <div class="font-bold">1.90</div>
+        <div class="flex flex-col gap-1">
+            <div class="text-[10px] font-bold text-green-dark">+0.05</div>
+        </div>
     </div>
     <div class="mt-2 gap-1">
-        <div class="flex gap-1">
-            <div>10 Jun, 08:00</div>
-            <div class="font-bold">1.85</div>
-        </div>
+        <div class="text-[10px] font-bold">Opening odds:</div>
+        <div class="flex gap-1"><div class="font-normal">10 Jun, 08:00</div><div class="font-bold">1.85</div></div>
     </div>
 </div>
 """
@@ -475,7 +474,7 @@ class TestOddsPortalMarketExtractor:
         # Create mock for bookmaker row
         bookmaker_row = AsyncMock()
         logo_img = AsyncMock()
-        logo_img.get_attribute = AsyncMock(return_value=bookmaker_name)
+        logo_img.text_content = AsyncMock(return_value=bookmaker_name)
         bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
 
         # Create mock for odds blocks
@@ -511,7 +510,7 @@ class TestOddsPortalMarketExtractor:
         # Create mock for bookmaker row
         bookmaker_row = AsyncMock()
         logo_img = AsyncMock()
-        logo_img.get_attribute = AsyncMock(return_value="DifferentBookmaker")
+        logo_img.text_content = AsyncMock(return_value="DifferentBookmaker")
         bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
 
         # Create mock for page

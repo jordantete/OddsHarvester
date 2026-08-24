@@ -34,6 +34,9 @@ class OddsPortalSelectors:
 
     # Odds table (redesign): one <tr> per bookmaker; peripheral rows to skip.
     BOOKMAKER_NAME_TESTID = "outrights-expanded-bookmaker-name"
+    BOOKMAKER_NAME_CSS = "[data-testid='outrights-expanded-bookmaker-name']"
+    BOOKMAKER_ROW_WITH_NAME_CSS = "tr:has([data-testid='outrights-expanded-bookmaker-name'])"
+    ODD_CELL_CSS = "[data-testid^='odd-container']"
     ODD_CELL_TESTID_PREFIX = "odd-container"
     PAYOUT_TESTID = "payout-container"
     TABLE_SKIP_ROW_TESTIDS: ClassVar[tuple[str, ...]] = ("my-coupon-row", "user-predictions-row", "odds-alert-row")
@@ -181,24 +184,10 @@ class OddsPortalSelectors:
                 return tail
         return specific_market
 
-    # Bookmaker elements — BeautifulSoup class patterns
-    BOOKMAKER_ROW_CLASS = "border-black-borders"
-    BOOKMAKER_ROW_FALLBACK_CLASS = r"^border-black-borders flex h-9"
-    BOOKMAKER_LOGO_CLASS = "bookmaker-logo"
-    ODDS_BLOCK_CLASS_PATTERN = r"flex-center.*flex-col.*font-bold"
     # OddsPortal strikes through an odds value when the feed's per-outcome `act`
     # flag is false (bookmaker no longer offering that bet). A CSS selector, not a
     # class regex: soupsieve matches class tokens exactly. See gotchas §18.
     ODDS_BLOCKED_SELECTOR = ".line-through"
-    # Scope marker: the bookmaker table header sits inside the container that holds
-    # only the real bookmaker rows. Used to scope row search and skip peripheral
-    # sections (Previous Matches, H2H, etc.) whose rows share `border-black-borders`.
-    BOOKMAKER_TABLE_HEADER_TESTID = "bookmaker-table-header-line"
-
-    # Bookmaker elements — Playwright CSS selectors
-    BOOKMAKER_ROW_CSS = "div.border-black-borders.flex.h-9"
-    BOOKMAKER_LOGO_CSS = "img.bookmaker-logo"
-    ODDS_BLOCK_CSS = "div.flex-center.flex-col.font-bold"
     # Match the tooltip header by class: its text is localized on regional mirrors.
     ODDS_MOVEMENT_HEADER = "h3.font-semibold.uppercase.leading-6"
 

@@ -30,7 +30,7 @@ class TestOddsHistoryExtractor:
         # Create mock for bookmaker row
         bookmaker_row = AsyncMock()
         logo_img = AsyncMock()
-        logo_img.get_attribute = AsyncMock(return_value=bookmaker_name)
+        logo_img.text_content = AsyncMock(return_value=bookmaker_name)
         bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
 
         # Create mock for odds blocks
@@ -67,7 +67,7 @@ class TestOddsHistoryExtractor:
         # Create mock for bookmaker row
         bookmaker_row = AsyncMock()
         logo_img = AsyncMock()
-        logo_img.get_attribute = AsyncMock(return_value="DifferentBookmaker")
+        logo_img.text_content = AsyncMock(return_value="DifferentBookmaker")
         bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
 
         # Create mock for page
@@ -107,7 +107,7 @@ class TestOddsHistoryExtractor:
         # Create mock for bookmaker row
         bookmaker_row = AsyncMock()
         logo_img = AsyncMock()
-        logo_img.get_attribute = AsyncMock(return_value=bookmaker_name)
+        logo_img.text_content = AsyncMock(return_value=bookmaker_name)
         bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
 
         # Create mock for odds blocks (empty)
@@ -131,7 +131,7 @@ class TestOddsHistoryExtractor:
         # Create mock for bookmaker row
         bookmaker_row = AsyncMock()
         logo_img = AsyncMock()
-        logo_img.get_attribute = AsyncMock(return_value=bookmaker_name)
+        logo_img.text_content = AsyncMock(return_value=bookmaker_name)
         bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
 
         # Create mock for odds blocks
@@ -157,7 +157,7 @@ class TestOddsHistoryExtractor:
         # Create mock for bookmaker row
         bookmaker_row = AsyncMock()
         logo_img = AsyncMock()
-        logo_img.get_attribute = AsyncMock(return_value=bookmaker_name)
+        logo_img.text_content = AsyncMock(return_value=bookmaker_name)
         bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
 
         # Create mock for odds blocks
@@ -192,7 +192,7 @@ class TestOddsHistoryExtractor:
         # Create mock for bookmaker row
         bookmaker_row = AsyncMock()
         logo_img = AsyncMock()
-        logo_img.get_attribute = AsyncMock(return_value=bookmaker_name)
+        logo_img.text_content = AsyncMock(return_value=bookmaker_name)
         bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
 
         # Create mock for multiple odds blocks
@@ -236,13 +236,13 @@ class TestOddsHistoryExtractor:
         # Create mock for first bookmaker row (no match)
         bookmaker_row1 = AsyncMock()
         logo_img1 = AsyncMock()
-        logo_img1.get_attribute = AsyncMock(return_value="DifferentBookmaker")
+        logo_img1.text_content = AsyncMock(return_value="DifferentBookmaker")
         bookmaker_row1.query_selector = AsyncMock(return_value=logo_img1)
 
         # Create mock for second bookmaker row (match)
         bookmaker_row2 = AsyncMock()
         logo_img2 = AsyncMock()
-        logo_img2.get_attribute = AsyncMock(return_value=bookmaker_name)
+        logo_img2.text_content = AsyncMock(return_value=bookmaker_name)
         bookmaker_row2.query_selector = AsyncMock(return_value=logo_img2)
 
         # Create mock for odds blocks

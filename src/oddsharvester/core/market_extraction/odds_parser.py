@@ -124,8 +124,11 @@ class OddsParser:
 
         try:
             odds_history = []
-            timestamps = soup.select("div.flex.flex-col.gap-1 > div.flex.gap-3 > div.font-normal")
-            odds_values = soup.select("div.flex.flex-col.gap-1 + div.flex.flex-col.gap-1 > div.font-bold")
+            # Redesign: history columns are siblings inside a flex-row wrapper
+            # (col 0 = timestamps, col 1 = values, col 2 = deltas).
+            cols = soup.select("div.flex.flex-row.gap-3 > div.flex.flex-col.gap-1")
+            timestamps = cols[0].select("div.font-normal") if cols else []
+            odds_values = cols[1].select("div.font-bold") if len(cols) > 1 else []
 
             for ts, odd in zip(timestamps, odds_values, strict=False):
                 time_text = ts.get_text(strip=True)
