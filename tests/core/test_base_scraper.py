@@ -1878,6 +1878,12 @@ class TestParseLiveInfo:
         html = '<div data-testid="live-info"><div>Final\u00a0result</div><div>0:2</div></div>'
         assert _parse_live_info(self._soup(html)) is None
 
+    def test_returns_none_for_finished_match_single_chunk(self):
+        """2026-08 redesign: the persistent live-info can serve the whole terminal
+        text as one chunk ("Final result 1:2 (0:1, 1:1)")."""
+        html = '<div data-testid="live-info">Final result 1:2 (0:1, 1:1)</div>'
+        assert _parse_live_info(self._soup(html)) is None
+
     def test_normalizes_non_breaking_space_in_period(self):
         html = '<div data-testid="live-info"><div>1st\u00a0Set</div><div>0:0</div></div>'
         assert _parse_live_info(self._soup(html))["live_period"] == "1st Set"

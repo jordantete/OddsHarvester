@@ -273,7 +273,9 @@ def _parse_live_info(soup: BeautifulSoup) -> dict[str, Any] | None:
         elif period is None and not match:
             period = chunk
 
-    if period and period.casefold() in _LIVE_ENDED_PERIOD_MARKERS:
+    # Prefix match: the redesigned page can serve the terminal text as a single
+    # chunk ("Final result 1:2 (0:1, 1:1)"), not a standalone marker element.
+    if period and any(period.casefold().startswith(marker) for marker in _LIVE_ENDED_PERIOD_MARKERS):
         return None
 
     live_score_raw = score_raw
