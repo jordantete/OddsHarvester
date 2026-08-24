@@ -11,19 +11,18 @@ LAKERS_CELTICS = {
     "sport": "basketball",
     "league": "nba",
     "match_id": "los-angeles-lakers-boston-celtics-0fwUQJEk",
-    "url": "https://www.oddsportal.com/basketball/usa/nba/los-angeles-lakers-boston-celtics-0fwUQJEk/",
+    "url": "https://www.oddsportal.com/basketball/h2h/boston-celtics-KYD9hVEm/los-angeles-lakers-ngegZ8bg/#0fwUQJEk",
 }
 
 LAKERS_WARRIORS = {
     "sport": "basketball",
     "league": "nba",
     "match_id": "los-angeles-lakers-golden-state-warriors-jZvOnVBk",
-    "url": "https://www.oddsportal.com/basketball/usa/nba-2024-2025/los-angeles-lakers-golden-state-warriors-jZvOnVBk/",
+    "url": "https://www.oddsportal.com/basketball/h2h/golden-state-warriors-SxUtXqch/los-angeles-lakers-ngegZ8bg/#jZvOnVBk",
 }
 
 
 @pytest.mark.integration
-@pytest.mark.live_only
 class TestBasketballBasicMarkets:
     """Tests for basic basketball markets."""
 
@@ -168,7 +167,6 @@ class TestBasketballBasicMarkets:
 
 
 @pytest.mark.integration
-@pytest.mark.live_only
 class TestBasketballPeriods:
     """Tests for basketball period options."""
 

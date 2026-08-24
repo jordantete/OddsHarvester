@@ -1,6 +1,6 @@
 {
-    "match_id": "IwSMNP62",
-    "match_url": "https://www.oddsportal.com/tennis/australia/atp-australian-open-2024/djokovic-novak-sinner-jannik-IwSMNP62/",
+    "match_id": "6HdC3z4H",
+    "match_url": "https://www.oddsportal.com/tennis/h2h/djokovic-novak-AZg49Et9/sinner-jannik-6HdC3z4H/#IwSMNP62",
     "sport": "tennis",
     "league": "australian-open",
     "home_team": "Djokovic N.",
@@ -11,8 +11,8 @@
     },
     "match_date": "2024-01-26 03:45:00 UTC",
     "notes": "",
-    "captured_at": "2026-04-28T14:19:28.998431+00:00",
-    "oddsharvester_version": "0.1.0",
+    "captured_at": "2026-08-24T14:41:34.216376+00:00",
+    "oddsharvester_version": "0.10.0",
     "available_fixtures": [
         "match_winner_1st_set_all.json",
         "match_winner_full_time_all.json",

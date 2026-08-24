@@ -11,21 +11,21 @@ DJOKOVIC_SINNER = {
     "sport": "tennis",
     "league": "australian-open",
     "match_id": "djokovic-novak-sinner-jannik-IwSMNP62",
-    "url": "https://www.oddsportal.com/tennis/australia/atp-australian-open-2024/djokovic-novak-sinner-jannik-IwSMNP62/",
+    "url": "https://www.oddsportal.com/tennis/h2h/djokovic-novak-AZg49Et9/sinner-jannik-6HdC3z4H/#IwSMNP62",
 }
 
 DJOKOVIC_LEHECKA = {
     "sport": "tennis",
     "league": "australian-open",
     "match_id": "djokovic-novak-lehecka-jiri-0ShOHpqe",
-    "url": "https://www.oddsportal.com/tennis/australia/atp-australian-open/djokovic-novak-lehecka-jiri-0ShOHpqe/",
+    "url": "https://www.oddsportal.com/tennis/h2h/djokovic-novak-AZg49Et9/lehecka-jiri-6PlgfXKR/#0ShOHpqe",
 }
 
 HUMBERT_ZVEREV = {
     "sport": "tennis",
     "league": "australian-open",
     "match_id": "humbert-ugo-zverev-alexander-MssXFOD7",
-    "url": "https://www.oddsportal.com/tennis/australia/atp-australian-open/humbert-ugo-zverev-alexander-MssXFOD7/",
+    "url": "https://www.oddsportal.com/tennis/h2h/humbert-ugo-O4ywE5Ah/zverev-alexander-dGbUhw9m/#MssXFOD7",
 }
 
 
@@ -33,7 +33,6 @@ HUMBERT_ZVEREV = {
 class TestTennisBasicMarkets:
     """Tests for basic tennis markets."""
 
-    @pytest.mark.live_only
     def test_tn_001_match_winner(
         self,
         run_scraper,
@@ -80,7 +79,6 @@ class TestTennisBasicMarkets:
         result = compare_match_data(actual[0], expected[0])
         assert result.passed, str(result)
 
-    @pytest.mark.live_only
     def test_tn_002_multiple_markets(
         self,
         run_scraper,
@@ -315,7 +313,6 @@ class TestTennisBasicMarkets:
 class TestTennisPeriods:
     """Tests for tennis period options."""
 
-    @pytest.mark.live_only
     def test_tn_006_1st_set(
         self,
         run_scraper,

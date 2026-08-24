@@ -144,7 +144,7 @@ uv run python scripts/capture_all_hars.py
 
 Recapture on parsing changes, Playwright upgrades, or quarterly.
 
-**Known limit — `live_only` tests:** OddsPortal H2H pages (NBA, real-madrid-barcelona, djokovic-sinner) combine URL fragments (`#match_id`) with runtime-cache-busted AJAX, which HAR can't reproduce — replay falls back to the wrong match. Marked `@pytest.mark.live_only`, skipped by default; run with `--live`. See `tests/integration/helpers/capture.py:_alias_fragmented_redirect_targets` for the partial workaround that handles redirect-with-fragment cases.
+**`live_only` tests:** tests that exercise listing walks and other flows against the real site (no HAR); skipped by default, run with `--live`. The pre-redesign "H2H fragment + cache-busted AJAX" replay limit is gone: since the 2026-08 redesign the SPA fetches match data by the fragment event id with stable URLs, so every match-page fixture replays deterministically (gotchas §19). One residual: the community profile Feed AJAX is still cache-busted, so profile predictions are live-verified only.
 
 ## Code Style
 

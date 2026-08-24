@@ -1,6 +1,6 @@
 {
-    "match_id": "0ShOHpqe",
-    "match_url": "https://www.oddsportal.com/tennis/australia/atp-australian-open/djokovic-novak-lehecka-jiri-0ShOHpqe/",
+    "match_id": "6PlgfXKR",
+    "match_url": "https://www.oddsportal.com/tennis/h2h/djokovic-novak-AZg49Et9/lehecka-jiri-6PlgfXKR/#0ShOHpqe",
     "sport": "tennis",
     "league": "australian-open",
     "home_team": "Djokovic N.",
@@ -11,8 +11,8 @@
     },
     "match_date": "2025-01-19 08:15:00 UTC",
     "notes": "",
-    "captured_at": "2026-04-28T14:17:42.120217+00:00",
-    "oddsharvester_version": "0.1.0",
+    "captured_at": "2026-08-24T14:41:52.560041+00:00",
+    "oddsharvester_version": "0.10.0",
     "available_fixtures": [
         "match_winner_full_time_all.json",
         "over_under_games_22_5_full_time_all.json"

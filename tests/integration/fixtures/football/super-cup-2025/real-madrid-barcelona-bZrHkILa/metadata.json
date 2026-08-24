@@ -1,6 +1,6 @@
 {
-    "match_id": "bZrHkILa",
-    "match_url": "https://www.oddsportal.com/football/spain/super-cup-2025/real-madrid-barcelona-bZrHkILa/",
+    "match_id": "W8mj7MDD",
+    "match_url": "https://www.oddsportal.com/football/h2h/barcelona-SKbpVP5K/real-madrid-W8mj7MDD/#bZrHkILa",
     "sport": "football",
     "league": "super-cup-2025",
     "home_team": "Real Madrid",
@@ -11,8 +11,8 @@
     },
     "match_date": "2025-01-12 19:00:00 UTC",
     "notes": "",
-    "captured_at": "2026-04-28T14:16:30.114534+00:00",
-    "oddsharvester_version": "0.1.0",
+    "captured_at": "2026-08-24T14:40:24.697279+00:00",
+    "oddsharvester_version": "0.10.0",
     "available_fixtures": [
         "1x2_btts_full_time_all.json"
     ]

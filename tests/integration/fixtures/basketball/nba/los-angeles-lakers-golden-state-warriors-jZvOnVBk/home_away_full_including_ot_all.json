@@ -1,105 +1,19 @@
 [
     {
-        "scraped_date": "2026-02-02 09:32:25 UTC",
+        "scraped_date": "2026-08-24 14:40:01 UTC",
         "match_date": "2025-02-07 03:00:00 UTC",
-        "match_link": "https://www.oddsportal.com/basketball/usa/nba-2024-2025/los-angeles-lakers-golden-state-warriors-jZvOnVBk/",
+        "season": null,
+        "match_link": "https://www.oddsportal.com/basketball/h2h/golden-state-warriors-SxUtXqch/los-angeles-lakers-ngegZ8bg/#jZvOnVBk",
         "home_team": "Los Angeles Lakers",
         "away_team": "Golden State Warriors",
-        "league_name": "NBA 2024/2025",
+        "league_name": "NBA",
         "home_score": "120",
         "away_score": "112",
-        "partial_results": "34:21, 35:28, 21:30, 30:33",
-        "venue": "Crypto.com Arena",
-        "venue_town": "Los Angeles, CA",
-        "venue_country": "USA",
-        "home_away_market": [
-            {
-                "1": "1.44",
-                "2": "2.58",
-                "bookmaker_name": "Betclic.fr",
-                "period": "FullIncludingOT",
-                "submarket_name": "Home/Away"
-            },
-            {
-                "1": "1.44",
-                "2": "2.85",
-                "bookmaker_name": "bwin.fr",
-                "period": "FullIncludingOT",
-                "submarket_name": "Home/Away"
-            },
-            {
-                "1": "1.41",
-                "2": "2.95",
-                "bookmaker_name": "Unibet.fr",
-                "period": "FullIncludingOT",
-                "submarket_name": "Home/Away"
-            },
-            {
-                "1": "1.52",
-                "2": "2.55",
-                "bookmaker_name": "Winamax",
-                "period": "FullIncludingOT",
-                "submarket_name": "Home/Away"
-            }
-        ]
-    },
-    {
-        "scraped_date": "2026-04-28 13:42:40 UTC",
-        "match_date": "2026-04-10 02:00:00 UTC",
-        "match_link": "https://www.oddsportal.com/basketball/usa/nba-2024-2025/los-angeles-lakers-golden-state-warriors-jZvOnVBk/",
-        "home_team": "Golden State Warriors",
-        "away_team": "Los Angeles Lakers",
-        "league_name": "NBA",
-        "home_score": "103",
-        "away_score": "119",
-        "partial_results": "23:28, 26:25, 24:29, 30:37",
-        "venue": "Chase Center",
-        "venue_town": "San Francisco, CA",
-        "venue_country": "USA",
-        "home_away_market": [
-            {
-                "1": "1.44",
-                "2": "2.58",
-                "bookmaker_name": "Betclic.fr",
-                "period": "FullIncludingOT",
-                "submarket_name": "Home/Away"
-            },
-            {
-                "1": "1.44",
-                "2": "2.85",
-                "bookmaker_name": "bwin.fr",
-                "period": "FullIncludingOT",
-                "submarket_name": "Home/Away"
-            },
-            {
-                "1": "1.41",
-                "2": "2.95",
-                "bookmaker_name": "Unibet.fr",
-                "period": "FullIncludingOT",
-                "submarket_name": "Home/Away"
-            },
-            {
-                "1": "1.52",
-                "2": "2.55",
-                "bookmaker_name": "Winamax",
-                "period": "FullIncludingOT",
-                "submarket_name": "Home/Away"
-            }
-        ]
-    },
-    {
-        "scraped_date": "2026-04-28 14:12:35 UTC",
-        "match_date": "2026-04-10 02:00:00 UTC",
-        "match_link": "https://www.oddsportal.com/basketball/usa/nba-2024-2025/los-angeles-lakers-golden-state-warriors-jZvOnVBk/",
-        "home_team": "Golden State Warriors",
-        "away_team": "Los Angeles Lakers",
-        "league_name": "NBA",
-        "home_score": "103",
-        "away_score": "119",
-        "partial_results": "23:28, 26:25, 24:29, 30:37",
-        "venue": "Chase Center",
-        "venue_town": "San Francisco, CA",
-        "venue_country": "USA",
+        "partial_results": "(34:21, 35:28, 21:30, 30:33)",
+        "venue": null,
+        "venue_town": null,
+        "venue_country": null,
+        "match_info": null,
         "home_away_market": [
             {
                 "1": "1.44",
