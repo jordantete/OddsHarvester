@@ -17,13 +17,14 @@ def _game_row(href: str, market: str = "1X2") -> str:
   <a data-testid="header-country-item" href="/football/europe/"><p>Europe</p></a>
   <a data-testid="header-tournament-item" href="/football/europe/conference-league/">Conference League</a>
 </div>
-<div data-testid="betting-tip-header">1</div>
-<div data-testid="betting-tip-header">X</div>
-<div data-testid="betting-tip-header">2</div>
 <div data-testid="game-row">
+  <div data-testid="betting-tip-header">1</div>
+  <div data-testid="betting-tip-header">X</div>
+  <div data-testid="betting-tip-header">2</div>
   <a href="{href}">
     <div data-testid="date-time-item"><p>Today,</p><p>17:00</p><span>{market}</span></div>
-    <div data-testid="event-participants"><p>Yelimay Semey</p><p>Alashkert</p></div>
+    <div data-testid="event-participants"><p data-testid="participant-name">Yelimay Semey</p>
+    <p data-testid="participant-name">Alashkert</p></div>
   </a>
   <p data-testid="odd-container-default">1.69</p>
   <div data-testid="prediction-container"><a href="#">89%</a></div>
@@ -100,7 +101,7 @@ async def test_scrape_tags_batch_with_same_scraped_at():
 async def test_scrape_uses_base_url_override():
     scraper, page, _ = _make_scraper(MINIMAL_PAGE_HTML)
     await scraper.scrape(sport="football", base_url="https://www.centroquote.it")
-    assert page.goto.await_args.args[0].startswith("https://www.centroquote.it/predictions/")
+    assert page.goto.await_args.args[0].startswith("https://www.centroquote.it/community/predictions/")
 
 
 @pytest.mark.asyncio

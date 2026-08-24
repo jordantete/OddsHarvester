@@ -1,77 +1,71 @@
-from oddsharvester.core.community.match_community_parser import parse_match_community
+from oddsharvester.core.community.match_community_parser import parse_match_community_dom
 
-_COMMUNITY = {
-    "total": {
-        "E-10620747_1_2_0_0.00": 22,
-        "E-10620747_5_2_0_1.00": 1,
-        "E-10620747_4_2_0_0.00": 3,
-        "E-10620747_13_2_0_0.00": 1,
-        "E-10620747_2_2_0_3.50": 1,
-        "E-10620747_99_2_0_0.00": 5,
-    },
-    "count": {
-        "enc_1a": 20,
-        "enc_1b": 1,
-        "enc_1c": 1,
-        "enc_ah": 1,
-        "enc_dc": 3,
-        "enc_btts": 1,
-        "enc_ou": 1,
-        "enc_unknown": 5,
-    },
-    "group": {
-        "enc_1a": "E-10620747_1_2_0_0.00",
-        "enc_1b": "E-10620747_1_2_0_0.00",
-        "enc_1c": "E-10620747_1_2_0_0.00",
-        "enc_ah": "E-10620747_5_2_0_1.00",
-        "enc_dc": "E-10620747_4_2_0_0.00",
-        "enc_btts": "E-10620747_13_2_0_0.00",
-        "enc_ou": "E-10620747_2_2_0_3.50",
-        "enc_unknown": "E-10620747_99_2_0_0.00",
-    },
-}
-
-_RAW = {
-    "communityData": _COMMUNITY,
-    "startDate": 1784282400,
-    "home_team": "Nordsjaelland",
-    "away_team": "Sparta Prague",
-    "is_started": False,
-    "is_finished": False,
-    "pick_text": "Sparta Prague To win",
-}
+_PREMATCH_HTML = """
+<html><body>
+<div data-testid="game-participants">
+  <div data-testid="game-host"><a data-testid="participant-name">Fulham</a></div>
+  <div data-testid="game-guest"><a data-testid="participant-name">Chelsea</a></div>
+</div>
+<div data-testid="game-time-item"><p>Today,</p><p>24 Aug 2026,</p><p>21:00</p></div>
+<div data-testid="sports-nav-active-tab">1X2</div>
+<div data-testid="sub-nav-active-tab">All Bookies</div>
+<div data-testid="sub-nav-active-tab">Full Time</div>
+<div data-testid="betting-tip-header">1</div>
+<div data-testid="betting-tip-header">X</div>
+<div data-testid="betting-tip-header">2</div>
+<div data-testid="user-predictions-row">
+  <p>User Predictions</p>
+  <div data-testid="prediction-container">5%</div>
+  <div data-testid="prediction-container">11%</div>
+  <div data-testid="prediction-container">84%</div>
+</div>
+</body></html>
+"""
 
 
-def test_prematch_markets_decoded_sorted_and_labeled():
-    rec = parse_match_community(_RAW, "https://www.oddsportal.com/football/h2h/x/y/")
+def test_prematch_vote_percentages_parsed():
+    rec = parse_match_community_dom(
+        _PREMATCH_HTML, "https://www.oddsportal.com/football/h2h/x/y/#C2Nfvg77", event_id="C2Nfvg77"
+    )
     assert rec["mode"] == "match"
-    assert rec["event_id"] == "10620747"
+    assert rec["event_id"] == "C2Nfvg77"
+    assert rec["home_team"] == "Fulham"
+    assert rec["away_team"] == "Chelsea"
+    assert rec["kickoff"] == "Today, 24 Aug 2026, 21:00"
     assert rec["is_prematch"] is True
-    assert rec["top_community_pick"] == "Sparta Prague To win"
-    # Most-voted market first; 1X2 = 22 votes, per-outcome counts sorted desc summing to total.
-    top = rec["markets"][0]
-    assert top["market"] == "1X2"
-    assert top["scope"] == "Full Time"
-    assert top["betting_type_id"] == 1
-    assert top["total_votes"] == 22
-    assert top["outcome_counts"] == [20, 1, 1]
-    assert sum(top["outcome_counts"]) == top["total_votes"]
+    assert rec["markets"] == [
+        {
+            "market": "1X2",
+            "scope": "Full Time",
+            "outcomes": [
+                {"outcome": "1", "votes_pct": 5},
+                {"outcome": "X", "votes_pct": 11},
+                {"outcome": "2", "votes_pct": 84},
+            ],
+        }
+    ]
 
 
-def test_unknown_betting_type_falls_back_without_crashing():
-    rec = parse_match_community(_RAW, "url")
-    unknown = next(m for m in rec["markets"] if m["betting_type_id"] == 99)
-    assert unknown["market"] == "betting_type_99"
-
-
-def test_kickoff_from_start_date_is_utc_iso():
-    rec = parse_match_community(_RAW, "url")
-    assert rec["kickoff"].startswith("2026-07-")
-    assert rec["kickoff"].endswith("+00:00")
-
-
-def test_finished_match_has_no_markets():
-    raw = {**_RAW, "communityData": None, "is_started": True, "is_finished": True}
-    rec = parse_match_community(raw, "url")
-    assert rec["markets"] == []
+def test_started_match_detected_via_red_score():
+    html = _PREMATCH_HTML.replace(
+        '<div data-testid="game-guest"><a data-testid="participant-name">Chelsea</a></div>',
+        '<div data-testid="game-guest"><a data-testid="participant-name">Chelsea</a></div>'
+        '<div class="shrink-0 text-red-dark">1</div><div class="shrink-0 text-red-dark">0</div>',
+    )
+    rec = parse_match_community_dom(html, "url")
     assert rec["is_prematch"] is False
+
+
+def test_finished_match_detected_via_live_info():
+    html = _PREMATCH_HTML.replace(
+        '<div data-testid="user-predictions-row">',
+        '<div data-testid="live-info">Final result 1:2 (0:1, 1:1)</div><div data-testid="user-predictions-row">',
+    )
+    rec = parse_match_community_dom(html, "url")
+    assert rec["is_prematch"] is False
+
+
+def test_non_hydrated_page_yields_no_markets():
+    rec = parse_match_community_dom("<html><body><h1>X - Y</h1></body></html>", "url")
+    assert rec["markets"] == []
+    assert rec["home_team"] is None

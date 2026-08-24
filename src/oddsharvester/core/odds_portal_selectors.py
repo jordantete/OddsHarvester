@@ -100,7 +100,7 @@ class OddsPortalSelectors:
     COMMUNITY_GAME_ROW = "div[data-testid='game-row']"
     COMMUNITY_DATE_TIME = "div[data-testid='date-time-item']"
     COMMUNITY_PARTICIPANTS = "div[data-testid='event-participants']"
-    COMMUNITY_PARTICIPANT_NAME = "p.participant-name"
+    COMMUNITY_PARTICIPANT_NAME = "[data-testid='participant-name']"
     COMMUNITY_ODD_CELL = "p[data-testid='odd-container-default']"
     COMMUNITY_PREDICTION_CELL = "div[data-testid='prediction-container']"
     COMMUNITY_BREADCRUMB_SPORT = "a[data-testid='header-sport-item']"
@@ -114,6 +114,9 @@ class OddsPortalSelectors:
     COMMUNITY_PROFILE_ROI = "[data-testid='user-roi']"
     COMMUNITY_PROFILE_MEMBER_INFO = "[data-testid='member-info']"
     COMMUNITY_PROFILE_STATS_HEADER = "[data-testid='stats-table-header-line']"
+    # Profile sub-tabs (Feed / Followers / Following); the active one carries
+    # 'tab-navigation-active-tab' instead.
+    COMMUNITY_PROFILE_TAB = "[data-testid='navigation-inactive-tab']"
 
     # Live (in-play) pages. `live-info` is the match-page live header (period,
     # score, partial result); it disappears once the match ends. `game-row` is

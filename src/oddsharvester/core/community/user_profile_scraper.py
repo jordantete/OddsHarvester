@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 import logging
 
 from oddsharvester.core.browser.cookies import CookieDismisser
-from oddsharvester.core.community.user_profile_parser import parse_user_profile
+from oddsharvester.core.community.user_profile_parser import parse_profile_feed_predictions, parse_user_profile
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.retry import RetryConfig, retry_with_backoff
@@ -47,10 +47,32 @@ class UserProfileScraper:
 
         html = await page.content()
         record = parse_user_profile(html, tz_name=self.playwright_manager.timezone_id)
+        if record["privacy"] != "private" and not record["predictions"]:
+            # 2026-08 redesign: the predictions list moved to the Feed tab.
+            record["predictions"] = await self._scrape_feed_predictions(page)
         record["scraped_at"] = datetime.now(UTC).isoformat()
         if record["privacy"] == "private":
             logger.warning("Profile '%s' is private; only header stats are available.", username)
         return record
+
+    async def _scrape_feed_predictions(self, page) -> list[dict]:
+        try:
+            tabs = await page.query_selector_all(OddsPortalSelectors.COMMUNITY_PROFILE_TAB)
+            feed_tab = None
+            for tab in tabs:
+                if ((await tab.text_content()) or "").strip().lower() == "feed":
+                    feed_tab = tab
+                    break
+            if feed_tab is None:
+                logger.warning("Profile Feed tab not found; predictions left empty.")
+                return []
+            await feed_tab.click()
+            await page.wait_for_selector(OddsPortalSelectors.COMMUNITY_GAME_ROW, timeout=SELECTOR_TIMEOUT_MS)
+            feed_html = await page.content()
+            return parse_profile_feed_predictions(feed_html, tz_name=self.playwright_manager.timezone_id)
+        except Exception as e:
+            logger.warning("Profile Feed predictions scrape failed: %s", e)
+            return []
 
 
 async def run_user_profile(

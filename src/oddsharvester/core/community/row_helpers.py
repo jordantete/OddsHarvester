@@ -53,12 +53,14 @@ def extract_datetime_and_market(row, tz_name: str | None) -> tuple[str, str | No
     texts = [t.strip() for t in container.stripped_strings if t.strip()]
     market = texts[-1] if texts else ""
     time_token = next((t for t in texts if _TIME_RE.match(t)), None)
-    date_tokens = [t for t in texts if t != market and t != time_token]
     kickoff_text = " ".join(texts)
     kickoff = None
-    # Community rows render future dates as "19/Jul," (slash-separated, trailing comma),
-    # a shape _parse_date_header does not accept. Normalize locally to "19 Jul" (gotchas §13).
-    date_header = " ".join(date_tokens).replace("/", " ").rstrip(",").strip()
+    # Community rows render dates as "19/Jul," (slash-separated, trailing comma),
+    # a shape _parse_date_header does not accept — and since the 2026-08 redesign
+    # the date renders twice (mobile + desktop variants), so only the first
+    # date-looking token is used. Normalize locally to "19 Jul" (gotchas §13).
+    date_token = next((t for t in texts if t != market and t != time_token), None)
+    date_header = (date_token or "").replace("/", " ").rstrip(",").strip()
     parsed_date = _parse_date_header(date_header, tz_name) if date_header else None
     if parsed_date and time_token:
         kickoff = f"{parsed_date.isoformat()}T{time_token.zfill(5)}"

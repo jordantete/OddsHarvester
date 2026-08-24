@@ -27,7 +27,7 @@ SPORT_SITE_SLUGS = {"ice-hockey": "hockey"}
 
 
 class TopPredictionsScraper:
-    """Navigates to /predictions/#sport/<sport>/ and parses the rendered picks."""
+    """Navigates to /community/predictions/#sport/<sport>/ and parses the rendered picks."""
 
     def __init__(self, playwright_manager: PlaywrightManager, cookie_dismisser: CookieDismisser):
         self.playwright_manager = playwright_manager
@@ -36,13 +36,16 @@ class TopPredictionsScraper:
     async def scrape(self, sport: str, base_url: str | None = None) -> list[dict]:
         page = self.playwright_manager.page
         site_slug = SPORT_SITE_SLUGS.get(sport, sport)
-        url = rebase_url(f"{ODDSPORTAL_BASE_URL}/predictions/#sport/{site_slug}/", base_url)
+        url = rebase_url(f"{ODDSPORTAL_BASE_URL}/community/predictions/#sport/{site_slug}/", base_url)
         logger.info(f"Navigating to top predictions page: {url}")
         await page.goto(url, timeout=PAGE_GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
         await self.cookie_dismisser.dismiss(page)
 
         try:
-            await page.wait_for_selector(OddsPortalSelectors.COMMUNITY_GAME_ROW, timeout=SELECTOR_TIMEOUT_MS)
+            # Wait for the predictions section marker, not a bare game-row: other
+            # widgets on the redesigned page render game-rows earlier, and parsing
+            # then yields only skippable rows with no breadcrumb.
+            await page.wait_for_selector(OddsPortalSelectors.COMMUNITY_LEAGUE_HEADER, timeout=SELECTOR_TIMEOUT_MS)
         except Exception:
             # 0 rows with no error is the anti-bot signature (gotchas §6) — or genuinely no picks.
             logger.warning(

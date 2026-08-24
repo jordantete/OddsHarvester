@@ -48,13 +48,38 @@ def test_percentages_roughly_sum_to_100(records):
         assert 95 <= total <= 105
 
 
-def test_non_today_date_row_parses_kickoff(records):
-    # Fixture row 7 (Spain vs Argentina) renders a slash-separated future date
-    # "19/Jul," which base_scraper._parse_date_header cannot parse as-is.
-    row = next(r for r in records if "19/Jul" in r["kickoff_text"])
-    assert row["kickoff"] is not None
-    assert row["kickoff"].endswith("T21:00")
-    assert "-07-19" in row["kickoff"]
+def test_non_today_date_row_parses_kickoff():
+    # Future rows render a slash-separated date "19/Jul," which
+    # base_scraper._parse_date_header cannot parse as-is. The live fixture only
+    # carries today's picks, so this row is synthetic (same markup shape).
+    html = """
+    <div data-testid="sport-country-league-item">
+      <a data-testid="header-sport-item" href="/football/"><div>Football</div></a>
+      <a data-testid="header-country-item" href="/football/world/"><p>World</p></a>
+      <a data-testid="header-tournament-item" href="/football/world/friendly/">Friendly</a>
+    </div>
+    <div data-testid="game-row">
+      <div data-testid="betting-tip-header">1</div>
+      <div data-testid="betting-tip-header">X</div>
+      <div data-testid="betting-tip-header">2</div>
+      <a href="/football/h2h/spain-a/argentina-b/#fff">
+        <div data-testid="date-time-item"><p>19/Jul,</p><p>21:00</p><span>1X2</span></div>
+        <div data-testid="event-participants"><p data-testid="participant-name">Spain</p>
+        <p data-testid="participant-name">Argentina</p></div>
+      </a>
+      <p data-testid="odd-container-default">1.69</p>
+      <div data-testid="prediction-container"><a href="#">89%</a></div>
+      <p data-testid="odd-container-default">3.68</p>
+      <div data-testid="prediction-container"><a href="#">9%</a></div>
+      <p data-testid="odd-container-default">4.70</p>
+      <div data-testid="prediction-container"><a href="#">2%</a></div>
+    </div>
+    """
+    rows = parse_top_predictions(html, tz_name="UTC")
+    assert len(rows) == 1
+    assert rows[0]["kickoff"] is not None
+    assert rows[0]["kickoff"].endswith("T21:00")
+    assert "-07-19" in rows[0]["kickoff"]
 
 
 def test_malformed_row_is_skipped():
@@ -64,10 +89,12 @@ def test_malformed_row_is_skipped():
       <a data-testid="header-country-item" href="/football/europe/"><p>Europe</p></a>
       <a data-testid="header-tournament-item" href="/football/europe/x/">League X</a>
     </div>
-    <div data-testid="betting-tip-header">1</div>
-    <div data-testid="betting-tip-header">X</div>
-    <div data-testid="betting-tip-header">2</div>
-    <div data-testid="game-row"><p>garbage, no link, no cells</p></div>
+    <div data-testid="game-row">
+      <div data-testid="betting-tip-header">1</div>
+      <div data-testid="betting-tip-header">X</div>
+      <div data-testid="betting-tip-header">2</div>
+      <p>garbage, no link, no cells</p>
+    </div>
     """
     assert parse_top_predictions(html) == []
 

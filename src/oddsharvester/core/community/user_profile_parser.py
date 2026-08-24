@@ -88,9 +88,13 @@ def _parse_statistics(soup) -> list[dict]:
     header = soup.select_one(OddsPortalSelectors.COMMUNITY_PROFILE_STATS_HEADER)
     if header is None or header.parent is None:
         return []
+    # 2026-08 redesign: the statistics render as a real <table> whose header
+    # line is a <tr>; fall back to the older sibling-div layout otherwise.
+    table = header.find_parent("table")
+    siblings = [tr for tr in table.find_all("tr") if tr is not header] if table else header.find_next_siblings()
     rows: list[dict] = []
-    for sibling in header.find_next_siblings():
-        cells = [c.get_text(strip=True) for c in sibling.find_all(recursive=False)]
+    for sibling in siblings:
+        cells = [c.get_text(strip=True) for c in (sibling.find_all(["td", "th"]) or sibling.find_all(recursive=False))]
         if len(cells) < 6:
             continue
         rows.append(
@@ -98,12 +102,22 @@ def _parse_statistics(soup) -> list[dict]:
                 "month": cells[0],
                 "total_predictions": _to_int(cells[1]),
                 "won": to_float(cells[2]),
-                "lost": _to_int(cells[3]),
+                "lost": to_float(cells[3]),
                 "plus_minus": to_float(cells[4]),
                 "roi_pct": _pct_float(cells[5]),
             }
         )
     return rows
+
+
+def parse_profile_feed_predictions(html: str, tz_name: str | None = None) -> list[dict]:
+    """Parse prediction rows from the profile's Feed tab HTML.
+
+    Since the 2026-08 redesign the predictions list lives under the Feed tab
+    (clicked by the scraper); the row markup kept the community testids, so
+    this reuses the same row parser.
+    """
+    return _parse_predictions(BeautifulSoup(html, "lxml"), tz_name)
 
 
 def _parse_predictions(soup, tz_name: str | None) -> list[dict]:

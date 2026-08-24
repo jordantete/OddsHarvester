@@ -5,13 +5,18 @@ _PUBLIC_HTML = """
 <div data-testid="username">BLAPRO</div>
 <div data-testid="user-roi">ROI 18.20%</div>
 <div data-testid="member-info">Member since: 23 May 2026 Country: France Profile Privacy: Public</div>
-<div>
-  <div data-testid="stats-table-header-line">
-    <span>Month</span><span>Total Predictions</span><span>Won</span><span>Lost</span><span>+ / -</span><span>ROI</span>
-  </div>
-  <div><span>06/2026</span><span>15</span><span>5.28</span><span>9</span><span>-3.72</span><span>-24.8%</span></div>
-  <div><span>Total</span><span>26</span><span>13.72</span><span>9</span><span>4.72</span><span>18.2%</span></div>
-</div>
+<table>
+  <thead>
+    <tr data-testid="stats-table-header-line">
+      <th data-testid="stats-table-box">Month</th><th>Total Predictions</th><th>Won</th>
+      <th>Lost</th><th>+ / -</th><th>ROI</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>06/2026</td><td>15</td><td>5.28</td><td>9</td><td>-3.72</td><td>-24.8%</td></tr>
+    <tr><td>Total</td><td>26</td><td>13.72</td><td>9</td><td>4.72</td><td>18.2%</td></tr>
+  </tbody>
+</table>
 <div data-testid="game-row">
   <a href="/football/h2h/turkey/paraguay/"></a>
   <div data-testid="date-time-item"><span>20/Jun,</span><span>05:00</span><span>1X2</span></div>
@@ -56,7 +61,7 @@ def test_public_profile_statistics_rows():
         "month": "06/2026",
         "total_predictions": 15,
         "won": 5.28,
-        "lost": 9,
+        "lost": 9.0,
         "plus_minus": -3.72,
         "roi_pct": -24.8,
     }
@@ -85,3 +90,39 @@ def test_private_profile_header_only():
     assert rec["username"] == "zywrelip"
     assert rec["statistics"] == []
     assert rec["predictions"] == []
+
+
+_FEED_HTML = """
+<html><body>
+<div data-testid="profile-feed-section">
+<div data-testid="game-row">
+  <span data-testid="prediction-status">L</span>
+  <a href="/tennis/h2h/sabalenka-a/pegula-j/#abc123">
+    <div data-testid="date-time-item"><p>20/Jun</p><p>12:10</p><p>CS</p></div>
+    <div data-testid="event-participants">
+      <p data-testid="participant-name">Sabalenka A.</p>
+      <p data-testid="participant-name">Pegula J.</p>
+    </div>
+  </a>
+  <div data-testid="betting-tip-header">2:5</div>
+  <p data-testid="odd-container-default">2.08</p>
+  <div data-testid="prediction-container">50%</div>
+  <span data-testid="prediction-pick-item">PICK</span>
+</div>
+</div>
+</body></html>
+"""
+
+
+def test_feed_predictions_parsed():
+    from oddsharvester.core.community.user_profile_parser import parse_profile_feed_predictions
+
+    preds = parse_profile_feed_predictions(_FEED_HTML, tz_name="UTC")
+    assert len(preds) == 1
+    pred = preds[0]
+    assert pred["home_team"] == "Sabalenka A."
+    assert pred["away_team"] == "Pegula J."
+    assert pred["market"] == "CS"
+    assert pred["outcomes"] == [{"odds": 2.08, "community_pct": 50, "picked": True}]
+    assert pred["pick_odds"] == 2.08
+    assert pred["match_url"].endswith("#abc123")

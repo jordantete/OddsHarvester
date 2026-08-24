@@ -1,9 +1,11 @@
 """Pure-HTML parser for the OddsPortal Community Top Predictions page.
 
-The page (/predictions/#sport/<sport>/) renders, in document order, repeating
-sections of: a sport/country/league breadcrumb, one row of outcome-label header
-cells, then one game row. The backing XHR is obfuscated, so this module parses
-the rendered DOM only (data-testid selectors, never localized text).
+The page (/community/predictions/#sport/<sport>/) renders, in document order,
+repeating sections of: a sport/country/league breadcrumb, then one or more game
+rows. Since the 2026-08 redesign each row carries its own outcome-label header
+cells (betting-tip-header) inline. The backing XHR is obfuscated, so this
+module parses the rendered DOM only (data-testid selectors, never localized
+text).
 """
 
 import logging
@@ -23,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 # Raw data-testid values for the document-order section scan (find_all(attrs=)),
 # not CSS selectors — the CSS forms live on OddsPortalSelectors.
-_SECTION_TESTIDS = ("sport-country-league-item", "betting-tip-header", "game-row")
+_SECTION_TESTIDS = ("sport-country-league-item", "game-row")
 
 
 def parse_top_predictions(html: str, tz_name: str | None = None) -> list[dict]:
@@ -31,16 +33,15 @@ def parse_top_predictions(html: str, tz_name: str | None = None) -> list[dict]:
     soup = BeautifulSoup(html, "lxml")
     records: list[dict] = []
     breadcrumb: dict | None = None
-    outcome_labels: list[str] = []
 
     for node in soup.find_all(attrs={"data-testid": _SECTION_TESTIDS}):
         testid = node.get("data-testid")
         if testid == "sport-country-league-item":
             breadcrumb = _parse_breadcrumb(node)
-            outcome_labels = []
-        elif testid == "betting-tip-header":
-            outcome_labels.append(node.get_text(strip=True))
         elif testid == "game-row":
+            outcome_labels = [
+                h.get_text(strip=True) for h in node.find_all(attrs={"data-testid": "betting-tip-header"})
+            ]
             record = _parse_game_row(node, breadcrumb, outcome_labels, tz_name)
             if record is not None:
                 records.append(record)
