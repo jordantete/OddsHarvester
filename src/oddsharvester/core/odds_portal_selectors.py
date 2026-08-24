@@ -11,6 +11,44 @@ class OddsPortalSelectors:
     # Listing pagination. The Next/Prev anchors share the class and carry no rel attribute.
     PAGINATION_LINK = "a.pagination-link"
 
+    # 2026-08 redesign (issue #85). Digits are <button>s, the current page a <span>;
+    # the widget's parent stays display:none until the listing is scrolled to the
+    # bottom, so read text_content (not inner_text) on the items.
+    PAGINATION_CONTAINER = "nav.pagination"
+    PAGINATION_ITEM = "nav.pagination button, nav.pagination span"
+
+    # Listing rows and their date grouping (redesign): rows carry
+    # data-testid='game-row'; date headers are siblings (inside a
+    # 'secondary-header' element), not children of the first row of a group.
+    LISTING_ROW_SELECTOR = "div[data-testid='game-row']"
+    DATE_HEADER_TESTID = "date-header"
+
+    # Match view (redesign): content renders only after an in-page hashchange to
+    # '#<id>:<market>;<scope>'; game-time-item is the hydration-complete signal.
+    MATCH_CONTENT_READY_SELECTOR = "div[data-testid='game-time-item']"
+
+    # Market tabs (redesign)
+    MARKET_TAB_ACTIVE = "[data-testid='sports-nav-active-tab']"
+    MARKET_TAB_ANY = "[data-testid='sports-nav-active-tab'], [data-testid='sports-nav-inactive-tab']"
+
+    # Sub-nav row: bookies filter (All/Classic/Crypto Bookies) and period tabs.
+    SUB_NAV_TAB_ANY = "[data-testid='sub-nav-active-tab'], [data-testid='sub-nav-inactive-tab']"
+    SUB_NAV_TAB_ACTIVE_TESTID = "sub-nav-active-tab"
+
+    # Odds table (redesign): one <tr> per bookmaker; peripheral rows to skip.
+    BOOKMAKER_NAME_TESTID = "outrights-expanded-bookmaker-name"
+    ODD_CELL_TESTID_PREFIX = "odd-container"
+    PAYOUT_TESTID = "payout-container"
+    TABLE_SKIP_ROW_TESTIDS: ClassVar[tuple[str, ...]] = ("my-coupon-row", "user-predictions-row", "odds-alert-row")
+
+    # Login modal observed blocking match-page rendering on cold profiles.
+    LOGIN_MODAL_CLOSE = "[data-testid='modal'] button[aria-label='Close']"
+
+    @staticmethod
+    def page_fragment(n: int) -> str:
+        """Listing page fragment for the redesigned SPA ('#page/N', no leading slash)."""
+        return f"#page/{n}"
+
     # Market navigation tabs
     MARKET_TAB_SELECTORS: ClassVar[list[str]] = [
         "ul.visible-links.bg-black-main.odds-tabs > li",

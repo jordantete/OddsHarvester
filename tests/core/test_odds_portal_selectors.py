@@ -126,3 +126,38 @@ def test_market_tab_codes_cover_registry_main_markets():
         "Draw No Bet",
     }
     assert expected <= set(OddsPortalSelectors.MARKET_TAB_CODES)
+
+
+class TestRedesignSelectors:
+    """Selectors for the 2026-08 OddsPortal frontend redesign (issue #85)."""
+
+    def test_page_fragment(self):
+        assert OddsPortalSelectors.page_fragment(1) == "#page/1"
+        assert OddsPortalSelectors.page_fragment(12) == "#page/12"
+
+    def test_pagination_selectors(self):
+        assert OddsPortalSelectors.PAGINATION_CONTAINER == "nav.pagination"
+        assert "button" in OddsPortalSelectors.PAGINATION_ITEM
+        assert "span" in OddsPortalSelectors.PAGINATION_ITEM
+
+    def test_listing_and_match_ready_selectors(self):
+        assert OddsPortalSelectors.LISTING_ROW_SELECTOR == "div[data-testid='game-row']"
+        assert OddsPortalSelectors.MATCH_CONTENT_READY_SELECTOR == "div[data-testid='game-time-item']"
+        assert OddsPortalSelectors.DATE_HEADER_TESTID == "date-header"
+
+    def test_market_and_sub_nav_selectors(self):
+        assert "sports-nav-active-tab" in OddsPortalSelectors.MARKET_TAB_ACTIVE
+        assert "sports-nav-inactive-tab" in OddsPortalSelectors.MARKET_TAB_ANY
+        assert "sub-nav-inactive-tab" in OddsPortalSelectors.SUB_NAV_TAB_ANY
+        assert OddsPortalSelectors.SUB_NAV_TAB_ACTIVE_TESTID == "sub-nav-active-tab"
+
+    def test_odds_table_selectors(self):
+        assert OddsPortalSelectors.BOOKMAKER_NAME_TESTID == "outrights-expanded-bookmaker-name"
+        assert OddsPortalSelectors.ODD_CELL_TESTID_PREFIX == "odd-container"
+        assert OddsPortalSelectors.PAYOUT_TESTID == "payout-container"
+        assert "my-coupon-row" in OddsPortalSelectors.TABLE_SKIP_ROW_TESTIDS
+        assert "user-predictions-row" in OddsPortalSelectors.TABLE_SKIP_ROW_TESTIDS
+        assert "odds-alert-row" in OddsPortalSelectors.TABLE_SKIP_ROW_TESTIDS
+
+    def test_login_modal_close(self):
+        assert OddsPortalSelectors.LOGIN_MODAL_CLOSE == "[data-testid='modal'] button[aria-label='Close']"
