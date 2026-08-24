@@ -119,12 +119,11 @@ class OddsPortalSelectors:
     }
 
     # Match details — data-testid values for DOM-based extraction
-    # (used by base_scraper._extract_match_details_event_header DOM helpers)
+    # (used by base_scraper._extract_match_details DOM helpers)
     MATCH_DETAILS_GAME_TIME_TESTID = "game-time-item"
     MATCH_DETAILS_GAME_HOST_TESTID = "game-host"
     MATCH_DETAILS_GAME_GUEST_TESTID = "game-guest"
     MATCH_DETAILS_BREADCRUMBS_TESTID = "breadcrumbs-line"
-    MATCH_DETAILS_BREADCRUMB_LEAGUE_TESTID = "3"
 
     # Community Top Predictions page (/predictions/). All data-testid based; see
     # docs/agentic-gotchas.md (community predictions entry).

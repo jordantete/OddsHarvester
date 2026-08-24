@@ -26,7 +26,12 @@ ODDS_FORMAT_WAIT_MS = 10000
 DROPDOWN_WAIT_MS = 1000
 TAB_SWITCH_WAIT_MS = 500
 FALLBACK_VERIFY_WAIT_MS = 1000
-H2H_FRAGMENT_RESOLVE_TIMEOUT_MS = 5000
+# Match-view hydration (2026-08 redesign): content renders only after an
+# in-page hashchange to '#<id>:<market>;<scope>'; the first nudge right after
+# domcontentloaded can fire before the SPA has booted, hence the retries.
+MATCH_HYDRATION_ATTEMPTS = 3
+MATCH_HYDRATION_TIMEOUT_MS = 8000
+HASH_NUDGE_DELAY_MS = 1500
 
 # Odds history extraction timeouts (ms)
 ODDS_HISTORY_PRE_WAIT_MS = 2000

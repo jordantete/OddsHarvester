@@ -5,7 +5,7 @@ import json
 import logging
 import random
 import re
-from typing import Any
+from typing import Any, ClassVar
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -36,7 +36,9 @@ from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import (
     DEFAULT_REQUEST_DELAY_S,
     DYNAMIC_CONTENT_WAIT_MS,
-    H2H_FRAGMENT_RESOLVE_TIMEOUT_MS,
+    HASH_NUDGE_DELAY_MS,
+    MATCH_HYDRATION_ATTEMPTS,
+    MATCH_HYDRATION_TIMEOUT_MS,
     MATCH_RETRY_BASE_DELAY,
     MATCH_RETRY_MAX_ATTEMPTS,
     MATCH_RETRY_MAX_DELAY,
@@ -45,12 +47,10 @@ from oddsharvester.utils.constants import (
     ODDS_FORMAT_WAIT_MS,
     ODDSPORTAL_BASE_URL,
     REQUEST_DELAY_JITTER_FACTOR,
-    SELECTOR_TIMEOUT_MS,
 )
 from oddsharvester.utils.datetime_format import format_utc
 from oddsharvester.utils.local_kickoff import compute_local_kickoff
 from oddsharvester.utils.odds_format_enum import OddsFormat
-from oddsharvester.utils.utils import clean_html_text
 
 _MONTH_ABBREV_TO_NUM = {
     "jan": 1,
@@ -301,26 +301,12 @@ def _extract_fragment_match_id(match_link: str) -> str | None:
     if "#" not in match_link:
         return None
     fragment = match_link.split("#", 1)[1].strip()
+    # The hydrated SPA rewrites the fragment to '<id>:<market>;<scope>'; only
+    # the id identifies the match.
+    fragment = fragment.split(":", 1)[0]
     if not fragment or "/" in fragment:
         return None
     return fragment
-
-
-def _join_static_info(static_info: Any) -> str | None:
-    """
-    Join OddsPortal `eventData.staticInfo` note labels into a single string.
-
-    `staticInfo` is a list of `{"name": <label>}` entries shown under the
-    match header (neutral venue, first leg, behind closed doors, broadcast
-    note, ...). It is None/absent on ordinary matches. Returns None when
-    there is no usable label to report.
-    """
-    if not static_info:
-        return None
-    names = [
-        stripped for item in static_info if isinstance(item, dict) and (stripped := str(item.get("name") or "").strip())
-    ]
-    return ", ".join(names) or None
 
 
 class BaseScraper:
@@ -900,6 +886,9 @@ class BaseScraper:
             # Wait a bit for dynamic content to load
             await page.wait_for_timeout(DYNAMIC_CONTENT_WAIT_MS)
 
+            await self._dismiss_login_modal(page)
+            await self._hydrate_match_view(page, match_link, sport=sport)
+
             # Apply bookmaker filter before extracting odds
             await self.selection_manager.ensure_selected(
                 page=page,
@@ -908,7 +897,7 @@ class BaseScraper:
                 strategy=BOOKIES_FILTER_STRATEGY,
             )
 
-            match_details = await self._extract_match_details_event_header(page, match_link)
+            match_details = await self._extract_match_details(page, match_link)
 
             if not match_details:
                 self.logger.warning(
@@ -1028,12 +1017,12 @@ class BaseScraper:
             breadcrumbs = soup.find("div", attrs={"data-testid": OddsPortalSelectors.MATCH_DETAILS_BREADCRUMBS_TESTID})
             if not breadcrumbs:
                 return None
-            league_link = breadcrumbs.find(
-                "a", attrs={"data-testid": OddsPortalSelectors.MATCH_DETAILS_BREADCRUMB_LEAGUE_TESTID}
-            )
-            if not league_link:
+            # Redesign: breadcrumb anchors carry their label as data-testid; the
+            # league is the last testid-bearing anchor (the current page is not an <a>).
+            links = breadcrumbs.find_all("a", attrs={"data-testid": True})
+            if not links:
                 return None
-            raw = league_link.get_text(strip=True)
+            raw = links[-1].get_text(strip=True)
             return self._SEASON_SUFFIX_RE.sub("", raw) or None
         except Exception as e:
             self.logger.warning(f"DOM parse failed for league_name: {e}")
@@ -1071,204 +1060,156 @@ class BaseScraper:
             self.logger.warning(f"DOM parse failed for results: {e}")
             return None, None, None
 
-    async def _resolve_h2h_fragment_mismatch(
-        self,
-        page: Page,
-        fragment: str,
-    ) -> tuple[BeautifulSoup, dict[str, Any]] | None:
-        """
-        Force the OddsPortal React SPA to swap to the fragment-targeted match
-        and re-read the page payload.
-
-        OddsPortal `/<sport>/h2h/<home>/<away>/#<id>` URLs are H2H aggregates:
-        the SSR HTML always contains data for the next upcoming match between
-        the two teams, regardless of the requested fragment. The JS SPA reads
-        `location.hash` and refetches the correct match data. Under Playwright
-        the swap is unreliable, so we explicitly clear and re-dispatch the hash
-        to nudge it, then wait until `react-event-header`'s `eventData.id`
-        matches the requested fragment.
-
-        Returns the updated (soup, json_data) on success, or None if the page
-        payload is unreadable afterwards. Raises H2HFragmentResolutionError if
-        the SPA never swaps to the requested match.
-        """
-        trigger_js = """
-        (desired) => {
-            if (window.location.hash !== '#' + desired) {
-                window.location.hash = '';
-                window.location.hash = '#' + desired;
-            }
-            window.dispatchEvent(new HashChangeEvent('hashchange', { newURL: window.location.href }));
-        }
-        """
-        predicate_js = """
-        (desired) => {
-            const el = document.getElementById('react-event-header');
-            if (!el) return false;
-            try {
-                const data = JSON.parse(el.getAttribute('data'));
-                return !!(data && data.eventData && data.eventData.id === desired);
-            } catch (e) { return false; }
-        }
-        """
+    async def _dismiss_login_modal(self, page: Page) -> None:
+        """Close the login modal that can block match-page rendering on cold profiles."""
         try:
-            await page.evaluate(trigger_js, fragment)
-            await page.wait_for_function(
-                predicate_js,
-                arg=fragment,
-                timeout=H2H_FRAGMENT_RESOLVE_TIMEOUT_MS,
-            )
-        except TimeoutError as e:
-            # Transient render race, not a structure change: raise so retry sees it.
-            message = (
-                f"H2H fragment resolution failed after retry: requested={fragment}; "
-                f"page never updated eventData.id to match the fragment"
-            )
-            self.logger.error(message)
-            raise H2HFragmentResolutionError(message) from e
+            el = await page.query_selector(OddsPortalSelectors.LOGIN_MODAL_CLOSE)
+            if el and await el.is_visible():
+                await el.click()
+                await page.wait_for_timeout(500)
+                self.logger.info("Dismissed the login modal.")
         except Exception as e:
-            self.logger.error(f"H2H fragment resolution raised unexpected error for fragment={fragment}: {e}")
-            return None
+            self.logger.debug(f"Login modal dismissal skipped: {e}")
 
-        html_content = await page.content()
-        soup = BeautifulSoup(html_content, "html.parser")
-        header_div = soup.find("div", id="react-event-header")
-        if not header_div:
-            return None
-        data_attribute = header_div.get("data")
-        if not data_attribute:
-            return None
+    # The SPA hydrates the match view only on an in-page hashchange to the full
+    # '#<id>:<market>;<scope>' form; a direct page load with that hash stays on
+    # the H2H landing skeleton. Setting the bare id first guarantees the second
+    # assignment is a change even when the page URL already carried the full form.
+    _HASH_NUDGE_JS = """
+    (args) => {
+        window.location.hash = '#' + args.fragment;
+        setTimeout(() => {
+            window.location.hash = '#' + args.fragment + ':' + args.code + ';' + args.scope;
+            window.dispatchEvent(new HashChangeEvent('hashchange', { newURL: window.location.href }));
+        }, args.delayMs);
+    }
+    """
+
+    # Hydration needs a market tab that exists for the sport; two-outcome sports
+    # have no 1X2 tab. Adjusted by live validation, not exhaustive.
+    _DEFAULT_MARKET_CODE_BY_SPORT: ClassVar[dict[str, str]] = {
+        "tennis": "home-away",
+        "basketball": "home-away",
+        "baseball": "home-away",
+        "american-football": "home-away",
+        "volleyball": "home-away",
+        "cricket": "home-away",
+    }
+
+    async def _hydrate_match_view(self, page: Page, match_link: str, sport: str | None = None) -> None:
+        """Force the SPA to render the fragment match (2026-08 redesign).
+
+        Nudges the URL hash (bare id, then '#<id>:<market>;<scope>' plus an
+        explicit hashchange) and waits for `game-time-item` to render. The first
+        nudge right after domcontentloaded can fire before the SPA has booted,
+        so the nudge is retried. Raises H2HFragmentResolutionError (retryable,
+        proxy-neutral) when the view never renders.
+        """
+        fragment = _extract_fragment_match_id(match_link)
+        if fragment is None:
+            # Legacy non-fragment match URL: the page renders directly or not at all.
+            try:
+                await page.wait_for_selector(
+                    OddsPortalSelectors.MATCH_CONTENT_READY_SELECTOR, timeout=MATCH_HYDRATION_TIMEOUT_MS
+                )
+            except TimeoutError as e:
+                raise H2HFragmentResolutionError(
+                    f"match view hydration failed: {match_link} never rendered match content", url=match_link
+                ) from e
+            return
+
+        code = self._DEFAULT_MARKET_CODE_BY_SPORT.get((sport or "").lower(), "1X2")
+        scope = OddsPortalSelectors.period_scope_code(sport, "FullTime") or 2
+        for attempt in range(1, MATCH_HYDRATION_ATTEMPTS + 1):
+            await page.evaluate(
+                self._HASH_NUDGE_JS,
+                {"fragment": fragment, "code": code, "scope": scope, "delayMs": HASH_NUDGE_DELAY_MS},
+            )
+            try:
+                await page.wait_for_selector(
+                    OddsPortalSelectors.MATCH_CONTENT_READY_SELECTOR, timeout=MATCH_HYDRATION_TIMEOUT_MS
+                )
+                return
+            except TimeoutError:
+                self.logger.warning(
+                    f"Match view hydration attempt {attempt}/{MATCH_HYDRATION_ATTEMPTS} timed out for {match_link}"
+                )
+                await self._dismiss_login_modal(page)
+
+        raise H2HFragmentResolutionError(
+            f"match view hydration failed: {match_link} never rendered match content", url=match_link
+        )
+
+    def _parse_venue_from_ld_json(
+        self, soup: BeautifulSoup, dom_match_date: str | None
+    ) -> tuple[str | None, str | None, str | None]:
+        """Venue trio from the SSR JSON-LD SportsEvent, staleness-guarded.
+
+        The SSR JSON-LD describes the *next upcoming* meeting of the two teams
+        (gotchas §1b), so it is trusted only when its startDate calendar date
+        equals the DOM-extracted match date. Returns (venue, town, country),
+        all None when absent or stale.
+        """
+        if not dom_match_date:
+            return None, None, None
         try:
-            json_data = json.loads(data_attribute)
-        except (TypeError, json.JSONDecodeError):
-            return None
-        return soup, json_data
+            for script in soup.find_all("script", attrs={"type": "application/ld+json"}):
+                try:
+                    data = json.loads(script.string or "")
+                except (TypeError, json.JSONDecodeError):
+                    continue
+                types = data.get("@type") or []
+                if isinstance(types, str):
+                    types = [types]
+                if "SportsEvent" not in types:
+                    continue
+                try:
+                    ld_date = datetime.fromisoformat(data.get("startDate") or "").astimezone(UTC).date()
+                except ValueError:
+                    continue
+                if ld_date.isoformat() != dom_match_date[:10]:
+                    return None, None, None
+                location = data.get("location") or {}
+                address = location.get("address") or {}
+                if not isinstance(address, dict):
+                    address = {}
+                country = address.get("addressCountry")
+                if isinstance(country, dict):
+                    country = country.get("name")
+                return location.get("name") or None, address.get("addressLocality") or None, country or None
+        except Exception as e:
+            self.logger.debug(f"JSON-LD venue parse failed: {e}")
+        return None, None, None
 
-    async def _extract_match_details_event_header(self, page: Page, match_link: str) -> dict[str, Any] | None:
+    async def _extract_match_details(self, page: Page, match_link: str) -> dict[str, Any] | None:
         """
         Extract match details (date, teams, league, scores, venue) from the
-        match page.
+        hydrated match page DOM.
 
-        Reads the React event header JSON for venue fields and as a per-field
-        fallback. Prefers DOM values for date / teams / league / scores
-        because the embedded JSON has been observed to return stale values
-        for some leagues (see PR #54).
+        The redesigned page embeds no per-match JSON: content renders only after
+        the SPA fetches the fragment match (see `_hydrate_match_view`), so the
+        DOM *is* the requested match. Venue comes from the SSR JSON-LD only when
+        it describes the same match.
 
-        Returns None if neither the JSON nor the DOM yield enough data to
-        identify the match (i.e. the react-event-header div itself is missing).
+        Returns None when the DOM lacks the minimum landmarks to identify the
+        match (no kickoff and no team pair).
         """
         try:
-            try:
-                await page.wait_for_selector("#react-event-header", timeout=SELECTOR_TIMEOUT_MS)
-            except Exception:
-                self.logger.warning("React event header selector not found, attempting to parse existing content")
-
             html_content = await page.content()
             soup = BeautifulSoup(html_content, "html.parser")
-            event_header_div = soup.find("div", id="react-event-header")
 
-            if not event_header_div:
-                self.logger.warning("React event header div not found in page content")
-                return None
+            match_date = self._parse_match_date_from_dom(soup)
+            home_team, away_team = self._parse_teams_from_dom(soup)
+            league_name = self._parse_league_from_dom(soup)
+            home_score_raw, away_score_raw, partial_results = self._parse_results_from_dom(soup)
 
-            data_attribute = event_header_div.get("data")
-            if not data_attribute:
-                self.logger.warning("React event header div found but 'data' attribute is missing")
-                return None
-
-            try:
-                json_data = json.loads(data_attribute)
-            except (TypeError, json.JSONDecodeError) as e:
-                self.logger.error(f"Failed to parse JSON data from react event header: {e}")
-                return None
-
-            event_body = json_data.get("eventBody", {})
-            event_data = json_data.get("eventData", {})
-
-            # Detect H2H fragment vs eventData.id mismatch. OddsPortal's SSR for
-            # /<sport>/h2h/<home>/<away>/#<id> carries data for a different match
-            # than the fragment-targeted one. Two distinct cases must be told
-            # apart, because they require opposite handling:
-            #
-            #   * issue #60: the SSR is the *next upcoming* matchup between the
-            #     two teams and the SPA has not swapped yet, so the DOM shows
-            #     that same wrong match too. We must force a resync, or drop the
-            #     match rather than emit the wrong (upcoming) match_date.
-            #   * PR #54: the SSR JSON is a stale *recent* match, but the SPA
-            #     *did* hydrate the DOM to the requested historic match. The
-            #     DOM-first dispatcher below already yields the correct values;
-            #     resyncing is impossible here (the embedded JSON id never
-            #     updates to the fragment) and dropping would regress PR #54.
-            #
-            # Discriminate deterministically by whether the DOM has resolved to
-            # a match different from the stale JSON: DOM-resolved => PR #54 path
-            # (trust DOM), DOM == stale JSON or absent => issue #60 path (resync
-            # or drop). This avoids any wall-clock dependency.
-            fragment = _extract_fragment_match_id(match_link)
-            event_id = event_data.get("id")
-            if fragment and event_id and fragment != event_id:
-                ssr_json_date = (
-                    format_utc(datetime.fromtimestamp(event_body["startDate"], tz=UTC))
-                    if event_body.get("startDate")
-                    else None
+            if match_date is None and (home_team is None or away_team is None):
+                self.logger.warning(
+                    f"No match landmarks found for {match_link} - page may be unavailable or structure changed"
                 )
-                ssr_dom_date = self._parse_match_date_from_dom(soup)
-                dom_resolved_independently = ssr_dom_date is not None and ssr_dom_date != ssr_json_date
-                if dom_resolved_independently:
-                    self.logger.info(
-                        f"H2H fragment mismatch (requested={fragment} page={event_id}) but the DOM "
-                        f"resolved to the fragment match independently; using DOM-first (PR #54 path)"
-                    )
-                else:
-                    self.logger.warning(
-                        f"H2H fragment mismatch detected: requested={fragment} "
-                        f"page={event_id} url={match_link}; DOM not resolved, attempting hash-resync"
-                    )
-                    resolved = await self._resolve_h2h_fragment_mismatch(page=page, fragment=fragment)
-                    if resolved is None:
-                        return None
-                    soup, json_data = resolved
-                    event_body = json_data.get("eventBody", {})
-                    event_data = json_data.get("eventData", {})
+                return None
 
-            json_match_date = (
-                format_utc(datetime.fromtimestamp(event_body["startDate"], tz=UTC))
-                if event_body.get("startDate")
-                else None
-            )
-
-            # DOM extraction (each helper returns None on failure)
-            dom_match_date = self._parse_match_date_from_dom(soup)
-            dom_home, dom_away = self._parse_teams_from_dom(soup)
-            dom_league = self._parse_league_from_dom(soup)
-            dom_home_score, dom_away_score, dom_partial = self._parse_results_from_dom(soup)
-
-            # Per-field fallback: DOM wins when present, else JSON
-            match_date = dom_match_date if dom_match_date is not None else json_match_date
-            home_team = dom_home if dom_home is not None else event_data.get("home")
-            away_team = dom_away if dom_away is not None else event_data.get("away")
-            league_name = dom_league if dom_league is not None else event_data.get("tournamentName")
-            home_score_raw = dom_home_score if dom_home_score is not None else event_body.get("homeResult")
-            away_score_raw = dom_away_score if dom_away_score is not None else event_body.get("awayResult")
-            home_score = str(home_score_raw) if home_score_raw is not None else None
-            away_score = str(away_score_raw) if away_score_raw is not None else None
-            partial_results = (
-                dom_partial if dom_partial is not None else clean_html_text(event_body.get("partialresult"))
-            )
-
-            # Observability: log which fields came from DOM vs. JSON fallback
-            sources = {
-                "match_date": "dom" if dom_match_date is not None else "json",
-                "home_team": "dom" if dom_home is not None else "json",
-                "away_team": "dom" if dom_away is not None else "json",
-                "league_name": "dom" if dom_league is not None else "json",
-                "home_score": "dom" if dom_home_score is not None else "json",
-                "away_score": "dom" if dom_away_score is not None else "json",
-                "partial_results": "dom" if dom_partial is not None else "json",
-            }
-            dom_fields = sorted(k for k, v in sources.items() if v == "dom")
-            json_fields = sorted(k for k, v in sources.items() if v == "json")
-            self.logger.info(f"match_details extracted dom={dom_fields} json_fallback={json_fields}")
+            venue, venue_town, venue_country = self._parse_venue_from_ld_json(soup, match_date)
 
             details = {
                 "scraped_date": format_utc(datetime.now(UTC)),
@@ -1278,17 +1219,13 @@ class BaseScraper:
                 "home_team": home_team,
                 "away_team": away_team,
                 "league_name": league_name,
-                "home_score": home_score,
-                "away_score": away_score,
+                "home_score": str(home_score_raw) if home_score_raw is not None else None,
+                "away_score": str(away_score_raw) if away_score_raw is not None else None,
                 "partial_results": partial_results,
-                "venue": event_body.get("venue").encode("ascii", "ignore").decode("ascii")
-                if event_body.get("venue")
-                else None,
-                "venue_town": event_body.get("venueTown").encode("ascii", "ignore").decode("ascii")
-                if event_body.get("venueTown")
-                else None,
-                "venue_country": event_body.get("venueCountry"),
-                "match_info": _join_static_info(event_data.get("staticInfo")),
+                "venue": venue.encode("ascii", "ignore").decode("ascii") if venue else None,
+                "venue_town": venue_town.encode("ascii", "ignore").decode("ascii") if venue_town else None,
+                "venue_country": venue_country,
+                "match_info": None,
             }
 
             if self.local_kickoff:
@@ -1308,8 +1245,6 @@ class BaseScraper:
 
             return details
 
-        except H2HFragmentResolutionError:
-            raise
         except Exception as e:
-            self.logger.error(f"Error extracting match details while parsing React event header: {e}")
+            self.logger.error(f"Error extracting match details from the DOM: {e}")
             return None
