@@ -1,6 +1,6 @@
 [
     {
-        "scraped_date": "2026-09-02 09:59:07 UTC",
+        "scraped_date": "2026-09-02 13:03:23 UTC",
         "match_date": "2025-02-21 20:00:00 UTC",
         "season": null,
         "match_link": "https://www.oddsportal.com/football/h2h/brentford-xYe7DwID/leicester-KrrdAMyI/#xQ77QTN0",
@@ -30,6 +30,13 @@
                 "submarket_name": "Over/Under +1.5"
             },
             {
+                "odds_over": "1.15",
+                "odds_under": "4.15",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +1.5"
+            },
+            {
                 "odds_over": "1.16",
                 "odds_under": "4.40",
                 "bookmaker_name": "Winamax",
@@ -49,6 +56,13 @@
                 "odds_over": "1.52",
                 "odds_under": "2.20",
                 "bookmaker_name": "bwin.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
+            },
+            {
+                "odds_over": "1.52",
+                "odds_under": "2.17",
+                "bookmaker_name": "Unibet.fr",
                 "period": "FullTime",
                 "submarket_name": "Over/Under +2.5"
             },

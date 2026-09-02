@@ -184,6 +184,8 @@ def capture_match(match_dir: Path) -> bool:
             period,
             "--bookies-filter",
             bookies,
+            "--match-dir",
+            match_dir.name,
             "--capture-har",
         ]
         print(f"  -> {' '.join(markets)} / {period} / {bookies}")

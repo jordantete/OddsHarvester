@@ -11,8 +11,8 @@
     },
     "match_date": "2025-01-24 03:00:00 UTC",
     "notes": "",
-    "captured_at": "2026-04-28T14:11:57.675857+00:00",
-    "oddsharvester_version": "0.1.0",
+    "captured_at": "2026-09-02T13:01:30.214522+00:00",
+    "oddsharvester_version": "0.11.0",
     "available_fixtures": [
         "1x2_home_away_full_including_ot_all.json",
         "home_away_1st_half_all.json",

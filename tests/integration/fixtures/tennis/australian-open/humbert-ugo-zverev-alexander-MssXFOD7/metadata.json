@@ -11,8 +11,8 @@
     },
     "match_date": "2025-01-19 07:10:00 UTC",
     "notes": "",
-    "captured_at": "2026-08-24T14:42:04.494321+00:00",
-    "oddsharvester_version": "0.10.0",
+    "captured_at": "2026-09-02T13:06:02.672043+00:00",
+    "oddsharvester_version": "0.11.0",
     "available_fixtures": [
         "match_winner_full_time_all.json"
     ]

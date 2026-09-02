@@ -121,6 +121,7 @@ def capture_fixture(
     season: str = "current",
     capture_har: bool = False,
     proxy_url: str | None = None,
+    match_dir: str | None = None,
 ) -> Path:
     """
     Capture a new fixture from live scraping.
@@ -129,12 +130,13 @@ def capture_fixture(
     """
     match_id = extract_match_id_from_url(match_url)
 
-    # Determine match directory name (use last URL segment)
-    url_path = urlparse(match_url).path.rstrip("/")
-    match_dir_name = url_path.split("/")[-1]
+    # Fixture directory: the caller's name when refreshing an existing match,
+    # else derived from the URL's last segment.
+    if match_dir is None:
+        match_dir = urlparse(match_url).path.rstrip("/").split("/")[-1]
 
     # Create output directory
-    output_dir = FIXTURES_DIR / sport / league / match_dir_name
+    output_dir = FIXTURES_DIR / sport / league / match_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Build command
@@ -307,6 +309,11 @@ Examples:
         default=None,
         help="Proxy URL (e.g. http://host:port). Needed to capture geo-gated sports such as cricket.",
     )
+    parser.add_argument(
+        "--match-dir",
+        default=None,
+        help="Fixture directory name; defaults to the URL's last segment. Set it to refresh an existing match.",
+    )
 
     args = parser.parse_args()
 
@@ -325,6 +332,7 @@ Examples:
             season=args.season,
             capture_har=args.capture_har,
             proxy_url=args.proxy_url,
+            match_dir=args.match_dir,
         )
         print()
         print("Done!")

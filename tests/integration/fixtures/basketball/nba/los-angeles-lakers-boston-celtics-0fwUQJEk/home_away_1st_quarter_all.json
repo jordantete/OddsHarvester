@@ -1,6 +1,6 @@
 [
     {
-        "scraped_date": "2026-08-24 14:39:25 UTC",
+        "scraped_date": "2026-09-02 13:01:12 UTC",
         "match_date": "2025-01-24 03:00:00 UTC",
         "season": null,
         "match_link": "https://www.oddsportal.com/basketball/h2h/boston-celtics-KYD9hVEm/los-angeles-lakers-ngegZ8bg/#0fwUQJEk",
@@ -16,16 +16,30 @@
         "match_info": null,
         "home_away_market": [
             {
-                "1": "2.21",
-                "2": "1.54",
+                "1": "2.80",
+                "2": "1.38",
                 "bookmaker_name": "Betclic.fr",
                 "period": "FirstQuarter",
                 "submarket_name": "Home/Away"
             },
             {
-                "1": "2.00",
-                "2": "1.50",
+                "1": "2.50",
+                "2": "1.30",
                 "bookmaker_name": "bwin.fr",
+                "period": "FirstQuarter",
+                "submarket_name": "Home/Away"
+            },
+            {
+                "1": "3.05",
+                "2": "1.43",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FirstQuarter",
+                "submarket_name": "Home/Away"
+            },
+            {
+                "1": "3.00",
+                "2": "1.38",
+                "bookmaker_name": "Winamax",
                 "period": "FirstQuarter",
                 "submarket_name": "Home/Away"
             }
