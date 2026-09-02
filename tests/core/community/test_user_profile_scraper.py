@@ -3,16 +3,11 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from tests.dom_builders import profile_page
 
 from oddsharvester.core.community.user_profile_scraper import UserProfileScraper, run_user_profile
 
-_PUBLIC_HTML = """
-<html><body>
-<div data-testid="username">BLAPRO</div>
-<div data-testid="user-roi">ROI 18.20%</div>
-<div data-testid="member-info">Member since: 23 May 2026 Country: France Profile Privacy: Public</div>
-</body></html>
-"""
+_PUBLIC_HTML = profile_page()
 
 
 def _manager_with_html(html):

@@ -3,30 +3,13 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from tests.dom_builders import match_view
 
 from oddsharvester.core.community.match_community_scraper import MatchCommunityScraper, run_match_community
 
 _MATCH_URL = "https://www.oddsportal.com/football/h2h/a-x/b-y/#C2Nfvg77"
 
-_PREMATCH_HTML = """
-<html><body>
-<div data-testid="game-participants">
-  <div data-testid="game-host"><a data-testid="participant-name">A</a></div>
-  <div data-testid="game-guest"><a data-testid="participant-name">B</a></div>
-</div>
-<div data-testid="game-time-item"><p>Today,</p><p>24 Aug 2026,</p><p>21:00</p></div>
-<div data-testid="sports-nav-active-tab">1X2</div>
-<div data-testid="sub-nav-active-tab">Full Time</div>
-<div data-testid="betting-tip-header">1</div>
-<div data-testid="betting-tip-header">X</div>
-<div data-testid="betting-tip-header">2</div>
-<div data-testid="user-predictions-row">
-  <div data-testid="prediction-container">67%</div>
-  <div data-testid="prediction-container">33%</div>
-  <div data-testid="prediction-container">0%</div>
-</div>
-</body></html>
-"""
+_PREMATCH_HTML = match_view(home="A", away="B", weekday="Today,", date="24 Aug 2026,", votes=["67%", "33%", "0%"])
 
 
 def _manager_with_page(html):

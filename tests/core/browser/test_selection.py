@@ -17,9 +17,11 @@ STRATEGY_CASES = [
 
 
 def _tab(text: str, active: bool = False):
+    """A sub-nav button; the selected one carries an inline font-weight."""
     el = MagicMock()
     el.text_content = AsyncMock(return_value=text)
-    el.get_attribute = AsyncMock(return_value="sub-nav-active-tab" if active else "sub-nav-inactive-tab")
+    style = "background-color: rgb(47, 47, 47); font-weight: 700; color: rgb(255, 255, 255);" if active else None
+    el.get_attribute = AsyncMock(return_value=style)
     el.click = AsyncMock()
     return el
 
@@ -142,4 +144,4 @@ class TestPeriodSelector:
 def test_strategies_target_sub_nav_tabs():
     assert BOOKIES_FILTER_STRATEGY.tab_selector == OddsPortalSelectors.SUB_NAV_TAB_ANY
     assert PERIOD_STRATEGY.tab_selector == OddsPortalSelectors.SUB_NAV_TAB_ANY
-    assert BOOKIES_FILTER_STRATEGY.active_testid == "sub-nav-active-tab"
+    assert BOOKIES_FILTER_STRATEGY.active_style_marker == OddsPortalSelectors.SUB_NAV_ACTIVE_STYLE_MARKER

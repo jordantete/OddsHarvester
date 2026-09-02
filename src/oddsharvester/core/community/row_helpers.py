@@ -28,17 +28,12 @@ def to_pct(text: str) -> int:
 
 
 def extract_teams(row) -> tuple[str | None, str | None]:
-    # Primary: two participant-name elements (document order = home, away).
-    names = row.select(OddsPortalSelectors.COMMUNITY_PARTICIPANT_NAME)
+    # Primary: the two participant labels (document order = home, away).
+    names = row.select(OddsPortalSelectors.PARTICIPANT_NAME_CSS)
     if len(names) >= 2:
         return names[0].get_text(strip=True), names[-1].get_text(strip=True)
-    # Fallback: a single dash-separated text node inside the participants container.
-    participants = row.select_one(OddsPortalSelectors.COMMUNITY_PARTICIPANTS)
-    if participants is None:
-        return None, None
-    texts = [t.strip() for t in participants.stripped_strings if t.strip() and t.strip() not in {"-", "–"}]  # noqa: RUF001
-    if len(texts) >= 2:
-        return texts[0], texts[-1]
+    # Fallback: a single dash-separated text node.
+    texts = [t.strip() for t in row.stripped_strings if t.strip() and t.strip() not in {"-", "–"}]  # noqa: RUF001
     if len(texts) == 1:
         parts = re.split(r"\s[-–]\s", texts[0], maxsplit=1)  # noqa: RUF001
         if len(parts) == 2:
@@ -46,8 +41,44 @@ def extract_teams(row) -> tuple[str | None, str | None]:
     return None, None
 
 
+def outcome_columns(row) -> list[dict]:
+    """Per-outcome columns of a community row: label, odds and community percentage.
+
+    A column is a block holding a header label, an odds value and a percentage;
+    rows without all three (e.g. the section header) yield an empty list.
+    """
+    columns = []
+    for label in row.select(OddsPortalSelectors.COMMUNITY_OUTCOME_LABEL):
+        column = label.parent
+        odds = column.select_one(OddsPortalSelectors.COMMUNITY_ODD_CELL) if column else None
+        pct = next((t for t in column.stripped_strings if _PCT_RE.fullmatch(t.strip())), None)
+        if odds is None or pct is None:
+            continue
+        columns.append(
+            {
+                "outcome": label.get_text(strip=True),
+                "odds": to_float(odds.get_text(strip=True)),
+                "pct": to_pct(pct),
+                "picked": column.select_one(OddsPortalSelectors.COMMUNITY_PICK_MARKER) is not None,
+            }
+        )
+    return columns
+
+
+def row_of(link):
+    """The row block of a community match link: the ancestor holding the outcome columns."""
+    node = link.parent
+    for _ in range(6):
+        if node is None:
+            return None
+        if outcome_columns(node):
+            return node
+        node = node.parent
+    return None
+
+
 def extract_datetime_and_market(row, tz_name: str | None) -> tuple[str, str | None, str]:
-    container = row.select_one(OddsPortalSelectors.COMMUNITY_DATE_TIME)
+    container = _date_time_cell(row)
     if container is None:
         return "", None, ""
     texts = [t.strip() for t in container.stripped_strings if t.strip()]
@@ -65,3 +96,11 @@ def extract_datetime_and_market(row, tz_name: str | None) -> tuple[str, str | No
     if parsed_date and time_token:
         kickoff = f"{parsed_date.isoformat()}T{time_token.zfill(5)}"
     return kickoff_text, kickoff, market
+
+
+def _date_time_cell(row):
+    """The row's date / time / market cell: the first block of stacked paragraphs."""
+    for div in row.find_all("div"):
+        if len(div.find_all("p", recursive=False)) >= 2:
+            return div
+    return None

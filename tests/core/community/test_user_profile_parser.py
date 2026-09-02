@@ -1,48 +1,34 @@
+from tests.dom_builders import community_column, community_row, profile_page, statistics_row
+
 from oddsharvester.core.community.user_profile_parser import parse_user_profile
 
-_PUBLIC_HTML = """
-<html><body>
-<div data-testid="username">BLAPRO</div>
-<div data-testid="user-roi">ROI 18.20%</div>
-<div data-testid="member-info">Member since: 23 May 2026 Country: France Profile Privacy: Public</div>
-<table>
-  <thead>
-    <tr data-testid="stats-table-header-line">
-      <th data-testid="stats-table-box">Month</th><th>Total Predictions</th><th>Won</th>
-      <th>Lost</th><th>+ / -</th><th>ROI</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><td>06/2026</td><td>15</td><td>5.28</td><td>9</td><td>-3.72</td><td>-24.8%</td></tr>
-    <tr><td>Total</td><td>26</td><td>13.72</td><td>9</td><td>4.72</td><td>18.2%</td></tr>
-  </tbody>
-</table>
-<div data-testid="game-row">
-  <a href="/football/h2h/turkey/paraguay/"></a>
-  <div data-testid="date-time-item"><span>20/Jun,</span><span>05:00</span><span>1X2</span></div>
-  <div data-testid="event-participants">
-    <p class="participant-name">Turkey</p><span>0 - 1</span><p class="participant-name">Paraguay</p>
-  </div>
-  <div data-testid="odd-container-default">2.05</div>
-  <p data-testid="odd-container-default">2.05</p><div data-testid="prediction-container">87%</div>
-  <span data-testid="prediction-pick-item">PICK</span>
-  <span data-testid="prediction-pick-item">PICK</span>
-  <div data-testid="odd-container-default">3.50</div>
-  <p data-testid="odd-container-default">3.50</p><div data-testid="prediction-container">9%</div>
-  <div data-testid="odd-container-default">3.95</div>
-  <p data-testid="odd-container-default">3.95</p><div data-testid="prediction-container">4%</div>
-</div>
-</body></html>
-"""
+_PREDICTION_COLUMNS = (
+    community_column("1", "2.05", "87%", picked=True)
+    + community_column("X", "3.50", "9%")
+    + community_column("2", "3.95", "4%")
+)
 
-_PRIVATE_HTML = """
-<html><body>
-<div data-testid="username">zywrelip</div>
-<div data-testid="user-roi">ROI 245.30%</div>
-<div data-testid="member-info">Member since: 16 Sep 2025 Country: Italy Profile Privacy: Private</div>
-<div>Private Profile - Chosen by the user. This user's predictions are private.</div>
-</body></html>
-"""
+_PUBLIC_HTML = profile_page(
+    statistics=statistics_row("06/2026", ["15", "5.28", "9", "-3.72", "-24.8%"])
+    + statistics_row("Total", ["26", "13.72", "9", "4.72", "18.2%"]),
+    rows=community_row(
+        "/football/h2h/turkey/paraguay/",
+        _PREDICTION_COLUMNS,
+        date="20/Jun,",
+        time="05:00",
+        home="Turkey",
+        away="Paraguay",
+        scores=("0", "1"),
+    ),
+)
+
+_PRIVATE_HTML = profile_page(
+    username="zywrelip",
+    roi="245.30%",
+    member_since="16 Sep 2025",
+    country="Italy",
+    privacy="Private",
+)
 
 
 def test_public_profile_header_parsed():
@@ -74,7 +60,7 @@ def test_public_profile_predictions_positional_pick():
     assert pred["market"] == "1X2"
     assert pred["home_team"] == "Turkey"
     assert pred["away_team"] == "Paraguay"
-    assert pred["score"] == "0 - 1"
+    assert pred["score"] == "0-1"
     assert pred["outcomes"] == [
         {"odds": 2.05, "community_pct": 87, "picked": True},
         {"odds": 3.50, "community_pct": 9, "picked": False},
@@ -92,26 +78,17 @@ def test_private_profile_header_only():
     assert rec["predictions"] == []
 
 
-_FEED_HTML = """
-<html><body>
-<div data-testid="profile-feed-section">
-<div data-testid="game-row">
-  <span data-testid="prediction-status">L</span>
-  <a href="/tennis/h2h/sabalenka-a/pegula-j/#abc123">
-    <div data-testid="date-time-item"><p>20/Jun</p><p>12:10</p><p>CS</p></div>
-    <div data-testid="event-participants">
-      <p data-testid="participant-name">Sabalenka A.</p>
-      <p data-testid="participant-name">Pegula J.</p>
-    </div>
-  </a>
-  <div data-testid="betting-tip-header">2:5</div>
-  <p data-testid="odd-container-default">2.08</p>
-  <div data-testid="prediction-container">50%</div>
-  <span data-testid="prediction-pick-item">PICK</span>
-</div>
-</div>
-</body></html>
-"""
+_FEED_HTML = profile_page(
+    rows=community_row(
+        "/tennis/h2h/sabalenka-a/pegula-j/#abc123",
+        community_column("2:5", "2.08", "50%", picked=True),
+        date="20/Jun",
+        time="12:10",
+        market="CS",
+        home="Sabalenka A.",
+        away="Pegula J.",
+    )
+)
 
 
 def test_feed_predictions_parsed():

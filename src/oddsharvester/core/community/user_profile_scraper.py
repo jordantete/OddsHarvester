@@ -67,7 +67,7 @@ class UserProfileScraper:
                 logger.warning("Profile Feed tab not found; predictions left empty.")
                 return []
             await feed_tab.click()
-            await page.wait_for_selector(OddsPortalSelectors.COMMUNITY_GAME_ROW, timeout=SELECTOR_TIMEOUT_MS)
+            await page.wait_for_selector(OddsPortalSelectors.LISTING_ROW_SELECTOR, timeout=SELECTOR_TIMEOUT_MS)
             feed_html = await page.content()
             return parse_profile_feed_predictions(feed_html, tz_name=self.playwright_manager.timezone_id)
         except Exception as e:

@@ -83,7 +83,7 @@ def _parse_date_header(header_text: str, tz_name: str | None = None) -> date | N
     since OddsPortal resolves them based on the browser timezone.
 
     Args:
-        header_text: Raw inner text of the [data-testid='date-header'] element.
+        header_text: Raw text of the listing's date-header element.
         tz_name: IANA timezone name used to resolve "Today"/"Tomorrow" and to
             infer missing years. Defaults to UTC.
 
@@ -163,23 +163,25 @@ def _is_offscreen_row(row) -> bool:
 _KICKOFF_TIME_RE = re.compile(r"^\d{1,2}:\d{2}$")
 
 
+def _row_status_cell_text(row) -> str:
+    """Text of a listing row's first column: kickoff time, or a status/period marker.
+
+    A row is the match <a>, whose two direct <div> children are the
+    kickoff/status cell and the participants (gotchas §20).
+    """
+    cell = row.find("div", recursive=False)
+    return cell.get_text(" ", strip=True) if cell else ""
+
+
 def _row_has_started(row) -> bool:
     """Return True if a listing-page event row is live or finished.
 
-    Two signals are needed because OddsPortal splits "started" state:
-    live flips `time-item` from HH:MM to a period marker; finished fills
-    `game-status-box`. See `docs/agentic-gotchas.md` §9. Fail-safe:
-    missing markers → False so DOM drift degrades open.
+    The first column shows HH:MM while the match is pending and a status or
+    period marker once it starts ("Finished", "5S"). See
+    `docs/agentic-gotchas.md` §9. Fail-safe: no marker → False so DOM drift
+    degrades open.
     """
-    box = row.find(attrs={"data-testid": OddsPortalSelectors.EVENT_ROW_GAME_STATUS_BOX_TESTID})
-    if box and box.get_text(strip=True):
-        return True
-
-    time_el = row.find(attrs={"data-testid": OddsPortalSelectors.EVENT_ROW_TIME_ITEM_TESTID})
-    if time_el is None:
-        return False
-    p = time_el.find("p")
-    text = p.get_text(strip=True) if p else time_el.get_text(strip=True)
+    text = _row_status_cell_text(row)
     if not text:
         return False
     return not _KICKOFF_TIME_RE.match(text)
@@ -189,9 +191,9 @@ def _row_kickoff_datetime(row, row_date: date | None, tz) -> datetime | None:
     """Best-effort kickoff datetime for a listing-page event row.
 
     Combines the group's `row_date` (from the surrounding date-header) with the
-    HH:MM shown in the row's `time-item`. Returns None when the kickoff cannot
-    be determined (no date, no time-item, or a non-clock value such as a live
-    period marker), so callers keep the row (fail-safe against DOM drift).
+    HH:MM shown in the row's first column. Returns None when the kickoff cannot
+    be determined (no date, or a non-clock value such as a live period marker),
+    so callers keep the row (fail-safe against DOM drift).
 
     Args:
         row: A BeautifulSoup event-row node.
@@ -201,11 +203,7 @@ def _row_kickoff_datetime(row, row_date: date | None, tz) -> datetime | None:
     """
     if row_date is None:
         return None
-    time_el = row.find(attrs={"data-testid": OddsPortalSelectors.EVENT_ROW_TIME_ITEM_TESTID})
-    if time_el is None:
-        return None
-    p = time_el.find("p")
-    text = p.get_text(strip=True) if p else time_el.get_text(strip=True)
+    text = _row_status_cell_text(row)
     if not text or not _KICKOFF_TIME_RE.match(text):
         return None
     hour_str, minute_str = text.split(":")
@@ -214,6 +212,12 @@ def _row_kickoff_datetime(row, row_date: date | None, tz) -> datetime | None:
     except ValueError:
         return None
     return datetime.combine(row_date, kickoff_time, tzinfo=tz)
+
+
+def _is_league_link(el) -> bool:
+    """True for a section-header league link ('/<sport>/<country>/<league>/')."""
+    href = el.get("href") or ""
+    return "?" not in href and "/h2h/" not in href and len(href.strip("/").split("/")) == 3
 
 
 # Separator is a colon on the live header, but OddsPortal renders scores with an
@@ -239,49 +243,28 @@ _LIVE_ENDED_PERIOD_MARKERS = frozenset(
 )
 
 
-def _parse_inplay_live_score(soup: BeautifulSoup) -> dict[str, Any] | None:
-    """Live score from the redesigned in-play match header.
-
-    In-play pages render no `live-info` element; the running score is the red
-    digits flanking the participant names inside `game-participants` (verified
-    live 2026-08-24). The page shows no period/clock, so `live_period` is None
-    (site regression). Returns None when no red digits are present (not live).
-    """
-    participants = soup.find(attrs={"data-testid": "game-participants"})
-    if participants is None:
-        return None
-    digits = [
-        el.get_text(strip=True)
-        for el in participants.find_all(class_=re.compile(r"text-red"))
-        if el.get_text(strip=True).isdigit()
-    ]
-    if len(digits) < 2:
-        return None
-    home, away = int(digits[0]), int(digits[1])
-    return {
-        "live_period": None,
-        "live_score_home": home,
-        "live_score_away": away,
-        "live_score_raw": f"{home}:{away}",
-    }
+_LIVE_PARTIAL_RESULT_RE = re.compile(r"^\(.+\)$")
 
 
 def _parse_live_info(soup: BeautifulSoup) -> dict[str, Any] | None:
     """Parse the in-play match header into live context fields.
 
-    Structure (verified 2026-07-20): a `live-info` container holding a period
-    chunk, a main-score chunk, and an optional `partial-result` element with
-    the compound detail in parentheses. Match on text shape, not classes.
+    The live block sits in the header's date row, marked by the `result-live`
+    pulse: a period chunk, a main-score chunk, and an optional partial result in
+    parentheses. Match on text shape, not classes.
 
-    Returns None when the match is not live, which covers two cases: the
-    container is absent, or it carries a terminal marker such as "Final result".
+    Returns None when the match is not live, which covers two cases: the block
+    is absent, or it carries a terminal marker such as "Final result".
     """
-    container = soup.find(attrs={"data-testid": OddsPortalSelectors.LIVE_INFO_TESTID})
+    marker = OddsPortalSelectors.content_root(soup).select_one(OddsPortalSelectors.LIVE_INFO_MARKER)
+    container = marker.parent if marker is not None else None
     if container is None:
-        return _parse_inplay_live_score(soup)
+        return None
 
     partial_text = None
-    partial_el = container.find(attrs={"data-testid": OddsPortalSelectors.LIVE_PARTIAL_RESULT_TESTID})
+    partial_el = next(
+        (el for el in container.find_all("div") if _LIVE_PARTIAL_RESULT_RE.match(el.get_text("", strip=True))), None
+    )
     if partial_el is not None:
         partial_text = partial_el.get_text("", strip=True).strip("()") or None
         partial_el.extract()
@@ -434,9 +417,9 @@ class BaseScraper:
         """
         Extract and parse match rows from the current page.
 
-        Event rows on OddsPortal listing pages are grouped by date: the first
-        row of a group carries a `[data-testid='date-header']` element, and
-        subsequent rows in the same group inherit that date. When `date_filter`
+        Event rows on OddsPortal listing pages are grouped by date: a group is
+        introduced by a date-header element and the rows that follow it inherit
+        that date. When `date_filter`
         is provided, rows are iterated in document order, the "current" date
         header is tracked, and only rows whose group matches the filter are
         kept.
@@ -464,13 +447,16 @@ class BaseScraper:
         try:
             html_content = await page.content()
             soup = BeautifulSoup(html_content, "lxml")
-            # 2026-08 redesign: rows are [data-testid='game-row'] and date headers
-            # are *siblings* (inside a 'secondary-header' element), no longer
-            # children of the first row of a group. Walk both in document order.
-            elements = soup.find_all(
-                attrs={"data-testid": [OddsPortalSelectors.DATE_HEADER_TESTID, OddsPortalSelectors.GAME_ROW_TESTID]}
-            )
-            row_count = sum(1 for el in elements if el.get("data-testid") == OddsPortalSelectors.GAME_ROW_TESTID)
+            # Rows are the match <a> elements and date headers are leaf elements
+            # holding the group date; both are walked in document order, scoped to
+            # the content root so sidebar widgets never register as rows/headers.
+            root = OddsPortalSelectors.content_root(soup)
+            elements = [
+                el
+                for el in root.find_all(["a", "div", "span", "p"])
+                if OddsPortalSelectors.is_match_link(el) or OddsPortalSelectors.is_date_header(el)
+            ]
+            row_count = sum(1 for el in elements if OddsPortalSelectors.is_match_link(el))
             self.logger.info(f"Found {row_count} event rows.")
 
             need_kickoff = kickoff_within_hours is not None or collect_kickoff
@@ -493,7 +479,7 @@ class BaseScraper:
             window_filtered_out_count = 0
 
             for el in elements:
-                if el.get("data-testid") == OddsPortalSelectors.DATE_HEADER_TESTID:
+                if not OddsPortalSelectors.is_match_link(el):
                     if track_headers:
                         header_text = el.get_text(" ", strip=True)
                         parsed = _parse_date_header(header_text, tz_name=tz_name)
@@ -528,14 +514,13 @@ class BaseScraper:
 
                 kickoff_utc = format_utc(kickoff_dt) if collect_kickoff and kickoff_dt is not None else None
 
-                for link in row.find_all("a", href=True):
-                    href = link["href"]
-                    if len(href.strip("/").split("/")) <= 3:
-                        continue
-                    full_url = f"{self.base_url or ODDSPORTAL_BASE_URL}{href}"
-                    if full_url not in seen:
-                        seen.add(full_url)
-                        rows_out.append({"match_link": full_url, "kickoff_utc": kickoff_utc})
+                href = row["href"]
+                if len(href.strip("/").split("/")) <= 3:
+                    continue
+                full_url = f"{self.base_url or ODDSPORTAL_BASE_URL}{href}"
+                if full_url not in seen:
+                    seen.add(full_url)
+                    rows_out.append({"match_link": full_url, "kickoff_utc": kickoff_utc})
 
             started_suffix = f", {started_filtered_out_count} started/finished rows skipped" if skip_started else ""
             window_suffix = (
@@ -601,10 +586,9 @@ class BaseScraper:
         """
         Extract match links and listing context from a live-now in-play listing.
 
-        Rows are `[data-testid='game-row']` elements; this listing carries no
-        `eventRow` class, unlike `/matches/`. The testid appears twice per row
-        (outer div and a nested div inside the anchor), so dedupe on href.
-        Hrefs here already carry the `/inplay-odds/#<id>` suffix.
+        Rows are the match <a> elements, whose hrefs here carry the
+        `/inplay-odds/#<id>` suffix. The same match can appear twice in the DOM,
+        so rows are deduped on href.
 
         Args:
             page (Page): A Playwright Page instance for this task.
@@ -619,40 +603,45 @@ class BaseScraper:
             league_path_prefix = None
             if league and sport:
                 league_url = URLBuilder.get_league_url(sport, league)
-                league_path_prefix = urlsplit(league_url).path
+                league_path_prefix = urlsplit(league_url).path.rstrip("/")
 
             html_content = await page.content()
             soup = BeautifulSoup(html_content, "lxml")
-            rows = soup.find_all(attrs={"data-testid": OddsPortalSelectors.GAME_ROW_TESTID})
+            root = OddsPortalSelectors.content_root(soup)
+            # In-play hrefs are H2H URLs carrying no league segment, so the league
+            # of a row is the section-header link that precedes it (gotchas §20);
+            # both are walked in document order.
+            elements = [
+                el
+                for el in root.find_all("a", href=True)
+                if (OddsPortalSelectors.is_match_link(el) and "/inplay-odds/" in el["href"]) or _is_league_link(el)
+            ]
 
             seen: set[str] = set()
             results: list[dict[str, Any]] = []
             offscreen_skipped = 0
             league_filtered_out = 0
+            current_league: str | None = None
 
-            for row in rows:
+            for row in elements:
+                if not OddsPortalSelectors.is_match_link(row):
+                    current_league = row["href"]
+                    continue
+
                 if _is_offscreen_row(row):
                     offscreen_skipped += 1
                     continue
 
-                anchor = row.find("a", href=lambda h: h and "/inplay-odds/" in h)
-                if anchor is None:
-                    continue
-                href = anchor["href"]
+                href = row["href"]
                 if href in seen:
                     continue
                 seen.add(href)
 
-                if league_path_prefix and not href.startswith(league_path_prefix):
+                if league_path_prefix and (current_league or "").rstrip("/") != league_path_prefix:
                     league_filtered_out += 1
                     continue
 
-                period = None
-                time_el = row.find(attrs={"data-testid": OddsPortalSelectors.EVENT_ROW_TIME_ITEM_TESTID})
-                if time_el is not None:
-                    p = time_el.find("p")
-                    text = p.get_text(strip=True) if p else time_el.get_text(strip=True)
-                    period = text or None
+                period = _row_status_cell_text(row) or None
 
                 results.append(
                     {
@@ -983,14 +972,14 @@ class BaseScraper:
 
     def _parse_match_date_from_dom(self, soup: BeautifulSoup) -> str | None:
         """
-        Extract the match date from <div data-testid="game-time-item"> and
-        return it formatted as "YYYY-MM-DD HH:MM:SS UTC".
+        Extract the match date from the header's date cell and return it
+        formatted as "YYYY-MM-DD HH:MM:SS UTC".
 
-        Returns None if the div or its child paragraphs are missing, or if
+        Returns None if the cell or its child paragraphs are missing, or if
         the text doesn't match the expected "DD MMM YYYY" + "HH:MM" shape.
         """
         try:
-            game_time_div = soup.find("div", attrs={"data-testid": OddsPortalSelectors.MATCH_DETAILS_GAME_TIME_TESTID})
+            game_time_div = OddsPortalSelectors.match_date_cell(soup)
             if not game_time_div:
                 return None
 
@@ -1009,24 +998,26 @@ class BaseScraper:
 
     def _parse_teams_from_dom(self, soup: BeautifulSoup) -> tuple[str | None, str | None]:
         """
-        Extract (home_team, away_team) from <div data-testid="game-host">
-        and <div data-testid="game-guest">. Returns (None, None) if either
-        side is missing - caller falls back to JSON for both fields.
+        Extract (home_team, away_team) from the header's participants row: its
+        first and last blocks, each naming its side in a link (team page) or a
+        paragraph (sports with no team pages, e.g. tennis). Returns (None, None)
+        if either side is missing.
         """
 
         def _name(container):
             if container is None:
                 return None
-            el = container.find(attrs={"data-testid": "participant-name"}) or container.find(class_="participant-name")
-            el = el or container.find("p")
+            el = container.find(["a", "p"])
             text = el.get_text(strip=True) if el else None
             return text or None
 
         try:
-            host = soup.find("div", attrs={"data-testid": OddsPortalSelectors.MATCH_DETAILS_GAME_HOST_TESTID})
-            guest = soup.find("div", attrs={"data-testid": OddsPortalSelectors.MATCH_DETAILS_GAME_GUEST_TESTID})
-            host_name = _name(host)
-            guest_name = _name(guest)
+            title = OddsPortalSelectors.match_title_block(soup)
+            if title is None:
+                return None, None
+            sides = title.find_all("div", recursive=False)
+            host_name = _name(sides[0]) if sides else None
+            guest_name = _name(sides[-1]) if len(sides) > 1 else None
             if not host_name or not guest_name:
                 return None, None
             return host_name, guest_name
@@ -1044,12 +1035,12 @@ class BaseScraper:
         missing.
         """
         try:
-            breadcrumbs = soup.find("div", attrs={"data-testid": OddsPortalSelectors.MATCH_DETAILS_BREADCRUMBS_TESTID})
+            breadcrumbs = OddsPortalSelectors.content_root(soup).find("ul")
             if not breadcrumbs:
                 return None
-            # Redesign: breadcrumb anchors carry their label as data-testid; the
-            # league is the last testid-bearing anchor (the current page is not an <a>).
-            links = breadcrumbs.find_all("a", attrs={"data-testid": True})
+            # The breadcrumb is Home > Sport > Country > League > <match>; only the
+            # trail is linked, so the league is its last anchor.
+            links = breadcrumbs.find_all("a", href=True)
             if not links:
                 return None
             raw = links[-1].get_text(strip=True)
@@ -1064,12 +1055,12 @@ class BaseScraper:
         """
         Extract (home_score, away_score, partial_results) from the page DOM.
 
-        Scoped to descendants of <div data-testid="game-time-item">'s parent
-        to avoid false positives elsewhere in the page. Returns (None, None,
-        None) if the score pattern isn't found.
+        Scoped to the header's date row (the date cell's parent) to avoid false
+        positives elsewhere in the page. Returns (None, None, None) if the score
+        pattern isn't found.
         """
         try:
-            game_time_div = soup.find("div", attrs={"data-testid": OddsPortalSelectors.MATCH_DETAILS_GAME_TIME_TESTID})
+            game_time_div = OddsPortalSelectors.match_date_cell(soup)
             if not game_time_div:
                 return None, None, None
             scope = game_time_div.find_parent() or soup
@@ -1101,9 +1092,8 @@ class BaseScraper:
         except Exception as e:
             self.logger.debug(f"Login modal dismissal skipped: {e}")
 
-    # The SPA hydrates the match view only on an in-page hashchange to the full
-    # '#<id>:<market>;<scope>' form; a direct page load with that hash stays on
-    # the H2H landing skeleton. Setting the bare id first guarantees the second
+    # The SPA renders the fragment match on load again since 2026-09, so the hash
+    # nudge is only a retry. Setting the bare id first guarantees the second
     # assignment is a change even when the page URL already carried the full form.
     _HASH_NUDGE_JS = """
     (args) => {
@@ -1135,58 +1125,20 @@ class BaseScraper:
     }
 
     async def _hydrate_match_view(self, page: Page, match_link: str, sport: str | None = None) -> None:
-        """Force the SPA to render the fragment match (2026-08 redesign).
+        """Wait for the SPA to render the match view, nudging the hash if it does not.
 
-        Nudges the URL hash (bare id, then '#<id>:<market>;<scope>' plus an
-        explicit hashchange) and waits for `game-time-item` to render. The first
-        nudge right after domcontentloaded can fire before the SPA has booted,
-        so the nudge is retried. Raises H2HFragmentResolutionError (retryable,
-        proxy-neutral) when the view never renders.
+        The view renders on load, so each attempt waits for the market tabs and
+        only then re-routes the hash (bare id on in-play pages, which own their
+        market codes; '#<id>:<market>;<scope>' elsewhere). Raises
+        H2HFragmentResolutionError (retryable, proxy-neutral) when the view never
+        renders.
         """
         fragment = _extract_fragment_match_id(match_link)
-        if fragment is None:
-            # Legacy non-fragment match URL: the page renders directly or not at all.
-            try:
-                await page.wait_for_selector(
-                    OddsPortalSelectors.MATCH_CONTENT_READY_SELECTOR, timeout=MATCH_HYDRATION_TIMEOUT_MS
-                )
-            except TimeoutError as e:
-                raise H2HFragmentResolutionError(
-                    f"match view hydration failed: {match_link} never rendered match content", url=match_link
-                ) from e
-            return
-
-        if "/inplay-odds/" in match_link:
-            # In-play pages hydrate on their own and route their own market codes
-            # (e.g. 'O/U', not 'over-under'); forcing the pre-match full-form hash
-            # can flip the view to Pre-match Odds. Wait first, nudge the bare id
-            # only as a retry.
-            for attempt in range(1, MATCH_HYDRATION_ATTEMPTS + 1):
-                try:
-                    await page.wait_for_selector(
-                        OddsPortalSelectors.MATCH_CONTENT_READY_SELECTOR, timeout=MATCH_HYDRATION_TIMEOUT_MS
-                    )
-                    return
-                except TimeoutError:
-                    self.logger.warning(
-                        f"In-play hydration attempt {attempt}/{MATCH_HYDRATION_ATTEMPTS} timed out for {match_link}"
-                    )
-                    await self._dismiss_login_modal(page)
-                    await page.evaluate(
-                        self._HASH_NUDGE_JS,
-                        {"fragment": fragment, "bare": True, "delayMs": HASH_NUDGE_DELAY_MS},
-                    )
-            raise H2HFragmentResolutionError(
-                f"match view hydration failed: {match_link} never rendered match content", url=match_link
-            )
-
+        inplay = "/inplay-odds/" in match_link
         code = self._DEFAULT_MARKET_CODE_BY_SPORT.get((sport or "").lower(), "1X2")
         scope = OddsPortalSelectors.period_scope_code(sport, "FullTime") or 2
+
         for attempt in range(1, MATCH_HYDRATION_ATTEMPTS + 1):
-            await page.evaluate(
-                self._HASH_NUDGE_JS,
-                {"fragment": fragment, "code": code, "scope": scope, "delayMs": HASH_NUDGE_DELAY_MS},
-            )
             try:
                 await page.wait_for_selector(
                     OddsPortalSelectors.MATCH_CONTENT_READY_SELECTOR, timeout=MATCH_HYDRATION_TIMEOUT_MS
@@ -1197,6 +1149,12 @@ class BaseScraper:
                     f"Match view hydration attempt {attempt}/{MATCH_HYDRATION_ATTEMPTS} timed out for {match_link}"
                 )
                 await self._dismiss_login_modal(page)
+                if fragment is None:
+                    # Legacy non-fragment match URL: nothing to re-route to.
+                    break
+                nudge = {"fragment": fragment, "delayMs": HASH_NUDGE_DELAY_MS}
+                nudge.update({"bare": True} if inplay else {"code": code, "scope": scope})
+                await page.evaluate(self._HASH_NUDGE_JS, nudge)
 
         raise H2HFragmentResolutionError(
             f"match view hydration failed: {match_link} never rendered match content", url=match_link

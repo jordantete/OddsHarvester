@@ -1,5 +1,4 @@
 import logging
-import re
 from typing import Any
 
 from bs4 import BeautifulSoup
@@ -8,21 +7,11 @@ from playwright.async_api import Page
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import SCROLL_PAUSE_TIME_MS
 
-# Collapsed submarket line rows (2026-08 redesign): one leaf <tr> per line,
-# preview odds in data-testid='odd-container-default' cells.
-_ODD_DEFAULT_RE = re.compile(r"^odd-container-default")
-
 
 def _find_line_rows(soup: BeautifulSoup) -> list:
-    """Leaf <tr> rows carrying collapsed preview odds (odd-container-default)."""
-    rows = []
-    for tr in soup.find_all("tr"):
-        if tr.find("tr") is not None:
-            continue
-        if not tr.find(attrs={"data-testid": _ODD_DEFAULT_RE}):
-            continue
-        rows.append(tr)
-    return rows
+    """Leaf <tr> rows for collapsed submarket lines, marked by their expand arrow."""
+    root = OddsPortalSelectors.content_root(soup)
+    return [tr for tr in root.select(OddsPortalSelectors.SUBMARKET_LINE_ROW_CSS) if tr.find("tr") is None]
 
 
 class SubmarketExtractor:
@@ -60,7 +49,7 @@ class SubmarketExtractor:
                 # Check if any of these submarkets have visible odds
                 submarkets_with_odds = 0
                 for row in line_rows[:5]:  # Check first 5 submarkets
-                    odds_containers = row.find_all(attrs={"data-testid": _ODD_DEFAULT_RE})
+                    odds_containers = row.select(OddsPortalSelectors.ODD_CELL_CSS)
                     if len(odds_containers) >= 2:  # Need at least 2 odds to be useful
                         submarkets_with_odds += 1
 
@@ -129,7 +118,7 @@ class SubmarketExtractor:
 
                     self.logger.debug(f"Extracted submarket name: '{submarket_name}'")
 
-                    odds_containers = row.find_all(attrs={"data-testid": _ODD_DEFAULT_RE})
+                    odds_containers = row.select(OddsPortalSelectors.ODD_CELL_CSS)
 
                     # Use provided odds_labels or determine based on market type
                     if odds_labels is None:
@@ -202,8 +191,9 @@ class SubmarketExtractor:
             if text:
                 return text
 
+        odds_columns = row.select(OddsPortalSelectors.ODD_COLUMN_CELL_CSS)
         for el in row.find_all(["span", "p"]):
-            if el.find_parent(attrs={"data-testid": re.compile(rf"^{OddsPortalSelectors.ODD_CELL_TESTID_PREFIX}")}):
+            if el.find_parent("td") in odds_columns:
                 continue
             text = el.get_text(strip=True)
             if not text or text.endswith("%"):

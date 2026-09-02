@@ -8,41 +8,98 @@ class OddsPortalSelectors:
     # Cookie banner
     COOKIE_BANNER = "#onetrust-accept-btn-handler"
 
+    # 2026-09 (issue #86): OddsPortal stripped every data-testid from the DOM.
+    # Anchors are hrefs, HTML semantics and text shape; see gotchas §20.
+
+    # The SPA nests page content in a second <main>; parsing is scoped to the
+    # innermost one so sidebar widgets never leak into listing/match extraction.
+    CONTENT_ROOT = "main"
+
     # 2026-08 redesign (issue #85). Digits are <button>s, the current page a <span>;
     # the widget's parent stays display:none until the listing is scrolled to the
     # bottom, so read text_content (not inner_text) on the items.
     PAGINATION_CONTAINER = "nav.pagination"
     PAGINATION_ITEM = "nav.pagination button, nav.pagination span"
 
-    # Listing rows and their date grouping (redesign): rows carry
-    # data-testid='game-row'; date headers are siblings (inside a
-    # 'secondary-header' element), not children of the first row of a group.
-    LISTING_ROW_SELECTOR = "div[data-testid='game-row']"
-    DATE_HEADER_TESTID = "date-header"
+    # Listing rows: each row is an <a> to the match H2H fragment URL. Its two
+    # direct <div> children are the kickoff/status cell and the participants.
+    LISTING_ROW_SELECTOR = 'a[href*="/h2h/"]'
+    MATCH_LINK_HREF_SUBSTRING = "/h2h/"
+    # Date headers: a leaf element whose whole text is the group date
+    # ("04 Sep 2026", "Today, 02 Sep", "Today, 02 Sep  - Clausura"). The day
+    # number is required so the "Today" nav filter is not read as a header.
+    DATE_HEADER_RE = re.compile(
+        r"^(?:(?:today|tomorrow|yesterday)\s*,\s*)?\d{1,2}\s+\w{3,}\.?(?:\s+\d{4})?(?:\s+-\s+.+)?$",
+        re.IGNORECASE,
+    )
 
-    # Match view (redesign): content renders only after an in-page hashchange to
-    # '#<id>:<market>;<scope>'; game-time-item is the hydration-complete signal.
-    MATCH_CONTENT_READY_SELECTOR = "div[data-testid='game-time-item']"
+    # Match view: the market tabs are the render-complete signal (they exist even
+    # on a match with no bookmaker coverage).
+    MATCH_CONTENT_READY_SELECTOR = "main li.tab-item"
 
-    # Market tabs (redesign)
-    MARKET_TAB_ACTIVE = "[data-testid='sports-nav-active-tab']"
-    MARKET_TAB_ANY = "[data-testid='sports-nav-active-tab'], [data-testid='sports-nav-inactive-tab']"
+    # Market tabs; the active one carries font-bold on its label span.
+    MARKET_TAB_ANY = "li.tab-item"
+    MARKET_TAB_ACTIVE = "li.tab-item:has(span.font-bold)"
 
-    # Sub-nav row: bookies filter (All/Classic/Crypto Bookies) and period tabs.
-    SUB_NAV_TAB_ANY = "[data-testid='sub-nav-active-tab'], [data-testid='sub-nav-inactive-tab']"
-    SUB_NAV_TAB_ACTIVE_TESTID = "sub-nav-active-tab"
+    # Sub-nav row: bookies filter (All/Classic/Crypto Bookies) and period tabs,
+    # plain buttons whose active one carries an inline font-weight.
+    SUB_NAV_TAB_ANY = "main button[type='button']"
+    SUB_NAV_ACTIVE_STYLE_MARKER = "font-weight: 700"
 
-    # Odds table (redesign): one <tr> per bookmaker; peripheral rows to skip.
-    BOOKMAKER_NAME_TESTID = "outrights-expanded-bookmaker-name"
-    BOOKMAKER_NAME_CSS = "[data-testid='outrights-expanded-bookmaker-name']"
-    BOOKMAKER_ROW_WITH_NAME_CSS = "tr:has([data-testid='outrights-expanded-bookmaker-name'])"
-    ODD_CELL_CSS = "[data-testid^='odd-container']"
-    ODD_CELL_TESTID_PREFIX = "odd-container"
-    PAYOUT_TESTID = "payout-container"
-    TABLE_SKIP_ROW_TESTIDS: ClassVar[tuple[str, ...]] = ("my-coupon-row", "user-predictions-row", "odds-alert-row")
+    # Odds table: one leaf <tr> per bookmaker, identified by its bookmaker links;
+    # collapsed submarket line rows carry the expand arrow instead. Odds cells are
+    # the odds-column <td>s that hold a value block (the submarket line label sits
+    # in an odds column too, but is a bare span).
+    ODDS_TABLE = "main table"
+    BOOKMAKER_LINK_CSS = 'a[href*="/bookmakers/"]'
+    BOOKMAKER_ROW_WITH_NAME_CSS = 'tr:has(a[href*="/bookmakers/"])'
+    SUBMARKET_LINE_ROW_CSS = 'tr:has(img[alt="arrow"])'
+    ODD_CELL_CSS = 'td[class*="event-table-odd-col"]:has(.font-bold)'
+    ODD_COLUMN_CELL_CSS = 'td[class*="event-table-odd-col"]'
 
     # Login modal observed blocking match-page rendering on cold profiles.
-    LOGIN_MODAL_CLOSE = "[data-testid='modal'] button[aria-label='Close']"
+    LOGIN_MODAL_CLOSE = ".login-modal button[aria-label='Close']"
+
+    @staticmethod
+    def content_root(soup):
+        """Innermost <main>, i.e. the page content without nav, sidebars and footer."""
+        mains = soup.find_all("main")
+        return mains[-1] if mains else soup
+
+    # The header's date cell holds weekday / date / time paragraphs; it is the
+    # anchor for everything else in the header, which carries no stable attribute.
+    MATCH_DATE_PARAGRAPH_RE = re.compile(r"^\d{1,2} \w{3} \d{4},?$")
+
+    @staticmethod
+    def match_date_cell(soup):
+        """The match header's date cell, or None when the header is absent."""
+        for div in OddsPortalSelectors.content_root(soup).find_all("div"):
+            paragraphs = div.find_all("p", recursive=False)
+            if len(paragraphs) >= 3 and OddsPortalSelectors.MATCH_DATE_PARAGRAPH_RE.match(
+                paragraphs[1].get_text(strip=True)
+            ):
+                return div
+        return None
+
+    @staticmethod
+    def match_title_block(soup):
+        """The match header's participants row: home block, separator, away block."""
+        date_cell = OddsPortalSelectors.match_date_cell(soup)
+        header = date_cell.parent.parent if date_cell is not None and date_cell.parent is not None else None
+        return header.find("div", recursive=False) if header is not None else None
+
+    @staticmethod
+    def is_date_header(el) -> bool:
+        """True for a listing date-header element (a leaf holding only the group date)."""
+        if el.find(True) is not None:
+            return False
+        text = el.get_text(" ", strip=True)
+        return bool(text) and bool(OddsPortalSelectors.DATE_HEADER_RE.match(text))
+
+    @staticmethod
+    def is_match_link(el) -> bool:
+        """True for a listing row: an <a> pointing at a match H2H fragment URL."""
+        return el.name == "a" and OddsPortalSelectors.MATCH_LINK_HREF_SUBSTRING in (el.get("href") or "")
 
     @staticmethod
     def page_fragment(n: int) -> str:
@@ -86,44 +143,28 @@ class OddsPortalSelectors:
         "cricket": {"FullIncludingOT": 1},
     }
 
-    # Match details — data-testid values for DOM-based extraction
-    # (used by base_scraper._extract_match_details DOM helpers)
-    MATCH_DETAILS_GAME_TIME_TESTID = "game-time-item"
-    MATCH_DETAILS_GAME_HOST_TESTID = "game-host"
-    MATCH_DETAILS_GAME_GUEST_TESTID = "game-guest"
-    MATCH_DETAILS_BREADCRUMBS_TESTID = "breadcrumbs-line"
+    # Participants: the two team/player labels of a listing row or match header,
+    # truncated to their column.
+    PARTICIPANT_NAME_CSS = "p.truncate, a.truncate"
 
-    # Community Top Predictions page (/predictions/). All data-testid based; see
-    # docs/agentic-gotchas.md (community predictions entry).
-    COMMUNITY_LEAGUE_HEADER = "div[data-testid='sport-country-league-item']"
-    COMMUNITY_OUTCOME_HEADER = "div[data-testid='betting-tip-header']"
-    COMMUNITY_GAME_ROW = "div[data-testid='game-row']"
-    COMMUNITY_DATE_TIME = "div[data-testid='date-time-item']"
-    COMMUNITY_PARTICIPANTS = "div[data-testid='event-participants']"
-    COMMUNITY_PARTICIPANT_NAME = "[data-testid='participant-name']"
-    COMMUNITY_ODD_CELL = "p[data-testid='odd-container-default']"
-    COMMUNITY_PREDICTION_CELL = "div[data-testid='prediction-container']"
-    COMMUNITY_BREADCRUMB_SPORT = "a[data-testid='header-sport-item']"
-    COMMUNITY_BREADCRUMB_COUNTRY = "a[data-testid='header-country-item']"
-    COMMUNITY_BREADCRUMB_LEAGUE = "a[data-testid='header-tournament-item']"
+    # Community Top Predictions page (/community/predictions/#sport/<sport>/):
+    # one column per outcome, holding its label header, odds and vote percentage.
+    COMMUNITY_ROW_READY_SELECTOR = 'main a[href*="/h2h/"]'
+    COMMUNITY_OUTCOME_LABEL = "div[class*='bg-gray-light']"
+    COMMUNITY_ODD_CELL = "p.font-bold"
+    COMMUNITY_PICK_MARKER = ".user-pred-pick"
 
-    # Community user profile page (/users/<username>/). Header renders even when
-    # private; the pick marker ('prediction-pick-item') is matched as a raw
-    # data-testid inside a document-order descendants loop, not a CSS selector.
-    COMMUNITY_PROFILE_USERNAME = "[data-testid='username']"
-    COMMUNITY_PROFILE_ROI = "[data-testid='user-roi']"
-    COMMUNITY_PROFILE_MEMBER_INFO = "[data-testid='member-info']"
-    COMMUNITY_PROFILE_STATS_HEADER = "[data-testid='stats-table-header-line']"
-    # Profile sub-tabs (Feed / Followers / Following); the active one carries
-    # 'tab-navigation-active-tab' instead.
-    COMMUNITY_PROFILE_TAB = "[data-testid='navigation-inactive-tab']"
+    # Community user profile page (/profile/<username>/). The header renders even
+    # when the profile is private; the statistics are the page's only table and
+    # the Feed / Followers / Following sub-tabs are ordinary tab items.
+    COMMUNITY_PROFILE_USERNAME = "main h1"
+    COMMUNITY_PROFILE_STATS_TABLE = "main table"
+    COMMUNITY_PROFILE_TAB = "li.tab-item"
 
-    # Live (in-play) pages. `live-info` is the match-page live header (period,
-    # score, partial result); it disappears once the match ends. `game-row` is
-    # the listing row testid shared with community pages.
-    LIVE_INFO_TESTID = "live-info"
-    LIVE_PARTIAL_RESULT_TESTID = "partial-result"
-    GAME_ROW_TESTID = "game-row"
+    # Live (in-play) pages: the header's live block (period, running score,
+    # partial result) is marked by this pulse element and disappears once the
+    # match ends.
+    LIVE_INFO_MARKER = ".result-live"
 
     @staticmethod
     def event_id_from_url(url: str) -> str | None:
@@ -193,12 +234,6 @@ class OddsPortalSelectors:
     ODDS_BLOCKED_SELECTOR = ".line-through"
     # Match the tooltip header by class: its text is localized on regional mirrors.
     ODDS_MOVEMENT_HEADER = "h3.font-semibold.uppercase.leading-6"
-
-    # Per-row status indicators on the listing page (issue #58 / gotchas §9).
-    # Both are required to detect started matches: live flips only time-item,
-    # finished fills only game-status-box.
-    EVENT_ROW_TIME_ITEM_TESTID = "time-item"
-    EVENT_ROW_GAME_STATUS_BOX_TESTID = "game-status-box"
 
     # Submarket name — BeautifulSoup class
     SUBMARKET_CLEAN_NAME_CLASS = "max-sm:hidden"

@@ -38,34 +38,27 @@ class OddsHistoryExtractor:
 
             for row in rows:
                 try:
-                    name_el = await row.query_selector(OddsPortalSelectors.BOOKMAKER_NAME_CSS)
+                    title = await self._row_bookmaker_name(row)
 
-                    if name_el:
-                        title = ((await name_el.text_content()) or "").strip()
+                    if title and bookmaker_name.lower() in title.lower():
+                        self.logger.info(f"Found matching bookmaker row: {title}")
+                        odds_blocks = await row.query_selector_all(OddsPortalSelectors.ODD_CELL_CSS)
 
-                        if title and bookmaker_name.lower() in title.lower():
-                            self.logger.info(f"Found matching bookmaker row: {title}")
-                            odds_blocks = await row.query_selector_all(OddsPortalSelectors.ODD_CELL_CSS)
+                        for odds in odds_blocks:
+                            await odds.hover()
+                            await page.wait_for_timeout(ODDS_HISTORY_HOVER_WAIT_MS)
 
-                            for odds in odds_blocks:
-                                await odds.hover()
-                                await page.wait_for_timeout(ODDS_HISTORY_HOVER_WAIT_MS)
+                            odds_movement_element = await page.wait_for_selector(
+                                OddsPortalSelectors.ODDS_MOVEMENT_HEADER, timeout=ODDS_MOVEMENT_SELECTOR_TIMEOUT_MS
+                            )
+                            modal_wrapper = await odds_movement_element.evaluate_handle("node => node.parentElement")
+                            modal_element = modal_wrapper.as_element()
 
-                                odds_movement_element = await page.wait_for_selector(
-                                    OddsPortalSelectors.ODDS_MOVEMENT_HEADER, timeout=ODDS_MOVEMENT_SELECTOR_TIMEOUT_MS
-                                )
-                                modal_wrapper = await odds_movement_element.evaluate_handle(
-                                    "node => node.parentElement"
-                                )
-                                modal_element = modal_wrapper.as_element()
-
-                                if modal_element:
-                                    html = await modal_element.inner_html()
-                                    modals_data.append(html)
-                                else:
-                                    self.logger.warning(
-                                        "Unable to retrieve odds' evolution modal: modal_element is None"
-                                    )
+                            if modal_element:
+                                html = await modal_element.inner_html()
+                                modals_data.append(html)
+                            else:
+                                self.logger.warning("Unable to retrieve odds' evolution modal: modal_element is None")
 
                 except Exception as e:
                     self.logger.warning(f"Failed to process a bookmaker row: {e}")
@@ -73,3 +66,14 @@ class OddsHistoryExtractor:
             self.logger.warning(f"Failed to extract odds history for bookmaker {bookmaker_name}: {e}")
 
         return modals_data
+
+    @staticmethod
+    async def _row_bookmaker_name(row) -> str:
+        """Bookmaker name of an odds row: its visible label, else the logo link title."""
+        name_el = await row.query_selector(f"{OddsPortalSelectors.BOOKMAKER_LINK_CSS} p")
+        if name_el:
+            name = ((await name_el.text_content()) or "").strip()
+            if name:
+                return name
+        titled = await row.query_selector("a[title]")
+        return ((await titled.get_attribute("title")) or "").strip() if titled else ""

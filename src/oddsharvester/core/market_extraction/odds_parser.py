@@ -8,6 +8,8 @@ from bs4 import BeautifulSoup, Tag
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 
 _FRACTIONAL_RE = re.compile(r"^(\d+)/(\d+)$")
+# OddsPortal abbreviates September as "Sept", which %b does not accept.
+_MONTH_ABBR_RE = re.compile(r"\bSept\b")
 _logger = logging.getLogger(__name__)
 
 
@@ -48,25 +50,15 @@ class OddsParser:
         self.logger.info("Parsing odds from HTML content.")
         soup = BeautifulSoup(html_content, "html.parser")
 
-        # 2026-08 redesign: odds are a real <table>, one leaf <tr> per bookmaker.
-        # Per-bookmaker cells carry data-testid='odd-container' (or the -winning
-        # variant); collapsed submarket line rows carry '-default' cells and must
-        # not be parsed as bookmakers. Non-leaf rows (an expanded submarket row
-        # wraps a nested table), Betting Exchanges rows (Back/Lay prices, not
-        # fixed odds) and peripheral rows (My coupon, User Predictions,
-        # OddsAlert) are excluded.
-        odd_cell_re = re.compile(rf"^{OddsPortalSelectors.ODD_CELL_TESTID_PREFIX}(-winning)?$")
-        bookmaker_rows = []
-        for tr in soup.find_all("tr"):
-            if tr.find("tr") is not None:
-                continue
-            if not tr.find(attrs={"data-testid": odd_cell_re}):
-                continue
-            if tr.find_parent(attrs={"data-testid": "betting-exchanges-section"}):
-                continue
-            if tr.find(attrs={"data-testid": list(OddsPortalSelectors.TABLE_SKIP_ROW_TESTIDS)}):
-                continue
-            bookmaker_rows.append(tr)
+        # Odds are a real <table>, one leaf <tr> per bookmaker, identified by the
+        # bookmaker links in its first cell: collapsed submarket line rows carry
+        # the expand arrow instead, and the peripheral rows (My coupon, User
+        # Predictions, OddsAlert) render outside the table. Non-leaf rows are
+        # excluded: an expanded submarket row wraps a nested bookmaker table.
+        root = OddsPortalSelectors.content_root(soup)
+        bookmaker_rows = [
+            tr for tr in root.select(OddsPortalSelectors.BOOKMAKER_ROW_WITH_NAME_CSS) if tr.find("tr") is None
+        ]
 
         if not bookmaker_rows:
             self.logger.warning("No bookmaker rows found.")
@@ -80,7 +72,7 @@ class OddsParser:
                 if not bookmaker_name or (target_bookmaker and bookmaker_name.lower() != target_bookmaker.lower()):
                     continue
 
-                odds_cells = row.find_all(attrs={"data-testid": odd_cell_re})
+                odds_cells = row.select(OddsPortalSelectors.ODD_CELL_CSS)
 
                 if len(odds_cells) < len(odds_labels):
                     self.logger.warning(f"Incomplete odds data for bookmaker: {bookmaker_name}. Skipping...")
@@ -134,7 +126,7 @@ class OddsParser:
             for ts, odd in zip(timestamps, odds_values, strict=False):
                 time_text = ts.get_text(strip=True)
                 try:
-                    dt = datetime.strptime(time_text, "%d %b, %H:%M")
+                    dt = datetime.strptime(_MONTH_ABBR_RE.sub("Sep", time_text), "%d %b, %H:%M")
                     formatted_time = dt.replace(year=datetime.now(UTC).year).isoformat()
                 except ValueError:
                     self.logger.warning(f"Failed to parse datetime: {time_text}")
@@ -150,7 +142,9 @@ class OddsParser:
             opening_odds = None
             if opening_ts_div and opening_val_div:
                 try:
-                    dt = datetime.strptime(opening_ts_div.get_text(strip=True), "%d %b, %H:%M")
+                    dt = datetime.strptime(
+                        _MONTH_ABBR_RE.sub("Sep", opening_ts_div.get_text(strip=True)), "%d %b, %H:%M"
+                    )
                     opening_odds = {
                         "timestamp": dt.replace(year=datetime.now(UTC).year).isoformat(),
                         "odds": parse_odds_value(opening_val_div.get_text(strip=True)),
@@ -168,12 +162,12 @@ class OddsParser:
         """Extract bookmaker name from a row using a fallback chain.
 
         Strategies tried in order:
-        1. ``[data-testid='outrights-expanded-bookmaker-name']`` text
-        2. ``<a title="...">`` wrapping the logo / name
-        3. ``<img>`` with an ``alt`` attribute containing the name
+        1. the name paragraph inside the bookmaker link
+        2. ``<a title="...">`` wrapping the logo / bonus link (the only source on
+           rows whose name is rendered as a logo only)
         """
-        # 1. Primary (redesign): the bookmaker-name testid element
-        name_el = block.find(attrs={"data-testid": OddsPortalSelectors.BOOKMAKER_NAME_TESTID})
+        # 1. Primary: the visible name next to the logo
+        name_el = block.select_one(f"{OddsPortalSelectors.BOOKMAKER_LINK_CSS} p")
         if name_el:
             name = name_el.get_text(strip=True)
             if name:
@@ -191,13 +185,6 @@ class OddsParser:
                     name = name[: -len(" website")].strip()
             self.logger.debug(f"Resolved bookmaker name via <a title>: {name}")
             return name
-
-        # 3. Fallback: any <img> with a meaningful alt attribute
-        for img in block.find_all("img"):
-            alt = img.get("alt", "")
-            if alt and alt.lower() not in ("", "logo"):
-                self.logger.debug(f"Resolved bookmaker name via <img alt>: {alt}")
-                return alt
 
         self.logger.debug("Could not resolve bookmaker name from block")
         return None

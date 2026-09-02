@@ -5,42 +5,36 @@ import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from tests.dom_builders import community_column, community_row, community_section
 
 from oddsharvester.core.community.top_predictions_scraper import TopPredictionsScraper, run_top_predictions
 from oddsharvester.core.retry import RetryResult
 
 
 def _game_row(href: str, market: str = "1X2") -> str:
-    return f"""
-<div data-testid="sport-country-league-item">
-  <a data-testid="header-sport-item" href="/football/"><div>Football</div></a>
-  <a data-testid="header-country-item" href="/football/europe/"><p>Europe</p></a>
-  <a data-testid="header-tournament-item" href="/football/europe/conference-league/">Conference League</a>
-</div>
-<div data-testid="game-row">
-  <div data-testid="betting-tip-header">1</div>
-  <div data-testid="betting-tip-header">X</div>
-  <div data-testid="betting-tip-header">2</div>
-  <a href="{href}">
-    <div data-testid="date-time-item"><p>Today,</p><p>17:00</p><span>{market}</span></div>
-    <div data-testid="event-participants"><p data-testid="participant-name">Yelimay Semey</p>
-    <p data-testid="participant-name">Alashkert</p></div>
-  </a>
-  <p data-testid="odd-container-default">1.69</p>
-  <div data-testid="prediction-container"><a href="#">89%</a></div>
-  <p data-testid="odd-container-default">3.68</p>
-  <div data-testid="prediction-container"><a href="#">9%</a></div>
-  <p data-testid="odd-container-default">4.70</p>
-  <div data-testid="prediction-container"><a href="#">2%</a></div>
-</div>
-"""
+    columns = (
+        community_column("1", "1.69", "89%") + community_column("X", "3.68", "9%") + community_column("2", "4.70", "2%")
+    )
+    return community_row(
+        href,
+        columns,
+        date="Today,",
+        time="17:00",
+        market=market,
+        home="Yelimay Semey",
+        away="Alashkert",
+    )
 
 
-MINIMAL_PAGE_HTML = _game_row("/football/h2h/alashkert-aaa/yelimay-bbb/#ccc")
+MINIMAL_PAGE_HTML = community_section(_game_row("/football/h2h/alashkert-aaa/yelimay-bbb/#ccc"))
 # One football row + one row whose match_url belongs to another sport.
-MIXED_SPORT_PAGE_HTML = MINIMAL_PAGE_HTML + _game_row("/tennis/h2h/player-a/player-b/#ddd")
+MIXED_SPORT_PAGE_HTML = community_section(
+    _game_row("/football/h2h/alashkert-aaa/yelimay-bbb/#ccc") + _game_row("/tennis/h2h/player-a/player-b/#ddd")
+)
 # Two football rows (for scraped_at batch-sameness assertions).
-TWO_FOOTBALL_ROWS_HTML = MINIMAL_PAGE_HTML + _game_row("/football/h2h/team-c/team-d/#eee")
+TWO_FOOTBALL_ROWS_HTML = community_section(
+    _game_row("/football/h2h/alashkert-aaa/yelimay-bbb/#ccc") + _game_row("/football/h2h/team-c/team-d/#eee")
+)
 
 _RUNNER = "oddsharvester.core.community.top_predictions_scraper"
 

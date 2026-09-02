@@ -2,31 +2,18 @@ from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from tests.dom_builders import bookmaker_row, odds_table
 
 from oddsharvester.core.browser.selection import PERIOD_STRATEGY
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.sport_market_registry import SportMarketRegistry
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 
-# Sample HTML for testing (table markup, 2026-08 redesign)
-SAMPLE_HTML_ODDS = """
-<table><tbody>
-<tr class="h-9">
-    <td><a data-testid="outrights-expanded-bookmaker-name">Bookmaker1</a></td>
-    <td><div data-testid="odd-container">1.90</div></td>
-    <td><div data-testid="odd-container">3.50</div></td>
-    <td><div data-testid="odd-container">4.20</div></td>
-    <td><div data-testid="payout-container">94.1%</div></td>
-</tr>
-<tr class="h-9">
-    <td><a data-testid="outrights-expanded-bookmaker-name">Bookmaker2</a></td>
-    <td><div data-testid="odd-container">1.85</div></td>
-    <td><div data-testid="odd-container">3.60</div></td>
-    <td><div data-testid="odd-container">4.10</div></td>
-    <td><div data-testid="payout-container">94.0%</div></td>
-</tr>
-</tbody></table>
-"""
+# Sample odds table: one leaf <tr> per bookmaker
+SAMPLE_HTML_ODDS = odds_table(
+    bookmaker_row("Bookmaker1", ["1.90", "3.50", "4.20"], payout="94.1%")
+    + bookmaker_row("Bookmaker2", ["1.85", "3.60", "4.10"], payout="94.0%")
+)
 
 SAMPLE_HTML_ODDS_HISTORY = """
 <div class="flex w-max flex-col gap-2">

@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from tests.dom_builders import bookmaker_row, line_row, odds_cell, odds_table
 
 from oddsharvester.core.market_extraction.odds_parser import OddsParser, parse_odds_value
 
@@ -13,38 +14,22 @@ class TestOddsParser:
         """Create an instance of OddsParser."""
         return OddsParser()
 
-    # Table-based odds markup (2026-08 redesign). One leaf <tr> per bookmaker;
-    # odds cells carry data-testid='odd-container*'.
+    # One leaf <tr> per bookmaker, keyed by the bookmaker links in its first cell.
     @staticmethod
-    def _bm_row(name="Bookmaker1", odds=("1.90", "3.50", "4.20"), name_via="testid", blocked=()):
-        if name_via == "testid":
-            name_html = f'<a data-testid="outrights-expanded-bookmaker-name">{name}</a>'
-        elif name_via == "a_title":
-            name_html = f'<a title="{name}"><img src="logo.png"></a>'
-        elif name_via == "img_alt":
-            name_html = f'<img alt="{name}" src="logo.png">'
-        else:
-            name_html = ""
-        cells = "".join(
-            f'<td><div data-testid="odd-container">'
-            f"{'<span class=' + chr(34) + 'line-through' + chr(34) + '>' + o + '</span>' if i in blocked else o}"
-            f"</div></td>"
-            for i, o in enumerate(odds)
-        )
+    def _bm_row(name="Bookmaker1", odds=("1.90", "3.50", "4.20"), name_via="label", blocked=()):
+        if name_via == "label":
+            return bookmaker_row(name, list(odds), blocked=tuple(blocked))
+        # Logo-only rows name the bookmaker on the bonus link's title attribute.
+        cells = "".join(odds_cell(o, blocked=i in blocked, betslip_slug="x") for i, o in enumerate(odds))
+        title_html = f'<a title="{name}" href="/proxy/bookmakers/x/bonus/1/"><img alt="Bookmaker"/></a>' if name else ""
         return (
-            f'<tr class="h-9 cursor-pointer"><td>'
-            f'<div data-testid="outrights-expanded-bookmaker-logo"><img data-testid="bookie-logo" src="x.png"></div>'
-            f"{name_html}"
-            f'<div data-testid="outrights-expanded-bonus-icon">claim bonus</div></td>'
-            f'{cells}<td><div data-testid="payout-container">94.1%</div></td></tr>'
+            f'<tr class="h-9"><td><a href="/proxy/bookmakers/x/link/"><img alt="Bookmaker"/></a>{title_html}</td>'
+            f'{cells}<td class="w-[68px]"><span>94.1%</span></td></tr>'
         )
 
     @classmethod
     def _table(cls, rows, extra_rows=""):
-        return (
-            "<table><thead><tr><th>Bookmakers</th><th>1</th><th>X</th><th>2</th><th>Payout</th></tr></thead>"
-            f"<tbody>{''.join(rows)}{extra_rows}</tbody></table>"
-        )
+        return odds_table("".join(rows) + extra_rows)
 
     @property
     def SAMPLE_HTML_ODDS(self):  # noqa: N802 - keeps the historical fixture name
@@ -137,9 +122,7 @@ class TestOddsParser:
     def test_parse_market_odds_error_handling(self, odds_parser):
         """A bookmaker row with no odds cells at all is not a bookmaker row."""
         odds_labels = ["1", "X", "2"]
-        broken_html = self._table(
-            ['<tr><td><a data-testid="outrights-expanded-bookmaker-name">Bookmaker1</a></td></tr>']
-        )
+        broken_html = self._table(['<tr><td><a href="/proxy/bookmakers/x/link/"><p>Bookmaker1</p></a></td></tr>'])
 
         result = odds_parser.parse_market_odds(broken_html, "FullTime", odds_labels)
 
@@ -156,8 +139,8 @@ class TestOddsParser:
 
     def test_parse_market_odds_skips_nested_wrapper_rows(self, odds_parser):
         """An expanded submarket <tr> wraps a nested table; only leaf rows count."""
-        inner = self._table([self._bm_row("Bookmaker1", ("1.90", "3.50", "4.20"))])
-        html = f"<table><tbody><tr><td>{inner}</td></tr></tbody></table>"
+        inner = f"<table><tbody>{self._bm_row('Bookmaker1', ('1.90', '3.50', '4.20'))}</tbody></table>"
+        html = self._table([f"<tr><td>{inner}</td></tr>"])
 
         result = odds_parser.parse_market_odds(html, "FullTime", ["1", "X", "2"])
 
@@ -262,7 +245,7 @@ class TestOddsParser:
             assert result["opening_odds"]["odds"] == pytest.approx(5.5)  # 9/2 + 1
 
     def test_parse_market_odds_bookmaker_name_fallback_a_tag(self, odds_parser):
-        """Name resolution falls back to <a title> when the name testid is absent."""
+        """Name resolution falls back to <a title> on rows showing only a logo."""
         html = self._table([self._bm_row("Betfred", ("1.90", "2.10"), name_via="a_title")])
 
         result = odds_parser.parse_market_odds(html, "FullTime", ["home", "away"])
@@ -279,51 +262,29 @@ class TestOddsParser:
         assert len(result) == 1
         assert result[0]["bookmaker_name"] == "Betfair Exchange"
 
-    def test_parse_market_odds_bookmaker_name_fallback_img_alt(self, odds_parser):
-        """Name resolution falls back to img[alt] as last resort."""
-        html = self._table([self._bm_row("BetVictor", ("1.90", "2.10"), name_via="img_alt")])
+    def test_parse_market_odds_skips_row_with_no_resolvable_name(self, odds_parser):
+        """The logo alt is a generic "Bookmaker", so a row with no label and no
+        title yields no name and is skipped rather than named after the alt."""
+        html = self._table([self._bm_row("", ("1.90", "2.10"), name_via="logo_only")])
 
         result = odds_parser.parse_market_odds(html, "FullTime", ["home", "away"])
 
-        assert len(result) == 1
-        assert result[0]["bookmaker_name"] == "BetVictor"
+        assert result == []
 
     def test_parse_market_odds_no_bookmaker_name_skips_row(self, odds_parser):
-        """Collapsed submarket line rows carry odd-container-default cells and must
-        never be parsed as bookmakers, even when a decorative <img alt="arrow">
-        would resolve a name through the fallback chain (live regression)."""
-        html = self._table(
-            [
-                '<tr class="h-9 cursor-pointer"><td><span class="max-sm:hidden">Over/Under +2.5</span>'
-                '<img alt="arrow" src="arrow.svg"></td>'
-                '<td><div data-testid="odd-container-default">1.68</div></td>'
-                '<td><div data-testid="odd-container-default">1.98</div></td>'
-                "<td>89.2%</td></tr>"
-            ]
-        )
+        """Collapsed submarket line rows carry no bookmaker link and must never be
+        parsed as bookmakers (live regression)."""
+        html = self._table([line_row("Over/Under +2.5", ["1.68", "1.98"])])
 
         result = odds_parser.parse_market_odds(html, "FullTime", ["odds_over", "odds_under"])
 
         assert len(result) == 0
 
-    def test_parse_market_odds_skips_peripheral_and_exchange_rows(self, odds_parser):
-        """My coupon / User Predictions / OddsAlert rows and the Betting Exchanges
-        table (Back/Lay prices) must not be parsed as bookmaker odds."""
-        coupon = (
-            '<tr><td>My coupon</td><td><div data-testid="my-coupon-row">'
-            '<div data-testid="odd-container">+</div></div></td></tr>'
-        )
-        predictions = (
-            '<tr data-testid="user-predictions-row"><td>User Predictions</td>'
-            '<td><div data-testid="odd-container">0%</div></td></tr>'
-        )
-        exchanges = (
-            '<div data-testid="betting-exchanges-section"><table><tbody>'
-            + self._bm_row("bwin.fr", ("1.68", "1.95"))
-            + "</tbody></table></div>"
-        )
+    def test_parse_market_odds_skips_peripheral_rows(self, odds_parser):
+        """My coupon / User Predictions / OddsAlert rows carry no bookmaker link."""
+        coupon = "<tr><td>My coupon</td><td>+</td></tr>"
+        predictions = "<tr><td>User Predictions</td><td>0%</td></tr>"
         html = self._table([self._bm_row("Betclic.fr", ("1.10", "14.00", "7.05"))], extra_rows=coupon + predictions)
-        html += exchanges
 
         result = odds_parser.parse_market_odds(html, "FullTime", ["1", "X", "2"])
 
@@ -358,10 +319,10 @@ class TestOddsParser:
     def test_parse_market_odds_flags_blocked_odds_link_variant(self, odds_parser):
         """The line-through class must be detected on <a> odds links too."""
         row = (
-            '<tr><td><a data-testid="outrights-expanded-bookmaker-name">Bet365</a></td>'
-            '<td><div data-testid="odd-container"><a class="odds-link underline line-through" '
-            'href="https://example.test/betslip">1.85</a></div></td>'
-            '<td><div data-testid="odd-container">3.40</div></td></tr>'
+            '<tr><td><a href="/proxy/bookmakers/bet365/link/"><p>Bet365</p></a></td>'
+            '<td class="w-[var(--event-table-odd-col)]"><div class="font-bold">'
+            '<a class="odds-link underline line-through" href="/proxy/bookmakers/bet365/betslip/p/">1.85</a>'
+            "</div></td>" + odds_cell("3.40", betslip_slug="bet365") + "</tr>"
         )
         html = self._table([row])
 

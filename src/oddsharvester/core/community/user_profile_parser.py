@@ -2,11 +2,8 @@
 
 Header (username, ROI, member-since, country, privacy) renders even when the
 profile is private; the monthly statistics table and the predictions list render
-only for public profiles. Prediction rows reuse the community row selectors but,
-unlike top predictions, carry NO betting-tip-header — so outcomes are positional
-(odds + community % + which one the user picked), with no 1/X/2 labels. The
-picked outcome is located by document order: it is the outcome index equal to the
-number of odd cells seen before the prediction-pick-item marker.
+only for public profiles. Prediction rows reuse the community row structure and
+add a pick marker on the outcome column the user bet on.
 """
 
 import logging
@@ -15,17 +12,23 @@ import re
 from bs4 import BeautifulSoup
 
 from oddsharvester.core.base_scraper import _parse_date_header
-from oddsharvester.core.community.row_helpers import extract_datetime_and_market, extract_teams, to_float, to_pct
+from oddsharvester.core.community.row_helpers import (
+    extract_datetime_and_market,
+    extract_teams,
+    outcome_columns,
+    row_of,
+    to_float,
+)
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
 
 logger = logging.getLogger(__name__)
 
 _ROI_RE = re.compile(r"(-?[\d.]+)\s*%")
+_PROFILE_ROI_RE = re.compile(r"ROI\s*(-?[\d.]+)\s*%")
 _MEMBER_SINCE_RE = re.compile(r"Member since:\s*(.+?)\s*(?:Country:|Profile Privacy:|$)")
 _COUNTRY_RE = re.compile(r"Country:\s*(.+?)\s*(?:Profile Privacy:|$)")
 _PRIVACY_RE = re.compile(r"Profile Privacy:\s*(Public|Private)", re.IGNORECASE)
-_SCORE_RE = re.compile(r"\d+\s*[-–]\s*\d+")  # noqa: RUF001
 
 
 def parse_user_profile(html: str, tz_name: str | None = None) -> dict:
@@ -54,8 +57,8 @@ def _text(soup, selector: str) -> str | None:
 
 
 def _member_info_text(soup) -> str:
-    el = soup.select_one(OddsPortalSelectors.COMMUNITY_PROFILE_MEMBER_INFO)
-    return el.get_text(" ", strip=True) if el else ""
+    """Header text carrying the member-since / country / privacy labels."""
+    return OddsPortalSelectors.content_root(soup).get_text(" ", strip=True)
 
 
 def _privacy(soup) -> str:
@@ -64,10 +67,7 @@ def _privacy(soup) -> str:
 
 
 def _roi(soup) -> float | None:
-    el = soup.select_one(OddsPortalSelectors.COMMUNITY_PROFILE_ROI)
-    if el is None:
-        return None
-    match = _ROI_RE.search(el.get_text(" ", strip=True))
+    match = _PROFILE_ROI_RE.search(_member_info_text(soup))
     return float(match.group(1)) if match else None
 
 
@@ -85,16 +85,13 @@ def _country(soup) -> str | None:
 
 
 def _parse_statistics(soup) -> list[dict]:
-    header = soup.select_one(OddsPortalSelectors.COMMUNITY_PROFILE_STATS_HEADER)
-    if header is None or header.parent is None:
+    # The monthly statistics are the profile page's only table.
+    table = soup.select_one(OddsPortalSelectors.COMMUNITY_PROFILE_STATS_TABLE)
+    if table is None:
         return []
-    # 2026-08 redesign: the statistics render as a real <table> whose header
-    # line is a <tr>; fall back to the older sibling-div layout otherwise.
-    table = header.find_parent("table")
-    siblings = [tr for tr in table.find_all("tr") if tr is not header] if table else header.find_next_siblings()
     rows: list[dict] = []
-    for sibling in siblings:
-        cells = [c.get_text(strip=True) for c in (sibling.find_all(["td", "th"]) or sibling.find_all(recursive=False))]
+    for sibling in table.find_all("tr"):
+        cells = [c.get_text(strip=True) for c in sibling.find_all("td")]
         if len(cells) < 6:
             continue
         rows.append(
@@ -113,78 +110,55 @@ def _parse_statistics(soup) -> list[dict]:
 def parse_profile_feed_predictions(html: str, tz_name: str | None = None) -> list[dict]:
     """Parse prediction rows from the profile's Feed tab HTML.
 
-    Since the 2026-08 redesign the predictions list lives under the Feed tab
-    (clicked by the scraper); the row markup kept the community testids, so
-    this reuses the same row parser.
+    The predictions list lives under the Feed tab (clicked by the scraper) and
+    reuses the community row structure, so this reuses the same row parser.
     """
     return _parse_predictions(BeautifulSoup(html, "lxml"), tz_name)
 
 
 def _parse_predictions(soup, tz_name: str | None) -> list[dict]:
+    root = OddsPortalSelectors.content_root(soup)
     predictions: list[dict] = []
-    for row in soup.select(OddsPortalSelectors.COMMUNITY_GAME_ROW):
-        record = _parse_prediction_row(row, tz_name)
+    for link in root.select(OddsPortalSelectors.LISTING_ROW_SELECTOR):
+        row = row_of(link)
+        if row is None:
+            continue
+        record = _parse_prediction_row(row, link, tz_name)
         if record is not None:
             predictions.append(record)
     return predictions
 
 
-def _parse_prediction_row(row, tz_name: str | None) -> dict | None:
-    link = row.find("a", href=True)
-    home_team, away_team = extract_teams(row)
+def _parse_prediction_row(row, link, tz_name: str | None) -> dict | None:
+    home_team, away_team = extract_teams(link)
     if home_team is None or away_team is None:
         logger.warning("Skipping profile prediction row: missing participants")
         return None
-    kickoff_text, kickoff, market = extract_datetime_and_market(row, tz_name)
-    odds_cells = row.select(OddsPortalSelectors.COMMUNITY_ODD_CELL)
-    pct_cells = row.select(OddsPortalSelectors.COMMUNITY_PREDICTION_CELL)
-    picked_index = _picked_index(row)
+    kickoff_text, kickoff, market = extract_datetime_and_market(link, tz_name)
     outcomes = [
-        {
-            "odds": to_float(odds_cells[i].get_text(strip=True)),
-            "community_pct": to_pct(pct_cells[i].get_text(strip=True)) if i < len(pct_cells) else 0,
-            "picked": i == picked_index,
-        }
-        for i in range(len(odds_cells))
+        {"odds": column["odds"], "community_pct": column["pct"], "picked": column["picked"]}
+        for column in outcome_columns(row)
     ]
-    pick_odds = outcomes[picked_index]["odds"] if picked_index is not None and picked_index < len(outcomes) else None
+    pick_odds = next((o["odds"] for o in outcomes if o["picked"]), None)
     return {
         "kickoff": kickoff,
         "kickoff_text": kickoff_text,
         "market": market,
         "home_team": home_team,
         "away_team": away_team,
-        "score": _score(row),
+        "score": _score(link),
         "pick_odds": pick_odds,
         "outcomes": outcomes,
-        "match_url": (ODDSPORTAL_BASE_URL + link["href"])
-        if link and link["href"].startswith("/")
-        else (link["href"] if link else None),
+        "match_url": (ODDSPORTAL_BASE_URL + link["href"]) if link["href"].startswith("/") else link["href"],
     }
 
 
-def _picked_index(row) -> int | None:
-    """Index of the picked outcome = number of odd cells before the pick marker (document order)."""
-    idx = -1
-    picked = None
-    for el in row.descendants:
-        get = getattr(el, "get", None)
-        if get is None:
-            continue
-        testid = el.get("data-testid")
-        if testid == "odd-container-default" and el.name == "p":
-            idx += 1
-        elif testid == "prediction-pick-item" and picked is None:
-            picked = idx
-    return picked if picked is not None and picked >= 0 else None
-
-
-def _score(row) -> str | None:
-    participants = row.select_one(OddsPortalSelectors.COMMUNITY_PARTICIPANTS)
-    if participants is None:
-        return None
-    match = _SCORE_RE.search(participants.get_text(" ", strip=True))
-    return match.group(0).replace("–", "-") if match else None  # noqa: RUF001
+def _score(link) -> str | None:
+    """Final score of a played match: the bold digits flanking the participants."""
+    digits = [
+        el.get_text(strip=True) for el in link.find_all("span", class_="font-bold") if el.get_text(strip=True).isdigit()
+    ]
+    return f"{digits[0]}-{digits[-1]}" if len(digits) >= 2 else None
 
 
 def _to_int(text: str) -> int | None:

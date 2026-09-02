@@ -42,10 +42,9 @@ class TopPredictionsScraper:
         await self.cookie_dismisser.dismiss(page)
 
         try:
-            # Wait for the predictions section marker, not a bare game-row: other
-            # widgets on the redesigned page render game-rows earlier, and parsing
-            # then yields only skippable rows with no breadcrumb.
-            await page.wait_for_selector(OddsPortalSelectors.COMMUNITY_LEAGUE_HEADER, timeout=SELECTOR_TIMEOUT_MS)
+            # Wait for a prediction row inside the page content: rows rendered by
+            # other widgets sit outside it and parse to nothing.
+            await page.wait_for_selector(OddsPortalSelectors.COMMUNITY_ROW_READY_SELECTOR, timeout=SELECTOR_TIMEOUT_MS)
         except Exception:
             # 0 rows with no error is the anti-bot signature (gotchas §6) — or genuinely no picks.
             logger.warning(

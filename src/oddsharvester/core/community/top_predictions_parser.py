@@ -2,10 +2,9 @@
 
 The page (/community/predictions/#sport/<sport>/) renders, in document order,
 repeating sections of: a sport/country/league breadcrumb, then one or more game
-rows. Since the 2026-08 redesign each row carries its own outcome-label header
-cells (betting-tip-header) inline. The backing XHR is obfuscated, so this
-module parses the rendered DOM only (data-testid selectors, never localized
-text).
+rows. Each row links to its match and carries one column per outcome (label,
+odds, community percentage). The backing XHR is obfuscated, so this module
+parses the rendered DOM only, keying on structure rather than localized text.
 """
 
 import logging
@@ -15,67 +14,63 @@ from bs4 import BeautifulSoup
 from oddsharvester.core.community.row_helpers import (
     extract_datetime_and_market,
     extract_teams,
-    to_float,
-    to_pct,
+    outcome_columns,
+    row_of,
 )
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
 
 logger = logging.getLogger(__name__)
 
-# Raw data-testid values for the document-order section scan (find_all(attrs=)),
-# not CSS selectors — the CSS forms live on OddsPortalSelectors.
-_SECTION_TESTIDS = ("sport-country-league-item", "game-row")
+# Breadcrumb links by path depth: /<sport>/ , /<sport>/<country>/ , /<sport>/<country>/<league>/
+_BREADCRUMB_DEPTHS = {"country": 2, "league": 3}
 
 
 def parse_top_predictions(html: str, tz_name: str | None = None) -> list[dict]:
     """Parse Top Predictions rows into records. Malformed rows are skipped with a warning."""
     soup = BeautifulSoup(html, "lxml")
-    records: list[dict] = []
-    breadcrumb: dict | None = None
+    root = OddsPortalSelectors.content_root(soup)
 
-    for node in soup.find_all(attrs={"data-testid": _SECTION_TESTIDS}):
-        testid = node.get("data-testid")
-        if testid == "sport-country-league-item":
-            breadcrumb = _parse_breadcrumb(node)
-        elif testid == "game-row":
-            outcome_labels = [
-                h.get_text(strip=True) for h in node.find_all(attrs={"data-testid": "betting-tip-header"})
-            ]
-            record = _parse_game_row(node, breadcrumb, outcome_labels, tz_name)
-            if record is not None:
-                records.append(record)
+    records: list[dict] = []
+    for link in root.select(OddsPortalSelectors.LISTING_ROW_SELECTOR):
+        row = row_of(link)
+        if row is None:
+            continue
+        record = _parse_game_row(row, link, _parse_breadcrumb(row), tz_name)
+        if record is not None:
+            records.append(record)
     return records
 
 
-def _parse_breadcrumb(node) -> dict | None:
-    country = node.select_one(OddsPortalSelectors.COMMUNITY_BREADCRUMB_COUNTRY)
-    league = node.select_one(OddsPortalSelectors.COMMUNITY_BREADCRUMB_LEAGUE)
-    if country is None or league is None:
+def _parse_breadcrumb(row) -> dict | None:
+    """Country and league of the row's section, read off the breadcrumb link depths."""
+    node = row.parent
+    for _ in range(4):
+        if node is None:
+            break
+        found = {}
+        for anchor in node.find_all("a", href=True):
+            depth = len(anchor["href"].strip("/").split("/"))
+            for name, expected in _BREADCRUMB_DEPTHS.items():
+                if depth == expected and name not in found:
+                    found[name] = anchor.get_text(strip=True)
+        if len(found) == len(_BREADCRUMB_DEPTHS):
+            return found
+        node = node.parent
+    return None
+
+
+def _parse_game_row(row, link, breadcrumb: dict | None, tz_name: str | None) -> dict | None:
+    columns = outcome_columns(row)
+    if breadcrumb is None or not columns:
+        logger.warning("Skipping top-predictions row: missing breadcrumb or outcome columns")
         return None
-    return {"country": country.get_text(strip=True), "league": league.get_text(strip=True)}
 
+    home_team, away_team = extract_teams(link)
+    kickoff_text, kickoff, market = extract_datetime_and_market(link, tz_name)
 
-def _parse_game_row(row, breadcrumb: dict | None, outcome_labels: list[str], tz_name: str | None) -> dict | None:
-    link = row.find("a", href=True)
-    if link is None or breadcrumb is None or not outcome_labels:
-        logger.warning("Skipping top-predictions row: missing link, breadcrumb or outcome headers")
-        return None
-
-    home_team, away_team = extract_teams(row)
-    kickoff_text, kickoff, market = extract_datetime_and_market(row, tz_name)
-    odds_values = [to_float(cell.get_text(strip=True)) for cell in row.select(OddsPortalSelectors.COMMUNITY_ODD_CELL)]
-    pct_values = [
-        to_pct(cell.get_text(strip=True)) for cell in row.select(OddsPortalSelectors.COMMUNITY_PREDICTION_CELL)
-    ]
-
-    if (
-        not home_team
-        or not away_team
-        or len(odds_values) != len(outcome_labels)
-        or len(pct_values) != len(outcome_labels)
-    ):
-        logger.warning("Skipping top-predictions row for %s: cell/label count mismatch", link["href"])
+    if not home_team or not away_team:
+        logger.warning("Skipping top-predictions row for %s: participants not found", link["href"])
         return None
 
     return {
@@ -86,7 +81,7 @@ def _parse_game_row(row, breadcrumb: dict | None, outcome_labels: list[str], tz_
         "kickoff": kickoff,
         "kickoff_text": kickoff_text,
         "market": market,
-        "odds": [{"outcome": o, "odds": v} for o, v in zip(outcome_labels, odds_values, strict=True)],
-        "community_votes_pct": [{"outcome": o, "pct": p} for o, p in zip(outcome_labels, pct_values, strict=True)],
+        "odds": [{"outcome": c["outcome"], "odds": c["odds"]} for c in columns],
+        "community_votes_pct": [{"outcome": c["outcome"], "pct": c["pct"]} for c in columns],
         "match_url": ODDSPORTAL_BASE_URL + link["href"] if link["href"].startswith("/") else link["href"],
     }

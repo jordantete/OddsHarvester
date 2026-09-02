@@ -321,7 +321,7 @@ class OddsPortalScraper(BaseScraper):
                 timeout=30,
                 scroll_pause_time=2,
                 max_scroll_attempts=3,
-                content_check_selector=f"div[data-testid='{OddsPortalSelectors.GAME_ROW_TESTID}']",
+                content_check_selector=OddsPortalSelectors.LISTING_ROW_SELECTOR,
             )
 
             rows = await self.extract_live_match_links(page=current_page, sport=sport, league=league)

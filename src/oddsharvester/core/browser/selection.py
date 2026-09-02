@@ -19,15 +19,20 @@ from oddsharvester.utils.constants import (
 class SelectionStrategy:
     """Configuration for a sub-nav selection (bookies filter, period, ...).
 
-    2026-08 redesign: both controls are rendered as sub-nav tabs
-    (`sub-nav-active-tab` / `sub-nav-inactive-tab`); a tab is targeted by its
-    display text and verified by its testid flipping to the active variant.
+    Both controls are rendered as plain sub-nav buttons; a tab is targeted by its
+    display text and verified by the inline font-weight the SPA sets on the
+    selected one (gotchas §20).
     """
 
     name: str
     tab_selector: str
-    active_testid: str
+    active_style_marker: str
     timeout_ms: int
+
+
+def _is_active(style: str | None, strategy: SelectionStrategy) -> bool:
+    """True when a sub-nav button carries the inline style marking it selected."""
+    return strategy.active_style_marker.replace(" ", "") in (style or "").replace(" ", "")
 
 
 class SelectionManager:
@@ -60,7 +65,7 @@ class SelectionManager:
                     self.logger.error(f"{strategy.name} target element not found for: {display_label}")
                 return False
 
-            if await target.get_attribute("data-testid") == strategy.active_testid:
+            if _is_active(await target.get_attribute("style"), strategy):
                 self.logger.info(f"{strategy.name} already set to '{display_label}'. No action needed.")
                 return True
 
@@ -70,7 +75,7 @@ class SelectionManager:
 
             # Re-locate: the SPA re-renders the tab on selection.
             target = await self._find_tab(page, strategy, label)
-            if target is not None and await target.get_attribute("data-testid") == strategy.active_testid:
+            if target is not None and _is_active(await target.get_attribute("style"), strategy):
                 self.logger.info(f"Successfully set {strategy.name} to: {display_label}")
                 return True
 
@@ -146,13 +151,13 @@ class PeriodSelector:
 BOOKIES_FILTER_STRATEGY = SelectionStrategy(
     name="bookies-filter",
     tab_selector=OddsPortalSelectors.SUB_NAV_TAB_ANY,
-    active_testid=OddsPortalSelectors.SUB_NAV_TAB_ACTIVE_TESTID,
+    active_style_marker=OddsPortalSelectors.SUB_NAV_ACTIVE_STYLE_MARKER,
     timeout_ms=BOOKIES_FILTER_TIMEOUT_MS,
 )
 
 PERIOD_STRATEGY = SelectionStrategy(
     name="period",
     tab_selector=OddsPortalSelectors.SUB_NAV_TAB_ANY,
-    active_testid=OddsPortalSelectors.SUB_NAV_TAB_ACTIVE_TESTID,
+    active_style_marker=OddsPortalSelectors.SUB_NAV_ACTIVE_STYLE_MARKER,
     timeout_ms=PERIOD_SELECTOR_TIMEOUT_MS,
 )

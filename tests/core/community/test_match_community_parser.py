@@ -1,26 +1,14 @@
+from tests.dom_builders import live_block, match_view
+
 from oddsharvester.core.community.match_community_parser import parse_match_community_dom
 
-_PREMATCH_HTML = """
-<html><body>
-<div data-testid="game-participants">
-  <div data-testid="game-host"><a data-testid="participant-name">Fulham</a></div>
-  <div data-testid="game-guest"><a data-testid="participant-name">Chelsea</a></div>
-</div>
-<div data-testid="game-time-item"><p>Today,</p><p>24 Aug 2026,</p><p>21:00</p></div>
-<div data-testid="sports-nav-active-tab">1X2</div>
-<div data-testid="sub-nav-active-tab">All Bookies</div>
-<div data-testid="sub-nav-active-tab">Full Time</div>
-<div data-testid="betting-tip-header">1</div>
-<div data-testid="betting-tip-header">X</div>
-<div data-testid="betting-tip-header">2</div>
-<div data-testid="user-predictions-row">
-  <p>User Predictions</p>
-  <div data-testid="prediction-container">5%</div>
-  <div data-testid="prediction-container">11%</div>
-  <div data-testid="prediction-container">84%</div>
-</div>
-</body></html>
-"""
+_PREMATCH_HTML = match_view(
+    home="Fulham",
+    away="Chelsea",
+    weekday="Today,",
+    date="24 Aug 2026,",
+    votes=["5%", "11%", "84%"],
+)
 
 
 def test_prematch_vote_percentages_parsed():
@@ -46,23 +34,27 @@ def test_prematch_vote_percentages_parsed():
     ]
 
 
-def test_started_match_detected_via_red_score():
-    html = _PREMATCH_HTML.replace(
-        '<div data-testid="game-guest"><a data-testid="participant-name">Chelsea</a></div>',
-        '<div data-testid="game-guest"><a data-testid="participant-name">Chelsea</a></div>'
-        '<div class="shrink-0 text-red-dark">1</div><div class="shrink-0 text-red-dark">0</div>',
+def test_started_match_detected_via_score():
+    html = match_view(
+        home="Fulham",
+        away="Chelsea",
+        home_score="1",
+        away_score="0",
+        votes=["5%", "11%", "84%"],
     )
-    rec = parse_match_community_dom(html, "url")
-    assert rec["is_prematch"] is False
+
+    assert parse_match_community_dom(html, "url")["is_prematch"] is False
 
 
-def test_finished_match_detected_via_live_info():
-    html = _PREMATCH_HTML.replace(
-        '<div data-testid="user-predictions-row">',
-        '<div data-testid="live-info">Final result 1:2 (0:1, 1:1)</div><div data-testid="user-predictions-row">',
+def test_live_match_detected_via_live_block():
+    html = match_view(
+        home="Fulham",
+        away="Chelsea",
+        date_row_extra=live_block("2nd Half", "1:2", partial="0:1, 1:1"),
+        votes=["5%", "11%", "84%"],
     )
-    rec = parse_match_community_dom(html, "url")
-    assert rec["is_prematch"] is False
+
+    assert parse_match_community_dom(html, "url")["is_prematch"] is False
 
 
 def test_non_hydrated_page_yields_no_markets():

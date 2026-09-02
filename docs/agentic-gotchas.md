@@ -1486,6 +1486,87 @@ zeroes *both* selector generations.
 
 ---
 
+## §20 — The data-testid attributes are gone; anchor on hrefs, semantics and text shape
+
+**Severity:** Critical — every command returned zero data (issue #86), with two
+symptoms and one cause.
+
+Some time between 2026-08-24 and 2026-09-01, OddsPortal stripped **every**
+`data-testid` from the DOM. `document.querySelectorAll('[data-testid]').length`
+is 0 on listings, match pages, community pages and profiles. The layout of
+§19 is otherwise unchanged, so the fix is a re-anchoring, not another rework.
+
+### Symptoms
+
+- Match pages: "Match view hydration attempt N/3 timed out", then
+  `H2HFragmentResolutionError`, 0/N matches scraped.
+- Listings: "Found 0 event rows", so `historic`/`upcoming` return nothing.
+- Community: "No top-predictions rows rendered", empty profile records.
+- Unit and HAR-replay tests stay green throughout: the fixtures hold the old
+  DOM, which is exactly why the break was invisible until a user reported it.
+
+### What replaces what (all verified live 2026-09-02)
+
+| Gone | Anchor now |
+|---|---|
+| `[data-testid='game-row']` | the row **is** the match link, `a[href*="/h2h/"]`; its two direct `<div>` children are the kickoff/status cell and the participants |
+| `[data-testid='date-header']` | a leaf element whose whole text is the group date; require the day number so the "Today" nav filter is not read as a header |
+| `[data-testid='time-item']` / `game-status-box` | the row's first column: `HH:MM` while pending, a status or period marker once started ("Finished", "5S") |
+| `[data-testid='game-time-item']` | the header's date cell, found by its weekday / date / time paragraphs; the title row is the header's first block, the date row its last |
+| `[data-testid='game-host'/'game-guest']` | the title block's first and last blocks, each naming its side in an `a`/`p` with class `truncate` (tennis has no team pages, so never rely on `/team/` links) |
+| `[data-testid='breadcrumbs-line']` | the content root's first `<ul>`; the league is its last anchor |
+| `[data-testid='sports-nav-*-tab']` | `li.tab-item`; the active one carries `font-bold` on its label span |
+| `[data-testid='sub-nav-*-tab']` | plain `button[type=button]`; the selected one carries an inline `font-weight: 700` |
+| `[data-testid='outrights-expanded-bookmaker-name']` | the `<p>` inside `a[href*="/bookmakers/"]`, else the logo link's `title` (the logo `alt` is a generic "Bookmaker" and must not be used as a name) |
+| `[data-testid='odd-container*']` | `td[class*="event-table-odd-col"]:has(.font-bold)` — the `:has` matters: an expanded submarket row puts the line label ("+2.5") in an odds column too, as a bare span |
+| `[data-testid='live-info']` / `partial-result` | the header's live block, marked by `p.result-live`; it disappears when the match ends |
+| community `betting-tip-header` | the odds table's middle `thead` headers |
+| community row cells | one column per outcome: label header (`bg-gray-light`), odds `p.font-bold`, percentage text, and `.user-pred-pick` on the picked one |
+
+Two structural rules make the rest fall out:
+
+- **Scope to the content root.** The SPA nests the page content in a *second*
+  `<main>`; parsing the whole document lets sidebar widgets (upcoming-match
+  lists, coupons) register as rows, headers or scores.
+- **Peripheral rows left the table.** My coupon / User Predictions / OddsAlert
+  now render as sibling blocks *outside* `<table>`, so bookmaker-row selection
+  no longer needs a skip list — a bookmaker row is simply a leaf `<tr>` holding
+  bookmaker links, and a collapsed line row one holding `img[alt="arrow"]`.
+
+### Two behaviours that flipped back or forward
+
+- **No hash nudge is needed any more**: a match URL renders its match on load,
+  even without a fragment. `_hydrate_match_view` now waits first and only
+  re-routes the hash as a retry. Market and period switching by
+  `#<id>:<market>;<scope>` still work exactly as in §19.
+- **In-play `--league` filtering cannot use the href**: in-play rows link to
+  `/<sport>/h2h/<home>/<away>/inplay-odds/#<id>`, which carries no league
+  segment. The league is only in the section breadcrumb above the row
+  (`_row_league_path`).
+
+### Unrelated live break found alongside
+
+The odds-history modal renders September as **"Sept"**, which `%b` rejects, so
+every September timestamp was dropped. Normalized before parsing.
+
+### Detection signal
+
+Hydration timeouts on match pages *and* "Found 0 event rows" on listings at the
+same time, while the pages render normally in a browser. Distinguish from
+anti-bot (§6): a block also zeroes the structural selectors, and pages come
+back without content at all.
+
+### The durable lesson
+
+Do not let the whole scraper hang off one attribute family a site owner can
+delete in a single commit, and do not treat green fixtures as evidence the
+scraper still works: HAR replay pins the DOM of its capture day. A periodic
+`--live` smoke run is what catches this class of break.
+
+**Reference:** issue #86; branch `fix/oddsportal-testids-removed-86`.
+
+---
+
 ## Adding a new gotcha
 
 When a fix lands that exposes an OddsPortal-specific behaviour an agent
