@@ -254,6 +254,47 @@ oddsportal.com (e.g., `…/serie-a-2021-2022/results/`). If the slug differs
 from the current season, set up the alias *immediately* — don't wait for the
 first user to file an issue.
 
+### The season selector is the authoritative slug map (Sept 2026)
+
+Don't guess season slugs one URL at a time. The season dropdown on
+`<league>/results/` links every season the site has, each href carrying the
+slug that season actually lives under. One page load per league gives the
+whole history, renames included:
+
+```bash
+uv run python scripts/validate_league.py -s football -l spain-laliga --dump-seasons
+```
+
+Sweeping the 95 configured football leagues that way (issue #78) found **44
+with an unrecorded rename**, and two `LEAGUE_SEASON_ALIASES` entries that were
+off by one season (`hungary-nb-i`, `slovakia-nike-liga`) because they had been
+written from a guess rather than from the selector. The whole table was
+rebuilt from that sweep. Four leagues also had a stale *base* URL
+(`brazil-serie-b`, `world-cup`, `argentina-liga-profesional`,
+`chile-primera-division`): their old slug still renders as a landing page, so
+nothing looked broken, while every per-season URL under it was wrong.
+
+Two details when reading the dump: filter the hrefs to the league's own
+country segment (the page also links to unrelated competitions), and expect
+the ranges to be contiguous, one slug per era.
+
+### A dead season URL can redirect to the current fixtures (Sept 2026)
+
+Worse than a not-found page, and the reason the guard in `scrape_historic`
+exists. `mexico/liga-mx-2012-2013/results/` (right league, season that lives
+under the old `primera-division` slug) **redirects to
+`mexico/liga-mx/`**, the current fixtures listing. Before the guard, that run
+collected 9 upcoming 2026 matches, stamped them `season: 2012-2013`, reported
+`0 listing pages failed` and exited 0. Silent wrong data, not an empty result.
+
+Spain answers the same class of URL with an `Offside — page not found` body
+and 0 links, so the behaviour is per league and cannot be assumed either way.
+`OddsPortalScraper._assert_season_page_reached` compares the landed
+`page.url` path against the requested one after the first `goto` and raises
+`PageNotFoundError` when they differ, which surfaces the combo as `error` in
+the end-of-run summary. Keep that check ahead of any listing walk: it costs no
+request, and §15's "wrong pairs come back empty" is only true once it runs.
+
 ### Renames are not always sponsor-driven (handball, May 2026)
 
 Slug drift also happens without a title sponsor, and the OddsPortal
@@ -295,7 +336,8 @@ handball --all` (the project's hardened `PlaywrightManager` gets past the
 anti-bot layer that blocks a vanilla browser).
 
 **Reference commits/PRs:** `708a8cf` (Brazil Serie A → Betano), PR #43
-(Czech / Mexico / Serbia aliases). Handball URL audit: this change.
+(Czech / Mexico / Serbia aliases). Handball URL audit: May 2026. Season
+selector sweep, the 44 missing aliases and the redirect guard: issue #78.
 
 ---
 
@@ -1006,10 +1048,14 @@ re-running.
 - Keep treating zero links as a normal, non-error outcome. If a future
   report conflates "zero results" with "the scraper is broken," point back
   to this entry and §4.
-- If a genuinely cheap way to know which `(league, season)` pairs exist is
-  ever found (e.g., an index OddsPortal publishes), that would obsolete the
-  cartesian brute-force scrape-and-count approach. No such source is
-  currently known.
+- A cheap index does exist for the *slug* half of the problem: the season
+  selector on `<league>/results/` (§4). It says which seasons the site has and
+  under which slug, so it removes renames as a cause of empty combos. It does
+  not remove the brute force: the selector is read from the same page the walk
+  already loads, and a season the selector lists can still hold no odds.
+- A wrong pair does not always come back empty. Some redirect to the league's
+  current fixtures, which is why `scrape_historic` fails a season whose landed
+  URL no longer matches the requested one (§4).
 
 ### References
 
