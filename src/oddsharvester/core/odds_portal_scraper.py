@@ -3,11 +3,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 import random
+from urllib.parse import urlparse
 
 from playwright.async_api import Page
 
 from oddsharvester.core.base_scraper import BaseScraper
 from oddsharvester.core.browser.pagination import WalkVerdict
+from oddsharvester.core.exceptions import PageNotFoundError
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult, ScrapeStats
 from oddsharvester.core.url_builder import URLBuilder, normalize_inplay_match_url
@@ -110,6 +112,7 @@ class OddsPortalScraper(BaseScraper):
         # Navigate to the base URL
         self.logger.info("Navigating to base URL...")
         await current_page.goto(base_url)
+        self._assert_season_page_reached(requested_url=base_url, landed_url=current_page.url)
         await self._prepare_page_for_scraping(page=current_page)
 
         # Analyze pagination and determine pages to scrape
@@ -532,6 +535,23 @@ class OddsPortalScraper(BaseScraper):
         )
 
         return all_pages
+
+    @staticmethod
+    def _assert_season_page_reached(requested_url: str, landed_url: str) -> None:
+        """
+        Fail a season whose URL was redirected away instead of scraping what it landed on.
+
+        A season that does not exist under the requested slug does not always answer with a
+        not-found page: OddsPortal redirects some of them to the league's current fixtures,
+        which would otherwise be collected and labelled with the requested season (gotcha 4).
+        """
+        if urlparse(requested_url).path.rstrip("/") == urlparse(landed_url).path.rstrip("/"):
+            return
+
+        raise PageNotFoundError(
+            f"Season page redirected to {landed_url}; the season does not exist under this league slug.",
+            url=requested_url,
+        )
 
     async def _collect_match_links(
         self,

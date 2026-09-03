@@ -5,6 +5,7 @@ from unittest.mock import ANY, AsyncMock, MagicMock, patch
 from playwright.async_api import Browser, BrowserContext, Page
 import pytest
 
+from oddsharvester.core.exceptions import PageNotFoundError
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import LinkCollectionResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
@@ -22,6 +23,8 @@ def setup_scraper_mocks():
 
     # Setup page and context mocks
     page_mock = AsyncMock(spec=Page)
+    # goto lands on the requested URL: the no-redirect case the season guard expects.
+    page_mock.goto.side_effect = lambda url, **kwargs: setattr(page_mock, "url", url)
     context_mock = AsyncMock(spec=BrowserContext)
     browser_mock = AsyncMock(spec=Browser)
 
@@ -223,6 +226,48 @@ async def test_scrape_historic_links_only(url_builder_mock, setup_scraper_mocks)
     assert result.stats.successful == 2
     assert result.stats.failed == 1
     assert result.stats.total_urls == 3
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_historic_fails_when_season_url_redirects(url_builder_mock, setup_scraper_mocks):
+    """A season URL redirected to the league's current fixtures must fail, not be scraped."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    url_builder_mock.get_historic_matches_url.return_value = (
+        "https://oddsportal.com/football/mexico/liga-mx-2012-2013/results/"
+    )
+    page_mock.goto.side_effect = lambda url, **kwargs: setattr(
+        page_mock, "url", "https://oddsportal.com/football/mexico/liga-mx/"
+    )
+    scraper._get_pagination_info = AsyncMock()
+    scraper._collect_match_links = AsyncMock()
+    scraper._prepare_page_for_scraping = AsyncMock()
+
+    with pytest.raises(PageNotFoundError):
+        await scraper.scrape_historic(sport="football", league="mexico-liga-mx", season="2012-2013", links_only=True)
+
+    scraper._collect_match_links.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("requested", "landed"),
+    [
+        ("https://oddsportal.com/football/spain/laliga-2020-2021/results/", None),
+        (
+            "https://oddsportal.com/football/spain/laliga-2020-2021/results/",
+            "https://oddsportal.com/football/spain/laliga-2020-2021/results",
+        ),
+        (
+            "https://oddsportal.com/football/spain/laliga-2020-2021/results/",
+            "https://www.oddsportal.com/football/spain/laliga-2020-2021/results/#page/2",
+        ),
+    ],
+)
+def test_season_guard_accepts_the_requested_page(requested, landed):
+    OddsPortalScraper._assert_season_page_reached(requested_url=requested, landed_url=landed or requested)
 
 
 @pytest.mark.asyncio
