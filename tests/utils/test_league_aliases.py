@@ -1,6 +1,7 @@
 import pytest
 
 from oddsharvester.utils.league_aliases import LEAGUE_SEASON_ALIASES, get_league_slug_for_season
+from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from oddsharvester.utils.sport_market_constants import Sport
 
 
@@ -15,13 +16,27 @@ class TestGetLeagueSlugForSeason:
             (Sport.FOOTBALL, "czech-republic-chance-liga", "2023-2024", "fortuna-liga"),
             (Sport.FOOTBALL, "czech-republic-chance-liga", "2024-2025", None),
             (Sport.FOOTBALL, "czech-republic-chance-liga", "2025-2026", None),
-            # Slovakia: fortuna-liga until 2023-2024, then nike-liga
+            # Slovakia: fortuna-liga until 2022-2023, then nike-liga
             (Sport.FOOTBALL, "slovakia-nike-liga", "2021-2022", "fortuna-liga"),
-            (Sport.FOOTBALL, "slovakia-nike-liga", "2023-2024", "fortuna-liga"),
-            (Sport.FOOTBALL, "slovakia-nike-liga", "2024-2025", None),
-            # Hungary: otp-bank-liga until 2023-2024, then nb-i
+            (Sport.FOOTBALL, "slovakia-nike-liga", "2022-2023", "fortuna-liga"),
+            (Sport.FOOTBALL, "slovakia-nike-liga", "2023-2024", None),
+            # Hungary: otp-bank-liga until 2024-2025, then nb-i
             (Sport.FOOTBALL, "hungary-nb-i", "2023-2024", "otp-bank-liga"),
-            (Sport.FOOTBALL, "hungary-nb-i", "2024-2025", None),
+            (Sport.FOOTBALL, "hungary-nb-i", "2024-2025", "otp-bank-liga"),
+            (Sport.FOOTBALL, "hungary-nb-i", "2025-2026", None),
+            # Spain: primera-division until 2015-2016, then laliga
+            (Sport.FOOTBALL, "spain-laliga", "2010-2011", "primera-division"),
+            (Sport.FOOTBALL, "spain-laliga", "2015-2016", "primera-division"),
+            (Sport.FOOTBALL, "spain-laliga", "2016-2017", None),
+            # Mexico: primera-division until 2018-2019, then liga-mx
+            (Sport.FOOTBALL, "mexico-liga-mx", "2012-2013", "primera-division"),
+            (Sport.FOOTBALL, "mexico-liga-mx", "2018-2019", "primera-division"),
+            (Sport.FOOTBALL, "mexico-liga-mx", "2019-2020", None),
+            # Portugal second tier: three successive slugs before liga-portugal-2
+            (Sport.FOOTBALL, "liga-portugal-2", "2011-2012", "liga-de-honra"),
+            (Sport.FOOTBALL, "liga-portugal-2", "2012-2013", "segunda-liga"),
+            (Sport.FOOTBALL, "liga-portugal-2", "2016-2017", "ligapro"),
+            (Sport.FOOTBALL, "liga-portugal-2", "2020-2021", None),
             # Brazil: serie-a until 2023, then serie-a-betano
             (Sport.FOOTBALL, "brazil-serie-a", "2022", "serie-a"),
             (Sport.FOOTBALL, "brazil-serie-a", "2023", "serie-a"),
@@ -74,6 +89,11 @@ class TestLeagueSeasonAliasesStructure:
             for league_aliases in sport_aliases.values():
                 for max_year in league_aliases:
                     assert isinstance(max_year, int)
+
+    def test_all_league_keys_exist_in_url_mapping(self):
+        for sport, sport_aliases in LEAGUE_SEASON_ALIASES.items():
+            for league in sport_aliases:
+                assert league in SPORTS_LEAGUES_URLS_MAPPING[sport]
 
     def test_all_alias_slugs_are_non_empty_strings(self):
         for sport_aliases in LEAGUE_SEASON_ALIASES.values():

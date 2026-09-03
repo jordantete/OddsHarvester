@@ -304,7 +304,13 @@ def test_get_league_url_cricket():
             "football",
             "hungary-nb-i",
             "2024-2025",
-            f"{ODDSPORTAL_BASE_URL}/football/hungary/nb-i-2024-2025/results/",
+            f"{ODDSPORTAL_BASE_URL}/football/hungary/otp-bank-liga-2024-2025/results/",
+        ),
+        (
+            "football",
+            "hungary-nb-i",
+            "2025-2026",
+            f"{ODDSPORTAL_BASE_URL}/football/hungary/nb-i-2025-2026/results/",
         ),
         # Brazil: serie-a for old seasons, serie-a-betano for new (single year format)
         (
