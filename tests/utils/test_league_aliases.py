@@ -32,6 +32,9 @@ class TestGetLeagueSlugForSeason:
             (Sport.FOOTBALL, "mexico-liga-mx", "2012-2013", "primera-division"),
             (Sport.FOOTBALL, "mexico-liga-mx", "2018-2019", "primera-division"),
             (Sport.FOOTBALL, "mexico-liga-mx", "2019-2020", None),
+            # Norway: tippeligaen until 2016, then eliteserien
+            (Sport.FOOTBALL, "norway-eliteserien", "2016", "tippeligaen"),
+            (Sport.FOOTBALL, "norway-eliteserien", "2017", None),
             # Portugal second tier: three successive slugs before liga-portugal-2
             (Sport.FOOTBALL, "liga-portugal-2", "2011-2012", "liga-de-honra"),
             (Sport.FOOTBALL, "liga-portugal-2", "2012-2013", "segunda-liga"),

@@ -97,6 +97,9 @@ SPORTS_LEAGUES_URLS_MAPPING = {
         "concacaf-champions-cup": "https://www.oddsportal.com/football/north-central-america/concacaf-champions-cup",
         "afc-champions-league": "https://www.oddsportal.com/football/asia/afc-champions-league",
         "uefa-nations-league": "https://www.oddsportal.com/football/europe/uefa-nations-league",
+        "tunisia-ligue-professionnelle-1": "https://www.oddsportal.com/football/tunisia/ligue-professionnelle-1",
+        "norway-eliteserien": "https://www.oddsportal.com/football/norway/eliteserien",
+        "sweden-allsvenskan": "https://www.oddsportal.com/football/sweden/allsvenskan",
     },
     Sport.TENNIS: {
         "atp-acapulco": "https://www.oddsportal.com/tennis/mexico/atp-acapulco",

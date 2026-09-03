@@ -138,6 +138,9 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         "northern-ireland-nifl-premiership": {
             2012: "ifa-premiership",
         },
+        "norway-eliteserien": {
+            2016: "tippeligaen",
+        },
         "paraguay-copa-de-primera": {
             2024: "primera-division",
         },
