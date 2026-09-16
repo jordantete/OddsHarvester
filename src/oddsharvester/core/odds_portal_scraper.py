@@ -12,7 +12,7 @@ from oddsharvester.core.browser.pagination import WalkVerdict
 from oddsharvester.core.exceptions import PageNotFoundError
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult, ScrapeStats
-from oddsharvester.core.url_builder import URLBuilder, normalize_inplay_match_url
+from oddsharvester.core.url_builder import URLBuilder, normalize_inplay_match_url, rebase_url
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import (
     DEFAULT_REQUEST_DELAY_S,
@@ -392,7 +392,12 @@ class OddsPortalScraper(BaseScraper):
         if not current_page:
             raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
 
-        await current_page.goto(ODDSPORTAL_BASE_URL, timeout=GOTO_TIMEOUT_LONG_MS, wait_until="domcontentloaded")
+        match_links = [rebase_url(link, self.base_url) for link in match_links]
+        await current_page.goto(
+            self.base_url or ODDSPORTAL_BASE_URL,
+            timeout=GOTO_TIMEOUT_LONG_MS,
+            wait_until="domcontentloaded",
+        )
         await self._prepare_page_for_scraping(page=current_page)
         return await self.extract_match_odds(
             sport=sport,
