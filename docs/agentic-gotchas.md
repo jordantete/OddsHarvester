@@ -18,6 +18,7 @@ The gotchas are grouped by theme:
 - **§8** — Volleyball O/U and AH each split into a Sets axis and a Points axis.
 - **§19** — The 2026-08 frontend redesign (data-testid DOM, H2H links, hash-driven views).
 - **§21** — Team pages: the id is the only key, and the data is in the flight payload.
+- **§22** — A listing page keeps reflowing after load; the row count is not final at `goto`.
 
 ---
 
@@ -1676,6 +1677,51 @@ the form block still renders fine.
 
 A team record with a plausible name and every other field null means the payload
 was missing, which is a bad id, not a parsing break.
+
+---
+
+## §22 — A listing page is still settling after `goto`; the row count is not final
+
+**Severity:** Medium — no corruption today, because the scroll's stability rule
+catches it, but it sets the floor on how fast a listing can be collected.
+
+An upcoming-league listing keeps mutating its rendered row count for a few
+seconds after navigation returns. Measured 2026-09-17 on `--links-only`:
+`england/premier-league` read 16 rows on the first scroll tick and settled at
+17, while `spain/laliga` read 46, collapsed to 24, and settled there.
+Hydration replaces the server markup with the client-rendered list, so a count
+taken too early is both incomplete and, transiently, too high.
+
+This stayed invisible for as long as the per-league cookie wait ran before the
+scroll: the 10s banner timeout gave the page all the settling time it needed,
+so the scroll's first read was already final. Dismissing the banner once per
+context (§11) did not create the reflow, it uncovered it. The scroll absorbed
+it by spending one more stability cycle, which is the mechanism working as
+designed, and is why the per-league saving is ~8s and not the full 10s.
+
+### Detection signal
+
+- The scroll log shows the count moving on the first ticks, then holding:
+  `Initial element count: 46` followed by a repeated `Current element count: 24`.
+- A count that **drops** is the tell for hydration. Lazy loading only ever adds
+  rows, so a decreasing count never means "more content arrived".
+- Symptom if the stability rule is ever weakened: fewer links than the page
+  really holds, no error raised, and only on pages nothing happened to wait on.
+
+### Fix pattern
+
+Never read rows straight after `goto`. `PageScroller.scroll_until_loaded`
+requires three consecutive identical counts before returning, and that rule is
+what makes the later read safe. Anyone tuning `SCROLL_PAUSE_S` or
+`MAX_SCROLL_ATTEMPTS` for speed must keep it, and must re-measure on a run
+where nothing else waits before the scroll: an unrelated wait upstream hides
+the reflow completely.
+
+### References
+
+- `core/browser/scrolling.py` — `scroll_until_loaded`, the consecutive-count rule.
+- `core/browser/cookies.py` — `CookieDismisser`, the wait that used to mask this.
+- §11 — cookie consent and odds format are per-`BrowserContext`.
 
 ---
 
