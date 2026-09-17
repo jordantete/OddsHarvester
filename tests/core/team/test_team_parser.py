@@ -144,3 +144,13 @@ def test_tournament_is_read_from_the_fixture_rows():
 def test_tournament_is_null_when_no_fixture_row_is_rendered():
     """Fixture rows follow the IP's selected bookmakers, so they are often absent."""
     assert parse_team_page(team_page(), team_id="lId4TMwf", team_url=_URL)["tournament"] is None
+
+
+def test_an_unreadable_payload_is_an_error_naming_the_page():
+    """Site drift that breaks the payload must surface as a typed error, not a crash."""
+    html = '<main><main><script>self.__next_f.push([1,"{\\"basicInfo\\":{\\"coach\\":}}"])</script></main></main>'
+
+    with pytest.raises(ParsingError) as excinfo:
+        parse_team_page(html, team_id="lId4TMwf", team_url=_URL)
+
+    assert _URL in str(excinfo.value)

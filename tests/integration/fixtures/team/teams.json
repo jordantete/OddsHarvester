@@ -17,7 +17,7 @@
         "avg_goals_scored": 1.8,
         "avg_goals_conceded": 1.0,
         "team_url": "https://www.oddsportal.com/football/team/liverpool/lId4TMwf/",
-        "scraped_at": "2026-09-17T09:46:01.745149+00:00"
+        "scraped_at": "2026-09-17T12:42:55.420886+00:00"
     },
     {
         "team_id": "WGt8En5I",
@@ -37,6 +37,6 @@
         "avg_goals_scored": 0.7,
         "avg_goals_conceded": 2.5,
         "team_url": "https://www.oddsportal.com/football/team/barcelona-fc/WGt8En5I/",
-        "scraped_at": "2026-09-17T09:46:12.097845+00:00"
+        "scraped_at": "2026-09-17T12:42:55.885467+00:00"
     }
 ]
