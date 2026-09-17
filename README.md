@@ -269,6 +269,7 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 | `--append`  |       | Append to the output file instead of overwriting it (`--no-append` to opt out explicitly) | `--no-append`  |
 | `--links-only` |       | Collect match links only, without scraping odds (`--no-links-only` to opt out explicitly) | `--no-links-only` |
 | `--local-kickoff` |       | Add venue-local kickoff time to each record (`--no-local-kickoff` to opt out explicitly). Distinct from `--timezone` | `--no-local-kickoff` |
+| `--stream-ndjson` |       | Emit each match as an NDJSON line on stdout as soon as it is scraped (`--no-stream-ndjson` to opt out explicitly) | `--no-stream-ndjson` |
 
 > **Breaking change:** every output row now carries a `season` column. For odds
 > rows it is inserted directly after `match_date`; `--links-only` rows have no
@@ -403,6 +404,30 @@ Not compatible with `--links-only` (no match pages are visited, so there's no ve
 
 If you `--append` onto an existing CSV file, the header is frozen on the first write, so start a fresh file when you turn the flag on.
 
+### Streaming results while the run is in progress
+
+By default a run collects every match and writes the whole batch at the end, so a 10-match run
+hands you nothing for 10 minutes. `--stream-ndjson` emits each match on stdout as a single JSON
+line the moment that match is done, letting a downstream process start work while the rest is
+still being scraped:
+
+```bash
+oddsharvester upcoming -s football -d 20260918 -m 1x2 --stream-ndjson --headless \
+    | while read -r line; do echo "$line" | jq -r '.home_team + " vs " + .away_team'; done
+```
+
+Each line is exactly the record that `--output` would have written, so a consumer parses the same
+shape either way. Logs, the run summary and the failed-URL list all go to stderr, leaving stdout
+carrying nothing but NDJSON.
+
+Without `--output`, no result file is written at all — the stream is the output. Pass `--output` to
+keep a batch file as well; `--format` then governs that file only, the stream stays NDJSON.
+
+Failures are not streamed: they stay visible on stderr and in the exit code. Available on
+`upcoming`, `historic` and `live`; not compatible with `--links-only`, which never visits match
+pages. A run that spans several leagues or seasons streams every match into one flat sequence with
+no marker between combos.
+
 ### Blocked odds
 
 OddsPortal strikes through a price when that bookmaker has stopped offering the bet. Each per-bookmaker odds record then carries a `blocked_outcomes` field listing which outcomes are struck through, using the same labels as the odds themselves:
@@ -442,6 +467,7 @@ All CLI options can be set via environment variables — useful for Docker or CI
 | `OH_APPEND`        | `--append`        | Append to the output file instead of overwriting |
 | `OH_LINKS_ONLY`    | `--links-only`    | Collect match links only, without scraping odds |
 | `OH_LOCAL_KICKOFF` | `--local-kickoff` | Add venue-local kickoff time to each record |
+| `OH_STREAM_NDJSON` | `--stream-ndjson` | Emit each match as an NDJSON line on stdout while scraping |
 | `OH_HEADLESS`      | `--headless`      | Run in headless mode         |
 | `OH_CONCURRENCY`   | `--concurrency`   | Number of concurrent tasks   |
 | `OH_REQUEST_DELAY` | `--request-delay` | Delay between requests (sec) |

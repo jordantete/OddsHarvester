@@ -1,5 +1,6 @@
 """Tests for the Click-based CLI."""
 
+from typing import ClassVar
 from unittest.mock import AsyncMock, patch
 
 from click.testing import CliRunner
@@ -610,3 +611,97 @@ def test_combo_summary_marks_errored_combos_separately():
     assert "error" in out
     assert "1 combo(s) errored." in out
     assert "1 combo(s) returned nothing." in out
+
+
+class TestStreamNdjson:
+    """Tests for --stream-ndjson (issue #88)."""
+
+    COMMANDS: ClassVar[dict[str, list[str]]] = {
+        "upcoming": ["upcoming", "-s", "football", "-d", FUTURE_DATE],
+        "historic": ["historic", "-s", "football", "-l", "england-premier-league", "--season", "2022-2023"],
+        "live": ["live", "-s", "football"],
+    }
+
+    @staticmethod
+    def _result():
+        from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
+
+        return ScrapeResult(
+            success=[{"match_link": "https://x/a", "home_team": "A"}],
+            stats=ScrapeStats(total_urls=1, successful=1, failed=0),
+        )
+
+    def _patches(self, command):
+        return (
+            patch(
+                f"oddsharvester.cli.commands.{command}.run_scraper",
+                new_callable=AsyncMock,
+                return_value=self._result(),
+            ),
+            patch(f"oddsharvester.cli.commands.{command}.store_data"),
+        )
+
+    @pytest.mark.parametrize("command", list(COMMANDS))
+    def test_flag_passes_a_stream_callback_to_the_scraper(self, runner, command):
+        scraper_patch, store_patch = self._patches(command)
+        with scraper_patch as scraper_mock, store_patch:
+            result = runner.invoke(cli, [*self.COMMANDS[command], "--stream-ndjson"])
+
+        assert result.exit_code == 0
+        assert callable(scraper_mock.call_args.kwargs["on_match"])
+
+    @pytest.mark.parametrize("command", list(COMMANDS))
+    def test_no_callback_without_the_flag(self, runner, command):
+        scraper_patch, store_patch = self._patches(command)
+        with scraper_patch as scraper_mock, store_patch:
+            result = runner.invoke(cli, self.COMMANDS[command])
+
+        assert result.exit_code == 0
+        assert scraper_mock.call_args.kwargs["on_match"] is None
+
+    @pytest.mark.parametrize("command", list(COMMANDS))
+    def test_streaming_without_output_writes_no_file(self, runner, command):
+        """Without -o the batch write would drop a stray scraped_data.json next to the consumer."""
+        scraper_patch, store_patch = self._patches(command)
+        with scraper_patch, store_patch as store_mock:
+            result = runner.invoke(cli, [*self.COMMANDS[command], "--stream-ndjson"])
+
+        assert result.exit_code == 0
+        store_mock.assert_not_called()
+
+    @pytest.mark.parametrize("command", list(COMMANDS))
+    def test_streaming_with_output_still_writes_the_file(self, runner, command):
+        scraper_patch, store_patch = self._patches(command)
+        with scraper_patch, store_patch as store_mock:
+            result = runner.invoke(cli, [*self.COMMANDS[command], "--stream-ndjson", "-o", "out.json"])
+
+        assert result.exit_code == 0
+        store_mock.assert_called_once()
+
+    @pytest.mark.parametrize("command", list(COMMANDS))
+    def test_streaming_keeps_stdout_free_of_summary_text(self, runner, command):
+        """stdout carries NDJSON only; anything else corrupts the consumer's parse."""
+        scraper_patch, store_patch = self._patches(command)
+        with scraper_patch, store_patch:
+            result = runner.invoke(cli, [*self.COMMANDS[command], "--stream-ndjson"])
+
+        assert result.exit_code == 0
+        assert result.stdout == ""
+        assert "Successfully scraped" in result.stderr
+
+    @pytest.mark.parametrize("command", list(COMMANDS))
+    def test_summary_stays_on_stdout_without_the_flag(self, runner, command):
+        scraper_patch, store_patch = self._patches(command)
+        with scraper_patch, store_patch:
+            result = runner.invoke(cli, self.COMMANDS[command])
+
+        assert result.exit_code == 0
+        assert "Successfully scraped" in result.stdout
+
+    @pytest.mark.parametrize("command", ["upcoming", "historic", "live"])
+    def test_streaming_rejects_links_only(self, runner, command):
+        """Links are collected outside the per-match path, so the stream would be silently empty."""
+        result = runner.invoke(cli, [*self.COMMANDS[command], "--links-only", "--stream-ndjson"])
+
+        assert result.exit_code == 2
+        assert "--links-only" in result.output

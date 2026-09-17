@@ -2253,3 +2253,85 @@ def test_parse_match_date_from_dom_uses_browser_month_aliases(setup_base_scraper
     )
 
     assert scraper._parse_match_date_from_dom(soup) == "2026-09-16 18:45:00 UTC"
+
+
+@pytest.mark.asyncio
+async def test_extract_match_odds_streams_each_success_before_the_run_ends(setup_base_scraper_mocks):
+    """Each match reaches the callback as it completes, not once every link is done."""
+    mocks = setup_base_scraper_mocks
+    emitted: list[dict] = []
+    emitted_when_each_started: list[int] = []
+
+    scraper = BaseScraper(
+        playwright_manager=mocks["playwright_manager_mock"],
+        market_extractor=mocks["market_extractor_mock"],
+        scroller=AsyncMock(),
+        cookie_dismisser=AsyncMock(),
+        selection_manager=mocks["selection_manager_mock"],
+        on_match=emitted.append,
+    )
+
+    async def scrape(**kwargs):
+        emitted_when_each_started.append(len(emitted))
+        return {"match_link": kwargs["match_link"]}
+
+    scraper._scrape_match_data = AsyncMock(side_effect=scrape)
+
+    result = await scraper.extract_match_odds(
+        sport="football",
+        match_links=["https://x/a", "https://x/b"],
+        concurrent_scraping_task=1,
+        request_delay=0,
+    )
+
+    assert emitted == [{"match_link": "https://x/a"}, {"match_link": "https://x/b"}]
+    assert emitted_when_each_started == [0, 1], "the second match started only after the first was streamed"
+    assert result.stats.successful == 2
+
+
+@pytest.mark.asyncio
+async def test_extract_match_odds_does_not_stream_failed_matches(setup_base_scraper_mocks):
+    from oddsharvester.core.retry import RetryConfig
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    emitted: list[dict] = []
+    scraper.on_match = emitted.append
+    scraper._scrape_match_data = AsyncMock(return_value=None)
+
+    result = await scraper.extract_match_odds(
+        sport="football",
+        match_links=["https://x/a"],
+        retry_config=RetryConfig(max_attempts=1, base_delay=0, max_delay=0),
+        request_delay=0,
+    )
+
+    assert result.stats.failed == 1
+    assert emitted == []
+
+
+@pytest.mark.asyncio
+async def test_extract_match_odds_without_callback_is_unchanged(setup_base_scraper_mocks):
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    scraper._scrape_match_data = AsyncMock(return_value={"match_link": "https://x/a"})
+
+    result = await scraper.extract_match_odds(sport="football", match_links=["https://x/a"], request_delay=0)
+
+    assert scraper.on_match is None
+    assert result.success == [{"match_link": "https://x/a"}]
+
+
+@pytest.mark.asyncio
+async def test_extract_match_odds_survives_a_failing_callback(setup_base_scraper_mocks):
+    """A broken consumer must not turn a scraped match into a failed one."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    scraper.on_match = MagicMock(side_effect=RuntimeError("consumer exploded"))
+    scraper._scrape_match_data = AsyncMock(return_value={"match_link": "https://x/a"})
+
+    result = await scraper.extract_match_odds(sport="football", match_links=["https://x/a"], request_delay=0)
+
+    assert result.stats.successful == 1
+    assert result.stats.failed == 0
+    scraper.on_match.assert_called_once_with({"match_link": "https://x/a"})

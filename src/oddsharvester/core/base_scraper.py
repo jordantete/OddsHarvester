@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Callable
 from datetime import UTC, date, datetime, time, timedelta
 from enum import Enum
 import json
@@ -341,6 +342,7 @@ class BaseScraper:
         preview_submarkets_only: bool = False,
         local_kickoff: bool = False,
         base_url: str | None = None,
+        on_match: Callable[[dict[str, Any]], None] | None = None,
     ):
         """
         Args:
@@ -355,6 +357,8 @@ class BaseScraper:
             the venue's local time) to each record. match_date stays UTC.
             base_url (str | None): Regional OddsPortal domain override (scheme+host). When None, the canonical
             https://www.oddsportal.com is used.
+            on_match (Callable | None): Called with each match record as soon as it is scraped, before the
+            whole run completes. When None, results are only returned at the end.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
         self.playwright_manager = playwright_manager
@@ -365,6 +369,7 @@ class BaseScraper:
         self.preview_submarkets_only = preview_submarkets_only
         self.local_kickoff = local_kickoff
         self.base_url = base_url
+        self.on_match = on_match
         self._warmed_proxy_keys: set[str] = set()
         self.pagination_walker = PaginationWalker()
 
@@ -792,6 +797,7 @@ class BaseScraper:
                     if retry_result.success and retry_result.result is not None:
                         self.logger.info(f"Successfully scraped match link: {link} (attempts: {retry_result.attempts})")
                         self.playwright_manager.report_page_result(proxy_key, is_proxy_failure=False)
+                        self._emit_match(retry_result.result)
                         return (link, retry_result.result, None)
                     else:
                         # Scraping failed after retries
@@ -864,6 +870,18 @@ class BaseScraper:
                 self.logger.debug(f"  {error_type}: {len(urls)} URLs")
 
         return result
+
+    def _emit_match(self, record: dict[str, Any]) -> None:
+        """Hand a freshly scraped match to the stream consumer, if any."""
+        if self.on_match is None:
+            return
+
+        try:
+            self.on_match(record)
+
+        except Exception as e:
+            # A consumer-side failure must not demote a successfully scraped match.
+            self.logger.warning(f"Match stream consumer raised, dropping this record from the stream: {e}")
 
     async def _scrape_match_data(
         self,

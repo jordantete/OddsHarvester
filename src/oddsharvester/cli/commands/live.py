@@ -8,6 +8,7 @@ import click
 
 from oddsharvester.cli.options import common_options, merged_match_links
 from oddsharvester.core.scraper_app import run_scraper
+from oddsharvester.storage.ndjson_stream import NdjsonStreamWriter
 from oddsharvester.storage.storage_manager import store_data
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,11 @@ def live(ctx, **kwargs):
     links_only = kwargs.get("links_only", False)
     if links_only and match_links:
         raise click.UsageError("--links-only cannot be combined with --match-link (links are already collected).")
+
+    stream_ndjson = kwargs.get("stream_ndjson", False)
+    if stream_ndjson and links_only:
+        raise click.UsageError("--stream-ndjson cannot be combined with --links-only (no match records are produced).")
+    stream_writer = NdjsonStreamWriter() if stream_ndjson else None
 
     sport = kwargs["sport"]
     storage = kwargs["storage"]
@@ -60,6 +66,7 @@ def live(ctx, **kwargs):
                 request_delay=kwargs.get("request_delay", 1.0),
                 concurrency_tasks=kwargs.get("concurrency_tasks", 3),
                 links_only=links_only,
+                on_match=stream_writer.emit if stream_writer else None,
             )
         )
 
@@ -76,23 +83,26 @@ def live(ctx, **kwargs):
                 logger.error(f"All {len(scraped_data.failed)} live matches failed to scrape.")
                 sys.exit(1)
 
-            click.echo("No live matches found right now.")
+            click.echo("No live matches found right now.", err=stream_ndjson)
             return
 
-        store_data(
-            storage_type=storage.value if storage else "local",
-            data=scraped_data.success,
-            storage_format=storage_format.value if storage_format else "json",
-            file_path=kwargs.get("file_path"),
-            append=kwargs.get("append", False),
-        )
+        # Without --output the stream is the output: skip the default scraped_data.json.
+        if not stream_ndjson or kwargs.get("file_path"):
+            store_data(
+                storage_type=storage.value if storage else "local",
+                data=scraped_data.success,
+                storage_format=storage_format.value if storage_format else "json",
+                file_path=kwargs.get("file_path"),
+                append=kwargs.get("append", False),
+            )
 
         if links_only:
-            click.echo(f"Collected {scraped_data.stats.successful} live match links.")
+            click.echo(f"Collected {scraped_data.stats.successful} live match links.", err=stream_ndjson)
         else:
             click.echo(
                 f"Successfully scraped {scraped_data.stats.successful} live matches "
-                f"({scraped_data.stats.failed} failed, {scraped_data.stats.success_rate:.1f}% success rate)."
+                f"({scraped_data.stats.failed} failed, {scraped_data.stats.success_rate:.1f}% success rate).",
+                err=stream_ndjson,
             )
 
         if scraped_data.failed:

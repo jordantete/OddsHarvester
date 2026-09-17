@@ -127,6 +127,14 @@ def common_options(func):
         help="Collect match links only, without scraping odds. Market/odds options are ignored.",
     )
     @click.option(
+        "--stream-ndjson/--no-stream-ndjson",
+        "stream_ndjson",
+        default=False,
+        envvar="OH_STREAM_NDJSON",
+        help="Emit one NDJSON line per match on stdout as soon as it is scraped, instead of waiting for the "
+        "run to finish. Logs and summaries go to stderr; no result file is written unless --output is given.",
+    )
+    @click.option(
         "--local-kickoff/--no-local-kickoff",
         "local_kickoff",
         default=False,

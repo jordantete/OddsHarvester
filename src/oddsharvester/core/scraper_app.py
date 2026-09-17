@@ -1,4 +1,6 @@
+from collections.abc import Callable
 import logging
+from typing import Any
 from urllib.parse import urlsplit
 
 from oddsharvester.core.browser.cookies import CookieDismisser
@@ -53,6 +55,7 @@ async def run_scraper(
     kickoff_within_hours: float | None = None,
     links_only: bool = False,
     local_kickoff: bool = False,
+    on_match: Callable[[dict[str, Any]], None] | None = None,
 ) -> ScrapeResult | None:
     """
     Runs the scraping process and handles execution.
@@ -116,6 +119,7 @@ async def run_scraper(
         preview_submarkets_only=preview_submarkets_only,
         local_kickoff=local_kickoff,
         base_url=base_url,
+        on_match=on_match,
     )
 
     try:
