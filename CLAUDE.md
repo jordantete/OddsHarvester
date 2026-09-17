@@ -196,7 +196,9 @@ git checkout master && git pull origin master
 uv run pytest tests/ -q --ignore=tests/integration/
 
 # bump version in pyproject.toml (X.Y.Z), then:
-git add pyproject.toml
+uv lock                 # uv.lock carries the project version too; skip this and
+                        # it reappears modified right after the release commit
+git add pyproject.toml uv.lock
 git commit -m "chore: release vX.Y.Z"
 git tag vX.Y.Z
 git push origin master --tags
