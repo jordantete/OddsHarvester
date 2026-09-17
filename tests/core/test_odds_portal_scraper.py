@@ -1245,3 +1245,32 @@ async def test_scrape_matches_honors_regional_base_url(setup_scraper_mocks):
     assert scraper.extract_match_odds.call_args.kwargs["match_links"] == [
         "https://regional.example/football/h2h/a-1/b-2/#EV123"
     ]
+
+
+@pytest.mark.asyncio
+async def test_scrape_live_with_match_links_honors_regional_base_url(setup_scraper_mocks):
+    """Direct live match links must use the configured regional base URL."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    scraper.base_url = "https://regional.example"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.extract_live_match_links = AsyncMock()
+    scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
+
+    await scraper.scrape_live(
+        sport="football",
+        markets=["1x2"],
+        match_links=["https://www.oddsportal.com/football/h2h/a-1/b-2/#EV123"],
+    )
+
+    page_mock.goto.assert_awaited_once_with(
+        "https://regional.example",
+        timeout=GOTO_TIMEOUT_LONG_MS,
+        wait_until="domcontentloaded",
+    )
+
+    assert scraper.extract_match_odds.call_args.kwargs["match_links"] == [
+        "https://regional.example/football/h2h/a-1/b-2/inplay-odds/#EV123"
+    ]

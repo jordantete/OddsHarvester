@@ -310,8 +310,12 @@ class OddsPortalScraper(BaseScraper):
             raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
 
         if match_links:
-            links = [normalize_inplay_match_url(link) for link in match_links]
-            await current_page.goto(ODDSPORTAL_BASE_URL, timeout=GOTO_TIMEOUT_LONG_MS, wait_until="domcontentloaded")
+            links = [rebase_url(normalize_inplay_match_url(link), self.base_url) for link in match_links]
+            await current_page.goto(
+                self.base_url or ODDSPORTAL_BASE_URL,
+                timeout=GOTO_TIMEOUT_LONG_MS,
+                wait_until="domcontentloaded",
+            )
             await self._prepare_page_for_scraping(page=current_page)
         else:
             url = URLBuilder.get_live_matches_url(sport=sport, base_url=self.base_url)
