@@ -6,6 +6,7 @@ import logging
 import random
 import re
 from typing import Any, ClassVar
+import unicodedata
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -66,6 +67,18 @@ _MONTH_ABBREV_TO_NUM = {
     "nov": 11,
     "dec": 12,
 }
+
+
+def _normalize_month_name(value: str) -> str:
+    """Normalize a browser-rendered month label for locale-independent matching."""
+    normalized = unicodedata.normalize("NFKC", value).casefold().strip()
+
+    # Intl short month forms commonly carry trailing punctuation (for example
+    # a locale-specific abbreviation marker). The visible site may omit it.
+    while normalized and (normalized[-1].isspace() or unicodedata.category(normalized[-1]).startswith("P")):
+        normalized = normalized[:-1]
+
+    return normalized
 
 
 def _parse_date_header(header_text: str, tz_name: str | None = None) -> date | None:
@@ -989,7 +1002,51 @@ class BaseScraper:
 
             date_part = paragraphs[1].get_text(strip=True).rstrip(",")
             time_part = paragraphs[2].get_text(strip=True)
-            local_dt = datetime.strptime(f"{date_part} {time_part}", "%d %b %Y %H:%M")
+            try:
+                local_dt = datetime.strptime(
+                    f"{date_part} {time_part}",
+                    "%d %b %Y %H:%M",
+                )
+            except ValueError as original_error:
+                date_parts = date_part.split()
+
+                if len(date_parts) != 3:
+                    raise original_error
+
+                day_str, month_token, year_str = date_parts
+                normalized_month = _normalize_month_name(month_token)
+
+                browser_aliases = (
+                    getattr(
+                        self.playwright_manager,
+                        "month_name_to_num",
+                        {},
+                    )
+                    or {}
+                )
+
+                matching_months = {
+                    month_num
+                    for alias, month_num in browser_aliases.items()
+                    if isinstance(alias, str)
+                    and isinstance(month_num, int)
+                    and not isinstance(month_num, bool)
+                    and 1 <= month_num <= 12
+                    and _normalize_month_name(alias) == normalized_month
+                }
+
+                if len(matching_months) != 1:
+                    raise ValueError(
+                        f"Unrecognized or ambiguous browser-localized month token: {month_token!r}"
+                    ) from original_error
+
+                month_num = matching_months.pop()
+
+                local_dt = datetime.strptime(
+                    f"{day_str} {month_num:02d} {year_str} {time_part}",
+                    "%d %m %Y %H:%M",
+                )
+
             local_dt = local_dt.replace(tzinfo=self._resolved_browser_timezone())
             return format_utc(local_dt)
         except Exception as e:
