@@ -1215,3 +1215,33 @@ async def test_collect_match_links_respects_the_page_limit(setup_scraper_mocks, 
     assert len(result.links) == 150
     assert result.successful_pages == 3
     assert any("raise --max-pages" in r.message for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_scrape_matches_honors_regional_base_url(setup_scraper_mocks):
+    """Direct match links must use the configured regional base URL."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+
+    scraper.base_url = "https://regional.example"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
+
+    match_link = "https://www.oddsportal.com/football/h2h/a-1/b-2/#EV123"
+
+    await scraper.scrape_matches(
+        match_links=[match_link],
+        sport="football",
+        markets=["1x2"],
+    )
+
+    page_mock.goto.assert_awaited_once_with(
+        "https://regional.example",
+        timeout=GOTO_TIMEOUT_LONG_MS,
+        wait_until="domcontentloaded",
+    )
+
+    assert scraper.extract_match_odds.call_args.kwargs["match_links"] == [
+        "https://regional.example/football/h2h/a-1/b-2/#EV123"
+    ]
