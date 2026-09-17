@@ -14,6 +14,7 @@ class CookieDismisser:
 
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
+        self._dismissed_contexts: set = set()
 
     async def dismiss(
         self,
@@ -23,16 +24,24 @@ class CookieDismisser:
     ) -> bool:
         """Dismiss the cookie banner if it appears.
 
-        Returns True if a banner was found and dismissed, False otherwise (banner absent or click failed).
+        Returns True if a banner was found and dismissed, or was already dismissed for
+        this page's context; False otherwise (banner absent or click failed).
         """
         if selector is None:
             selector = OddsPortalSelectors.COOKIE_BANNER
+
+        # Consent is stored per browser context, so once accepted the banner cannot
+        # render again and looking for it costs a full timeout on every later page.
+        context = page.context
+        if context in self._dismissed_contexts:
+            return True
 
         try:
             self.logger.info("Checking for cookie banner...")
             await page.wait_for_selector(selector, timeout=timeout)
             self.logger.info("Cookie banner found. Dismissing it.")
             await page.click(selector)
+            self._dismissed_contexts.add(context)
             return True
 
         except PlaywrightTimeoutError:

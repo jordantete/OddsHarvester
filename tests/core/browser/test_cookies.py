@@ -82,3 +82,39 @@ class TestCookieDismisser:
         assert result is True
         mock_page.wait_for_selector.assert_called_once()
         mock_page.click.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_a_second_page_of_the_same_context_does_not_wait_again(self, dismisser, mock_page):
+        """Consent is context state, so the banner cannot come back on a later page."""
+        mock_page.wait_for_selector = AsyncMock()
+        mock_page.click = AsyncMock()
+        later_page = AsyncMock()
+        later_page.context = mock_page.context
+
+        assert await dismisser.dismiss(mock_page) is True
+        assert await dismisser.dismiss(later_page) is True
+
+        mock_page.wait_for_selector.assert_called_once()
+        later_page.wait_for_selector.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_a_page_from_another_context_is_still_checked(self, dismisser, mock_page):
+        """Multi-proxy runs hold one context per proxy, each needing its own consent."""
+        mock_page.wait_for_selector = AsyncMock()
+        mock_page.click = AsyncMock()
+        other_context_page = AsyncMock()
+
+        await dismisser.dismiss(mock_page)
+        await dismisser.dismiss(other_context_page)
+
+        other_context_page.wait_for_selector.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_an_absent_banner_is_not_remembered(self, dismisser, mock_page):
+        """A banner rendering late must still be caught, so only a success is cached."""
+        mock_page.wait_for_selector.side_effect = TimeoutError("Timeout")
+
+        assert await dismisser.dismiss(mock_page) is False
+        assert await dismisser.dismiss(mock_page) is False
+
+        assert mock_page.wait_for_selector.call_count == 2
