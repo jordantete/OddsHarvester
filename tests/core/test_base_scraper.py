@@ -2233,3 +2233,23 @@ async def test_hydrate_match_view_inplay_nudges_bare_id_on_timeout(setup_base_sc
     payload = args[1] if len(args) >= 2 else kwargs.get("arg")
     assert payload["fragment"] == "niGX35MH"
     assert payload.get("bare") is True
+
+
+def test_parse_match_date_from_dom_uses_browser_month_aliases(setup_base_scraper_mocks):
+    """DOM match dates must support month names supplied by the browser locale."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    mocks["playwright_manager_mock"].timezone_id = "UTC"
+    mocks["playwright_manager_mock"].month_name_to_num = {
+        "localized-month-09": 9,
+    }
+
+    soup = BeautifulSoup(
+        _make_date_html(
+            date_str="16 localized-month-09 2026,",
+            time_str="18:45",
+        ),
+        "html.parser",
+    )
+
+    assert scraper._parse_match_date_from_dom(soup) == "2026-09-16 18:45:00 UTC"

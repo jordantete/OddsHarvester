@@ -68,7 +68,7 @@ class OddsPortalSelectors:
 
     # The header's date cell holds weekday / date / time paragraphs; it is the
     # anchor for everything else in the header, which carries no stable attribute.
-    MATCH_DATE_PARAGRAPH_RE = re.compile(r"^\d{1,2} \w{3} \d{4},?$")
+    MATCH_DATE_PARAGRAPH_RE = re.compile(r"^\d{1,2}\s+\S+\s+\d{4},?$")
 
     @staticmethod
     def match_date_cell(soup):

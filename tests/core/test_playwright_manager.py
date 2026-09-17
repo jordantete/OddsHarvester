@@ -90,7 +90,11 @@ async def test_resolves_system_timezone_when_none_requested(mock_playwright):
     await pm.initialize(headless=True)
 
     assert pm.timezone_id == "Europe/Paris"
-    mock_playwright["page"].evaluate.assert_awaited_once()
+    assert mock_playwright["page"].evaluate.await_count == 2
+
+    scripts = [call.args[0] for call in mock_playwright["page"].evaluate.await_args_list]
+    assert "resolvedOptions().timeZone" in scripts[0]
+    assert "formatToParts" in scripts[1]
 
 
 @pytest.mark.asyncio
@@ -100,7 +104,43 @@ async def test_explicit_timezone_is_not_overridden(mock_playwright):
     await pm.initialize(headless=True, timezone_id="Asia/Tokyo")
 
     assert pm.timezone_id == "Asia/Tokyo"
-    mock_playwright["page"].evaluate.assert_not_called()
+    assert mock_playwright["page"].evaluate.await_count == 1
+
+    script = mock_playwright["page"].evaluate.await_args.args[0]
+    assert "resolvedOptions().timeZone" not in script
+    assert "formatToParts" in script
+
+
+@pytest.mark.asyncio
+async def test_collects_browser_month_aliases(mock_playwright):
+    """Browser locale month labels are captured without hard-coded languages."""
+    mock_playwright["page"].evaluate = AsyncMock(
+        return_value=[
+            ["LocalizedMonth", 9],
+            ["LocalizedMonth.", 9],
+            ["AnotherMonth", 10],
+        ]
+    )
+
+    pm = PlaywrightManager()
+    await pm.initialize(
+        headless=True,
+        timezone_id="UTC",
+    )
+
+    assert pm.month_name_to_num == {
+        "LocalizedMonth": 9,
+        "LocalizedMonth.": 9,
+        "AnotherMonth": 10,
+    }
+
+    mock_playwright["page"].evaluate.assert_awaited_once()
+
+    script = mock_playwright["page"].evaluate.await_args.args[0]
+    assert "Intl.DateTimeFormat" in script
+    assert "formatToParts" in script
+    assert '"short"' in script
+    assert '"long"' in script
 
 
 @pytest.mark.asyncio

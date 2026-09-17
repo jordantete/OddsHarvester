@@ -13,6 +13,49 @@ HAR_REPLAY_ENV_VAR = "ODDSHARVESTER_HAR_REPLAY"
 HAR_RECORD_ENV_VAR = "ODDSHARVESTER_HAR_RECORD"
 HAR_REPLAY_URL_PATTERN = "**oddsportal.com/**"
 
+_MONTH_ALIAS_PROBE_JS = """
+() => {
+    const aliases = [];
+
+    for (let month = 0; month < 12; month++) {
+        const date = new Date(Date.UTC(2020, month, 15, 12, 0, 0));
+
+        for (const width of ["short", "long"]) {
+            const standalone = new Intl.DateTimeFormat(
+                undefined,
+                {
+                    month: width,
+                    timeZone: "UTC",
+                },
+            ).format(date);
+
+            aliases.push([standalone, month + 1]);
+
+            const contextualParts = new Intl.DateTimeFormat(
+                undefined,
+                {
+                    day: "numeric",
+                    month: width,
+                    year: "numeric",
+                    timeZone: "UTC",
+                },
+            ).formatToParts(date);
+
+            const contextual = contextualParts.find(
+                (part) => part.type === "month",
+            );
+
+            if (contextual && contextual.value) {
+                aliases.push([contextual.value, month + 1]);
+            }
+        }
+    }
+
+    return aliases;
+}
+"""
+
+
 # Anti-detection script to hide automation signatures
 STEALTH_SCRIPT = """
 Object.defineProperty(navigator, "webdriver", {get: () => undefined});
@@ -41,6 +84,7 @@ class PlaywrightManager:
         self.context = None
         self.page = None
         self.timezone_id: str | None = None
+        self.month_name_to_num: dict[str, int] = {}
         self.contexts: dict = {}
         self._default_key: str | None = None
         self._proxy_manager = None
@@ -113,6 +157,53 @@ class PlaywrightManager:
                 except Exception as e:
                     self.logger.warning(f"Could not resolve browser timezone, assuming UTC: {e}")
                     self.timezone_id = "UTC"
+
+            # Capture the month names produced by the browser's effective
+            # locale. Match-detail pages can localize the visible month token,
+            # while Python's %b parser only understands the process locale.
+            #
+            # Keep raw browser labels here; BaseScraper normalizes both the DOM
+            # token and these aliases before matching. Both standalone and
+            # contextual forms are collected because some locales inflect
+            # month names when they appear inside a full date.
+            self.month_name_to_num = {}
+            try:
+                raw_month_aliases = await self.page.evaluate(_MONTH_ALIAS_PROBE_JS)
+
+                if isinstance(raw_month_aliases, list):
+                    ambiguous_aliases: set[str] = set()
+
+                    for item in raw_month_aliases:
+                        if not isinstance(item, (list, tuple)) or len(item) != 2:
+                            continue
+
+                        alias, month_num = item
+
+                        if (
+                            not isinstance(alias, str)
+                            or not isinstance(month_num, int)
+                            or isinstance(month_num, bool)
+                            or not 1 <= month_num <= 12
+                        ):
+                            continue
+
+                        alias = alias.strip()
+                        if not alias or alias in ambiguous_aliases:
+                            continue
+
+                        existing = self.month_name_to_num.get(alias)
+
+                        if existing is not None and existing != month_num:
+                            self.month_name_to_num.pop(alias, None)
+                            ambiguous_aliases.add(alias)
+                            continue
+
+                        self.month_name_to_num[alias] = month_num
+
+            except Exception as e:
+                self.logger.warning(
+                    f"Could not resolve browser month names; localized DOM dates may be unavailable: {e}"
+                )
 
             self.logger.info("Playwright initialized successfully.")
 
