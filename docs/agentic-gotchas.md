@@ -17,6 +17,7 @@ The gotchas are grouped by theme:
 - **§7** — Regional mirror domains and the `--base-url` option.
 - **§8** — Volleyball O/U and AH each split into a Sets axis and a Points axis.
 - **§19** — The 2026-08 frontend redesign (data-testid DOM, H2H links, hash-driven views).
+- **§21** — Team pages: the id is the only key, and the data is in the flight payload.
 
 ---
 
@@ -1610,6 +1611,71 @@ scraper still works: HAR replay pins the DOM of its capture day. A periodic
 `--live` smoke run is what catches this class of break.
 
 **Reference:** issue #86; branch `fix/oddsportal-testids-removed-86`.
+
+---
+
+## §21 — Team pages: the id is the only real key, and the data is back in a payload
+
+**Severity:** Medium — wrong assumptions here return plausible-looking empty
+records rather than errors. All points verified live on 2026-09-17 while
+building the `team` command (issue #80), from a French IP.
+
+### The URL lies, the id does not
+
+Team pages live at `/<sport>/team/<slug>/<id>/`. Two traps:
+
+- Links without the sport prefix, the form that pre-redesign HAR fixtures still
+  carry, render the SPA's own 404 ("Offside — page not found") while answering
+  **HTTP 200**. Do not copy team URLs out of old fixtures.
+- The slug and the sport prefix are echoed but never read. `/basketball/team/liverpool/lId4TMwf/`
+  returns Liverpool's full football record. One placeholder path therefore serves
+  every team whatever its sport, which is what the `team` command does. The
+  corollary: the sport in the URL tells you nothing about the team, so read it
+  from the payload's own links.
+
+### A wrong id looks like a valid page
+
+It answers 200 and builds the `<h1>` and the breadcrumb **from the slug**, so
+`/football/team/liverpool/zzzzzzzz/` renders "Liverpool Betting Odds, Results &
+Fixtures". Only the payload and the header logo are missing. Key any
+existence check on the payload, never on the heading, the title or the
+breadcrumb, or a typo becomes a blank row instead of an error.
+
+### The data is in the Next flight payload, not in the DOM
+
+§20 says to anchor on the rendered page, and that holds for match pages. Team
+pages are the exception: they ship
+`{"basicInfo": {venue, venueTown, venueCountry, coach, countryImage},
+"lastPerformance": {form, formEvents, avgGoalsScored, avgGoalsConceded,
+scoredBtsPercent, scoredOverPercent}}` inside `self.__next_f.push(...)`, with
+its quotes escaped. Unescape `\"`, then brace-match out from the key. It is far
+more stable than the classes wrapped around it.
+
+Identity is **not** in that payload: the name comes from the breadcrumb, the
+full name from the header `<img alt>`, and the logo from that image's `srcset`,
+URL-encoded behind `/_next/image`. Note the first `/proxy/serve/images/team-logo/`
+path in the document is usually a fixture opponent's, not the team's, so read
+the logo off the header element rather than off the document.
+
+### The form tooltips do not follow their own links' side order
+
+`"1:1 (Jequie - Barcelona) 22.02.2026"` links to
+`/football/h2h/barcelona-fc-WGt8En5I/jequie-ARKkmIRH/`: the team is first in the
+URL and second in the text. Positional mapping silently yields the opponent's
+name. Identify the team by eliminating the opponent's slug instead.
+
+### Geography decides which fields exist
+
+`venue`, `venueTown` and `venueCountry` are simply absent for smaller teams, and
+the country flag is not a usable fallback: it is an ISO code for one team
+(`br.svg`) and an internal numeric id for another (`198.svg`). Fixture rows
+follow the IP's selected bookmakers, so the league is often unavailable while
+the form block still renders fine.
+
+### Detection signal
+
+A team record with a plausible name and every other field null means the payload
+was missing, which is a bad id, not a parsing break.
 
 ---
 

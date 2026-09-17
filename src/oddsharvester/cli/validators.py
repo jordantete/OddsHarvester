@@ -248,3 +248,39 @@ def validate_base_url(ctx, param, value):
         )
 
     return normalized
+
+
+# Every team id OddsPortal serves is an 8-character token; anything else is a typo.
+_TEAM_ID_RE = re.compile(r"^[A-Za-z0-9]{8}$")
+_TEAM_URL_RE = re.compile(r"https?://[^/]+/[a-z-]+/team/[^/]+/([A-Za-z0-9]{8})/?$")
+
+
+def _to_team_id(value: str) -> str:
+    """Accept a bare team id or a team page URL, and return the id either way."""
+    if _TEAM_ID_RE.match(value):
+        return value
+
+    match = _TEAM_URL_RE.match(value.strip())
+    if match is None:
+        raise click.BadParameter(f"Not a team id (8 characters) or team page URL: {value}")
+
+    return match.group(1)
+
+
+def validate_teams(ctx, param, value):
+    """Validate team references; each occurrence may itself be a comma-separated list."""
+    if not value:
+        return None
+
+    return list(dict.fromkeys(_to_team_id(item) for chunk in value for item in chunk)) or None
+
+
+def validate_teams_file(ctx, param, value):
+    """Read team references from a file (one id or URL per line, blank lines ignored)."""
+    if value is None:
+        return None
+
+    with open(value, encoding="utf-8") as file:
+        entries = [line.strip() for line in file if line.strip()]
+
+    return list(dict.fromkeys(_to_team_id(entry) for entry in entries)) or None

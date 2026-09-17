@@ -1,0 +1,42 @@
+[
+    {
+        "team_id": "lId4TMwf",
+        "name": "Liverpool",
+        "full_name": "Liverpool Football Club",
+        "list_name": "Liverpool",
+        "sport": "football",
+        "country": "England",
+        "town": "Liverpool",
+        "venue": "Anfield",
+        "coach": "Iraola Andoni",
+        "tournament": "Premier League",
+        "logo_url": "https://www.oddsportal.com/proxy/serve/images/team-logo/Men/K00665Rc-KCp4zq5F.png",
+        "form": "W,D,W,W,D,D",
+        "over_2_5_pct": 67.0,
+        "btts_pct": 67.0,
+        "avg_goals_scored": 1.8,
+        "avg_goals_conceded": 1.0,
+        "team_url": "https://www.oddsportal.com/football/team/liverpool/lId4TMwf/",
+        "scraped_at": "2026-09-17T09:46:01.745149+00:00"
+    },
+    {
+        "team_id": "WGt8En5I",
+        "name": "Barcelona FC",
+        "full_name": "Barcelona de Ilheus",
+        "list_name": "Barcelona",
+        "sport": "football",
+        "country": null,
+        "town": null,
+        "venue": null,
+        "coach": "Paulo Sales",
+        "tournament": null,
+        "logo_url": "https://www.oddsportal.com/proxy/serve/images/team-logo/Men/W0eABFPt-f5FmjcSH.png",
+        "form": "D,D,L,L,D,L",
+        "over_2_5_pct": 33.0,
+        "btts_pct": 67.0,
+        "avg_goals_scored": 0.7,
+        "avg_goals_conceded": 2.5,
+        "team_url": "https://www.oddsportal.com/football/team/barcelona-fc/WGt8En5I/",
+        "scraped_at": "2026-09-17T09:46:12.097845+00:00"
+    }
+]

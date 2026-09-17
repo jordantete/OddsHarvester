@@ -53,6 +53,7 @@ oddsharvester community -s football --headless
 | **Historic**     | Scrape historical odds  | Retrieve past odds and match results for any season                        |
 | **Live**         | Snapshot in-play odds   | One-shot capture of matches in play, with live score, period and scrape timestamp |
 | **Community**    | Scrape community data   | Top predictions, tipster profiles (stats + picks), and per-match community votes |
+| **Team**         | Scrape team metadata    | Identity, venue, coach and recent form for a team id, with the name used in match lists |
 | **Multi-market** | Advanced parsing        | Structured data: dates, teams, scores, venues, and per-bookmaker odds      |
 | **Blocked odds** | Detect pulled markets   | Flags which outcomes a bookmaker has stopped offering (struck-through odds) |
 | **Storage**      | Flexible output         | JSON, CSV (local), or direct upload to AWS S3                              |
@@ -227,6 +228,34 @@ handicap, betting_type_id, scope_id, total_votes, outcome_counts}`, most-voted f
 per-outcome ids, so only per-market volume, the count distribution, and the single aggregate
 pick are recoverable. `--user` captures the first rendered predictions batch (no deep
 pagination) and does not emit per-prediction win/loss (use the monthly stats table).
+
+### `oddsharvester team`
+
+Scrape team metadata from OddsPortal team pages: identity, venue, coach and recent form. One record per team.
+
+```bash
+# By team id, as it appears in an OddsPortal URL
+oddsharvester team --team lId4TMwf --headless
+
+# Several teams at once, by id or by pasted team page URL, into a spreadsheet
+oddsharvester team --team lId4TMwf,WGt8En5I --headless -f csv -o teams.csv
+
+# From a file holding one id or URL per line
+oddsharvester team --teams-file my_teams.txt --headless -o teams.json
+```
+
+Each record carries `team_id`, `name`, `full_name`, `list_name`, `sport`, `country`, `town`,
+`venue`, `coach`, `tournament`, `logo_url`, the Last 6 Games block (`form`, `over_2_5_pct`,
+`btts_pct`, `avg_goals_scored`, `avg_goals_conceded`), the canonical `team_url` and `scraped_at`.
+
+`list_name` is the short name OddsPortal prints in match lists, which is the one to join on: a
+team can appear as "Barcelona FC" on its own page and "Barcelona" in a fixture list. It is read
+from the recent-form block, so it survives a page that shows no odds rows at all.
+
+**Limitations:** `country`, `town` and `venue` are simply absent for smaller teams, and
+`tournament` only appears on fixture rows, which your IP's selected bookmakers may leave empty.
+A wrong team id is reported as a failure rather than written as a blank record: the page it
+returns builds its heading from the URL and otherwise looks valid.
 
 ### CLI Options Reference
 
@@ -466,6 +495,7 @@ All CLI options can be set via environment variables — useful for Docker or CI
 | `OH_FILE_PATH`     | `--output`        | Output file path             |
 | `OH_APPEND`        | `--append`        | Append to the output file instead of overwriting |
 | `OH_LINKS_ONLY`    | `--links-only`    | Collect match links only, without scraping odds |
+| `OH_TEAMS`         | `--team`          | Teams to scrape, as ids or team page URLs |
 | `OH_LOCAL_KICKOFF` | `--local-kickoff` | Add venue-local kickoff time to each record |
 | `OH_STREAM_NDJSON` | `--stream-ndjson` | Emit each match as an NDJSON line on stdout while scraping |
 | `OH_HEADLESS`      | `--headless`      | Run in headless mode         |

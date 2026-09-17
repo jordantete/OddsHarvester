@@ -6,6 +6,9 @@ captured live on 2026-09-02 and keep the fixtures in one place; see
 `docs/agentic-gotchas.md` §20.
 """
 
+import json
+from urllib.parse import quote
+
 
 def page(body: str) -> str:
     """Wrap markup in the nested <main> the SPA renders its content in."""
@@ -252,3 +255,103 @@ def profile_page(
 def statistics_row(month: str, cells: list[str]) -> str:
     """One month of the profile statistics table."""
     return "<tr>" + "".join(f"<td>{c}</td>" for c in [month, *cells]) + "</tr>"
+
+
+def form_event(text: str, url: str) -> dict:
+    """One entry of the Last 6 Games block: its tooltip text and the match it links to."""
+    return {"text": text, "url": url}
+
+
+def team_page(
+    name: str = "Liverpool",
+    full_name: str = "Liverpool Football Club",
+    logo_src: str = "/proxy/serve/images/team-logo/Men/K00665Rc-KCp4zq5F.png?260917091420",
+    basic_info: dict | None = None,
+    last_performance: dict | None = None,
+    with_payload: bool = True,
+    sport_href: str = "/football/",
+    leagues: tuple[tuple[str, str], ...] = (),
+) -> str:
+    """A team page: breadcrumb, header logo and the flight-data payload the parser reads.
+
+    A page built with ``with_payload=False`` is what a wrong team id returns: the
+    breadcrumb and heading are still built from the URL slug, so it looks valid.
+    """
+    # The nav menus end on a link-less item too, just like the breadcrumb does.
+    nav = '<ul><li><a href="/football/">Football</a></li><li><span>More</span></li></ul>'
+    crumb = (
+        '<ul class="hidden items-center min-md:flex">'
+        f'<li class="flex items-center"><a class="text-orange-deep" href="{sport_href}">Football</a>'
+        '<span class="mx-2 text-xs">&gt;</span></li>'
+        f'<li class="flex items-center"><span class="text-[0.70rem] capitalize">{name}</span></li></ul>'
+    )
+    # The header logo only ever appears URL-encoded inside a Next image srcset.
+    srcset = f"/_next/image?url={quote(logo_src, safe='')}&amp;w=48&amp;q=75 1x"
+    header = (
+        f'<div class="my-3 flex flex-col gap-2"><div class="flex items-center gap-2">'
+        f'<div class="flex-center h-[47px] w-[47px]">'
+        f'<img alt="{full_name}" loading="lazy" width="47" height="44" srcset="{srcset}"/>'
+        f'</div><h1 class="title w-full">{name} Betting Odds, Results &amp; Fixtures</h1></div></div>'
+    )
+    script = ""
+    if with_payload:
+        payload = json.dumps(
+            {
+                # Fixture rows carry their own teams' logos, ahead of the header's.
+                "opponentLogo": "/proxy/serve/images/team-logo/Men/0n1ffK6k-vcNAdtF9.png?260917091420",
+                "alt": full_name,
+                "data": {
+                    "basicInfo": basic_info if basic_info is not None else _LIVERPOOL_BASIC_INFO,
+                    "lastPerformance": (
+                        last_performance if last_performance is not None else _LIVERPOOL_LAST_PERFORMANCE
+                    ),
+                    "matchFacts": [],
+                },
+            }
+        )
+        # The flight data ships inside a JS string literal, so its quotes arrive escaped.
+        script = f'<script>self.__next_f.push([1,"9a:{payload.replace(chr(34), chr(92) + chr(34))}"])</script>'
+    rows = "".join(
+        f'<div class="flex min-w-0 gap-1 text-xs"><a class="flex min-w-0 items-center" href="{href}">'
+        f'<p class="font-primary min-w-0 truncate">{label}</p></a></div>'
+        for href, label in leagues
+    )
+    # The footer repeats the breadcrumb's list-item shape with unrelated text.
+    footer = "<ul><li><span>label</span></li></ul>"
+    return page(f"{nav}{crumb}{header}{rows}{script}{footer}")
+
+
+_LIVERPOOL_BASIC_INFO = {
+    "countryImage": "https://cci2.oddsportal.com/country-flags/198.svg",
+    "venueCountry": "England",
+    "venueTown": "Liverpool",
+    "venue": "Anfield",
+    "coach": "Iraola Andoni",
+}
+
+_LIVERPOOL_LAST_PERFORMANCE = {
+    "form": ["W", "D", "W", "W", "D", "D"],
+    "formEvents": [
+        form_event(
+            "3:1 (Liverpool - Tottenham) 15.09.2026",
+            "https://www.oddsportal.com/football/h2h/liverpool-lId4TMwf/tottenham-UDg08Ohm/#0vdKBukB/",
+        ),
+        form_event(
+            "0:0 (Burnley - Liverpool) 08.09.2026",
+            "https://www.oddsportal.com/football/h2h/burnley-Ea2Ehy1c/liverpool-lId4TMwf/#Ln4JsV3x/",
+        ),
+        # The URL leads with the page's own team while the tooltip has it away:
+        # the two orders disagree, as they do on the live pages.
+        form_event(
+            "1:2 (Everton - Liverpool) 01.09.2026",
+            "https://www.oddsportal.com/football/h2h/liverpool-lId4TMwf/everton-Oc9WrCqL/#Rt7KpQ2m/",
+        ),
+    ],
+    "avgGoalsScored": "1.8",
+    "avgGoalsConceded": "1.0",
+    "metric": "goals",
+    "scoredBtsPercent": "67%",
+    "scoredOverPercent": "33%",
+    "shutoutGamesPercent": "",
+    "_meta": {"overThreshold": 2.5},
+}
