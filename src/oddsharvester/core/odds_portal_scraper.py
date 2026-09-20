@@ -11,7 +11,7 @@ from oddsharvester.core.base_scraper import BaseScraper
 from oddsharvester.core.browser.pagination import WalkVerdict
 from oddsharvester.core.exceptions import PageNotFoundError
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
-from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult, ScrapeStats
+from oddsharvester.core.scrape_result import ScrapeResult
 from oddsharvester.core.url_builder import URLBuilder, normalize_inplay_match_url, rebase_url
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import (
@@ -133,7 +133,7 @@ class OddsPortalScraper(BaseScraper):
 
         if links_only:
             self.logger.info(f"Links-only mode: returning {len(link_result.links)} match links without odds.")
-            return self._links_only_result(
+            return ScrapeResult.from_links(
                 rows=[{"match_link": link} for link in link_result.links],
                 context={"sport": sport, "league": league, "season": season},
                 failed_page_urls=[
@@ -161,14 +161,9 @@ class OddsPortalScraper(BaseScraper):
         for row in result.success:
             row["season"] = season
 
-        # A failed listing page loses an entire page of matches that were never
-        # discovered, so it cannot show up as a per-match failure. Surface it here
-        # or the run reports 100% success on an incomplete dataset.
-        if link_result.failed_pages:
-            listing_failures = self._listing_page_failures(base_url, link_result.failed_pages)
-            result.failed.extend(listing_failures)
-            result.stats.failed += len(listing_failures)
-            result.stats.total_urls += len(listing_failures)
+        result.add_listing_failures(
+            [f"{base_url}{OddsPortalSelectors.page_fragment(p)}" for p in link_result.failed_pages]
+        )
 
         return result
 
@@ -253,7 +248,7 @@ class OddsPortalScraper(BaseScraper):
 
         if links_only:
             self.logger.info(f"Links-only mode: returning {len(rows)} match links without odds.")
-            return self._links_only_result(
+            return ScrapeResult.from_links(
                 rows=rows,
                 context={"sport": sport, "league": league, "date": date, "season": None},
             )
@@ -339,7 +334,7 @@ class OddsPortalScraper(BaseScraper):
 
         if links_only:
             self.logger.info(f"Links-only mode: returning {len(links)} live match links without odds.")
-            return self._links_only_result(
+            return ScrapeResult.from_links(
                 rows=[{"match_link": link} for link in links],
                 context={"sport": sport, "league": league},
             )
@@ -430,52 +425,6 @@ class OddsPortalScraper(BaseScraper):
     def _effective_page_limit(max_pages: int | None) -> int:
         """Explicit --max-pages overrides the default safety cap."""
         return max_pages if max_pages else MAX_PAGINATION_PAGES
-
-    @staticmethod
-    def _listing_page_failures(base_url: str, failed_pages: list[int]) -> list[FailedUrl]:
-        """Build the failure entries for listing pages that could not be collected."""
-        return [
-            FailedUrl(
-                url=f"{base_url}{OddsPortalSelectors.page_fragment(page)}",
-                error_type=ErrorType.LISTING_PAGE,
-                error_message="Failed to collect links from listing page",
-            )
-            for page in failed_pages
-        ]
-
-    def _links_only_result(
-        self,
-        rows: list[dict],
-        context: dict,
-        failed_page_urls: list[str] | None = None,
-    ) -> ScrapeResult:
-        """Builds a ScrapeResult carrying collected match rows instead of odds data.
-
-        Each row must carry `match_link`. Any other key it holds is appended
-        after the context columns, so the link stays first and per-row extras last.
-        """
-        failed_page_urls = failed_page_urls or []
-        success = [
-            {"match_link": row["match_link"], **context, **{k: v for k, v in row.items() if k != "match_link"}}
-            for row in rows
-        ]
-        failed = [
-            FailedUrl(
-                url=url,
-                error_type=ErrorType.LISTING_PAGE,
-                error_message="Failed to collect links from listing page",
-            )
-            for url in failed_page_urls
-        ]
-        return ScrapeResult(
-            success=success,
-            failed=failed,
-            stats=ScrapeStats(
-                total_urls=len(success) + len(failed),
-                successful=len(success),
-                failed=len(failed),
-            ),
-        )
 
     async def _get_pagination_info(self, page: Page, max_pages: int | None) -> list[int]:
         """

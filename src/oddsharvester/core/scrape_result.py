@@ -51,6 +51,16 @@ class FailedUrl:
         }
 
 
+LISTING_PAGE_ERROR_MESSAGE = "Failed to collect links from listing page"
+
+
+def listing_page_failures(urls: list[str]) -> list[FailedUrl]:
+    """One LISTING_PAGE failure per listing page that could not be collected."""
+    return [
+        FailedUrl(url=url, error_type=ErrorType.LISTING_PAGE, error_message=LISTING_PAGE_ERROR_MESSAGE) for url in urls
+    ]
+
+
 @dataclass
 class PartialResult:
     """Represents a match with partial data (e.g., missing markets)."""
@@ -121,6 +131,40 @@ class ScrapeResult:
             "stats": self.stats.to_dict(),
             "combo_stats": self.combo_stats,
         }
+
+    @classmethod
+    def from_links(
+        cls,
+        rows: list[dict[str, Any]],
+        context: dict[str, Any],
+        failed_page_urls: list[str] | None = None,
+    ) -> "ScrapeResult":
+        """Build a links-only result: collected match rows instead of odds data.
+
+        Each row must carry `match_link`. Any other key it holds is appended
+        after the context columns, so the link stays first and per-row extras last.
+        """
+        success = [
+            {"match_link": row["match_link"], **context, **{k: v for k, v in row.items() if k != "match_link"}}
+            for row in rows
+        ]
+        failed = listing_page_failures(failed_page_urls or [])
+        return cls(
+            success=success,
+            failed=failed,
+            stats=ScrapeStats(total_urls=len(success) + len(failed), successful=len(success), failed=len(failed)),
+        )
+
+    def add_listing_failures(self, failed_page_urls: list[str]) -> None:
+        """Count listing pages that could not be collected.
+
+        Their matches were never discovered, so they cannot show up as per-match
+        failures; without this a run reports 100% success on an incomplete dataset.
+        """
+        failures = listing_page_failures(failed_page_urls)
+        self.failed.extend(failures)
+        self.stats.failed += len(failures)
+        self.stats.total_urls += len(failures)
 
     def merge(self, other: "ScrapeResult") -> "ScrapeResult":
         """

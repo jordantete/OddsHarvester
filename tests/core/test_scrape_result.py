@@ -265,3 +265,43 @@ def test_merge_does_not_propagate_combo_stats():
     )
     target.merge(other)
     assert target.combo_stats == []
+
+
+class TestLinksOnlyResult:
+    def test_from_links_puts_link_first_context_next_and_extras_last(self):
+        result = ScrapeResult.from_links(
+            rows=[{"match_link": "https://x/m1", "kickoff_utc": "2026-09-20 18:00:00 UTC"}],
+            context={"sport": "football", "league": "epl", "date": "20260920", "season": None},
+        )
+
+        assert list(result.success[0].keys()) == ["match_link", "sport", "league", "date", "season", "kickoff_utc"]
+        assert result.success[0]["match_link"] == "https://x/m1"
+        assert result.failed == []
+        assert (result.stats.successful, result.stats.failed, result.stats.total_urls) == (1, 0, 1)
+
+    def test_from_links_counts_failed_listing_pages(self):
+        result = ScrapeResult.from_links(
+            rows=[{"match_link": "https://x/m1"}],
+            context={"sport": "football"},
+            failed_page_urls=["https://x/results/#page/3"],
+        )
+
+        assert [f.url for f in result.failed] == ["https://x/results/#page/3"]
+        assert result.failed[0].error_type is ErrorType.LISTING_PAGE
+        assert (result.stats.successful, result.stats.failed, result.stats.total_urls) == (1, 1, 2)
+
+    def test_add_listing_failures_extends_failed_and_stats(self):
+        result = ScrapeResult(success=[{"home_team": "A"}], stats=ScrapeStats(total_urls=1, successful=1))
+
+        result.add_listing_failures(["https://x/results/#page/2", "https://x/results/#page/3"])
+
+        assert [f.error_type for f in result.failed] == [ErrorType.LISTING_PAGE, ErrorType.LISTING_PAGE]
+        assert (result.stats.failed, result.stats.total_urls) == (2, 3)
+
+    def test_add_listing_failures_with_nothing_is_a_no_op(self):
+        result = ScrapeResult(stats=ScrapeStats(total_urls=1, successful=1))
+
+        result.add_listing_failures([])
+
+        assert result.failed == []
+        assert (result.stats.failed, result.stats.total_urls) == (0, 1)
