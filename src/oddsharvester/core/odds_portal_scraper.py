@@ -41,6 +41,18 @@ class LinkCollectionResult:
         return self.successful_pages + len(self.failed_pages)
 
 
+@dataclass
+class ListingResult:
+    """Match rows collected from a listing, before any odds are scraped."""
+
+    rows: list[dict] = field(default_factory=list)
+    failed_page_urls: list[str] = field(default_factory=list)
+
+    @property
+    def links(self) -> list[str]:
+        return [row["match_link"] for row in self.rows]
+
+
 class OddsPortalScraper(BaseScraper):
     """
     Main class that manages the scraping workflow from OddsPortal.
@@ -167,6 +179,78 @@ class OddsPortalScraper(BaseScraper):
 
         return result
 
+    async def collect_upcoming_links(
+        self,
+        sport: str,
+        date: str,
+        league: str | None = None,
+        include_started: bool = False,
+        kickoff_within_hours: float | None = None,
+        collect_kickoff: bool = False,
+    ) -> ListingResult:
+        """
+        Collects upcoming match rows from one listing page, on a tab of its own.
+
+        Opening and closing a dedicated tab is what lets several listings run at once.
+
+        Args:
+            sport (str): The sport to scrape.
+            date (str): The date to scrape.
+            league (Optional[str]): The league to scrape; None for the all-leagues page of the date.
+            include_started (bool): If True, keep matches that have already started or finished.
+            kickoff_within_hours (Optional[float]): If set, keep only matches kicking off within this many hours.
+            collect_kickoff (bool): If True, emit `kickoff_utc` on each row.
+
+        Returns:
+            ListingResult: The collected rows, each carrying `match_link`.
+        """
+        context = self.playwright_manager.context
+        if not context:
+            raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
+
+        url = URLBuilder.get_upcoming_matches_url(sport=sport, date=date, league=league, base_url=self.base_url)
+        self.logger.info(f"Fetching upcoming odds from {url}")
+
+        # League page shows all upcoming dates; when a specific date is requested,
+        # post-filter links by the date-header rendered above each row group.
+        date_filter = None
+        if league and date:
+            try:
+                date_filter = datetime.strptime(date, "%Y%m%d").date()
+                self.logger.info(f"Applying date filter for league page: {date_filter.isoformat()}")
+            except ValueError:
+                self.logger.warning(f"Could not parse date '{date}' for filtering; returning all league matches.")
+
+        tab = await context.new_page()
+        try:
+            await tab.goto(url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
+            await self._prepare_page_for_scraping(page=tab)
+
+            # Scroll to load all matches due to lazy loading
+            self.logger.info("Scrolling page to load all upcoming matches...")
+            await self.scroller.scroll_until_loaded(
+                page=tab,
+                timeout=30,
+                scroll_pause_time=2,
+                max_scroll_attempts=3,
+                content_check_selector=OddsPortalSelectors.LISTING_ROW_SELECTOR,
+            )
+
+            rows = await self.extract_match_rows(
+                page=tab,
+                date_filter=date_filter,
+                skip_started=not include_started,
+                kickoff_within_hours=kickoff_within_hours,
+                collect_kickoff=collect_kickoff,
+            )
+        finally:
+            await tab.close()
+
+        if not rows:
+            self.logger.warning("No match links found for upcoming matches.")
+
+        return ListingResult(rows=rows)
+
     async def scrape_upcoming(
         self,
         sport: str,
@@ -204,60 +288,28 @@ class OddsPortalScraper(BaseScraper):
         Returns:
             ScrapeResult: Contains successful results, failed URLs, and statistics.
         """
-        current_page = self.playwright_manager.page
-        if not current_page:
-            raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
-
-        url = URLBuilder.get_upcoming_matches_url(sport=sport, date=date, league=league, base_url=self.base_url)
-        self.logger.info(f"Fetching upcoming odds from {url}")
-
-        await current_page.goto(url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
-        await self._prepare_page_for_scraping(page=current_page)
-
-        # Scroll to load all matches due to lazy loading
-        self.logger.info("Scrolling page to load all upcoming matches...")
-        await self.scroller.scroll_until_loaded(
-            page=current_page,
-            timeout=30,
-            scroll_pause_time=2,
-            max_scroll_attempts=3,
-            content_check_selector=OddsPortalSelectors.LISTING_ROW_SELECTOR,
-        )
-
-        # League page shows all upcoming dates; when a specific date is requested,
-        # post-filter links by the date-header rendered above each row group.
-        date_filter = None
-        if league and date:
-            try:
-                date_filter = datetime.strptime(date, "%Y%m%d").date()
-                self.logger.info(f"Applying date filter for league page: {date_filter.isoformat()}")
-            except ValueError:
-                self.logger.warning(f"Could not parse date '{date}' for filtering; returning all league matches.")
-
-        rows = await self.extract_match_rows(
-            page=current_page,
-            date_filter=date_filter,
-            skip_started=not include_started,
+        listing = await self.collect_upcoming_links(
+            sport=sport,
+            date=date,
+            league=league,
+            include_started=include_started,
             kickoff_within_hours=kickoff_within_hours,
             collect_kickoff=links_only,
         )
 
-        if not rows:
-            self.logger.warning("No match links found for upcoming matches.")
+        if not listing.rows:
             return ScrapeResult()
 
         if links_only:
-            self.logger.info(f"Links-only mode: returning {len(rows)} match links without odds.")
+            self.logger.info(f"Links-only mode: returning {len(listing.rows)} match links without odds.")
             return ScrapeResult.from_links(
-                rows=rows,
+                rows=listing.rows,
                 context={"sport": sport, "league": league, "date": date, "season": None},
             )
 
-        match_links = [row["match_link"] for row in rows]
-
         return await self.extract_match_odds(
             sport=sport,
-            match_links=match_links,
+            match_links=listing.links,
             markets=markets,
             scrape_odds_history=scrape_odds_history,
             target_bookmaker=target_bookmaker,

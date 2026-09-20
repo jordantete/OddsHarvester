@@ -7,7 +7,7 @@ import pytest
 
 from oddsharvester.core.exceptions import PageNotFoundError
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
-from oddsharvester.core.odds_portal_scraper import LinkCollectionResult, OddsPortalScraper
+from oddsharvester.core.odds_portal_scraper import LinkCollectionResult, ListingResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.scrape_result import ErrorType, ScrapeResult, ScrapeStats
 from oddsharvester.utils.constants import GOTO_TIMEOUT_LONG_MS, MAX_PAGINATION_PAGES, RESULTS_PAGE_SIZE
@@ -26,6 +26,9 @@ def setup_scraper_mocks():
     # goto lands on the requested URL: the no-redirect case the season guard expects.
     page_mock.goto.side_effect = lambda url, **kwargs: setattr(page_mock, "url", url)
     context_mock = AsyncMock(spec=BrowserContext)
+    # Listings now open their own tab; hand them the same page mock so the
+    # existing goto/prepare/extract assertions keep pointing at one object.
+    context_mock.new_page = AsyncMock(return_value=page_mock)
     browser_mock = AsyncMock(spec=Browser)
 
     # Configure playwright manager mock
@@ -514,6 +517,71 @@ async def test_scrape_upcoming_forwards_kickoff_within_hours(url_builder_mock, s
     await scraper.scrape_upcoming(sport="football", date="20260601", kickoff_within_hours=6)
 
     assert scraper.extract_match_rows.call_args.kwargs.get("kickoff_within_hours") == 6
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_collect_upcoming_links_runs_on_its_own_tab(url_builder_mock, setup_scraper_mocks):
+    """Each listing opens and closes its own tab, so several can run at once (issue #87)."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock(spec=Page)
+    mocks["context_mock"].new_page = AsyncMock(return_value=tab)
+    url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/football/england/premier-league/"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.extract_match_rows = AsyncMock(
+        return_value=[{"match_link": "https://oddsportal.com/m1", "kickoff_utc": None}]
+    )
+
+    listing = await scraper.collect_upcoming_links(sport="football", date="20260601", league="premier-league")
+
+    tab.goto.assert_awaited_once()
+    scraper._prepare_page_for_scraping.assert_awaited_once_with(page=tab)
+    scraper.scroller.scroll_until_loaded.assert_awaited_once()
+    assert scraper.scroller.scroll_until_loaded.await_args.kwargs["page"] is tab
+    assert scraper.extract_match_rows.await_args.kwargs["page"] is tab
+    assert scraper.extract_match_rows.await_args.kwargs["date_filter"] == date(2026, 6, 1)
+    tab.close.assert_awaited_once()
+    mocks["page_mock"].goto.assert_not_called()
+    assert isinstance(listing, ListingResult)
+    assert listing.links == ["https://oddsportal.com/m1"]
+    assert listing.failed_page_urls == []
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_collect_upcoming_links_closes_the_tab_when_the_listing_raises(url_builder_mock, setup_scraper_mocks):
+    """A listing that fails must not leave its tab open for the rest of the run."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock(spec=Page)
+    tab.goto.side_effect = RuntimeError("boom")
+    mocks["context_mock"].new_page = AsyncMock(return_value=tab)
+    url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/football/england/premier-league/"
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await scraper.collect_upcoming_links(sport="football", date="20260601", league="premier-league")
+
+    tab.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_upcoming_closes_its_listing_tab(url_builder_mock, setup_scraper_mocks):
+    """The composed method still runs the listing on its own tab and releases it."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/matches/football/20260720/"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.extract_match_rows = AsyncMock(
+        return_value=[{"match_link": "https://oddsportal.com/m1", "kickoff_utc": None}]
+    )
+    scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
+
+    await scraper.scrape_upcoming(sport="football", date="20260720", league=None)
+
+    mocks["context_mock"].new_page.assert_awaited_once()
+    mocks["page_mock"].close.assert_awaited_once()
 
 
 @pytest.mark.asyncio
