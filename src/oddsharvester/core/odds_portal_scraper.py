@@ -110,56 +110,22 @@ class OddsPortalScraper(BaseScraper):
         Returns:
             ScrapeResult: Contains successful results, failed URLs, and statistics.
         """
-        current_page = self.playwright_manager.page
-        if not current_page:
-            raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
-
-        base_url = URLBuilder.get_historic_matches_url(
-            sport=sport, league=league, season=season, base_url=self.base_url
-        )
-        self.logger.info(f"Starting historic scraping for {sport} - {league} - {season}")
-        self.logger.info(f"Base URL: {base_url}")
-        self.logger.info(f"Max pages parameter: {max_pages}")
-
-        # Navigate to the base URL
-        self.logger.info("Navigating to base URL...")
-        await current_page.goto(base_url)
-        self._assert_season_page_reached(requested_url=base_url, landed_url=current_page.url)
-        await self._prepare_page_for_scraping(page=current_page)
-
-        # Analyze pagination and determine pages to scrape
-        self.logger.info("Step 1: Analyzing pagination information...")
-        pages_to_scrape = await self._get_pagination_info(page=current_page, max_pages=max_pages)
-
-        # Collect match links from all pages
-        self.logger.info("Step 2: Collecting match links from all pages...")
-        link_result = await self._collect_match_links(
-            base_url=base_url,
-            pages_to_scrape=pages_to_scrape,
-            page_limit=self._effective_page_limit(max_pages),
-            max_pages=max_pages,
-        )
-
-        if link_result.failed_pages:
-            self.logger.warning(f"Failed to collect links from pages: {link_result.failed_pages}")
+        listing = await self.collect_historic_links(sport=sport, league=league, season=season, max_pages=max_pages)
 
         if links_only:
-            self.logger.info(f"Links-only mode: returning {len(link_result.links)} match links without odds.")
+            self.logger.info(f"Links-only mode: returning {len(listing.rows)} match links without odds.")
             return ScrapeResult.from_links(
-                rows=[{"match_link": link} for link in link_result.links],
+                rows=listing.rows,
                 context={"sport": sport, "league": league, "season": season},
-                failed_page_urls=[
-                    f"{base_url}{OddsPortalSelectors.page_fragment(p)}" for p in link_result.failed_pages
-                ],
+                failed_page_urls=listing.failed_page_urls,
             )
 
-        # Extract odds from all collected links
         self.logger.info("Step 3: Extracting odds from collected match links...")
-        self.logger.info(f"Total unique matches to process: {len(link_result.links)}")
+        self.logger.info(f"Total unique matches to process: {len(listing.rows)}")
 
         result = await self.extract_match_odds(
             sport=sport,
-            match_links=link_result.links,
+            match_links=listing.links,
             markets=markets,
             scrape_odds_history=scrape_odds_history,
             target_bookmaker=target_bookmaker,
@@ -173,11 +139,70 @@ class OddsPortalScraper(BaseScraper):
         for row in result.success:
             row["season"] = season
 
-        result.add_listing_failures(
-            [f"{base_url}{OddsPortalSelectors.page_fragment(p)}" for p in link_result.failed_pages]
-        )
+        result.add_listing_failures(listing.failed_page_urls)
 
         return result
+
+    async def collect_historic_links(
+        self,
+        sport: str,
+        league: str,
+        season: str | None,
+        max_pages: int | None = None,
+    ) -> ListingResult:
+        """
+        Collects match rows from every listing page of a season, on tabs of its own.
+
+        The season page and its pagination widget are read on a dedicated tab; the
+        walk then opens one tab per listing page as before.
+
+        Args:
+            sport (str): The sport to scrape.
+            league (str): The league to scrape.
+            season (Optional[str]): The season to scrape; None for the current one.
+            max_pages (Optional[int]): Maximum number of pages to walk (None for all pages).
+
+        Returns:
+            ListingResult: The collected rows and the URLs of listing pages that failed.
+        """
+        context = self.playwright_manager.context
+        if not context:
+            raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
+
+        base_url = URLBuilder.get_historic_matches_url(
+            sport=sport, league=league, season=season, base_url=self.base_url
+        )
+        self.logger.info(f"Starting historic scraping for {sport} - {league} - {season}")
+        self.logger.info(f"Base URL: {base_url}")
+        self.logger.info(f"Max pages parameter: {max_pages}")
+
+        tab = await context.new_page()
+        try:
+            self.logger.info("Navigating to base URL...")
+            await tab.goto(base_url)
+            self._assert_season_page_reached(requested_url=base_url, landed_url=tab.url)
+            await self._prepare_page_for_scraping(page=tab)
+
+            self.logger.info("Step 1: Analyzing pagination information...")
+            pages_to_scrape = await self._get_pagination_info(page=tab, max_pages=max_pages)
+        finally:
+            await tab.close()
+
+        self.logger.info("Step 2: Collecting match links from all pages...")
+        link_result = await self._collect_match_links(
+            base_url=base_url,
+            pages_to_scrape=pages_to_scrape,
+            page_limit=self._effective_page_limit(max_pages),
+            max_pages=max_pages,
+        )
+
+        if link_result.failed_pages:
+            self.logger.warning(f"Failed to collect links from pages: {link_result.failed_pages}")
+
+        return ListingResult(
+            rows=[{"match_link": link} for link in link_result.links],
+            failed_page_urls=[f"{base_url}{OddsPortalSelectors.page_fragment(p)}" for p in link_result.failed_pages],
+        )
 
     async def collect_upcoming_links(
         self,

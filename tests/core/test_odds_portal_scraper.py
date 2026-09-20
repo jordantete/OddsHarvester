@@ -1342,3 +1342,59 @@ async def test_scrape_live_with_match_links_honors_regional_base_url(setup_scrap
     assert scraper.extract_match_odds.call_args.kwargs["match_links"] == [
         "https://regional.example/football/h2h/a-1/b-2/inplay-odds/#EV123"
     ]
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_collect_historic_links_runs_on_its_own_tab_and_reports_failed_pages(
+    url_builder_mock, setup_scraper_mocks
+):
+    """The season page and pagination read happen on a dedicated tab; lost pages come back as URLs."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock(spec=Page)
+    tab.goto.side_effect = lambda url, **kwargs: setattr(tab, "url", url)
+    mocks["context_mock"].new_page = AsyncMock(return_value=tab)
+    base = "https://oddsportal.com/football/england/premier-league-2022-2023/results/"
+    url_builder_mock.get_historic_matches_url.return_value = base
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._get_pagination_info = AsyncMock(return_value=[1, 2, 3])
+    scraper._collect_match_links = AsyncMock(
+        return_value=LinkCollectionResult(links=["https://oddsportal.com/m1"], successful_pages=2, failed_pages=[3])
+    )
+
+    listing = await scraper.collect_historic_links(
+        sport="football", league="england-premier-league", season="2022-2023", max_pages=None
+    )
+
+    tab.goto.assert_awaited_once_with(base)
+    scraper._prepare_page_for_scraping.assert_awaited_once_with(page=tab)
+    scraper._get_pagination_info.assert_awaited_once_with(page=tab, max_pages=None)
+    tab.close.assert_awaited_once()
+    mocks["page_mock"].goto.assert_not_called()
+    scraper._collect_match_links.assert_awaited_once_with(
+        base_url=base, pages_to_scrape=[1, 2, 3], page_limit=MAX_PAGINATION_PAGES, max_pages=None
+    )
+    assert listing.rows == [{"match_link": "https://oddsportal.com/m1"}]
+    assert listing.failed_page_urls == [f"{base}#page/3"]
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_collect_historic_links_closes_the_tab_when_the_season_redirects(url_builder_mock, setup_scraper_mocks):
+    """A redirected season raises before the walk; the tab must still be released (gotcha 4)."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock(spec=Page)
+    tab.goto.side_effect = lambda url, **kwargs: setattr(
+        tab, "url", "https://oddsportal.com/football/england/premier-league/"
+    )
+    mocks["context_mock"].new_page = AsyncMock(return_value=tab)
+    url_builder_mock.get_historic_matches_url.return_value = (
+        "https://oddsportal.com/football/england/premier-league-1899-1900/results/"
+    )
+
+    with pytest.raises(PageNotFoundError):
+        await scraper.collect_historic_links(sport="football", league="england-premier-league", season="1899-1900")
+
+    tab.close.assert_awaited_once()
