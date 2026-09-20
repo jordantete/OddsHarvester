@@ -1106,7 +1106,7 @@ async def test_scrape_match_data_swallows_post_navigation_error(setup_base_scrap
 
 
 @pytest.mark.asyncio
-@patch("oddsharvester.core.base_scraper.asyncio.sleep", new_callable=AsyncMock)
+@patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
 async def test_extract_match_odds_rate_limiting(mock_sleep, setup_base_scraper_mocks):
     """Test that rate limiting delay is applied between match requests."""
     mocks = setup_base_scraper_mocks
@@ -1137,7 +1137,7 @@ async def test_extract_match_odds_rate_limiting(mock_sleep, setup_base_scraper_m
 
 
 @pytest.mark.asyncio
-@patch("oddsharvester.core.base_scraper.asyncio.sleep", new_callable=AsyncMock)
+@patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
 async def test_extract_match_odds_no_delay_when_zero(mock_sleep, setup_base_scraper_mocks):
     """Test that no delay is applied when request_delay is 0."""
     mocks = setup_base_scraper_mocks

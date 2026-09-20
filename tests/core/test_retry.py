@@ -1,9 +1,12 @@
 """Tests for retry module."""
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 
 from oddsharvester.core.retry import (
     PROXY_ATTRIBUTABLE_ERROR_TYPES,
+    RequestPacer,
     RetryConfig,
     classify_error,
     is_proxy_attributable_error,
@@ -11,6 +14,7 @@ from oddsharvester.core.retry import (
     retry_with_backoff,
 )
 from oddsharvester.core.scrape_result import ErrorType
+from oddsharvester.utils.constants import REQUEST_DELAY_JITTER_FACTOR
 
 
 class TestRetryConfig:
@@ -311,3 +315,34 @@ def test_classify_error_hydration_failure_is_header_not_found():
     error_type = classify_error("match view hydration failed: https://x/h2h/a/b/#id1 never rendered match content")
     assert error_type == ErrorType.HEADER_NOT_FOUND
     assert error_type not in PROXY_ATTRIBUTABLE_ERROR_TYPES
+
+
+class TestRequestPacer:
+    @patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
+    async def test_first_request_is_not_delayed(self, mock_sleep):
+        pacer = RequestPacer(request_delay=2.0)
+
+        await pacer.wait()
+
+        mock_sleep.assert_not_awaited()
+
+    @patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
+    async def test_later_requests_wait_delay_plus_jitter(self, mock_sleep):
+        pacer = RequestPacer(request_delay=2.0)
+
+        await pacer.wait()
+        await pacer.wait()
+        await pacer.wait()
+
+        assert mock_sleep.await_count == 2
+        for call in mock_sleep.await_args_list:
+            assert 2.0 <= call.args[0] <= 2.0 * (1 + REQUEST_DELAY_JITTER_FACTOR)
+
+    @patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
+    async def test_zero_delay_never_sleeps(self, mock_sleep):
+        pacer = RequestPacer(request_delay=0)
+
+        await pacer.wait()
+        await pacer.wait()
+
+        mock_sleep.assert_not_awaited()

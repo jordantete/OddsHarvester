@@ -4,7 +4,6 @@ from datetime import UTC, date, datetime, time, timedelta
 from enum import Enum
 import json
 import logging
-import random
 import re
 from typing import Any, ClassVar
 import unicodedata
@@ -26,6 +25,7 @@ from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtr
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.retry import (
+    RequestPacer,
     RetryConfig,
     classify_error,
     is_proxy_attributable_error,
@@ -48,7 +48,6 @@ from oddsharvester.utils.constants import (
     ODDS_FORMAT_SELECTOR_TIMEOUT_MS,
     ODDS_FORMAT_WAIT_MS,
     ODDSPORTAL_BASE_URL,
-    REQUEST_DELAY_JITTER_FACTOR,
 )
 from oddsharvester.utils.datetime_format import format_utc
 from oddsharvester.utils.local_kickoff import compute_local_kickoff
@@ -767,18 +766,11 @@ class BaseScraper:
                 live_mode=live_mode,
             )
 
-        request_counter = {"count": 0}
+        pacer = RequestPacer(request_delay)
 
         async def scrape_with_semaphore(link: str) -> tuple[str, dict[str, Any] | None, FailedUrl | None]:
             async with semaphore:
-                # Apply rate limiting delay (skip for the first request)
-                current_count = request_counter["count"]
-                request_counter["count"] += 1
-                if current_count > 0 and request_delay > 0:
-                    jitter = request_delay * REQUEST_DELAY_JITTER_FACTOR * random.random()  # noqa: S311
-                    total_delay = request_delay + jitter
-                    self.logger.debug(f"Rate limiting: waiting {total_delay:.2f}s before request")
-                    await asyncio.sleep(total_delay)
+                await pacer.wait()
 
                 tab = None
                 proxy_key = None

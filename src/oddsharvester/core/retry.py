@@ -14,6 +14,7 @@ from typing import Any
 
 from oddsharvester.core.exceptions import ScraperError
 from oddsharvester.core.scrape_result import ErrorType
+from oddsharvester.utils.constants import REQUEST_DELAY_JITTER_FACTOR
 
 logger = logging.getLogger(__name__)
 
@@ -195,3 +196,21 @@ async def retry_with_backoff[T](
         error_type=error_type,
         is_retryable=is_retryable,
     )
+
+
+class RequestPacer:
+    """Space requests by `request_delay` plus jitter, with no wait before the first one."""
+
+    def __init__(self, request_delay: float):
+        self.request_delay = request_delay
+        self._count = 0
+
+    async def wait(self) -> None:
+        is_first = self._count == 0
+        self._count += 1
+        if is_first or self.request_delay <= 0:
+            return
+        jitter = self.request_delay * REQUEST_DELAY_JITTER_FACTOR * random.random()  # noqa: S311
+        total_delay = self.request_delay + jitter
+        logger.debug(f"Rate limiting: waiting {total_delay:.2f}s before request")
+        await asyncio.sleep(total_delay)
