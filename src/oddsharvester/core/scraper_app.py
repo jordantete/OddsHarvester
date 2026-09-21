@@ -176,6 +176,18 @@ async def run_scraper(
                 concurrent_scraping_task=concurrency_tasks,
             )
 
+        odds_kwargs = {
+            "sport": sport,
+            "markets": markets,
+            "scrape_odds_history": scrape_odds_history,
+            "target_bookmaker": target_bookmaker,
+            "concurrent_scraping_task": concurrency_tasks,
+            "preview_submarkets_only": preview_submarkets_only,
+            "bookies_filter": bookies_filter_enum,
+            "period": period_enum,
+            "request_delay": request_delay,
+        }
+
         if command == CommandEnum.HISTORIC:
             if not sport or not leagues:
                 raise ValueError("Both 'sport' and 'leagues' must be provided for historic scraping.")
@@ -187,113 +199,58 @@ async def run_scraper(
                 f"markets={markets}, scrape_odds_history={scrape_odds_history}, "
                 f"target_bookmaker={target_bookmaker}, max_pages={max_pages}\n            "
             )
+            combos = [(league, season) for league in leagues for season in (seasons or [None])]
 
-            if len(leagues) == 1 and len(seasons or [None]) == 1:
-                return await retry_scrape(
-                    scraper.scrape_historic,
-                    sport=sport,
-                    league=leagues[0],
-                    season=seasons[0] if seasons else None,
-                    markets=markets,
-                    scrape_odds_history=scrape_odds_history,
-                    target_bookmaker=target_bookmaker,
-                    max_pages=max_pages,
-                    bookies_filter=bookies_filter_enum,
-                    period=period_enum,
-                    request_delay=request_delay,
-                    concurrent_scraping_task=concurrency_tasks,
-                    links_only=links_only,
+            async def collect_historic(league: str | None, season: str | None) -> ListingResult:
+                return await scraper.collect_historic_links(
+                    sport=sport, league=league, season=season, max_pages=max_pages
                 )
-            else:
-                return await _scrape_league_season_combos(
-                    scraper=scraper,
-                    scrape_func=scraper.scrape_historic,
-                    leagues=leagues,
-                    seasons=seasons or [None],
-                    sport=sport,
-                    markets=markets,
-                    scrape_odds_history=scrape_odds_history,
-                    target_bookmaker=target_bookmaker,
-                    max_pages=max_pages,
-                    bookies_filter=bookies_filter_enum,
-                    period=period_enum,
-                    request_delay=request_delay,
-                    concurrent_scraping_task=concurrency_tasks,
-                    links_only=links_only,
-                )
+
+            def historic_context(league: str | None, season: str | None) -> dict[str, Any]:
+                return {"sport": sport, "league": league, "season": season}
+
+            collect, links_only_context = collect_historic, historic_context
 
         elif command == CommandEnum.UPCOMING_MATCHES:
             if not date and not leagues:
                 raise ValueError("Either 'date' or 'leagues' must be provided for upcoming matches scraping.")
 
-            if leagues:
-                logger.info(f"""
-                    Scraping upcoming matches for sport={sport}, date={date}, leagues={leagues}, markets={markets},
-                    scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}
-                """)
+            logger.info(f"""
+                Scraping upcoming matches for sport={sport}, date={date}, leagues={leagues}, markets={markets},
+                scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}
+            """)
+            combos = [(league, None) for league in (leagues or [None])]
 
-                if len(leagues) == 1:
-                    return await retry_scrape(
-                        scraper.scrape_upcoming,
-                        sport=sport,
-                        date=date,
-                        league=leagues[0],
-                        markets=markets,
-                        scrape_odds_history=scrape_odds_history,
-                        target_bookmaker=target_bookmaker,
-                        bookies_filter=bookies_filter_enum,
-                        period=period_enum,
-                        request_delay=request_delay,
-                        concurrent_scraping_task=concurrency_tasks,
-                        include_started=include_started,
-                        kickoff_within_hours=kickoff_within_hours,
-                        links_only=links_only,
-                    )
-                else:
-                    return await _scrape_league_season_combos(
-                        scraper=scraper,
-                        scrape_func=scraper.scrape_upcoming,
-                        leagues=leagues,
-                        sport=sport,
-                        date=date,
-                        markets=markets,
-                        scrape_odds_history=scrape_odds_history,
-                        target_bookmaker=target_bookmaker,
-                        bookies_filter=bookies_filter_enum,
-                        period=period_enum,
-                        request_delay=request_delay,
-                        concurrent_scraping_task=concurrency_tasks,
-                        include_started=include_started,
-                        kickoff_within_hours=kickoff_within_hours,
-                        links_only=links_only,
-                    )
-            else:
-                logger.info(f"""
-                    Scraping upcoming matches for sport={sport}, date={date}, markets={markets},
-                    scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker},
-                    bookies_filter={bookies_filter}, period={period}
-                """)
-                return await retry_scrape(
-                    scraper.scrape_upcoming,
+            async def collect_upcoming(league: str | None, season: str | None) -> ListingResult:
+                return await scraper.collect_upcoming_links(
                     sport=sport,
                     date=date,
-                    league=None,
-                    markets=markets,
-                    scrape_odds_history=scrape_odds_history,
-                    target_bookmaker=target_bookmaker,
-                    bookies_filter=bookies_filter_enum,
-                    period=period_enum,
-                    request_delay=request_delay,
-                    concurrent_scraping_task=concurrency_tasks,
+                    league=league,
                     include_started=include_started,
                     kickoff_within_hours=kickoff_within_hours,
-                    links_only=links_only,
+                    collect_kickoff=links_only,
                 )
+
+            def upcoming_context(league: str | None, season: str | None) -> dict[str, Any]:
+                return {"sport": sport, "league": league, "date": date, "season": None}
+
+            collect, links_only_context = collect_upcoming, upcoming_context
 
         else:
             raise ValueError(
                 f"Unknown command: {command}. Supported commands are 'upcoming-matches', 'historic' and 'live'."
             )
+
+        return await _scrape_combos(
+            scraper=scraper,
+            combos=combos,
+            collect=collect,
+            links_only_context=links_only_context,
+            concurrency=concurrency_tasks,
+            request_delay=request_delay,
+            links_only=links_only,
+            odds_kwargs=odds_kwargs,
+        )
 
     except Exception as e:
         logger.error(f"An error occured: {e}")
@@ -433,92 +390,6 @@ def _log_completion(result: ScrapeResult, combos: list[Combo]) -> None:
         f"{result.stats.successful} total matches scraped, "
         f"{result.stats.failed} failed ({result.stats.success_rate:.1f}% success rate)"
     )
-
-
-async def _scrape_league_season_combos(
-    scraper,
-    scrape_func,
-    leagues: list[str],
-    sport: str,
-    seasons: list[str] | None = None,
-    **kwargs,
-) -> ScrapeResult:
-    """
-    Scrape every (league, season) combination sequentially, league outer.
-
-    `seasons=None` degenerates to one pass per league with no `season` kwarg,
-    which is the upcoming-matches behaviour (`scrape_upcoming` has no such parameter).
-
-    Args:
-        scraper: The scraper instance
-        scrape_func: scrape_historic or scrape_upcoming
-        leagues: Leagues to scrape
-        sport: The sport being scraped
-        seasons: Seasons to scrape per league, or None for a seasonless run
-        **kwargs: Additional arguments forwarded to the scrape function
-
-    Returns:
-        ScrapeResult: Merged results, with a per-combo breakdown in `combo_stats`.
-    """
-    combined_result = ScrapeResult()
-    pass_season = seasons is not None
-    combos = [(league, season) for league in leagues for season in (seasons or [None])]
-
-    logger.info(f"Starting scraping for {len(combos)} league/season combo(s)")
-
-    for i, (league, season) in enumerate(combos, 1):
-        label = f"{league} {season}" if season is not None else league
-        combo_kwargs = {**kwargs, "season": season} if pass_season else kwargs
-
-        try:
-            logger.info(f"[{i}/{len(combos)}] Processing: {label}")
-
-            combo_result = await retry_scrape(scrape_func, sport=sport, league=league, **combo_kwargs)
-
-            if combo_result is None:
-                logger.warning(f"No data returned for {label}")
-                combined_result.combo_stats.append(
-                    {"league": league, "season": season, "successful": 0, "failed": 0, "errored": True}
-                )
-                continue
-
-            combined_result.merge(combo_result)
-            combined_result.combo_stats.append(
-                {
-                    "league": league,
-                    "season": season,
-                    "successful": combo_result.stats.successful,
-                    "failed": combo_result.stats.failed,
-                    "errored": False,
-                }
-            )
-
-            if combo_result.success:
-                logger.info(
-                    f"Successfully scraped {combo_result.stats.successful} matches from {label} "
-                    f"({combo_result.stats.failed} failed)"
-                )
-            else:
-                logger.warning(f"No successful matches for {label} ({combo_result.stats.failed} failed)")
-
-        except Exception as e:
-            logger.error(f"Failed to scrape {label}: {e}")
-            combined_result.combo_stats.append(
-                {"league": league, "season": season, "successful": 0, "failed": 0, "errored": True}
-            )
-            continue
-
-    errored = [c for c in combined_result.combo_stats if c["errored"]]
-    if errored:
-        logger.warning(f"Failed to scrape {len(errored)} combo(s)")
-
-    logger.info(
-        f"Scraping completed: {len(combos) - len(errored)}/{len(combos)} combos successful, "
-        f"{combined_result.stats.successful} total matches scraped, "
-        f"{combined_result.stats.failed} failed ({combined_result.stats.success_rate:.1f}% success rate)"
-    )
-
-    return combined_result
 
 
 async def retry_scrape(scrape_func, *args, **kwargs) -> ScrapeResult | None:
