@@ -11,7 +11,7 @@ from oddsharvester.core.retry import TRANSIENT_ERROR_KEYWORDS
 from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult, ScrapeStats
 from oddsharvester.core.scraper_app import _scrape_combos, retry_scrape, run_scraper
 from oddsharvester.utils.command_enum import CommandEnum
-from oddsharvester.utils.constants import OPERATION_RETRY_MAX_ATTEMPTS
+from oddsharvester.utils.constants import OPERATION_RETRY_MAX_ATTEMPTS, REQUEST_DELAY_JITTER_FACTOR
 
 
 @pytest.fixture
@@ -1054,3 +1054,50 @@ async def test_run_scraper_single_league_goes_through_the_same_path():
     combos_mock.assert_awaited_once()
     assert combos_mock.await_args.kwargs["combos"] == [(None, None)]
     assert combos_mock.await_args.kwargs["concurrency"] == 4
+
+
+@patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
+async def test_scrape_combos_paces_every_listing_after_the_first_under_concurrency(mock_sleep):
+    """At concurrency 2 the shape is unchanged: one listing starts at once, each later one waits once.
+
+    The wait is delay plus jitter, bounded by REQUEST_DELAY_JITTER_FACTOR; with the default
+    -c 3 and --request-delay 1.0 that is one request at t=0 and the next two about a second later.
+    """
+    collect = AsyncMock(side_effect=lambda league, season: _listing(f"https://x/{league}/m1"))
+
+    result = await _run_combos(
+        collect,
+        [("a", None), ("b", None), ("c", None), ("d", None)],
+        concurrency=2,
+        request_delay=1.0,
+        links_only=True,
+    )
+
+    assert mock_sleep.await_count == 3
+    assert all(1.0 <= call.args[0] <= 1.0 * (1 + REQUEST_DELAY_JITTER_FACTOR) for call in mock_sleep.await_args_list)
+    assert result.stats.successful == 4
+
+
+@patch("oddsharvester.core.scraper_app.OddsPortalScraper")
+@patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
+@patch("oddsharvester.core.scraper_app.PlaywrightManager")
+@patch("oddsharvester.core.scraper_app.ProxyManager")
+@patch("oddsharvester.core.scraper_app.SportMarketRegistrar")
+async def test_run_scraper_single_league_listing_failure_returns_an_errored_result(
+    registrar_mock, proxy_mock, playwright_mock, extractor_mock, scraper_cls_mock
+):
+    """A failing single-league run returns an empty result flagged errored, not None; both CLIs exit 1 on it."""
+    scraper_mock = scraper_cls_mock.return_value
+    scraper_mock.start_playwright = AsyncMock()
+    scraper_mock.stop_playwright = AsyncMock()
+    scraper_mock.collect_upcoming_links = AsyncMock(side_effect=ValueError("Season page redirected"))
+    scraper_mock.extract_match_odds = AsyncMock()
+
+    result = await run_scraper(command="scrape_upcoming", sport="football", leagues=["england-premier-league"])
+
+    assert isinstance(result, ScrapeResult)
+    assert result.success == []
+    assert result.combo_stats == [
+        {"league": "england-premier-league", "season": None, "successful": 0, "failed": 0, "errored": True}
+    ]
+    scraper_mock.extract_match_odds.assert_not_awaited()
