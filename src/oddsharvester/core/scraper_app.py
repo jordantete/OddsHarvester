@@ -1,4 +1,5 @@
-from collections.abc import Callable
+import asyncio
+from collections.abc import Awaitable, Callable
 import logging
 from typing import Any
 from urllib.parse import urlsplit
@@ -8,9 +9,9 @@ from oddsharvester.core.browser.market_navigation import MarketTabNavigator
 from oddsharvester.core.browser.scrolling import PageScroller
 from oddsharvester.core.browser.selection import SelectionManager
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
-from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
+from oddsharvester.core.odds_portal_scraper import ListingResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
-from oddsharvester.core.retry import RetryConfig, is_retryable_error, retry_with_backoff
+from oddsharvester.core.retry import RequestPacer, RetryConfig, is_retryable_error, retry_with_backoff
 from oddsharvester.core.scrape_result import ScrapeResult
 from oddsharvester.core.sport_market_registry import SportMarketRegistrar
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
@@ -25,6 +26,8 @@ from oddsharvester.utils.proxy_manager import ProxyManager
 from oddsharvester.utils.utils import validate_and_convert_period
 
 logger = logging.getLogger("ScraperApp")
+
+Combo = tuple[str | None, str | None]
 
 
 async def run_scraper(
@@ -298,6 +301,138 @@ async def run_scraper(
 
     finally:
         await scraper.stop_playwright()
+
+
+def _combo_label(league: str | None, season: str | None) -> str:
+    if league is None:
+        return "all leagues"
+    return f"{league} {season}" if season is not None else league
+
+
+def _combo_stat(
+    league: str | None, season: str | None, successful: int = 0, failed: int = 0, errored: bool = False
+) -> dict[str, Any]:
+    return {"league": league, "season": season, "successful": successful, "failed": failed, "errored": errored}
+
+
+async def _scrape_combos(
+    scraper: OddsPortalScraper,
+    combos: list[Combo],
+    collect: Callable[..., Awaitable[ListingResult]],
+    links_only_context: Callable[[str | None, str | None], dict[str, Any]],
+    concurrency: int,
+    request_delay: float,
+    links_only: bool,
+    odds_kwargs: dict[str, Any],
+) -> ScrapeResult:
+    """
+    List every (league, season) combo in parallel, then scrape all matches in one batch.
+
+    Listings run at most `concurrency` at a time, paced like match pages, each under
+    the operation-level retry. A combo whose listing fails for good is recorded as
+    errored and the others go on. The odds phase is a single `extract_match_odds`
+    call over the flat, deduplicated link list, so `concurrency` stays the one cap
+    on open pages. Results are attributed back to their combo through the link.
+
+    Args:
+        scraper: The scraper instance
+        combos: (league, season) pairs, league outer, season inner
+        collect: Async callable awaited as collect(league=..., season=...), returning a ListingResult
+        links_only_context: Builds the context columns of a links-only row for a combo
+        concurrency: Max listings in flight; also the odds-phase cap via odds_kwargs
+        request_delay: Base delay between listing requests, jittered
+        links_only: Stop after the listing phase
+        odds_kwargs: Forwarded to `extract_match_odds` alongside `match_links`
+
+    Returns:
+        ScrapeResult: Merged results, with a per-combo breakdown in `combo_stats`.
+    """
+    logger.info(f"Starting scraping for {len(combos)} league/season combo(s)")
+
+    listings: list[ListingResult | None] = [None] * len(combos)
+    semaphore = asyncio.Semaphore(concurrency)
+    pacer = RequestPacer(request_delay)
+
+    async def list_combo(index: int, league: str | None, season: str | None) -> None:
+        label = _combo_label(league, season)
+        async with semaphore:
+            await pacer.wait()
+            logger.info(f"[{index + 1}/{len(combos)}] Listing: {label}")
+            try:
+                listings[index] = await retry_scrape(collect, league=league, season=season)
+                if listings[index] is None:
+                    logger.warning(f"No data returned for {label}")
+            except Exception as e:
+                logger.error(f"Failed to scrape {label}: {e}")
+
+    await asyncio.gather(*(list_combo(i, league, season) for i, (league, season) in enumerate(combos)))
+
+    # A link seen by two combos is scraped once and attributed to the first.
+    link_to_combo: dict[str, int] = {}
+    for index, listing in enumerate(listings):
+        for row in listing.rows if listing else []:
+            link_to_combo.setdefault(row["match_link"], index)
+
+    errored = sum(listing is None for listing in listings)
+    logger.info(f"Collected {len(link_to_combo)} unique links across {len(combos)} combo(s) ({errored} errored)")
+
+    if links_only:
+        result = ScrapeResult()
+        for index, (league, season) in enumerate(combos):
+            listing = listings[index]
+            if listing is None:
+                result.combo_stats.append(_combo_stat(league, season, errored=True))
+                continue
+            rows = [row for row in listing.rows if link_to_combo[row["match_link"]] == index]
+            combo_result = ScrapeResult.from_links(
+                rows=rows, context=links_only_context(league, season), failed_page_urls=listing.failed_page_urls
+            )
+            result.merge(combo_result)
+            result.combo_stats.append(
+                _combo_stat(league, season, combo_result.stats.successful, combo_result.stats.failed)
+            )
+        _log_completion(result, combos)
+        return result
+
+    result = ScrapeResult()
+    if link_to_combo:
+        result = await scraper.extract_match_odds(match_links=list(link_to_combo), **odds_kwargs)
+
+    successful = [0] * len(combos)
+    failed = [0] * len(combos)
+    for row in result.success:
+        index = link_to_combo.get(row.get("match_link"))
+        if index is None:
+            continue
+        row["season"] = combos[index][1]
+        successful[index] += 1
+    for failure in result.failed:
+        index = link_to_combo.get(failure.url)
+        if index is not None:
+            failed[index] += 1
+    for index, listing in enumerate(listings):
+        if listing and listing.failed_page_urls:
+            result.add_listing_failures(listing.failed_page_urls)
+            failed[index] += len(listing.failed_page_urls)
+
+    result.combo_stats = [
+        _combo_stat(league, season, successful[i], failed[i], errored=listings[i] is None)
+        for i, (league, season) in enumerate(combos)
+    ]
+    _log_completion(result, combos)
+    return result
+
+
+def _log_completion(result: ScrapeResult, combos: list[Combo]) -> None:
+    errored = [c for c in result.combo_stats if c["errored"]]
+    if errored:
+        logger.warning(f"Failed to scrape {len(errored)} combo(s)")
+
+    logger.info(
+        f"Scraping completed: {len(combos) - len(errored)}/{len(combos)} combos successful, "
+        f"{result.stats.successful} total matches scraped, "
+        f"{result.stats.failed} failed ({result.stats.success_rate:.1f}% success rate)"
+    )
 
 
 async def _scrape_league_season_combos(

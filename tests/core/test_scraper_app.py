@@ -5,11 +5,11 @@ import pytest
 
 from oddsharvester.core import scraper_app
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
-from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
+from oddsharvester.core.odds_portal_scraper import ListingResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.retry import TRANSIENT_ERROR_KEYWORDS
-from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
-from oddsharvester.core.scraper_app import _scrape_league_season_combos, retry_scrape, run_scraper
+from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult, ScrapeStats
+from oddsharvester.core.scraper_app import _scrape_combos, _scrape_league_season_combos, retry_scrape, run_scraper
 from oddsharvester.utils.command_enum import CommandEnum
 from oddsharvester.utils.constants import OPERATION_RETRY_MAX_ATTEMPTS
 
@@ -1042,3 +1042,189 @@ async def test_run_scraper_live_requires_sport(
 
     assert result is None
     scraper_mock.scrape_live.assert_not_awaited()
+
+
+def _listing(*links: str, failed_page_urls: list[str] | None = None) -> ListingResult:
+    return ListingResult(rows=[{"match_link": link} for link in links], failed_page_urls=failed_page_urls or [])
+
+
+def _odds_result(links: list[str], failed: list[str] | None = None) -> ScrapeResult:
+    success = [{"match_link": link, "season": None} for link in links]
+    failures = [FailedUrl(url=url, error_type=ErrorType.NAVIGATION, error_message="Timeout") for url in (failed or [])]
+    return ScrapeResult(
+        success=success,
+        failed=failures,
+        stats=ScrapeStats(total_urls=len(success) + len(failures), successful=len(success), failed=len(failures)),
+    )
+
+
+def _links_only_context(league, season):
+    return {"sport": "football", "league": league, "season": season}
+
+
+async def _run_combos(collect, combos, scraper=None, **overrides) -> ScrapeResult:
+    scraper = scraper or MagicMock()
+    kwargs = {
+        "scraper": scraper,
+        "combos": combos,
+        "collect": collect,
+        "links_only_context": _links_only_context,
+        "concurrency": 3,
+        "request_delay": 0,
+        "links_only": False,
+        "odds_kwargs": {},
+    }
+    kwargs.update(overrides)
+    return await _scrape_combos(**kwargs)
+
+
+async def test_scrape_combos_lists_in_parallel_under_the_concurrency_cap():
+    """Listings overlap, but never more than `concurrency` at once (issue #87)."""
+    in_flight = {"now": 0, "max": 0}
+
+    async def collect(league, season):
+        in_flight["now"] += 1
+        in_flight["max"] = max(in_flight["max"], in_flight["now"])
+        await asyncio.sleep(0.01)
+        in_flight["now"] -= 1
+        return _listing(f"https://x/{league}/m1")
+
+    combos = [(f"league-{i}", None) for i in range(5)]
+
+    result = await _run_combos(collect, combos, concurrency=2, links_only=True)
+
+    assert in_flight["max"] == 2
+    assert result.stats.successful == 5
+
+
+@patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
+async def test_scrape_combos_paces_listings_after_the_first(mock_sleep):
+    """Listings follow the match-page rule: no delay first, then request_delay plus jitter."""
+    collect = AsyncMock(side_effect=lambda league, season: _listing(f"https://x/{league}/m1"))
+
+    await _run_combos(
+        collect, [("a", None), ("b", None), ("c", None)], concurrency=1, request_delay=2.0, links_only=True
+    )
+
+    assert mock_sleep.await_count == 2
+    assert all(2.0 <= call.args[0] <= 3.0 for call in mock_sleep.await_args_list)
+
+
+async def test_scrape_combos_scrapes_all_links_in_one_flat_batch():
+    """One extract_match_odds call over the deduplicated links; rows go back to their combo."""
+    listings = {
+        "epl": _listing("https://x/epl/m1", "https://x/epl/m2"),
+        "laliga": _listing("https://x/laliga/m1", "https://x/epl/m2"),
+    }
+    collect = AsyncMock(side_effect=lambda league, season: listings[league])
+    scraper = MagicMock()
+    scraper.extract_match_odds = AsyncMock(
+        return_value=_odds_result(["https://x/epl/m1", "https://x/epl/m2", "https://x/laliga/m1"])
+    )
+
+    result = await _run_combos(
+        collect,
+        [("epl", "2023"), ("laliga", "2023")],
+        scraper=scraper,
+        odds_kwargs={"sport": "football", "markets": ["1x2"]},
+    )
+
+    scraper.extract_match_odds.assert_awaited_once_with(
+        match_links=["https://x/epl/m1", "https://x/epl/m2", "https://x/laliga/m1"], sport="football", markets=["1x2"]
+    )
+    assert collect.await_args_list[0].kwargs == {"league": "epl", "season": "2023"}
+    assert result.combo_stats == [
+        {"league": "epl", "season": "2023", "successful": 2, "failed": 0, "errored": False},
+        {"league": "laliga", "season": "2023", "successful": 1, "failed": 0, "errored": False},
+    ]
+    assert [row["season"] for row in result.success] == ["2023", "2023", "2023"]
+
+
+async def test_scrape_combos_attributes_failures_and_listing_pages_to_their_combo():
+    listings = {
+        ("epl", "2022"): _listing("https://x/epl/m1", failed_page_urls=["https://x/epl/results/#page/2"]),
+        ("epl", "2023"): _listing("https://x/epl/m2", "https://x/epl/m3"),
+    }
+    collect = AsyncMock(side_effect=lambda league, season: listings[(league, season)])
+    scraper = MagicMock()
+    scraper.extract_match_odds = AsyncMock(
+        return_value=_odds_result(["https://x/epl/m1", "https://x/epl/m3"], failed=["https://x/epl/m2"])
+    )
+
+    result = await _run_combos(collect, [("epl", "2022"), ("epl", "2023")], scraper=scraper)
+
+    assert result.combo_stats == [
+        {"league": "epl", "season": "2022", "successful": 1, "failed": 1, "errored": False},
+        {"league": "epl", "season": "2023", "successful": 1, "failed": 1, "errored": False},
+    ]
+    listing_failures = [f for f in result.failed if f.error_type is ErrorType.LISTING_PAGE]
+    assert [f.url for f in listing_failures] == ["https://x/epl/results/#page/2"]
+    assert (result.stats.successful, result.stats.failed, result.stats.total_urls) == (2, 2, 4)
+    assert {row["match_link"]: row["season"] for row in result.success} == {
+        "https://x/epl/m1": "2022",
+        "https://x/epl/m3": "2023",
+    }
+
+
+async def test_scrape_combos_keeps_going_when_one_listing_errors():
+    """A non-retryable listing error marks its combo errored and leaves the others alone."""
+
+    async def collect(league, season):
+        if league == "broken":
+            raise ValueError("Season page redirected")
+        return _listing(f"https://x/{league}/m1")
+
+    scraper = MagicMock()
+    scraper.extract_match_odds = AsyncMock(return_value=_odds_result(["https://x/epl/m1", "https://x/laliga/m1"]))
+
+    result = await _run_combos(collect, [("epl", None), ("broken", None), ("laliga", None)], scraper=scraper)
+
+    assert [c["errored"] for c in result.combo_stats] == [False, True, False]
+    assert result.stats.successful == 2
+
+
+@patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
+async def test_scrape_combos_records_exhausted_retries_as_errored(mock_sleep):
+    """A transient error is retried with the operation backoff; giving up marks the combo errored."""
+    collect = AsyncMock(side_effect=Exception("Navigation timeout"))
+
+    result = await _run_combos(collect, [("epl", None)], concurrency=1, links_only=True)
+
+    assert collect.await_count == OPERATION_RETRY_MAX_ATTEMPTS
+    assert result.combo_stats == [{"league": "epl", "season": None, "successful": 0, "failed": 0, "errored": True}]
+    assert result.success == []
+
+
+async def test_scrape_combos_links_only_never_scrapes_odds_and_keeps_the_row_shape():
+    def listing_for(league, season):
+        failed = ["https://x/epl/results/#page/2"] if league == "epl" else None
+        return _listing(f"https://x/{league}/m1", failed_page_urls=failed)
+
+    collect = AsyncMock(side_effect=listing_for)
+    scraper = MagicMock()
+    scraper.extract_match_odds = AsyncMock()
+
+    result = await _run_combos(collect, [("epl", "2023"), ("laliga", "2023")], scraper=scraper, links_only=True)
+
+    scraper.extract_match_odds.assert_not_called()
+    assert result.success == [
+        {"match_link": "https://x/epl/m1", "sport": "football", "league": "epl", "season": "2023"},
+        {"match_link": "https://x/laliga/m1", "sport": "football", "league": "laliga", "season": "2023"},
+    ]
+    assert result.combo_stats == [
+        {"league": "epl", "season": "2023", "successful": 1, "failed": 1, "errored": False},
+        {"league": "laliga", "season": "2023", "successful": 1, "failed": 0, "errored": False},
+    ]
+    assert (result.stats.successful, result.stats.failed, result.stats.total_urls) == (2, 1, 3)
+
+
+async def test_scrape_combos_with_no_links_skips_the_odds_phase():
+    collect = AsyncMock(return_value=_listing())
+    scraper = MagicMock()
+    scraper.extract_match_odds = AsyncMock()
+
+    result = await _run_combos(collect, [("epl", None)], scraper=scraper)
+
+    scraper.extract_match_odds.assert_not_called()
+    assert result.success == []
+    assert result.combo_stats == [{"league": "epl", "season": None, "successful": 0, "failed": 0, "errored": False}]
