@@ -319,7 +319,7 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 | Option            | Short | Description                               | Default |
 | ----------------- | ----- | ----------------------------------------- | ------- |
 | `--headless`      |       | Run browser in headless mode              | `False` |
-| `--concurrency`   | `-c`  | Concurrent scraping tasks: match pages, and league listings when several leagues are given | `3`     |
+| `--concurrency`   | `-c`  | Concurrent scraping tasks: match pages, and league listings when several leagues are given. On `historic` each parallel listing walks its own result pages, so `-c` also multiplies the listing-page request rate; lower it for large league/season products. | `3`     |
 | `--request-delay` |       | Delay (sec) between match requests        | `1.0`   |
 | `--user-agent`    |       | Custom browser user agent                 | —       |
 | `--locale`        |       | Browser locale (e.g. `fr-BE`)             | —       |
@@ -333,6 +333,8 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 | `--proxy-url`  | Proxy URL (`http://...` or `socks5://...`). **Repeatable** — pass it multiple times to rotate per-match scraping round-robin across proxies. Each URL may embed credentials (`scheme://user:pass@host:port`). |
 | `--proxy-user` | Proxy username. Applies only when a **single** `--proxy-url` without embedded credentials is given; ignored (with a warning) if multiple proxies are passed.           |
 | `--proxy-pass` | Proxy password. Same single-proxy restriction as `--proxy-user`.                                                                                                       |
+
+League listings always load on the first proxy's browser context; only match pages rotate across the configured proxies.
 
 > **Tip:** For best results, match `--locale` and `--timezone` to your proxy's region.
 
