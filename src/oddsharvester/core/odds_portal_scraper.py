@@ -253,13 +253,15 @@ class OddsPortalScraper(BaseScraper):
 
             # Scroll to load all matches due to lazy loading
             self.logger.info("Scrolling page to load all upcoming matches...")
-            await self.scroller.scroll_until_loaded(
+            scroll_success = await self.scroller.scroll_until_loaded(
                 page=tab,
                 timeout=30,
                 scroll_pause_time=2,
                 max_scroll_attempts=3,
                 content_check_selector=OddsPortalSelectors.LISTING_ROW_SELECTOR,
             )
+            if not scroll_success:
+                self.logger.warning(f"Scrolling may not have completed for {url}")
 
             rows = await self.extract_match_rows(
                 page=tab,
