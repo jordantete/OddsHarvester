@@ -319,7 +319,7 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 | Option            | Short | Description                               | Default |
 | ----------------- | ----- | ----------------------------------------- | ------- |
 | `--headless`      |       | Run browser in headless mode              | `False` |
-| `--concurrency`   | `-c`  | Concurrent scraping tasks                 | `3`     |
+| `--concurrency`   | `-c`  | Concurrent scraping tasks: match pages, and league listings when several leagues are given | `3`     |
 | `--request-delay` |       | Delay (sec) between match requests        | `1.0`   |
 | `--user-agent`    |       | Custom browser user agent                 | —       |
 | `--locale`        |       | Browser locale (e.g. `fr-BE`)             | —       |
@@ -403,7 +403,7 @@ Output rows contain `match_link`, `sport`, `league`, and `season` (`date` and `k
 
 ### Bulk scraping: multiple leagues, multiple seasons
 
-`--season` and `--league` both accept comma-separated lists. `historic` scrapes every combination as the cartesian product, sequentially, league outer and season inner, so output stays grouped and deterministic. `--max-pages` applies per combo, not per run.
+`--season` and `--league` both accept comma-separated lists. `historic` scrapes every combination as the cartesian product, league outer and season inner; listings run up to `--concurrency` at once, but output still stays grouped and deterministic per combo. `--max-pages` applies per combo, not per run.
 
 ```bash
 # Several seasons of one league

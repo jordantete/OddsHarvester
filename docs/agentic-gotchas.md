@@ -1010,9 +1010,10 @@ is confirmed live.
 **Severity:** Low (informational). Explains a design decision so a future contributor does not "fix" it into a network validation step.
 
 `historic --season` accepts a comma-separated list and is scraped as the
-cartesian product with `--league`, sequentially, league outer and season
-inner (issue #78, `_scrape_league_season_combos` in
-`core/scraper_app.py`). Some leagues changed season format mid-history
+cartesian product with `--league`, league outer and season inner order
+preserved in the output; listings run up to `--concurrency` at once
+(issue #78, `_scrape_combos` in `core/scraper_app.py`). Some leagues
+changed season format mid-history
 (Russia moved from calendar-year to autumn-spring format in 2011-2012),
 so a bulk request spanning that boundary has to pass both formats and
 accept that the wrong-format pairs return nothing.
