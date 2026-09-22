@@ -32,6 +32,9 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         "argentina-primera-nacional": {
             2018: "primera-b-nacional",
         },
+        "australia-cup": {
+            2021: "ffa-cup",
+        },
         "austria-2-liga": {
             2007: "adeg-erste-liga",
             2017: "erste-liga",
@@ -48,6 +51,9 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
             2019: "proximus-league",
             2021: "1b-pro-league",
         },
+        "brazil-copa-do-brasil": {
+            2023: "copa-do-brasil",
+        },
         "brazil-serie-a": {
             2023: "serie-a",
         },
@@ -58,12 +64,22 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
             2015: "a-pfg",
             2024: "parva-liga",
         },
+        "chile-liga-de-ascenso": {
+            2024: "primera-b",
+        },
         "chile-primera-division": {
             2024: "primera-division",
+        },
+        "china-league-one": {
+            2024: "jia-league",
         },
         "colombia-primera-a": {
             2014: "liga-postobon",
             2019: "liga-aguila",
+        },
+        "colombia-primera-b": {
+            2014: "torneo-postobon",
+            2019: "torneo-aguila",
         },
         "concacaf-champions-cup": {
             2023: "concacaf-champions-league",
@@ -87,6 +103,10 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         "ecuador-liga-pro": {
             2018: "serie-a",
         },
+        "england-efl-cup": {
+            2011: "carling-cup",
+            2015: "capital-one-cup",
+        },
         "england-national-league": {
             2006: "nationwide-conference",
             2009: "blue-square-premier",
@@ -106,6 +126,10 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         "hungary-nb-i": {
             2024: "otp-bank-liga",
         },
+        "iceland-besta-deild-karla": {
+            2008: "landsbankadeild",
+            2021: "pepsideild",
+        },
         "indonesia-super-league": {
             2015: "super-liga",
             2016: "isc",
@@ -117,6 +141,11 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         "jupiler-pro-league": {
             2020: "jupiler-league",
         },
+        "latvia-virsliga": {
+            2023: "optibet-virsliga",
+            2018: "synottip-virsliga",
+            2015: "virsliga",
+        },
         "liga-portugal": {
             2020: "primeira-liga",
         },
@@ -124,6 +153,9 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
             2011: "liga-de-honra",
             2015: "segunda-liga",
             2019: "ligapro",
+        },
+        "lithuania-toplyga": {
+            2025: "a-lyga",
         },
         "mexico-liga-de-expansion": {
             2018: "liga-de-ascenso",
@@ -140,6 +172,10 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         },
         "norway-eliteserien": {
             2016: "tippeligaen",
+        },
+        "norway-obos-ligaen": {
+            2013: "adeccoligaen",
+            2014: "division-1",
         },
         "paraguay-copa-de-primera": {
             2024: "primera-division",
@@ -171,6 +207,9 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         "south-korea-k-league-1": {
             2012: "k-league",
             2017: "k-league-classic",
+        },
+        "south-korea-k-league-2": {
+            2017: "k-league-challenge",
         },
         "spain-laliga": {
             2015: "primera-division",
