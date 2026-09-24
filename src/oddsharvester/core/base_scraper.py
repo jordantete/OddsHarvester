@@ -7,7 +7,7 @@ import logging
 import re
 from typing import Any, ClassVar
 import unicodedata
-from urllib.parse import urlsplit
+from urllib.parse import urldefrag, urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from bs4 import BeautifulSoup
@@ -969,6 +969,9 @@ class BaseScraper:
         # Errors after a successful load are content/DOM issues and must not
         # blacklist a proxy, so they are swallowed to None below except
         # H2HFragmentResolutionError, which is deliberately re-raised.
+        if urldefrag(page.url).url == urldefrag(match_link).url:
+            # Same document: goto would only change the fragment, so a retry would reuse the broken view.
+            await page.goto("about:blank")
         await page.goto(match_link, timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded")
 
         try:

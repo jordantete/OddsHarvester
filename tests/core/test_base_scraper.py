@@ -2431,3 +2431,42 @@ async def test_scrape_match_data_ignores_third_party_429(setup_base_scraper_mock
 
     assert result == {"home_team": "Masar", "away_team": "Proxy"}
     page_mock.remove_listener.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_scrape_match_data_retry_reloads_a_page_already_on_the_match(setup_base_scraper_mocks):
+    """goto to the URL the tab already shows only changes the fragment: the retry would reuse the broken view."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    _capture_response_listener(page_mock)
+    page_mock.url = "https://www.oddsportal.com/football/h2h/a/b/#YDZojogM:1X2;2"
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._hydrate_match_view = AsyncMock()
+    scraper._extract_match_details = AsyncMock(return_value={"home_team": "Masar"})
+
+    await scraper._scrape_match_data(
+        page=page_mock, sport="football", match_link="https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"
+    )
+
+    targets = [c.args[0] for c in page_mock.goto.await_args_list]
+    assert targets == ["about:blank", "https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"]
+
+
+@pytest.mark.asyncio
+async def test_scrape_match_data_fresh_tab_navigates_once(setup_base_scraper_mocks):
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    _capture_response_listener(page_mock)
+    page_mock.url = "about:blank"
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._hydrate_match_view = AsyncMock()
+    scraper._extract_match_details = AsyncMock(return_value={"home_team": "Masar"})
+
+    await scraper._scrape_match_data(
+        page=page_mock, sport="football", match_link="https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"
+    )
+
+    targets = [c.args[0] for c in page_mock.goto.await_args_list]
+    assert targets == ["https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"]
