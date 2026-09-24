@@ -1398,3 +1398,31 @@ async def test_collect_historic_links_closes_the_tab_when_the_season_redirects(u
         await scraper.collect_historic_links(sport="football", league="england-premier-league", season="1899-1900")
 
     tab.close.assert_awaited_once()
+
+
+def _page_with_country_links(count):
+    page = MagicMock()
+    locator = MagicMock()
+    locator.count = AsyncMock(return_value=count)
+    page.locator = MagicMock(return_value=locator)
+    return page
+
+
+@pytest.mark.asyncio
+async def test_league_guard_rejects_a_page_without_its_country_breadcrumb():
+    """A league path that does not exist answers 200 at the same URL ("Offside — page not found")."""
+    page = _page_with_country_links(0)
+
+    with pytest.raises(PageNotFoundError, match="no-such-league"):
+        await OddsPortalScraper._assert_league_page_exists(
+            page, "https://www.oddsportal.com/football/bhutan/no-such-league/"
+        )
+
+    page.locator.assert_called_once_with("a[href='/football/bhutan/']")
+
+
+@pytest.mark.asyncio
+async def test_league_guard_accepts_a_real_league_even_without_fixtures():
+    await OddsPortalScraper._assert_league_page_exists(
+        _page_with_country_links(2), "https://www.oddsportal.com/football/bhutan/premier-league/results/"
+    )

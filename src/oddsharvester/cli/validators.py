@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 import click
 
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
+from oddsharvester.core.url_builder import URLBuilder
 from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from oddsharvester.utils.sport_market_constants import FOOTBALL_UMBRELLA_MARKETS, Sport
 from oddsharvester.utils.utils import get_supported_markets
@@ -118,6 +119,14 @@ def validate_markets(ctx, param, value):
     return value
 
 
+def _is_league_path_of(sport: Sport, league: str) -> bool:
+    try:
+        URLBuilder.get_league_url(sport.value, league)
+    except ValueError:
+        return False
+    return True
+
+
 def validate_leagues(ctx, param, value):
     """Validate leagues against the selected sport."""
     if not value:
@@ -137,7 +146,7 @@ def validate_leagues(ctx, param, value):
         return value
 
     supported = SPORTS_LEAGUES_URLS_MAPPING[sport]
-    invalid = [lg for lg in value if lg not in supported]
+    invalid = [lg for lg in value if lg not in supported and not _is_league_path_of(sport, lg)]
 
     if invalid:
         raise click.BadParameter(f"Invalid league(s) for {sport.value}: {', '.join(invalid)}")

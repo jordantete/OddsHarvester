@@ -6,6 +6,24 @@ from oddsharvester.utils.league_aliases import get_league_slug_for_season
 from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from oddsharvester.utils.sport_market_constants import Sport
 
+_LEAGUE_PATH_RE = re.compile(r"^/?([a-z-]+)/([a-z0-9-]+)/([a-z0-9-]+)/?$")
+
+
+def _league_path(league: str) -> tuple[str, str, str] | None:
+    """(sport, country, league) of a league given as a path or an oddsportal.com URL, else None."""
+    parts = urlsplit(league)
+    if parts.scheme or parts.netloc:
+        if parts.scheme != "https" or not (parts.hostname or "").endswith("oddsportal.com"):
+            return None
+        league = parts.path
+    match = _LEAGUE_PATH_RE.match(league)
+    return match.groups() if match else None
+
+
+def is_league_path(league: str) -> bool:
+    """True when the league is given as an OddsPortal path rather than a known key."""
+    return _league_path(league) is not None
+
 
 def rebase_url(url: str, base_url: str | None) -> str:
     """
@@ -127,7 +145,8 @@ class URLBuilder:
 
         Args:
             sport (str): The sport name (e.g., "football", "tennis").
-            league (str): The league name (e.g., "premier-league", "atp-tour").
+            league (str): A known league key (e.g., "england-premier-league"), or a league path
+                ("football/bhutan/premier-league") or oddsportal.com URL for leagues not in the mapping.
             base_url (Optional[str]): When provided, rebases the returned URL onto this scheme+host.
 
         Returns:
@@ -145,10 +164,16 @@ class URLBuilder:
 
         leagues = SPORTS_LEAGUES_URLS_MAPPING[sport_enum]
 
-        if league not in leagues:
-            raise ValueError(f"Invalid league '{league}' for sport '{sport}'. Available: {', '.join(leagues.keys())}")
+        if league in leagues:
+            return rebase_url(leagues[league], base_url)
 
-        return rebase_url(leagues[league], base_url)
+        path = _league_path(league)
+        if path is None or path[0] != sport_enum.value:
+            raise ValueError(
+                f"Invalid league '{league}' for sport '{sport}'. Available: {', '.join(leagues.keys())}, "
+                f"or a league path such as '{sport_enum.value}/<country>/<league>'."
+            )
+        return rebase_url(f"{ODDSPORTAL_BASE_URL}/{'/'.join(path)}/", base_url)
 
     @staticmethod
     def get_live_matches_url(sport: str, base_url: str | None = None) -> str:

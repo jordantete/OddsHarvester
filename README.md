@@ -265,7 +265,7 @@ returns builds its heading from the URL and otherwise looks valid.
 | -------------- | ----- | -------------------------------------------------------------------------- | ---------- |
 | `--sport`      | `-s`  | Sport to scrape (`football`, `tennis`, `basketball`, etc.)                 | _required_ |
 | `--date`       | `-d`  | Target date in `YYYYMMDD` format                                           | —          |
-| `--league`     | `-l`  | Comma-separated league slugs (e.g. `england-premier-league`)               | —          |
+| `--league`     | `-l`  | Comma-separated league slugs (e.g. `england-premier-league`), or league paths for leagues outside the built-in list (e.g. `football/bhutan/premier-league`, or the full oddsportal.com URL) | —          |
 | `--market`     | `-m`  | Comma-separated markets (e.g. `1x2,btts`)                                  | —          |
 | `--match-link` |       | Specific match URLs, comma-separated and/or repeated. Skips listing pages; `--date`/`--league`/`--season` are then ignored | —          |
 | `--match-links-file` |       | File with match URLs to scrape, one per line. Combines with `--match-link`; duplicates are dropped | —          |

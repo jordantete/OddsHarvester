@@ -1782,6 +1782,43 @@ short listing (§17).
 
 ---
 
+## §24 — An unknown league path answers 200 at the requested URL
+
+**Severity:** Medium — a mistyped league path reads exactly like a league with
+no fixtures: 0 rows, no error.
+
+`--league` also accepts a league path (`football/bhutan/premier-league`) for
+leagues outside `sport_league_constants.py`. OddsPortal does not redirect an
+unknown path: `/football/bhutan/no-such-league/`, `/results/` included, answers
+**200 at the same URL** with an "Offside — page not found" body and the bare
+title "OddsPortal". A real league off-season (Bhutan on 2026-09-24) also shows
+0 rows, so the row count cannot tell them apart, and neither can
+`_assert_season_page_reached`, which only catches redirects (§4, §15).
+
+### Detection signal
+
+- A real league page, fixtures or `/results/`, links to its country page
+  (`a[href='/football/bhutan/']`, breadcrumb). The not-found body has no such
+  link. The link is in the server-rendered HTML, so it is there right after
+  `goto`.
+- The href is relative, so the check holds on regional `--base-url` domains
+  and in every language, unlike the page title.
+
+### Fix pattern
+
+`OddsPortalScraper._assert_league_page_exists` runs after navigation for league
+paths only (built-in keys are validated against the mapping) and raises a
+non-retryable `PageNotFoundError`. The live command's league filter only
+matches rows against the path prefix, so an unknown path there still yields an
+empty result.
+
+### References
+
+- `core/url_builder.py` — `get_league_url`, `is_league_path`.
+- `core/odds_portal_scraper.py` — `_assert_league_page_exists`.
+
+---
+
 ## Adding a new gotcha
 
 When a fix lands that exposes an OddsPortal-specific behaviour an agent

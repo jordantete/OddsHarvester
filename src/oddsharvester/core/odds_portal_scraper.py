@@ -12,7 +12,7 @@ from oddsharvester.core.browser.pagination import WalkVerdict
 from oddsharvester.core.exceptions import PageNotFoundError
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.scrape_result import ScrapeResult
-from oddsharvester.core.url_builder import URLBuilder, normalize_inplay_match_url, rebase_url
+from oddsharvester.core.url_builder import URLBuilder, is_league_path, normalize_inplay_match_url, rebase_url
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import (
     DEFAULT_REQUEST_DELAY_S,
@@ -181,6 +181,8 @@ class OddsPortalScraper(BaseScraper):
             self.logger.info("Navigating to base URL...")
             await tab.goto(base_url)
             self._assert_season_page_reached(requested_url=base_url, landed_url=tab.url)
+            if is_league_path(league):
+                await self._assert_league_page_exists(tab, base_url)
             await self._prepare_page_for_scraping(page=tab)
 
             self.logger.info("Step 1: Analyzing pagination information...")
@@ -249,6 +251,8 @@ class OddsPortalScraper(BaseScraper):
         tab = await context.new_page()
         try:
             await tab.goto(url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
+            if league and is_league_path(league):
+                await self._assert_league_page_exists(tab, url)
             await self._prepare_page_for_scraping(page=tab)
 
             # Scroll to load all matches due to lazy loading
@@ -588,6 +592,23 @@ class OddsPortalScraper(BaseScraper):
         raise PageNotFoundError(
             f"Season page redirected to {landed_url}; the season does not exist under this league slug.",
             url=requested_url,
+        )
+
+    @staticmethod
+    async def _assert_league_page_exists(page, league_url: str) -> None:
+        """
+        Fail a league path OddsPortal does not know instead of reading its empty listing.
+
+        An unknown league answers 200 at the requested URL with a not-found body, which reads like a
+        league without fixtures. Every real league page links to its country page (gotcha 24).
+        """
+        sport, country = urlparse(league_url).path.strip("/").split("/")[:2]
+        if await page.locator(f"a[href='/{sport}/{country}/']").count():
+            return
+
+        raise PageNotFoundError(
+            f"League page {league_url} does not exist on OddsPortal (no link to its country page).",
+            url=league_url,
         )
 
     async def _collect_match_links(

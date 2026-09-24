@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from oddsharvester.core.url_builder import URLBuilder, normalize_inplay_match_url, rebase_url
+from oddsharvester.core.url_builder import URLBuilder, is_league_path, normalize_inplay_match_url, rebase_url
 from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
 from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from oddsharvester.utils.sport_market_constants import Sport
@@ -510,3 +510,55 @@ class TestLiveUrls:
     def test_normalize_inplay_match_url_idempotent(self):
         url = "https://www.oddsportal.com/tennis/h2h/a-x1/b-y2/inplay-odds/#t0bmQMVh"
         assert normalize_inplay_match_url(url) == url
+
+
+@pytest.mark.parametrize(
+    "league",
+    [
+        "football/bhutan/premier-league",
+        "football/bhutan/premier-league/",
+        "/football/bhutan/premier-league/",
+        "https://www.oddsportal.com/football/bhutan/premier-league/",
+    ],
+)
+def test_get_league_url_accepts_a_league_path(league):
+    assert URLBuilder.get_league_url("football", league) == f"{ODDSPORTAL_BASE_URL}/football/bhutan/premier-league/"
+
+
+@pytest.mark.parametrize(
+    "league",
+    [
+        "tennis/atp/us-open",
+        "football/bhutan",
+        "football/bhutan/premier-league/extra",
+        "https://example.com/football/a/b/",
+    ],
+)
+def test_get_league_url_rejects_a_malformed_or_foreign_league_path(league):
+    with pytest.raises(ValueError, match="Invalid league"):
+        URLBuilder.get_league_url("football", league)
+
+
+def test_get_league_url_rebases_a_league_path():
+    assert (
+        URLBuilder.get_league_url("football", "football/bhutan/premier-league", base_url="https://www.centroquote.it")
+        == "https://www.centroquote.it/football/bhutan/premier-league/"
+    )
+
+
+@pytest.mark.parametrize(
+    ("season", "expected"),
+    [
+        (None, "/football/bhutan/premier-league/results/"),
+        ("2025", "/football/bhutan/premier-league-2025/results/"),
+        ("2025-2026", "/football/bhutan/premier-league-2025-2026/results/"),
+    ],
+)
+def test_historic_url_of_a_league_path(season, expected):
+    url = URLBuilder.get_historic_matches_url("football", "football/bhutan/premier-league", season)
+    assert url == f"{ODDSPORTAL_BASE_URL}{expected}"
+
+
+def test_is_league_path():
+    assert is_league_path("football/bhutan/premier-league")
+    assert not is_league_path("england-premier-league")

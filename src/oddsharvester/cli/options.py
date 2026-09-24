@@ -77,7 +77,8 @@ def common_options(func):
         type=COMMA_LIST,
         callback=validate_leagues,
         envvar="OH_LEAGUES",
-        help="Comma-separated leagues (e.g., england-premier-league,spain-laliga).",
+        help="Comma-separated leagues (e.g., england-premier-league,spain-laliga), or a league path "
+        "for leagues outside the built-in list (e.g., football/bhutan/premier-league).",
     )
     @click.option(
         "--market",
