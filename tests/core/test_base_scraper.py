@@ -2335,3 +2335,99 @@ async def test_extract_match_odds_survives_a_failing_callback(setup_base_scraper
     assert result.stats.successful == 1
     assert result.stats.failed == 0
     scraper.on_match.assert_called_once_with({"match_link": "https://x/a"})
+
+
+def _fake_response(status, url):
+    response = MagicMock()
+    response.status = status
+    response.url = url
+    return response
+
+
+def _capture_response_listener(page_mock):
+    listeners = []
+    page_mock.on = MagicMock(side_effect=lambda event, handler: listeners.append(handler))
+    page_mock.remove_listener = MagicMock()
+    return listeners
+
+
+@pytest.mark.asyncio
+async def test_scrape_match_data_raises_rate_limit_when_a_429_blocked_hydration(setup_base_scraper_mocks):
+    """A 429 on the match feed leaves the view empty: report the rate limit, not a render race."""
+    from oddsharvester.core.exceptions import H2HFragmentResolutionError, RateLimitError
+    from oddsharvester.core.scrape_result import ErrorType
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    listeners = _capture_response_listener(page_mock)
+
+    async def goto(*args, **kwargs):
+        for handler in listeners:
+            handler(_fake_response(429, "https://www.oddsportal.com/proxy/match-event/1-1-YDZojogM"))
+
+    page_mock.goto = AsyncMock(side_effect=goto)
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._hydrate_match_view = AsyncMock(side_effect=H2HFragmentResolutionError("never rendered match content"))
+
+    with pytest.raises(RateLimitError) as excinfo:
+        await scraper._scrape_match_data(
+            page=page_mock, sport="football", match_link="https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"
+        )
+
+    assert excinfo.value.error_type is ErrorType.RATE_LIMITED
+    assert excinfo.value.is_retryable is True
+
+
+@pytest.mark.asyncio
+async def test_scrape_match_data_raises_rate_limit_instead_of_partial_markets(setup_base_scraper_mocks):
+    """A 429 while switching market tabs must not return a record with a silently empty market."""
+    from oddsharvester.core.exceptions import RateLimitError
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    listeners = _capture_response_listener(page_mock)
+
+    async def scrape_markets(**kwargs):
+        for handler in listeners:
+            handler(_fake_response(429, "https://www.oddsportal.com/feed/match-event/1-1-xtmHKGT0.dat"))
+        return {"over_under_2_5_market": [{"bookmaker_name": "bet365"}]}
+
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._hydrate_match_view = AsyncMock()
+    scraper._extract_match_details = AsyncMock(return_value={"home_team": "Arsenal", "away_team": "Leeds"})
+    mocks["market_extractor_mock"].scrape_markets = AsyncMock(side_effect=scrape_markets)
+
+    with pytest.raises(RateLimitError):
+        await scraper._scrape_match_data(
+            page=page_mock,
+            sport="football",
+            match_link="https://www.oddsportal.com/football/h2h/a/b/#xtmHKGT0",
+            markets=["1x2", "over_under_2_5"],
+        )
+
+
+@pytest.mark.asyncio
+async def test_scrape_match_data_ignores_third_party_429(setup_base_scraper_mocks):
+    """Ad and analytics hosts throttle on their own; only OddsPortal's 429 means the IP is limited."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    listeners = _capture_response_listener(page_mock)
+
+    async def goto(*args, **kwargs):
+        for handler in listeners:
+            handler(_fake_response(429, "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"))
+
+    page_mock.goto = AsyncMock(side_effect=goto)
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._hydrate_match_view = AsyncMock()
+    scraper._extract_match_details = AsyncMock(return_value={"home_team": "Masar", "away_team": "Proxy"})
+
+    result = await scraper._scrape_match_data(
+        page=page_mock, sport="football", match_link="https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"
+    )
+
+    assert result == {"home_team": "Masar", "away_team": "Proxy"}
+    page_mock.remove_listener.assert_called_once()

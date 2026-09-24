@@ -1726,6 +1726,62 @@ the reflow completely.
 
 ---
 
+## §23 — HTTP 429 hides inside a page that loads: the document is 200, the view stays empty
+
+**Severity:** High — it reads as a render race (§19) or as a market that does not
+exist, and a match scraped under a 429 could come back with an empty market and
+no error.
+
+OddsPortal's nginx rate-limits by IP and answers **429 with no `Retry-After`
+header**. A match page fires about 110 requests to the OddsPortal host
+(scripts, images, `/proxy/match-event/...`, bonus and coupon AJAX). When the
+limit trips, the 429s land on whichever of them come next: the document itself,
+a Next.js chunk, or the match feed. If the match feed is refused, the view never
+renders and `_hydrate_match_view` used to raise `H2HFragmentResolutionError`
+("never rendered match content"). If the refused request is a market tab switch,
+the extractor logged "Failed to reach the 1X2 tab" and returned the record
+without that market.
+
+Measured 2026-09-24 from a Hetzner Helsinki IP, one fresh browser per load:
+
+- in a burst (loads ~5 s apart), the first 3 loads pass, then about half fail;
+- blocking images, fonts and media (~43 requests per load) still fails one load
+  in three during a burst, so the limit is not only per second;
+- after 10 idle minutes, loads 90 s apart: 5 of 6 pass. The one that failed was
+  followed 90 s later by a clean load;
+- `curl` on the same URL from the same IP, 8 requests 2 s apart: all 200. One
+  request per page does not trip it, which is why the site "works" from a shell.
+
+From a France residential IP the same pages loaded every time, so the symptom
+looks like a server-only bug.
+
+### Detection signal
+
+- "never rendered match content", or a missing market, on a host that scraped
+  fine an hour earlier, with no code change.
+- A response listener shows `429` on the OddsPortal host (images and `_next`
+  scripts first), while the document status is often 200.
+- Third-party hosts (ads, analytics) throttle on their own; their 429s mean
+  nothing about OddsPortal.
+
+### Fix pattern
+
+`BaseScraper._scrape_match_data` records every 429 from the match link's host
+while the match is scraped, and raises `RateLimitError` (typed `RATE_LIMITED`,
+attributed to the IP so proxy failover rotates) instead of a render error or a
+partial record. `retry_with_backoff` waits at least `RATE_LIMIT_RETRY_DELAY_S`
+(30 s) before retrying a `RateLimitError`; the default 2 s backoff lands in the
+same window. Listing pages are not covered yet: a 429 there still reads as a
+short listing (§17).
+
+### References
+
+- `core/base_scraper.py` — `_scrape_match_data`, the response listener.
+- `core/retry.py` — the rate-limit delay in `retry_with_backoff`.
+- §6 — anti-bot symptoms; §17 — silent short listings; §19 — hydration.
+
+---
+
 ## Adding a new gotcha
 
 When a fix lands that exposes an OddsPortal-specific behaviour an agent

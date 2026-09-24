@@ -12,7 +12,7 @@ import logging
 import random
 from typing import Any
 
-from oddsharvester.core.exceptions import ScraperError
+from oddsharvester.core.exceptions import RateLimitError, ScraperError
 from oddsharvester.core.scrape_result import ErrorType
 from oddsharvester.utils.constants import REQUEST_DELAY_JITTER_FACTOR
 
@@ -181,6 +181,8 @@ async def retry_with_backoff[T](
             )
             jitter = delay * config.jitter_factor * random.random()  # noqa: S311
             total_delay = delay + jitter
+            if isinstance(e, RateLimitError):
+                total_delay = max(total_delay, e.retry_after)
 
             logger.debug(
                 f"Attempt {attempt}/{config.max_attempts} failed: {last_error[:100]}. Retrying in {total_delay:.1f}s..."

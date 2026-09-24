@@ -20,7 +20,7 @@ from oddsharvester.core.browser.selection import (
     BOOKIES_FILTER_STRATEGY,
     SelectionManager,
 )
-from oddsharvester.core.exceptions import H2HFragmentResolutionError
+from oddsharvester.core.exceptions import H2HFragmentResolutionError, RateLimitError
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
@@ -48,6 +48,7 @@ from oddsharvester.utils.constants import (
     ODDS_FORMAT_SELECTOR_TIMEOUT_MS,
     ODDS_FORMAT_WAIT_MS,
     ODDSPORTAL_BASE_URL,
+    RATE_LIMIT_RETRY_DELAY_S,
 )
 from oddsharvester.utils.datetime_format import format_utc
 from oddsharvester.utils.local_kickoff import compute_local_kickoff
@@ -876,6 +877,61 @@ class BaseScraper:
             self.logger.warning(f"Match stream consumer raised, dropping this record from the stream: {e}")
 
     async def _scrape_match_data(
+        self,
+        page: Page,
+        sport: str,
+        match_link: str,
+        markets: list[str] | None = None,
+        scrape_odds_history: bool = False,
+        target_bookmaker: str | None = None,
+        preview_submarkets_only: bool = False,
+        bookies_filter: BookiesFilter = BookiesFilter.ALL,
+        period: Enum | None = None,
+        live_mode: bool = False,
+    ) -> dict[str, Any] | None:
+        """Scrape one match, raising RateLimitError when OddsPortal answered 429 during the visit."""
+        # A 429 on any request of the page (feed, script, tab switch) leaves the view or a market empty
+        # while the document itself loads; only the response stream shows it (gotchas §23).
+        host = urlsplit(match_link).hostname
+        throttled: list[str] = []
+
+        def on_response(response) -> None:
+            if response.status == 429 and urlsplit(response.url).hostname == host:
+                throttled.append(response.url)
+
+        page.on("response", on_response)
+        try:
+            result = await self._scrape_match_data_unguarded(
+                page=page,
+                sport=sport,
+                match_link=match_link,
+                markets=markets,
+                scrape_odds_history=scrape_odds_history,
+                target_bookmaker=target_bookmaker,
+                preview_submarkets_only=preview_submarkets_only,
+                bookies_filter=bookies_filter,
+                period=period,
+                live_mode=live_mode,
+            )
+        except H2HFragmentResolutionError as e:
+            if throttled:
+                raise self._rate_limit_error(match_link, throttled) from e
+            raise
+        finally:
+            page.remove_listener("response", on_response)
+        if throttled:
+            raise self._rate_limit_error(match_link, throttled)
+        return result
+
+    @staticmethod
+    def _rate_limit_error(match_link: str, throttled: list[str]) -> RateLimitError:
+        return RateLimitError(
+            f"rate limited by OddsPortal: HTTP 429 on {len(throttled)} request(s), first {throttled[0]}",
+            url=match_link,
+            retry_after=RATE_LIMIT_RETRY_DELAY_S,
+        )
+
+    async def _scrape_match_data_unguarded(
         self,
         page: Page,
         sport: str,

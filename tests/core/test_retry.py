@@ -346,3 +346,32 @@ class TestRequestPacer:
         await pacer.wait()
 
         mock_sleep.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_retry_waits_the_rate_limit_delay_before_retrying():
+    """OddsPortal sends no Retry-After; a 2 s backoff lands inside the same throttling window."""
+    from oddsharvester.core.exceptions import RateLimitError
+
+    calls = []
+
+    async def limited_once():
+        calls.append(1)
+        if len(calls) == 1:
+            raise RateLimitError("rate limited by oddsportal (HTTP 429)", url="u", retry_after=30)
+        return "ok"
+
+    with patch("oddsharvester.core.retry.asyncio.sleep", new=AsyncMock()) as sleep:
+        result = await retry_with_backoff(limited_once, config=RetryConfig(max_attempts=2, base_delay=2, max_delay=30))
+
+    assert result.success is True
+    assert sleep.await_args.args[0] >= 30
+
+
+def test_rate_limit_error_is_typed_rate_limited_and_attributed_to_the_ip():
+    from oddsharvester.core.exceptions import RateLimitError
+
+    error = RateLimitError("rate limited by oddsportal (HTTP 429)", url="u")
+
+    assert error.error_type is ErrorType.RATE_LIMITED
+    assert is_proxy_attributable_error(error.error_type)
