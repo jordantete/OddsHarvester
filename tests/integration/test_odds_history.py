@@ -13,9 +13,10 @@ Recapture (live):
 scripts/capture_all_hars.py skips this fixture: it does not know the odds-history flags.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 import json
 import re
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -150,6 +151,29 @@ def test_history_timestamps_are_naive_iso(run):
 
 def test_match_date_format(run):
     assert MATCH_DATE.match(_match(run)["match_date"])
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason="the history parser stamps the year the scraper runs in on every timestamp",
+)
+def test_history_timestamps_fall_in_the_year_before_kickoff(run):
+    match = _match(run)
+    kickoff = (
+        datetime.strptime(match["match_date"], "%Y-%m-%d %H:%M:%S UTC")
+        .replace(tzinfo=UTC)
+        .astimezone(ZoneInfo("Europe/London"))
+        .replace(tzinfo=None)
+    )
+    for key, entry in _entries(match):
+        for block in _blocks(entry):
+            points = list(block.get("odds_history") or [])
+            if block.get("opening_odds"):
+                points.append(block["opening_odds"])
+            for point in points:
+                timestamp = datetime.fromisoformat(point["timestamp"])
+                assert kickoff - timedelta(days=366) <= timestamp <= kickoff, (key, entry.get("bookmaker_name"), point)
 
 
 def test_outcome_keys_come_before_meta_keys(run):
