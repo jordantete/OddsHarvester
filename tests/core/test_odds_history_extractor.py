@@ -2,308 +2,169 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from oddsharvester.core.market_extraction.odds_history_extractor import OddsHistoryExtractor
+from oddsharvester.core.market_extraction.odds_history_extractor import (
+    LEAF_BOOKMAKER_ROW_CSS,
+    OddsHistoryExtractor,
+)
+
+
+def _row(name=None, title=None, cells=0):
+    """Bookmaker row mock: `name` is the visible label, `title` the logo link title."""
+    name_el = None
+    if name is not None:
+        name_el = AsyncMock()
+        name_el.text_content = AsyncMock(return_value=name)
+    title_el = None
+    if title is not None:
+        title_el = AsyncMock()
+        title_el.get_attribute = AsyncMock(return_value=title)
+
+    async def query_selector(selector):
+        return title_el if selector == "a[title]" else name_el
+
+    row = AsyncMock()
+    row.query_selector = AsyncMock(side_effect=query_selector)
+    row.query_selector_all = AsyncMock(return_value=[AsyncMock() for _ in range(cells)])
+    return row
+
+
+def _modal_headers(htmls):
+    """One modal header per hover; None stands for a header whose parent is not an element."""
+    headers = []
+    for html in htmls:
+        wrapper = MagicMock()
+        if html is None:
+            wrapper.as_element = MagicMock(return_value=None)
+        else:
+            element = AsyncMock()
+            element.inner_html = AsyncMock(return_value=html)
+            wrapper.as_element = MagicMock(return_value=element)
+        header = AsyncMock()
+        header.evaluate_handle = AsyncMock(return_value=wrapper)
+        headers.append(header)
+    return headers
 
 
 class TestOddsHistoryExtractor:
-    """Unit tests for the OddsHistoryExtractor class."""
-
     @pytest.fixture
-    def odds_history_extractor(self):
-        """Create an instance of OddsHistoryExtractor."""
+    def extractor(self):
         return OddsHistoryExtractor()
 
     @pytest.fixture
-    def page_mock(self):
-        """Create a mock for the Playwright page."""
-        mock = AsyncMock()
-        mock.wait_for_timeout = AsyncMock()
-        return mock
+    def page(self):
+        page = AsyncMock()
+        page.wait_for_timeout = AsyncMock()
+        return page
+
+    def test_leaf_row_selector_excludes_rows_that_wrap_a_table(self):
+        assert LEAF_BOOKMAKER_ROW_CSS == 'tr:has(a[href*="/bookmakers/"]):not(:has(tr))'
 
     @pytest.mark.asyncio
-    async def test_extract_odds_history_for_bookmaker_success(self, odds_history_extractor, page_mock):
-        """Test successful extraction of odds history for a bookmaker."""
-        # Arrange
-        bookmaker_name = "Bookmaker1"
-        sample_html = "<div>Sample modal HTML</div>"
+    async def test_hovers_each_outcome_cell_of_the_matching_row(self, extractor, page):
+        page.query_selector_all = AsyncMock(return_value=[_row("Bookmaker1", cells=3)])
+        page.wait_for_selector = AsyncMock(side_effect=_modal_headers(["<a/>", "<b/>", "<c/>"]))
 
-        # Create mock for bookmaker row
-        bookmaker_row = AsyncMock()
-        logo_img = AsyncMock()
-        logo_img.text_content = AsyncMock(return_value=bookmaker_name)
-        bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
+        result = await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 3)
 
-        # Create mock for odds blocks
-        odds_block = AsyncMock()
-        bookmaker_row.query_selector_all = AsyncMock(return_value=[odds_block])
-
-        # Create mock for page
-        page_mock.query_selector_all = AsyncMock(return_value=[bookmaker_row])
-        page_mock.wait_for_selector = AsyncMock()
-
-        # Create mock for modal wrapper and element
-        modal_wrapper = AsyncMock()
-        modal_element = AsyncMock()
-        modal_element.inner_html = AsyncMock(return_value=sample_html)
-        modal_wrapper.as_element = MagicMock(return_value=modal_element)
-
-        # Set up the chain of mocks
-        page_mock.wait_for_selector.return_value.evaluate_handle.return_value = modal_wrapper
-
-        # Act
-        result = await odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
-
-        # Assert
-        assert len(result) == 1
-        assert result[0] == sample_html
-        page_mock.wait_for_timeout.assert_called_with(2000)  # SCROLL_PAUSE_TIME
+        assert result == ["<a/>", "<b/>", "<c/>"]
+        page.query_selector_all.assert_awaited_once_with(LEAF_BOOKMAKER_ROW_CSS)
 
     @pytest.mark.asyncio
-    async def test_extract_odds_history_for_bookmaker_no_match(self, odds_history_extractor, page_mock):
-        """Test extraction when no matching bookmaker is found."""
-        # Arrange
-        bookmaker_name = "NonExistentBookmaker"
+    async def test_matches_the_exact_name_not_a_prefix(self, extractor, page):
+        exchange, plain = _row("Betfair Exchange", cells=2), _row("Betfair", cells=2)
+        page.query_selector_all = AsyncMock(return_value=[exchange, plain])
+        page.wait_for_selector = AsyncMock(side_effect=_modal_headers(["<a/>", "<b/>"]))
 
-        # Create mock for bookmaker row
-        bookmaker_row = AsyncMock()
-        logo_img = AsyncMock()
-        logo_img.text_content = AsyncMock(return_value="DifferentBookmaker")
-        bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
+        result = await extractor.extract_odds_history_for_bookmaker(page, "Betfair", 2)
 
-        # Create mock for page
-        page_mock.query_selector_all = AsyncMock(return_value=[bookmaker_row])
-
-        # Act
-        result = await odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
-
-        # Assert
-        assert result == []
+        assert result == ["<a/>", "<b/>"]
+        exchange.query_selector_all.assert_not_awaited()
+        plain.query_selector_all.assert_awaited_once()
 
     @pytest.mark.asyncio
-    async def test_extract_odds_history_for_bookmaker_no_logo(self, odds_history_extractor, page_mock):
-        """Test extraction when bookmaker row has no logo."""
-        # Arrange
-        bookmaker_name = "Bookmaker1"
+    async def test_matches_a_logo_only_row_by_its_normalised_title(self, extractor, page):
+        page.query_selector_all = AsyncMock(return_value=[_row(title="Go to Betfair Exchange website!", cells=1)])
+        page.wait_for_selector = AsyncMock(side_effect=_modal_headers(["<a/>"]))
 
-        # Create mock for bookmaker row without logo
-        bookmaker_row = AsyncMock()
-        bookmaker_row.query_selector = AsyncMock(return_value=None)
+        result = await extractor.extract_odds_history_for_bookmaker(page, "Betfair Exchange", 1)
 
-        # Create mock for page
-        page_mock.query_selector_all = AsyncMock(return_value=[bookmaker_row])
-
-        # Act
-        result = await odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
-
-        # Assert
-        assert result == []
+        assert result == ["<a/>"]
 
     @pytest.mark.asyncio
-    async def test_extract_odds_history_for_bookmaker_no_odds_blocks(self, odds_history_extractor, page_mock):
-        """Test extraction when bookmaker has no odds blocks."""
-        # Arrange
-        bookmaker_name = "Bookmaker1"
+    async def test_name_match_ignores_whitespace_differences(self, extractor, page):
+        page.query_selector_all = AsyncMock(return_value=[_row("Betfair\n  Exchange", cells=1)])
+        page.wait_for_selector = AsyncMock(side_effect=_modal_headers(["<a/>"]))
 
-        # Create mock for bookmaker row
-        bookmaker_row = AsyncMock()
-        logo_img = AsyncMock()
-        logo_img.text_content = AsyncMock(return_value=bookmaker_name)
-        bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
+        result = await extractor.extract_odds_history_for_bookmaker(page, "BetfairExchange", 1)
 
-        # Create mock for odds blocks (empty)
-        bookmaker_row.query_selector_all = AsyncMock(return_value=[])
-
-        # Create mock for page
-        page_mock.query_selector_all = AsyncMock(return_value=[bookmaker_row])
-
-        # Act
-        result = await odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
-
-        # Assert
-        assert result == []
+        assert result == ["<a/>"]
 
     @pytest.mark.asyncio
-    async def test_extract_odds_history_for_bookmaker_modal_not_found(self, odds_history_extractor, page_mock):
-        """Test extraction when odds movement modal is not found."""
-        # Arrange
-        bookmaker_name = "Bookmaker1"
+    async def test_hovers_at_most_cell_count_cells(self, extractor, page):
+        row = _row("Bookmaker1", cells=4)
+        page.query_selector_all = AsyncMock(return_value=[row])
+        page.wait_for_selector = AsyncMock(side_effect=_modal_headers(["<a/>", "<b/>", "<c/>"]))
 
-        # Create mock for bookmaker row
-        bookmaker_row = AsyncMock()
-        logo_img = AsyncMock()
-        logo_img.text_content = AsyncMock(return_value=bookmaker_name)
-        bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
+        result = await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 3)
 
-        # Create mock for odds blocks
-        odds_block = AsyncMock()
-        bookmaker_row.query_selector_all = AsyncMock(return_value=[odds_block])
-
-        # Create mock for page
-        page_mock.query_selector_all = AsyncMock(return_value=[bookmaker_row])
-        page_mock.wait_for_selector = AsyncMock(side_effect=Exception("Modal not found"))
-
-        # Act
-        result = await odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
-
-        # Assert
-        assert result == []
+        assert result == ["<a/>", "<b/>", "<c/>"]
+        cells = row.query_selector_all.return_value
+        cells[3].hover.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_extract_odds_history_for_bookmaker_modal_element_none(self, odds_history_extractor, page_mock):
-        """Test extraction when modal element is None."""
-        # Arrange
-        bookmaker_name = "Bookmaker1"
+    async def test_fewer_cells_than_outcomes_pads_with_none(self, extractor, page):
+        page.query_selector_all = AsyncMock(return_value=[_row("Bookmaker1", cells=2)])
+        page.wait_for_selector = AsyncMock(side_effect=_modal_headers(["<a/>", "<b/>"]))
 
-        # Create mock for bookmaker row
-        bookmaker_row = AsyncMock()
-        logo_img = AsyncMock()
-        logo_img.text_content = AsyncMock(return_value=bookmaker_name)
-        bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
+        result = await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 3)
 
-        # Create mock for odds blocks
-        odds_block = AsyncMock()
-        bookmaker_row.query_selector_all = AsyncMock(return_value=[odds_block])
-
-        # Create mock for page
-        page_mock.query_selector_all = AsyncMock(return_value=[bookmaker_row])
-        page_mock.wait_for_selector = AsyncMock()
-
-        # Create mock for modal wrapper that returns None
-        modal_wrapper = AsyncMock()
-        modal_wrapper.as_element = MagicMock(return_value=None)
-
-        # Set up the chain of mocks
-        page_mock.wait_for_selector.return_value.evaluate_handle.return_value = modal_wrapper
-
-        # Act
-        result = await odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
-
-        # Assert
-        assert result == []
+        assert result == ["<a/>", "<b/>", None]
 
     @pytest.mark.asyncio
-    async def test_extract_odds_history_for_bookmaker_multiple_odds_blocks(self, odds_history_extractor, page_mock):
-        """Test extraction with multiple odds blocks for the same bookmaker."""
-        # Arrange
-        bookmaker_name = "Bookmaker1"
-        sample_html1 = "<div>Modal HTML 1</div>"
-        sample_html2 = "<div>Modal HTML 2</div>"
+    async def test_failed_cell_keeps_its_slot(self, extractor, page):
+        first, _, third = _modal_headers(["<a/>", "<unused/>", "<c/>"])
+        page.query_selector_all = AsyncMock(return_value=[_row("Bookmaker1", cells=3)])
+        page.wait_for_selector = AsyncMock(side_effect=[first, TimeoutError("no modal"), third])
 
-        # Create mock for bookmaker row
-        bookmaker_row = AsyncMock()
-        logo_img = AsyncMock()
-        logo_img.text_content = AsyncMock(return_value=bookmaker_name)
-        bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
+        result = await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 3)
 
-        # Create mock for multiple odds blocks
-        odds_block1 = AsyncMock()
-        odds_block2 = AsyncMock()
-        bookmaker_row.query_selector_all = AsyncMock(return_value=[odds_block1, odds_block2])
-
-        # Create mock for page
-        page_mock.query_selector_all = AsyncMock(return_value=[bookmaker_row])
-        page_mock.wait_for_selector = AsyncMock()
-
-        # Create mock for modal wrapper and elements
-        modal_wrapper1 = AsyncMock()
-        modal_element1 = AsyncMock()
-        modal_element1.inner_html = AsyncMock(return_value=sample_html1)
-        modal_wrapper1.as_element = MagicMock(return_value=modal_element1)
-
-        modal_wrapper2 = AsyncMock()
-        modal_element2 = AsyncMock()
-        modal_element2.inner_html = AsyncMock(return_value=sample_html2)
-        modal_wrapper2.as_element = MagicMock(return_value=modal_element2)
-
-        # Set up the chain of mocks
-        page_mock.wait_for_selector.return_value.evaluate_handle.side_effect = [modal_wrapper1, modal_wrapper2]
-
-        # Act
-        result = await odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
-
-        # Assert
-        assert len(result) == 2
-        assert result[0] == sample_html1
-        assert result[1] == sample_html2
+        assert result == ["<a/>", None, "<c/>"]
 
     @pytest.mark.asyncio
-    async def test_extract_odds_history_for_bookmaker_multiple_bookmakers(self, odds_history_extractor, page_mock):
-        """Test extraction with multiple bookmakers, only one matching."""
-        # Arrange
-        bookmaker_name = "Bookmaker1"
-        sample_html = "<div>Sample modal HTML</div>"
+    async def test_modal_without_element_gives_none(self, extractor, page):
+        page.query_selector_all = AsyncMock(return_value=[_row("Bookmaker1", cells=1)])
+        page.wait_for_selector = AsyncMock(side_effect=_modal_headers([None]))
 
-        # Create mock for first bookmaker row (no match)
-        bookmaker_row1 = AsyncMock()
-        logo_img1 = AsyncMock()
-        logo_img1.text_content = AsyncMock(return_value="DifferentBookmaker")
-        bookmaker_row1.query_selector = AsyncMock(return_value=logo_img1)
+        result = await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 1)
 
-        # Create mock for second bookmaker row (match)
-        bookmaker_row2 = AsyncMock()
-        logo_img2 = AsyncMock()
-        logo_img2.text_content = AsyncMock(return_value=bookmaker_name)
-        bookmaker_row2.query_selector = AsyncMock(return_value=logo_img2)
-
-        # Create mock for odds blocks
-        odds_block = AsyncMock()
-        bookmaker_row2.query_selector_all = AsyncMock(return_value=[odds_block])
-
-        # Create mock for page
-        page_mock.query_selector_all = AsyncMock(return_value=[bookmaker_row1, bookmaker_row2])
-        page_mock.wait_for_selector = AsyncMock()
-
-        # Create mock for modal wrapper and element
-        modal_wrapper = AsyncMock()
-        modal_element = AsyncMock()
-        modal_element.inner_html = AsyncMock(return_value=sample_html)
-        modal_wrapper.as_element = MagicMock(return_value=modal_element)
-
-        # Set up the chain of mocks
-        page_mock.wait_for_selector.return_value.evaluate_handle.return_value = modal_wrapper
-
-        # Act
-        result = await odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
-
-        # Assert
-        assert len(result) == 1
-        assert result[0] == sample_html
+        assert result == [None]
 
     @pytest.mark.asyncio
-    async def test_extract_odds_history_for_bookmaker_exception_handling(self, odds_history_extractor, page_mock):
-        """Test exception handling during odds history extraction."""
-        # Arrange
-        bookmaker_name = "Bookmaker1"
+    async def test_no_matching_row_gives_one_none_per_outcome(self, extractor, page):
+        page.query_selector_all = AsyncMock(return_value=[_row("Other", cells=3)])
 
-        # Create mock that raises an exception
-        page_mock.query_selector_all = AsyncMock(side_effect=Exception("Test exception"))
+        result = await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 3)
 
-        # Act
-        result = await odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
-
-        # Assert
-        assert result == []
+        assert result == [None, None, None]
 
     @pytest.mark.asyncio
-    async def test_extract_odds_history_for_bookmaker_row_exception_handling(self, odds_history_extractor, page_mock):
-        """Test exception handling when processing individual bookmaker rows."""
-        # Arrange
-        bookmaker_name = "Bookmaker1"
+    async def test_row_listing_failure_gives_one_none_per_outcome(self, extractor, page):
+        page.query_selector_all = AsyncMock(side_effect=Exception("detached"))
 
-        # Create mock for bookmaker row that raises exception
-        bookmaker_row = AsyncMock()
-        bookmaker_row.query_selector = AsyncMock(side_effect=Exception("Row processing error"))
+        result = await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 2)
 
-        # Create mock for page
-        page_mock.query_selector_all = AsyncMock(return_value=[bookmaker_row])
+        assert result == [None, None]
 
-        # Act
-        result = await odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
+    @pytest.mark.asyncio
+    async def test_unreadable_row_name_is_skipped(self, extractor, page):
+        broken = AsyncMock()
+        broken.query_selector = AsyncMock(side_effect=Exception("stale"))
+        page.query_selector_all = AsyncMock(return_value=[broken, _row("Bookmaker1", cells=1)])
+        page.wait_for_selector = AsyncMock(side_effect=_modal_headers(["<a/>"]))
 
-        # Assert
-        assert result == []
+        result = await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 1)
 
-    def test_logger_initialization(self, odds_history_extractor):
-        """Test that logger is properly initialized."""
-        assert odds_history_extractor.logger is not None
-        assert odds_history_extractor.logger.name == "OddsHistoryExtractor"
+        assert result == ["<a/>"]
+
+    def test_logger_initialization(self, extractor):
+        assert extractor.logger.name == "OddsHistoryExtractor"

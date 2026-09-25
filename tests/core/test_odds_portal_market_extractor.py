@@ -443,78 +443,6 @@ class TestOddsPortalMarketExtractor:
         assert result == []
 
     @pytest.mark.asyncio
-    async def test_extract_odds_history_for_bookmaker(self, extractor, page_mock):
-        """Test extracting odds history for a specific bookmaker."""
-        # Arrange
-        bookmaker_name = "Bookmaker1"
-
-        # Create mock for bookmaker row
-        bookmaker_row = AsyncMock()
-        logo_img = AsyncMock()
-        logo_img.text_content = AsyncMock(return_value=bookmaker_name)
-        bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
-
-        # Create mock for odds blocks
-        odds_block = AsyncMock()
-        bookmaker_row.query_selector_all = AsyncMock(return_value=[odds_block])
-
-        # Create mock for page
-        page_mock.query_selector_all = AsyncMock(return_value=[bookmaker_row])
-        page_mock.wait_for_selector = AsyncMock()
-
-        # Create mock for modal wrapper and element
-        modal_wrapper = AsyncMock()
-        modal_element = AsyncMock()
-        modal_element.inner_html = AsyncMock(return_value=SAMPLE_HTML_ODDS_HISTORY)
-        modal_wrapper.as_element = MagicMock(return_value=modal_element)
-
-        # Set up the chain of mocks
-        page_mock.wait_for_selector.return_value.evaluate_handle.return_value = modal_wrapper
-
-        # Act
-        result = await extractor.odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
-
-        # Assert
-        assert len(result) == 1
-        assert result[0] == SAMPLE_HTML_ODDS_HISTORY
-
-    @pytest.mark.asyncio
-    async def test_extract_odds_history_for_bookmaker_no_match(self, extractor, page_mock):
-        """Test extraction when no matching bookmaker is found."""
-        # Arrange
-        bookmaker_name = "NonExistentBookmaker"
-
-        # Create mock for bookmaker row
-        bookmaker_row = AsyncMock()
-        logo_img = AsyncMock()
-        logo_img.text_content = AsyncMock(return_value="DifferentBookmaker")
-        bookmaker_row.query_selector = AsyncMock(return_value=logo_img)
-
-        # Create mock for page
-        page_mock.query_selector_all = AsyncMock(return_value=[bookmaker_row])
-
-        # Act
-        result = await extractor.odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
-
-        # Assert
-        assert result == []
-
-    @pytest.mark.asyncio
-    async def test_extract_odds_history_for_bookmaker_exception(self, extractor, page_mock):
-        """Test error handling when an exception occurs during odds history extraction."""
-        # Arrange
-        bookmaker_name = "Bookmaker1"
-
-        # Create mock that raises an exception
-        page_mock.query_selector_all = AsyncMock(side_effect=Exception("Test exception"))
-
-        # Act - This method handles exceptions internally
-        result = await extractor.odds_history_extractor.extract_odds_history_for_bookmaker(page_mock, bookmaker_name)
-
-        # Assert - Should return an empty list on exception
-        assert result == []
-
-    @pytest.mark.asyncio
     async def test_scrape_markets(self, extractor, page_mock):
         """Test scraping multiple markets for a match."""
         # Arrange
@@ -974,5 +902,5 @@ class TestOddsPortalMarketExtractor:
 
         # Only called for Bookmaker1, not Bookmaker2
         extractor.odds_history_extractor.extract_odds_history_for_bookmaker.assert_called_once_with(
-            page_mock, "Bookmaker1"
+            page_mock, "Bookmaker1", 1
         )

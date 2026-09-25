@@ -326,7 +326,9 @@ class OddsPortalMarketExtractor:
                     if not bookmaker_name or (target_bookmaker and bookmaker_name.lower() != target_bookmaker.lower()):
                         continue
 
-                    modals = await self.odds_history_extractor.extract_odds_history_for_bookmaker(page, bookmaker_name)
+                    modals = await self.odds_history_extractor.extract_odds_history_for_bookmaker(
+                        page, bookmaker_name, len(odds_labels or [])
+                    )
 
                     if modals:
                         all_histories = []
