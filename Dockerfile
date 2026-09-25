@@ -16,8 +16,8 @@ WORKDIR /app
 COPY src /app/src
 COPY pyproject.toml uv.lock README.md LICENSE.txt /app/
 
-# Install runtime dependencies (the `dev` extra is not installed)
-RUN uv sync --frozen
+# Install runtime dependencies (the `dev` group is not installed)
+RUN uv sync --frozen --no-dev
 
 # Activate the virtual environment
 ENV PATH="/app/.venv/bin:$PATH"

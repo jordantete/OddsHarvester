@@ -333,7 +333,7 @@ dependencies = [
     { name = "tzdata" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "pre-commit" },
     { name = "pytest" },
@@ -349,13 +349,17 @@ requires-dist = [
     { name = "click", specifier = ">=8.1.0" },
     { name = "lxml", specifier = ">=6.0.2" },
     { name = "playwright", specifier = ">=1.57.0" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.5.1" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.2" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "pytz", specifier = ">=2025.2" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.14.10" },
     { name = "tzdata", specifier = ">=2025.2" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pre-commit", specifier = ">=4.5.1" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-asyncio", specifier = ">=0.24.0" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "ruff", specifier = ">=0.14.10" },
 ]
 
 [[package]]
