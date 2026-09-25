@@ -61,10 +61,12 @@ def build_fixture_filename(
     markets: list[str],
     period: str,
     bookies_filter: str,
+    odds_history: bool = False,
 ) -> str:
     """Build fixture filename from parameters."""
     markets_str = "_".join(sorted(markets))
-    return f"{markets_str}_{period}_{bookies_filter}.json"
+    suffix = "_odds_history" if odds_history else ""
+    return f"{markets_str}_{period}_{bookies_filter}{suffix}.json"
 
 
 def _alias_fragmented_redirect_targets(har_path: Path) -> None:
@@ -122,6 +124,8 @@ def capture_fixture(
     capture_har: bool = False,
     proxy_url: str | None = None,
     match_dir: str | None = None,
+    odds_history: bool = False,
+    extra_args: list[str] | None = None,
 ) -> Path:
     """
     Capture a new fixture from live scraping.
@@ -141,7 +145,7 @@ def capture_fixture(
 
     # Build command
     markets_str = ",".join(markets)
-    fixture_filename = build_fixture_filename(markets, period, bookies_filter)
+    fixture_filename = build_fixture_filename(markets, period, bookies_filter, odds_history=odds_history)
     output_path = output_dir / fixture_filename
 
     cmd = [
@@ -174,6 +178,8 @@ def capture_fixture(
     if headless:
         cmd.append("--headless")
 
+    cmd.extend(extra_args or [])
+
     har_path = output_path.with_suffix(".har")
 
     # Run scraper
@@ -186,19 +192,13 @@ def capture_fixture(
         env["ODDSHARVESTER_HAR_RECORD"] = str(har_path)
         print(f"Recording HAR to: {har_path}")
 
-    result = subprocess.run(  # noqa: S603
-        cmd, capture_output=True, text=True, cwd=PROJECT_ROOT, timeout=timeout, env=env
-    )
+    result = subprocess.run(cmd, cwd=PROJECT_ROOT, timeout=timeout, env=env)  # noqa: S603
 
     if result.returncode != 0:
         print(f"Scraper failed with exit code {result.returncode}")
-        print(f"STDOUT:\n{result.stdout}")
-        print(f"STDERR:\n{result.stderr}")
         raise RuntimeError("Scraper failed")
 
     print("Scraper succeeded!")
-    if result.stdout:
-        print(f"Output: {result.stdout.strip()}")
 
     # Verify output file exists
     if not output_path.exists():
@@ -314,10 +314,27 @@ Examples:
         default=None,
         help="Fixture directory name; defaults to the URL's last segment. Set it to refresh an existing match.",
     )
+    parser.add_argument(
+        "--odds-history", action="store_true", help="Scrape odds history (adds _odds_history to the name)"
+    )
+    parser.add_argument("--timezone", default=None, help="Forwarded to the CLI (e.g. Europe/London)")
+    parser.add_argument("--locale", default=None, help="Forwarded to the CLI (e.g. en-GB)")
+    parser.add_argument("--request-delay", type=float, default=None, help="Forwarded to the CLI")
+    parser.add_argument("--concurrency", type=int, default=None, help="Forwarded to the CLI")
 
     args = parser.parse_args()
 
     markets = [m.strip() for m in args.markets.split(",")]
+
+    extra_args = ["--odds-history"] if args.odds_history else []
+    for flag, value in (
+        ("--timezone", args.timezone),
+        ("--locale", args.locale),
+        ("--request-delay", args.request_delay),
+        ("--concurrency", args.concurrency),
+    ):
+        if value is not None:
+            extra_args += [flag, str(value)]
 
     try:
         capture_fixture(
@@ -333,6 +350,8 @@ Examples:
             capture_har=args.capture_har,
             proxy_url=args.proxy_url,
             match_dir=args.match_dir,
+            odds_history=args.odds_history,
+            extra_args=extra_args,
         )
         print()
         print("Done!")

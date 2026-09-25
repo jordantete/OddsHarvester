@@ -1,14 +1,13 @@
 """Fixtures for integration tests."""
 
 import json
-import os
 from pathlib import Path
-import subprocess
 import tempfile
 from typing import Any
 
 import pytest
 
+from tests.integration.helpers.cli_runner import run_historic
 from tests.integration.helpers.fixture_files import FIXTURES_DIR, har_path_for, require_file
 
 
@@ -21,68 +20,8 @@ def temp_output_dir():
 
 @pytest.fixture
 def run_scraper():
-    """
-    Factory fixture to run oddsharvester commands.
-
-    Returns a function that runs the scraper and returns (exit_code, stdout, stderr).
-    """
-
-    def _run(
-        sport: str,
-        match_link: str,
-        markets: list[str],
-        output_path: Path,
-        period: str | None = None,
-        bookies_filter: str = "all",
-        output_format: str = "json",
-        season: str = "current",
-        timeout: int = 300,
-        har_path: Path | None = None,
-        local_kickoff: bool = False,
-    ) -> tuple[int, str, str]:
-        cmd = [
-            "uv",
-            "run",
-            "oddsharvester",
-            "historic",
-            "--sport",
-            sport,
-            "--match-link",
-            match_link,
-            "--market",
-            ",".join(markets),
-            "--format",
-            output_format,
-            "--bookies-filter",
-            bookies_filter,
-            "--season",
-            season,
-            "--headless",
-            "--output",
-            str(output_path),
-        ]
-
-        if local_kickoff:
-            cmd.append("--local-kickoff")
-
-        if period:
-            cmd.extend(["--period", period])
-
-        env = os.environ.copy()
-        if har_path is not None:
-            env["ODDSHARVESTER_HAR_REPLAY"] = str(har_path)
-
-        result = subprocess.run(  # noqa: S603
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            env=env,
-        )
-
-        return result.returncode, result.stdout, result.stderr
-
-    return _run
+    """Factory fixture returning run_historic, which runs the CLI and returns (exit_code, stdout, stderr)."""
+    return run_historic
 
 
 @pytest.fixture
