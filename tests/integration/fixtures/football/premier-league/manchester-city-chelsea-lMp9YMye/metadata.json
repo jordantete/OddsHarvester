@@ -1,0 +1,19 @@
+{
+    "match_id": "Wtn9Stg0",
+    "match_url": "https://www.oddsportal.com/football/h2h/chelsea-4fGZN2oK/manchester-city-Wtn9Stg0/#lMp9YMye",
+    "sport": "football",
+    "league": "premier-league",
+    "home_team": "Manchester City",
+    "away_team": "Chelsea",
+    "final_score": {
+        "home": "1",
+        "away": "1"
+    },
+    "match_date": "2026-01-04 18:30:00 UTC",
+    "notes": "",
+    "captured_at": "2026-09-25T08:26:49.508652+00:00",
+    "oddsharvester_version": "0.15.0",
+    "available_fixtures": [
+        "1x2_over_under_2_5_full_time_all_odds_history.json"
+    ]
+}
