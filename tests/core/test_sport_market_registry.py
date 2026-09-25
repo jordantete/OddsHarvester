@@ -1,4 +1,6 @@
-from unittest.mock import MagicMock, patch
+import asyncio
+from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from oddsharvester.core.sport_market_registry import SportMarketRegistrar, SportMarketRegistry
 from oddsharvester.utils.sport_market_constants import Sport
@@ -97,6 +99,7 @@ class TestSportMarketRegistrar:
             target_bookmaker=None,
             preview_submarkets_only=False,
             sport=None,
+            history_reference=None,
         )
 
     def test_register_football_markets(self):
@@ -347,3 +350,14 @@ class TestSportMarketRegistrar:
         assert "home_away" in SportMarketRegistry.get_market_mapping(Sport.AMERICAN_FOOTBALL.value)
         assert "1x2" in SportMarketRegistry.get_market_mapping(Sport.HANDBALL.value)
         assert "home_away" in SportMarketRegistry.get_market_mapping(Sport.VOLLEYBALL.value)
+
+
+def test_market_lambda_forwards_history_reference():
+    extractor = MagicMock()
+    extractor.extract_market_odds = AsyncMock(return_value=[])
+    func = SportMarketRegistrar.create_market_lambda("1X2", odds_labels=["1", "X", "2"])
+    reference = datetime(2026, 1, 4, 18, 30)
+
+    asyncio.run(func(extractor, "page", "FullTime", True, None, False, "football", history_reference=reference))
+
+    assert extractor.extract_market_odds.await_args.kwargs["history_reference"] == reference

@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 from typing import Any
 
@@ -18,6 +19,7 @@ from oddsharvester.core.market_extraction import (
     SubmarketExtractor,
 )
 from oddsharvester.core.market_extraction.line_tokens import line_name_to_token
+from oddsharvester.core.market_extraction.odds_parser import empty_history_block
 from oddsharvester.core.sport_market_registry import SportMarketRegistry
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 from oddsharvester.utils.sport_market_constants import FOOTBALL_UMBRELLA_MARKETS, Sport
@@ -62,6 +64,7 @@ class OddsPortalMarketExtractor:
         scrape_odds_history: bool = False,
         target_bookmaker: str | None = None,
         preview_submarkets_only: bool = False,
+        history_reference: datetime | None = None,
     ) -> dict[str, Any]:
         """
         Extract market data for a given match.
@@ -75,6 +78,7 @@ class OddsPortalMarketExtractor:
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
             preview_submarkets_only (bool): If True, only scrape the collapsed submarket odds (best/highest shown
             per line, not per-bookmaker) from visible submarkets.
+            history_reference (datetime, optional): Kickoff in the browser timezone, used to date odds history.
 
         Returns:
             Dict[str, Any]: A dictionary containing market data.
@@ -135,7 +139,14 @@ class OddsPortalMarketExtractor:
                         # Normal mode: scrape each market individually
                         self.logger.info(f"Scraping market: {market} (Period: {period})")
                         market_data[f"{market}_market"] = await market_methods[market](
-                            self, page, period, scrape_odds_history, target_bookmaker, preview_submarkets_only, sport
+                            self,
+                            page,
+                            period,
+                            scrape_odds_history,
+                            target_bookmaker,
+                            preview_submarkets_only,
+                            sport,
+                            history_reference=history_reference,
                         )
                 else:
                     self.logger.warning(f"Market '{market}' is not supported for sport '{sport}'.")
@@ -169,6 +180,7 @@ class OddsPortalMarketExtractor:
                             target_bookmaker=target_bookmaker,
                             preview_submarkets_only=preview_submarkets_only,
                             sport=sport,
+                            history_reference=history_reference,
                         )
 
                         # Distribute the results to each specific market
@@ -217,6 +229,7 @@ class OddsPortalMarketExtractor:
         target_bookmaker: str | None = None,
         preview_submarkets_only: bool = False,
         sport: str | None = None,
+        history_reference: datetime | None = None,
     ) -> list:
         """
         Extracts odds for a given main market and optional specific sub-market.
@@ -232,6 +245,7 @@ class OddsPortalMarketExtractor:
             preview_submarkets_only (bool): If True, only scrape the collapsed submarket odds (best/highest shown
             per line, not per-bookmaker) from visible submarkets.
             sport (str): The sport being scraped (used for period selection).
+            history_reference (datetime, optional): Kickoff in the browser timezone, used to date odds history.
 
         Returns:
             list[dict]: A list of dictionaries containing bookmaker odds.
@@ -319,6 +333,7 @@ class OddsPortalMarketExtractor:
 
             if scrape_odds_history:
                 self.logger.info("Fetching odds history for all parsed bookmakers.")
+                outcome_count = len(odds_labels or [])
 
                 for odds_entry in odds_data:
                     bookmaker_name = odds_entry.get("bookmaker_name")
@@ -327,17 +342,11 @@ class OddsPortalMarketExtractor:
                         continue
 
                     modals = await self.odds_history_extractor.extract_odds_history_for_bookmaker(
-                        page, bookmaker_name, len(odds_labels or [])
+                        page, bookmaker_name, outcome_count
                     )
-
-                    if modals:
-                        all_histories = []
-                        for modal_html in modals:
-                            parsed_history = self.odds_parser.parse_odds_history_modal(modal_html)
-                            if parsed_history:
-                                all_histories.append(parsed_history)
-
-                        odds_entry["odds_history_data"] = all_histories
+                    blocks = [self._history_block(modal, history_reference) for modal in modals[:outcome_count]]
+                    blocks += [empty_history_block() for _ in range(outcome_count - len(blocks))]
+                    odds_entry["odds_history_data"] = blocks
 
             # Close the sub-market after scraping to avoid duplicates
             if specific_market:
@@ -348,3 +357,9 @@ class OddsPortalMarketExtractor:
         except Exception as e:
             self.logger.error(f"Error extracting odds for {main_market} {specific_market}: {e}")
             return []
+
+    def _history_block(self, modal_html: str | None, reference: datetime | None) -> dict[str, Any]:
+        """Parsed history of one outcome cell, or the empty block when its modal could not be read."""
+        if modal_html is None:
+            return empty_history_block()
+        return self.odds_parser.parse_odds_history_modal(modal_html, reference=reference)

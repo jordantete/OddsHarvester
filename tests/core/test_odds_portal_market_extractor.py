@@ -397,38 +397,64 @@ class TestOddsPortalMarketExtractor:
 
     @pytest.mark.asyncio
     async def test_extract_market_odds_with_odds_history(self, extractor, page_mock):
-        """Test extracting odds with odds history."""
-        # Arrange
+        """Each outcome gets its block; a modal that could not be read becomes the empty block."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
         extractor.odds_parser.parse_market_odds = MagicMock(
-            return_value=[{"bookmaker_name": "Bookmaker1", "1": "1.90", "X": "3.50", "2": "4.20", "period": "FullTime"}]
+            return_value=[{"1": "1.90", "X": "3.50", "2": "4.20", "bookmaker_name": "Bookmaker1", "period": "FullTime"}]
         )
         extractor.odds_history_extractor.extract_odds_history_for_bookmaker = AsyncMock(
-            return_value=[SAMPLE_HTML_ODDS_HISTORY]
+            return_value=[SAMPLE_HTML_ODDS_HISTORY, None, SAMPLE_HTML_ODDS_HISTORY]
         )
-        extractor.odds_parser.parse_odds_history_modal = MagicMock(
-            return_value={
-                "odds_history": [{"timestamp": "2025-06-10T14:30:00", "odds": 1.95}],
-                "opening_odds": {"timestamp": "2025-06-10T08:00:00", "odds": 1.85},
-            }
+        parsed = {
+            "odds_history": [{"timestamp": "2025-06-10T14:30:00", "odds": 1.95}],
+            "opening_odds": {"timestamp": "2025-06-10T08:00:00", "odds": 1.85},
+        }
+        extractor.odds_parser.parse_odds_history_modal = MagicMock(return_value=parsed)
+        page_mock.content = AsyncMock(return_value="<div>test</div>")
+        reference = datetime(2025, 6, 11, 20, 0)
+
+        result = await extractor.extract_market_odds(
+            page=page_mock,
+            main_market="1X2",
+            odds_labels=["1", "X", "2"],
+            scrape_odds_history=True,
+            history_reference=reference,
         )
 
-        mock_active_tab = AsyncMock()
-        mock_active_tab.text_content = AsyncMock(return_value="1X2")
-        page_mock.query_selector = AsyncMock(return_value=mock_active_tab)
+        extractor.odds_history_extractor.extract_odds_history_for_bookmaker.assert_awaited_once_with(
+            page_mock, "Bookmaker1", 3
+        )
+        assert extractor.odds_parser.parse_odds_history_modal.call_count == 2
+        extractor.odds_parser.parse_odds_history_modal.assert_called_with(SAMPLE_HTML_ODDS_HISTORY, reference=reference)
+        assert result[0]["odds_history_data"] == [parsed, {"odds_history": [], "opening_odds": None}, parsed]
+        assert list(result[0])[-1] == "odds_history_data"
+
+    @pytest.mark.asyncio
+    async def test_odds_history_pads_missing_modals_with_empty_blocks(self, extractor, page_mock):
+        """Fewer modals than outcomes still gives one block per outcome."""
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.odds_parser.parse_market_odds = MagicMock(
+            return_value=[{"1": "1.90", "X": "3.50", "2": "4.20", "bookmaker_name": "Bookmaker1", "period": "FullTime"}]
+        )
+        extractor.odds_history_extractor.extract_odds_history_for_bookmaker = AsyncMock(return_value=[None])
         page_mock.content = AsyncMock(return_value="<div>test</div>")
 
-        # Act
         result = await extractor.extract_market_odds(
             page=page_mock, main_market="1X2", odds_labels=["1", "X", "2"], scrape_odds_history=True
         )
 
-        # Assert
-        extractor.odds_history_extractor.extract_odds_history_for_bookmaker.assert_called_once()
-        extractor.odds_parser.parse_odds_history_modal.assert_called_once()
-        assert len(result) == 1
-        assert "odds_history_data" in result[0]
-        assert result[0]["odds_history_data"][0]["odds_history"][0]["odds"] == 1.95
+        assert result[0]["odds_history_data"] == [{"odds_history": [], "opening_odds": None}] * 3
+
+    @pytest.mark.asyncio
+    async def test_scrape_markets_forwards_history_reference(self, extractor, page_mock):
+        func = AsyncMock(return_value=[])
+        reference = datetime(2026, 1, 4, 18, 30)
+        with patch.object(SportMarketRegistry, "get_market_mapping", return_value={"1x2": func}):
+            await extractor.scrape_markets(
+                page=page_mock, sport="football", markets=["1x2"], history_reference=reference
+            )
+
+        assert func.await_args.kwargs["history_reference"] == reference
 
     @pytest.mark.asyncio
     async def test_extract_market_odds_exception(self, extractor, page_mock):

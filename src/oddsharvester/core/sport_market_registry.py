@@ -61,7 +61,8 @@ class SportMarketRegistrar:
             scrape_odds_history=False,
             target_bookmaker=None,
             preview_submarkets_only=False,
-            sport=None: extractor.extract_market_odds(
+            sport=None,
+            history_reference=None: extractor.extract_market_odds(
                 page=page,
                 main_market=main_market,
                 specific_market=specific_market,
@@ -71,6 +72,7 @@ class SportMarketRegistrar:
                 target_bookmaker=target_bookmaker,
                 preview_submarkets_only=preview_submarkets_only,
                 sport=sport,
+                history_reference=history_reference,
             )
         )
 
