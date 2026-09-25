@@ -9,8 +9,7 @@ from typing import Any
 
 import pytest
 
-# Path to fixtures directory
-FIXTURES_DIR = Path(__file__).parent / "fixtures"
+from tests.integration.helpers.fixture_files import FIXTURES_DIR, har_path_for, require_file
 
 
 @pytest.fixture
@@ -95,11 +94,7 @@ def load_fixture():
     """
 
     def _load(sport: str, league: str, match_id: str, fixture_name: str) -> list[dict[str, Any]]:
-        fixture_path = FIXTURES_DIR / sport / league / match_id / fixture_name
-
-        if not fixture_path.exists():
-            pytest.skip(f"Fixture not found: {fixture_path}")
-
+        fixture_path = require_file(FIXTURES_DIR / sport / league / match_id / fixture_name)
         data = json.loads(fixture_path.read_text())
 
         # Ensure we always return a list
@@ -119,11 +114,7 @@ def load_metadata():
     """
 
     def _load(sport: str, league: str, match_id: str) -> dict[str, Any]:
-        metadata_path = FIXTURES_DIR / sport / league / match_id / "metadata.json"
-
-        if not metadata_path.exists():
-            pytest.skip(f"Metadata not found: {metadata_path}")
-
+        metadata_path = require_file(FIXTURES_DIR / sport / league / match_id / "metadata.json")
         return json.loads(metadata_path.read_text())
 
     return _load
@@ -132,14 +123,14 @@ def load_metadata():
 @pytest.fixture
 def fixture_exists():
     """
-    Factory fixture to check if a fixture exists.
+    Factory fixture that fails the test when a committed fixture is missing.
 
-    Returns a function that returns True if the fixture exists.
+    Returns True otherwise, so the existing `if not fixture_exists(...)` guards keep working.
     """
 
     def _exists(sport: str, league: str, match_id: str, fixture_name: str) -> bool:
-        fixture_path = FIXTURES_DIR / sport / league / match_id / fixture_name
-        return fixture_path.exists()
+        require_file(FIXTURES_DIR / sport / league / match_id / fixture_name)
+        return True
 
     return _exists
 
@@ -147,20 +138,15 @@ def fixture_exists():
 @pytest.fixture
 def har_for_match(request):
     """
-    Returns the path to the HAR file paired with a JSON fixture, if it exists.
+    Returns the HAR paired with a JSON fixture (same stem, .har suffix).
 
-    Each JSON fixture has a sibling .har with the same stem (e.g. 1x2_full_time_all.har
-    next to 1x2_full_time_all.json). Returns None when no HAR exists or when --live is set,
-    in which case run_scraper falls through to live mode.
+    Returns None under --live. Fails the test when the HAR is missing, instead of letting the
+    run fall through to the live site.
     """
     live_mode = request.config.getoption("--live")
 
     def _har(sport: str, league: str, match_id: str, fixture_name: str) -> Path | None:
-        if live_mode:
-            return None
-        json_path = FIXTURES_DIR / sport / league / match_id / fixture_name
-        har_path = json_path.with_suffix(".har")
-        return har_path if har_path.exists() else None
+        return har_path_for(FIXTURES_DIR / sport / league / match_id / fixture_name, live_mode)
 
     return _har
 
