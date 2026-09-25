@@ -2337,10 +2337,11 @@ async def test_extract_match_odds_survives_a_failing_callback(setup_base_scraper
     scraper.on_match.assert_called_once_with({"match_link": "https://x/a"})
 
 
-def _fake_response(status, url):
+def _fake_response(status, url, resource_type="fetch"):
     response = MagicMock()
     response.status = status
     response.url = url
+    response.request.resource_type = resource_type
     return response
 
 
@@ -2470,3 +2471,82 @@ async def test_scrape_match_data_fresh_tab_navigates_once(setup_base_scraper_moc
 
     targets = [c.args[0] for c in page_mock.goto.await_args_list]
     assert targets == ["https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"]
+
+
+@pytest.mark.asyncio
+async def test_scrape_match_data_keeps_a_complete_record_when_only_an_image_got_429(setup_base_scraper_mocks):
+    """Images and chunks are the first to be refused; a view that rendered with every market is a good record."""
+    from unittest.mock import ANY
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    listeners = _capture_response_listener(page_mock)
+
+    async def goto(*args, **kwargs):
+        for handler in listeners:
+            handler(_fake_response(429, "https://www.oddsportal.com/images/logos/logo.svg", "image"))
+            handler(_fake_response(429, "https://www.oddsportal.com/_next/static/chunks/a.js", "script"))
+
+    page_mock.goto = AsyncMock(side_effect=goto)
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._hydrate_match_view = AsyncMock()
+    scraper._extract_match_details = AsyncMock(return_value={"home_team": "Masar"})
+
+    result = await scraper._scrape_match_data(
+        page=page_mock, sport="football", match_link="https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"
+    )
+
+    assert result == {"home_team": "Masar"}
+    page_mock.on.assert_called_once_with("response", ANY)
+
+
+@pytest.mark.asyncio
+async def test_scrape_match_data_reports_rate_limit_when_a_refused_script_blocked_hydration(setup_base_scraper_mocks):
+    from oddsharvester.core.exceptions import H2HFragmentResolutionError, RateLimitError
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    listeners = _capture_response_listener(page_mock)
+
+    async def goto(*args, **kwargs):
+        for handler in listeners:
+            handler(_fake_response(429, "https://www.oddsportal.com/_next/static/chunks/a.js", "script"))
+
+    page_mock.goto = AsyncMock(side_effect=goto)
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._hydrate_match_view = AsyncMock(side_effect=H2HFragmentResolutionError("never rendered match content"))
+
+    with pytest.raises(RateLimitError):
+        await scraper._scrape_match_data(
+            page=page_mock, sport="football", match_link="https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"
+        )
+
+    handler = page_mock.on.call_args.args[1]
+    page_mock.remove_listener.assert_called_once_with("response", handler)
+
+
+@pytest.mark.asyncio
+async def test_scrape_match_data_counts_429_after_a_redirect_to_the_www_host(setup_base_scraper_mocks):
+    """A bare-host --match-link redirects to www; the refused feed is then on www."""
+    from oddsharvester.core.exceptions import RateLimitError
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    listeners = _capture_response_listener(page_mock)
+
+    async def goto(*args, **kwargs):
+        for handler in listeners:
+            handler(_fake_response(429, "https://www.oddsportal.com/proxy/match-event/1-1-YDZojogM", "fetch"))
+
+    page_mock.goto = AsyncMock(side_effect=goto)
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._hydrate_match_view = AsyncMock()
+    scraper._extract_match_details = AsyncMock(return_value={"home_team": "Masar"})
+
+    with pytest.raises(RateLimitError):
+        await scraper._scrape_match_data(
+            page=page_mock, sport="football", match_link="https://oddsportal.com/football/h2h/a/b/#YDZojogM"
+        )

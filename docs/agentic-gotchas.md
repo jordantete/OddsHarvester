@@ -1766,13 +1766,22 @@ looks like a server-only bug.
 
 ### Fix pattern
 
-`BaseScraper._scrape_match_data` records every 429 from the match link's host
-while the match is scraped, and raises `RateLimitError` (typed `RATE_LIMITED`,
-attributed to the IP so proxy failover rotates) instead of a render error or a
-partial record. `retry_with_backoff` waits at least `RATE_LIMIT_RETRY_DELAY_S`
-(30 s) before retrying a `RateLimitError`; the default 2 s backoff lands in the
-same window. Listing pages are not covered yet: a 429 there still reads as a
-short listing (§17).
+`BaseScraper._scrape_match_data` records every 429 from the site's domain
+(`www.` and bare host alike, since a bare-host link redirects) while the match is
+scraped. It raises `RateLimitError` (typed `RATE_LIMITED`, attributed to the IP
+so proxy failover rotates) when the view never rendered, or when a refused
+request carried data (`document`, `xhr`, `fetch`). A refused image or script on
+a view that rendered is ignored: throwing away a complete record for a logo
+would turn half of a burst into failures. `retry_with_backoff` waits at least
+`RATE_LIMIT_RETRY_DELAY_S` (30 s) before retrying a `RateLimitError`; the
+default 2 s backoff lands in the same window.
+
+Listings: a 429 on the listing document itself raises `RateLimitError` in
+`collect_historic_links` and `collect_upcoming_links`, before the league-path
+guard (§24) could read the nginx error body as "league does not exist". A 429
+on a pagination page or on a request inside the listing still reads as a short
+listing (§17). The 30 s wait is per task: with `--concurrency` above 1, the
+other tasks keep loading pages on the same IP meanwhile.
 
 ### References
 

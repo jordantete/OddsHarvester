@@ -1426,3 +1426,97 @@ async def test_league_guard_accepts_a_real_league_even_without_fixtures():
     await OddsPortalScraper._assert_league_page_exists(
         _page_with_country_links(2), "https://www.oddsportal.com/football/bhutan/premier-league/results/"
     )
+
+
+def _rate_limited_response():
+    response = MagicMock()
+    response.status = 429
+    return response
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_upcoming_league_path_rate_limited_is_not_reported_as_missing(url_builder_mock, setup_scraper_mocks):
+    """The nginx 429 body has no country breadcrumb: it must not read as an unknown league."""
+    from oddsharvester.core.exceptions import RateLimitError
+
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock(spec=Page)
+    tab.goto = AsyncMock(return_value=_rate_limited_response())
+    mocks["context_mock"].new_page = AsyncMock(return_value=tab)
+    url_builder_mock.get_upcoming_matches_url.return_value = (
+        "https://www.oddsportal.com/football/bhutan/premier-league/"
+    )
+    scraper._assert_league_page_exists = AsyncMock()
+
+    with pytest.raises(RateLimitError):
+        await scraper.collect_upcoming_links(sport="football", date=None, league="football/bhutan/premier-league")
+
+    scraper._assert_league_page_exists.assert_not_called()
+    tab.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_historic_listing_rate_limited_raises_rate_limit(url_builder_mock, setup_scraper_mocks):
+    from oddsharvester.core.exceptions import RateLimitError
+
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    url = "https://www.oddsportal.com/football/bhutan/premier-league/results/"
+    url_builder_mock.get_historic_matches_url.return_value = url
+
+    def goto(target, **kwargs):
+        page_mock.url = target
+        return _rate_limited_response()
+
+    page_mock.goto = AsyncMock(side_effect=goto)
+    scraper._assert_league_page_exists = AsyncMock()
+    scraper._collect_match_links = AsyncMock()
+
+    with pytest.raises(RateLimitError):
+        await scraper.scrape_historic(
+            sport="football", league="football/bhutan/premier-league", season=None, links_only=True
+        )
+
+    scraper._assert_league_page_exists.assert_not_called()
+    scraper._collect_match_links.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("league", "guarded"), [("football/bhutan/premier-league", True), ("premier-league", False)])
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_upcoming_checks_existence_of_league_paths_only(url_builder_mock, league, guarded, setup_scraper_mocks):
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock(spec=Page)
+    mocks["context_mock"].new_page = AsyncMock(return_value=tab)
+    url_builder_mock.get_upcoming_matches_url.return_value = "https://www.oddsportal.com/football/x/y/"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._assert_league_page_exists = AsyncMock()
+    scraper.extract_match_rows = AsyncMock(return_value=[])
+
+    await scraper.collect_upcoming_links(sport="football", date=None, league=league)
+
+    assert scraper._assert_league_page_exists.await_count == (1 if guarded else 0)
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_historic_checks_existence_of_a_league_path(url_builder_mock, setup_scraper_mocks):
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    url_builder_mock.get_historic_matches_url.return_value = (
+        "https://www.oddsportal.com/football/bhutan/premier-league/results/"
+    )
+    scraper._assert_league_page_exists = AsyncMock(side_effect=PageNotFoundError("missing", url="u"))
+    scraper._collect_match_links = AsyncMock()
+
+    with pytest.raises(PageNotFoundError):
+        await scraper.scrape_historic(
+            sport="football", league="football/bhutan/premier-league", season=None, links_only=True
+        )
+
+    scraper._collect_match_links.assert_not_called()

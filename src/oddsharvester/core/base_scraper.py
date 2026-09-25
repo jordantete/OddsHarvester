@@ -890,14 +890,15 @@ class BaseScraper:
         live_mode: bool = False,
     ) -> dict[str, Any] | None:
         """Scrape one match, raising RateLimitError when OddsPortal answered 429 during the visit."""
-        # A 429 on any request of the page (feed, script, tab switch) leaves the view or a market empty
+        # A 429 on a request of the page (feed, script, tab switch) leaves the view or a market empty
         # while the document itself loads; only the response stream shows it (gotchas §23).
-        host = urlsplit(match_link).hostname
-        throttled: list[str] = []
+        domain = (urlsplit(match_link).hostname or "").removeprefix("www.")
+        refused: list[tuple[str, str]] = []
 
         def on_response(response) -> None:
-            if response.status == 429 and urlsplit(response.url).hostname == host:
-                throttled.append(response.url)
+            host = urlsplit(response.url).hostname or ""
+            if response.status == 429 and (host == domain or host.endswith("." + domain)):
+                refused.append((response.request.resource_type, response.url))
 
         page.on("response", on_response)
         try:
@@ -914,13 +915,15 @@ class BaseScraper:
                 live_mode=live_mode,
             )
         except H2HFragmentResolutionError as e:
-            if throttled:
-                raise self._rate_limit_error(match_link, throttled) from e
+            if refused:
+                raise self._rate_limit_error(match_link, [url for _, url in refused]) from e
             raise
         finally:
             page.remove_listener("response", on_response)
-        if throttled:
-            raise self._rate_limit_error(match_link, throttled)
+        # A refused image or chunk on a view that rendered costs nothing; a refused data request may.
+        lost_data = [url for kind, url in refused if kind in ("document", "xhr", "fetch")]
+        if lost_data:
+            raise self._rate_limit_error(match_link, lost_data)
         return result
 
     @staticmethod
