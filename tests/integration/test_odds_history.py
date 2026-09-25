@@ -91,6 +91,18 @@ def _blocks(entry):
     return entry.get("odds_history_data") or []
 
 
+def _describe(key, entry):
+    return (key, entry.get("bookmaker_name"), entry.get("submarket_name"), len(_labels(entry)), len(_blocks(entry)))
+
+
+def _missing_blocks(match):
+    return [_describe(key, entry) for key, entry in _entries(match) if len(_blocks(entry)) < len(_labels(entry))]
+
+
+def _extra_blocks(match):
+    return [_describe(key, entry) for key, entry in _entries(match) if len(_blocks(entry)) > len(_labels(entry))]
+
+
 def test_run_succeeds(run):
     assert run["exit_code"] == 0, run["stderr"][-2000:]
     _match(run)
@@ -101,18 +113,20 @@ def test_matches_golden(run):
     assert result.passed, str(result)
 
 
+def test_no_entry_is_missing_history_blocks(run):
+    missing = _missing_blocks(_match(run))
+    assert not missing, missing
+
+
 @pytest.mark.xfail(
     strict=True,
+    raises=AssertionError,
     reason="odds_history_extractor also matches the non-leaf row of an expanded submarket, "
     "so a bookmaker collects extra history blocks",
 )
-def test_one_history_block_per_outcome(run):
-    mismatches = [
-        (key, entry.get("bookmaker_name"), entry.get("submarket_name"), len(_labels(entry)), len(_blocks(entry)))
-        for key, entry in _entries(_match(run))
-        if len(_labels(entry)) != len(_blocks(entry))
-    ]
-    assert not mismatches, mismatches
+def test_no_entry_has_extra_history_blocks(run):
+    extra = _extra_blocks(_match(run))
+    assert not extra, extra
 
 
 def test_history_blocks_have_the_collector_shape(run):
@@ -142,3 +156,10 @@ def test_outcome_keys_come_before_meta_keys(run):
     for key, entry in _entries(_match(run)):
         labels = _labels(entry)
         assert list(entry)[: len(labels)] == labels, (key, list(entry))
+
+
+def test_missing_block_check_flags_a_dropped_block():
+    match = json.loads(FIXTURE.read_text())[0]
+    assert not _missing_blocks(match)
+    match["1x2_market"][0]["odds_history_data"].pop()
+    assert _missing_blocks(match) == [("1x2_market", "Betclic.fr", "1X2", 3, 2)]
