@@ -1,7 +1,13 @@
 """Comparison utilities for integration testing."""
 
+from collections import Counter
 import json
+import re
 from typing import Any
+
+MARKET_SUFFIX = "_market"
+IGNORED_FIELDS = frozenset({"scraped_date"})
+_YEAR = re.compile(r"^\d{4}-")
 
 
 class ComparisonResult:
@@ -33,169 +39,83 @@ class ComparisonResult:
         return f"FAILED: {len(self.errors)} error(s)\n" + "\n".join(f"  - {e}" for e in self.errors)
 
 
-def compare_match_data(
-    actual: dict[str, Any],
-    expected: dict[str, Any],
-    strict_odds: bool = False,
-    odds_tolerance: float = 0.02,
-) -> ComparisonResult:
+def compare_match_data(actual: dict[str, Any], expected: dict[str, Any]) -> ComparisonResult:
     """
-    Compare actual scraped data against expected fixture.
+    Compare a scraped match against its fixture.
 
-    Args:
-        actual: The scraped match data
-        expected: The expected data from fixture
-        strict_odds: If True, odds must match exactly; if False, allows tolerance
-        odds_tolerance: Tolerance for odds comparison (default 0.02 = 2 cents)
-
-    Returns:
-        ComparisonResult with pass/fail status and details
+    Every field must be equal except scraped_date. Market lists are compared entry by entry,
+    keyed by (bookmaker_name, period, submarket_name), with odds compared as exact strings.
     """
     result = ComparisonResult()
-
-    # 1. Compare fixed fields (exact match required)
-    fixed_fields = ["home_team", "away_team", "sport"]
-    for field in fixed_fields:
-        actual_val = actual.get(field)
-        expected_val = expected.get(field)
-        if actual_val != expected_val:
-            result.add_error(f"Field '{field}' mismatch: actual='{actual_val}' vs expected='{expected_val}'")
-
-    # 2. Compare scores (may be in different formats)
-    for score_field in ["home_score", "away_score"]:
-        actual_score = str(actual.get(score_field, "")).strip()
-        expected_score = str(expected.get(score_field, "")).strip()
-        if actual_score and expected_score and actual_score != expected_score:
-            result.add_error(f"Field '{score_field}' mismatch: actual='{actual_score}' vs expected='{expected_score}'")
-
-    # 3. Compare league (partial match allowed - formatting may vary)
-    actual_league = actual.get("league", "").lower()
-    expected_league = expected.get("league", "").lower()
-    if (
-        actual_league
-        and expected_league
-        and expected_league not in actual_league
-        and actual_league not in expected_league
-    ):
-        result.add_warning(f"League mismatch: '{actual.get('league')}' vs '{expected.get('league')}'")
-
-    # 4. Compare URL if present
-    actual_url = actual.get("url", "")
-    expected_url = expected.get("url", "")
-    if actual_url and expected_url:
-        # Compare just the match ID part (last segment)
-        actual_id = actual_url.rstrip("/").split("/")[-1]
-        expected_id = expected_url.rstrip("/").split("/")[-1]
-        if actual_id != expected_id:
-            result.add_error(f"URL mismatch: {actual_url} vs {expected_url}")
-
-    # 5. Compare odds structure
-    actual_odds = actual.get("odds", {})
-    expected_odds = expected.get("odds", {})
-
-    if expected_odds:
-        odds_result = compare_odds(actual_odds, expected_odds, strict_odds, odds_tolerance)
-        result.errors.extend(odds_result.errors)
-        result.warnings.extend(odds_result.warnings)
-        if not odds_result.passed:
-            result.passed = False
-
+    for key in sorted((actual.keys() | expected.keys()) - IGNORED_FIELDS):
+        if key not in actual:
+            result.add_error(f"'{key}' missing from actual")
+        elif key not in expected:
+            result.add_error(f"'{key}' not in fixture")
+        elif key.endswith(MARKET_SUFFIX):
+            for error in compare_market(key, actual[key], expected[key]).errors:
+                result.add_error(error)
+        elif actual[key] != expected[key]:
+            result.add_error(f"Field '{key}' mismatch: actual={actual[key]!r} vs expected={expected[key]!r}")
     return result
 
 
-def compare_odds(
-    actual: dict[str, Any],
-    expected: dict[str, Any],
-    strict: bool,
-    tolerance: float,
-) -> ComparisonResult:
-    """Compare odds data between actual and expected."""
+def compare_market(market: str, actual: list[dict[str, Any]], expected: list[dict[str, Any]]) -> ComparisonResult:
+    """Compare the bookmaker entries of one market."""
     result = ComparisonResult()
-
-    if not expected:
-        return result
-
-    # Check that all expected markets exist in actual
-    for market_name, market_data in expected.items():
-        if market_name not in actual:
-            result.add_error(f"Missing market in actual: '{market_name}'")
-            continue
-
-        actual_market = actual[market_name]
-
-        if not isinstance(market_data, dict):
-            continue
-
-        # Compare submarkets
-        for submarket_name, submarket_data in market_data.items():
-            if not isinstance(submarket_data, dict):
-                continue
-
-            if submarket_name not in actual_market:
-                result.add_warning(f"Missing submarket '{submarket_name}' in market '{market_name}'")
-                continue
-
-            actual_submarket = actual_market[submarket_name]
-
-            # Compare bookmakers
-            for bookmaker, odds_data in submarket_data.items():
-                if not isinstance(odds_data, dict):
-                    continue
-
-                if bookmaker not in actual_submarket:
-                    # Bookmakers can disappear from OddsPortal - warning only
-                    result.add_warning(f"Bookmaker '{bookmaker}' not found in actual data")
-                    continue
-
-                actual_bookie = actual_submarket[bookmaker]
-
-                # Compare closing odds if present
-                if "closing_odds" in odds_data and "closing_odds" in actual_bookie:
-                    expected_closing = odds_data["closing_odds"]
-                    actual_closing = actual_bookie["closing_odds"]
-
-                    if not _compare_odds_values(actual_closing, expected_closing, strict, tolerance):
-                        result.add_error(
-                            f"Closing odds mismatch for {bookmaker} in {market_name}/{submarket_name}: "
-                            f"actual={actual_closing} vs expected={expected_closing}"
-                        )
-
+    actual_by_key = _index_entries(market, actual, "actual", result)
+    expected_by_key = _index_entries(market, expected, "fixture", result)
+    for key in sorted(actual_by_key.keys() | expected_by_key.keys(), key=repr):
+        if key not in actual_by_key:
+            result.add_error(f"{market}: entry {key} missing from actual")
+        elif key not in expected_by_key:
+            result.add_error(f"{market}: entry {key} not in fixture")
+        else:
+            actual_entry = _mask_history_years(actual_by_key[key])
+            expected_entry = _mask_history_years(expected_by_key[key])
+            if actual_entry != expected_entry:
+                result.add_error(
+                    f"{market}: entry {key} differs: actual={actual_entry!r} vs expected={expected_entry!r}"
+                )
     return result
 
 
-def _compare_odds_values(
-    actual: list[str] | str,
-    expected: list[str] | str,
-    strict: bool,
-    tolerance: float,
-) -> bool:
-    """Compare two odds values or lists of odds values."""
-    # Normalize to lists
-    if isinstance(actual, str):
-        actual = [actual]
-    if isinstance(expected, str):
-        expected = [expected]
+def _entry_key(entry: dict[str, Any]) -> tuple[Any, Any, Any]:
+    return (entry.get("bookmaker_name"), entry.get("period"), entry.get("submarket_name"))
 
-    if len(actual) != len(expected):
-        return False
 
-    for a, e in zip(actual, expected, strict=False):
-        try:
-            actual_val = float(a)
-            expected_val = float(e)
+def _index_entries(
+    market: str, entries: list[dict[str, Any]], side: str, result: ComparisonResult
+) -> dict[tuple[Any, Any, Any], dict[str, Any]]:
+    for key, count in Counter(_entry_key(entry) for entry in entries).items():
+        if count > 1:
+            result.add_error(f"{market}: entry {key} appears {count} times in {side}")
+    return {_entry_key(entry): entry for entry in entries}
 
-            if strict:
-                if actual_val != expected_val:
-                    return False
-            else:
-                if abs(actual_val - expected_val) > tolerance:
-                    return False
-        except (ValueError, TypeError):
-            # Non-numeric odds (e.g., "-") - compare as strings
-            if str(a).strip() != str(e).strip():
-                return False
 
-    return True
+def _mask_history_years(entry: dict[str, Any]) -> dict[str, Any]:
+    # The history parser stamps the run's year on every timestamp, so it varies with the replay date.
+    blocks = entry.get("odds_history_data")
+    if not blocks:
+        return entry
+    return {**entry, "odds_history_data": [_mask_block(block) for block in blocks]}
+
+
+def _mask_block(block: Any) -> Any:
+    if not isinstance(block, dict):
+        return block
+    masked = dict(block)
+    if isinstance(block.get("odds_history"), list):
+        masked["odds_history"] = [_mask_point(point) for point in block["odds_history"]]
+    if isinstance(block.get("opening_odds"), dict):
+        masked["opening_odds"] = _mask_point(block["opening_odds"])
+    return masked
+
+
+def _mask_point(point: Any) -> Any:
+    if isinstance(point, dict) and isinstance(point.get("timestamp"), str):
+        return {**point, "timestamp": _YEAR.sub("YYYY-", point["timestamp"])}
+    return point
 
 
 def compare_json_files(actual_path: str, expected_path: str) -> ComparisonResult:
