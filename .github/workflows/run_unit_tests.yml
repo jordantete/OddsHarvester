@@ -50,3 +50,37 @@ jobs:
           files: ./coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+
+  integration:
+    name: Run Integration Tests (HAR replay)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          # Unique per (workflow, job) so this job never races another workflow's
+          # job over the same content-based setup-uv cache key.
+          cache-suffix: ${{ github.workflow }}-${{ github.job }}
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxml2-dev libxslt-dev python3-dev build-essential
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Install Playwright Chromium Browser
+        run: uv run playwright install chromium
+
+      - name: Run HAR replay tests
+        run: uv run pytest tests/integration/ -q -m integration
