@@ -178,7 +178,7 @@ class TestBasketballPeriods:
         fixture_exists,
         har_for_match,
     ):
-        """BB-004: Test home_away market, 1st half."""
+        """BB-004: the 1st-half tab cannot be verified on this page, so no odds are returned."""
         fixture_name = "home_away_1st_half_all.json"
 
         if not fixture_exists(
@@ -225,7 +225,7 @@ class TestBasketballPeriods:
         fixture_exists,
         har_for_match,
     ):
-        """BB-005: Test home_away market, 1st quarter."""
+        """BB-005: the 1st-quarter tab cannot be verified on this page, so no odds are returned."""
         fixture_name = "home_away_1st_quarter_all.json"
 
         if not fixture_exists(
@@ -272,7 +272,7 @@ class TestBasketballPeriods:
         fixture_exists,
         har_for_match,
     ):
-        """BB-006: Test Lakers vs Warriors, 1st half."""
+        """BB-006: the 1st-half tab cannot be verified on this page, so no odds are returned."""
         fixture_name = "home_away_1st_half_all.json"
 
         if not fixture_exists(

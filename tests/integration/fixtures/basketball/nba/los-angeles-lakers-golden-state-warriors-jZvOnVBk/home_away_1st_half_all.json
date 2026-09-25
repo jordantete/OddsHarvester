@@ -1,6 +1,6 @@
 [
     {
-        "scraped_date": "2026-09-02 13:01:36 UTC",
+        "scraped_date": "2026-09-25 10:53:06 UTC",
         "match_date": "2025-02-07 03:00:00 UTC",
         "season": null,
         "match_link": "https://www.oddsportal.com/basketball/h2h/golden-state-warriors-SxUtXqch/los-angeles-lakers-ngegZ8bg/#jZvOnVBk",
@@ -14,35 +14,6 @@
         "venue_town": null,
         "venue_country": null,
         "match_info": null,
-        "home_away_market": [
-            {
-                "1": "1.44",
-                "2": "2.58",
-                "bookmaker_name": "Betclic.fr",
-                "period": "FirstHalf",
-                "submarket_name": "Home/Away"
-            },
-            {
-                "1": "1.44",
-                "2": "2.85",
-                "bookmaker_name": "bwin.fr",
-                "period": "FirstHalf",
-                "submarket_name": "Home/Away"
-            },
-            {
-                "1": "1.41",
-                "2": "2.95",
-                "bookmaker_name": "Unibet.fr",
-                "period": "FirstHalf",
-                "submarket_name": "Home/Away"
-            },
-            {
-                "1": "1.52",
-                "2": "2.55",
-                "bookmaker_name": "Winamax",
-                "period": "FirstHalf",
-                "submarket_name": "Home/Away"
-            }
-        ]
+        "home_away_market": []
     }
 ]
