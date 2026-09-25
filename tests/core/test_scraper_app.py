@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
@@ -546,10 +547,10 @@ async def test_retry_scrape_transient_error(mock_sleep):
 @pytest.mark.asyncio
 @patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
 async def test_retry_scrape_non_retryable_error(mock_sleep):
-    """Test retry_scrape function with non-retryable error."""
+    """A non-retryable error is raised at once, as itself."""
     mock_func = AsyncMock(side_effect=ValueError("Invalid input"))
 
-    with pytest.raises(Exception, match="Invalid input"):
+    with pytest.raises(ValueError, match="Invalid input"):
         await retry_scrape(mock_func, "arg1")
 
     mock_func.assert_called_once()
@@ -558,15 +559,28 @@ async def test_retry_scrape_non_retryable_error(mock_sleep):
 
 @pytest.mark.asyncio
 @patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
-async def test_retry_scrape_max_retries_exceeded(mock_sleep):
-    """Test retry_scrape returns None when max retries are exceeded for transient errors."""
+async def test_retry_scrape_reraises_the_last_error_when_retries_run_out(mock_sleep):
+    """Exhausted retries surface the original exception instead of None, so callers can report it."""
     mock_func = AsyncMock(side_effect=Exception(f"Connection failed: {TRANSIENT_ERROR_KEYWORDS[0]}"))
 
-    result = await retry_scrape(mock_func)
+    with pytest.raises(Exception, match=TRANSIENT_ERROR_KEYWORDS[0]):
+        await retry_scrape(mock_func)
 
-    assert result is None
     assert mock_func.call_count == OPERATION_RETRY_MAX_ATTEMPTS
     assert mock_sleep.call_count == OPERATION_RETRY_MAX_ATTEMPTS - 1
+
+
+@pytest.mark.asyncio
+async def test_retry_scrape_reraises_the_original_exception_type():
+    from oddsharvester.core.exceptions import PageNotFoundError
+
+    error = PageNotFoundError("League page not found", url="https://www.oddsportal.com/football/x/y/results/")
+    mock_func = AsyncMock(side_effect=error)
+
+    with pytest.raises(PageNotFoundError) as excinfo:
+        await retry_scrape(mock_func)
+
+    assert excinfo.value is error
 
 
 @pytest.mark.asyncio
@@ -590,6 +604,27 @@ async def test_run_scraper_error_handling(sport_market_registrar_mock, proxy_man
 
     scraper_mock.stop_playwright.assert_called_once()
     assert result is None
+
+
+@pytest.mark.asyncio
+@patch("oddsharvester.core.scraper_app.OddsPortalScraper")
+@patch("oddsharvester.core.scraper_app.ProxyManager")
+@patch("oddsharvester.core.scraper_app.SportMarketRegistrar")
+async def test_run_scraper_logs_the_error_type_and_traceback(registrar_mock, proxy_mock, scraper_cls_mock, caplog):
+    scraper_mock = AsyncMock()
+    scraper_mock.start_playwright = AsyncMock(side_effect=RuntimeError("browser crashed"))
+    scraper_mock.stop_playwright = AsyncMock()
+    scraper_cls_mock.return_value = scraper_mock
+
+    with caplog.at_level(logging.ERROR, logger="ScraperApp"):
+        result = await run_scraper(
+            command=CommandEnum.HISTORIC, sport="football", leagues=["premier-league"], seasons=["2023"]
+        )
+
+    assert result is None
+    record = next(r for r in caplog.records if "browser crashed" in r.getMessage())
+    assert "RuntimeError" in record.getMessage()
+    assert record.exc_info is not None
 
 
 @pytest.mark.asyncio

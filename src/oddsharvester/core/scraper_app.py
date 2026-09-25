@@ -11,7 +11,7 @@ from oddsharvester.core.browser.selection import SelectionManager
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import ListingResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
-from oddsharvester.core.retry import RequestPacer, RetryConfig, is_retryable_error, retry_with_backoff
+from oddsharvester.core.retry import RequestPacer, RetryConfig, retry_with_backoff
 from oddsharvester.core.scrape_result import ScrapeResult
 from oddsharvester.core.sport_market_registry import SportMarketRegistrar
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
@@ -253,7 +253,7 @@ async def run_scraper(
         )
 
     except Exception as e:
-        logger.error(f"An error occured: {e}")
+        logger.error(f"Scraping failed: {type(e).__name__}: {e}", exc_info=True)
         return None
 
     finally:
@@ -392,7 +392,7 @@ def _log_completion(result: ScrapeResult, combos: list[Combo]) -> None:
     )
 
 
-async def retry_scrape(scrape_func, *args, **kwargs) -> ScrapeResult | None:
+async def retry_scrape(scrape_func, *args, **kwargs):
     """
     Retry a scrape function with exponential backoff for transient errors.
 
@@ -405,10 +405,10 @@ async def retry_scrape(scrape_func, *args, **kwargs) -> ScrapeResult | None:
         **kwargs: Keyword arguments for the function.
 
     Returns:
-        ScrapeResult from the scrape function, or None if max retries exceeded.
+        The scrape function's result.
 
     Raises:
-        Exception: Re-raises non-retryable errors immediately.
+        The last exception the function raised, once it is not retryable or the attempts run out.
     """
     config = RetryConfig(
         max_attempts=OPERATION_RETRY_MAX_ATTEMPTS,
@@ -421,10 +421,8 @@ async def retry_scrape(scrape_func, *args, **kwargs) -> ScrapeResult | None:
     if retry_result.success:
         return retry_result.result
 
-    # Preserve existing contract: non-retryable errors are re-raised
-    if retry_result.last_error and not is_retryable_error(retry_result.last_error):
+    if retry_result.is_retryable:
+        logger.error(f"Max retries exceeded after {retry_result.attempts} attempts: {retry_result.last_error}")
+    else:
         logger.error(f"Non-retryable error encountered: {retry_result.last_error}")
-        raise Exception(retry_result.last_error)
-
-    logger.error(f"Max retries exceeded after {retry_result.attempts} attempts.")
-    return None
+    raise retry_result.exception

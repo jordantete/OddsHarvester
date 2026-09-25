@@ -59,6 +59,7 @@ class RetryResult:
     last_error: str | None
     error_type: ErrorType | None
     is_retryable: bool = False
+    exception: BaseException | None = None
 
 
 def is_retryable_error(error_message: str) -> bool:
@@ -141,6 +142,7 @@ async def retry_with_backoff[T](
     last_error: str | None = None
     error_type: ErrorType | None = None
     is_retryable = False
+    last_exception: BaseException | None = None
 
     for attempt in range(1, config.max_attempts + 1):
         try:
@@ -156,6 +158,7 @@ async def retry_with_backoff[T](
 
         except Exception as e:
             last_error = str(e)
+            last_exception = e
             if isinstance(e, ScraperError):
                 error_type = e.error_type or classify_error(last_error)
                 is_retryable = e.is_retryable
@@ -172,6 +175,7 @@ async def retry_with_backoff[T](
                     last_error=last_error,
                     error_type=error_type,
                     is_retryable=is_retryable,
+                    exception=e,
                 )
 
             # Calculate delay with exponential backoff and jitter
@@ -197,6 +201,7 @@ async def retry_with_backoff[T](
         last_error=last_error,
         error_type=error_type,
         is_retryable=is_retryable,
+        exception=last_exception,
     )
 
 

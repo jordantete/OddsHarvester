@@ -375,3 +375,38 @@ def test_rate_limit_error_is_typed_rate_limited_and_attributed_to_the_ip():
 
     assert error.error_type is ErrorType.RATE_LIMITED
     assert is_proxy_attributable_error(error.error_type)
+
+
+@pytest.mark.asyncio
+async def test_retry_result_keeps_the_last_exception():
+    error = ValueError("structure changed")
+
+    async def always_fails():
+        raise error
+
+    result = await retry_with_backoff(always_fails, config=RetryConfig(max_attempts=2, base_delay=0, max_delay=0))
+
+    assert result.success is False
+    assert result.exception is error
+
+
+@pytest.mark.asyncio
+async def test_retry_result_keeps_the_exception_of_the_last_attempt():
+    errors = [Exception("ERR_CONNECTION_RESET first"), Exception("ERR_CONNECTION_RESET second")]
+
+    async def always_fails():
+        raise errors.pop(0)
+
+    result = await retry_with_backoff(always_fails, config=RetryConfig(max_attempts=2, base_delay=0, max_delay=0))
+
+    assert str(result.exception) == "ERR_CONNECTION_RESET second"
+
+
+@pytest.mark.asyncio
+async def test_retry_success_has_no_exception():
+    async def succeeds():
+        return "ok"
+
+    result = await retry_with_backoff(succeeds)
+
+    assert result.exception is None
