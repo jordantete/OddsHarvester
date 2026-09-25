@@ -1,4 +1,5 @@
 import csv
+import errno
 import json
 import os
 import stat
@@ -300,6 +301,51 @@ def test_atomic_write_refuses_a_read_only_output(local_data_storage, sample_data
         local_data_storage._save_as_json(sample_data, str(target))
 
     assert target.read_text(encoding="utf-8") == "[]"
+
+
+@pytest.mark.skipif(hasattr(os, "geteuid") and os.geteuid() == 0, reason="root can write any file")
+def test_atomic_write_falls_back_to_in_place_in_a_read_only_directory(local_data_storage, sample_data, tmp_path):
+    """A temporary file cannot be created in a read-only directory, but the existing file is writable."""
+    target = tmp_path / "out.json"
+    target.write_text("[]", encoding="utf-8")
+    tmp_path.chmod(0o555)
+
+    try:
+        local_data_storage._save_as_json(sample_data, str(target))
+    finally:
+        tmp_path.chmod(0o755)
+
+    assert json.loads(target.read_text(encoding="utf-8")) == sample_data
+
+
+def test_atomic_write_falls_back_to_in_place_when_replace_fails(local_data_storage, sample_data, tmp_path):
+    """A single-file bind mount rejects os.replace with EBUSY; the fallback writes the mount point in place."""
+    target = tmp_path / "out.json"
+    target.write_text("[]", encoding="utf-8")
+
+    with patch(
+        "oddsharvester.storage.local_data_storage.os.replace",
+        side_effect=OSError(errno.EBUSY, "Device or resource busy"),
+    ):
+        local_data_storage._save_as_json(sample_data, str(target))
+
+    assert json.loads(target.read_text(encoding="utf-8")) == sample_data
+    assert [p.name for p in tmp_path.iterdir()] == ["out.json"]
+
+
+@pytest.mark.skipif(hasattr(os, "geteuid") and os.geteuid() == 0, reason="root can write any file")
+def test_atomic_write_still_raises_for_a_new_file_in_a_read_only_directory(local_data_storage, sample_data, tmp_path):
+    """No target to fall back to writing in place, so a new file in a read-only directory still fails."""
+    target = tmp_path / "new.json"
+    tmp_path.chmod(0o555)
+
+    try:
+        with pytest.raises(OSError):
+            local_data_storage._save_as_json(sample_data, str(target))
+    finally:
+        tmp_path.chmod(0o755)
+
+    assert not target.exists()
 
 
 def test_save_data_creates_missing_directories(local_data_storage, sample_data, tmp_path):

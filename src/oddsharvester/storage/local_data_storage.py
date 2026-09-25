@@ -141,23 +141,44 @@ class LocalDataStorage:
             )
         return existing
 
-    @staticmethod
-    def _write_atomically(file_path: str, write: Callable[[TextIO], None], newline: str | None = None) -> None:
+    def _write_atomically(self, file_path: str, write: Callable[[TextIO], None], newline: str | None = None) -> None:
         """Write to a temporary file next to the target, then move it over the target in one step."""
         # A symlinked output keeps its link; the file it points to is replaced.
         target = os.path.realpath(file_path)
         # os.replace only needs a writable directory, so a read-only output would be replaced silently.
         if os.path.exists(target) and not os.access(target, os.W_OK):
             raise PermissionError(f"Output file is not writable: {target}")
+
+        def can_write_target_in_place() -> bool:
+            return os.path.exists(target) and os.access(target, os.W_OK)
+
+        def write_in_place() -> None:
+            self.logger.warning(f"Writing {target} in place: a temporary file cannot be used in its directory")
+            with open(target, "w", newline=newline, encoding="utf-8") as file:
+                write(file)
+
         temp_path = os.path.join(os.path.dirname(target), f".{os.path.basename(target)}.{uuid.uuid4().hex}.tmp")
         try:
-            with open(temp_path, "x", newline=newline, encoding="utf-8") as file:
+            try:
+                # Kept out of a `with` so a failure here, unlike one during the write below, can fall back.
+                temp_file = open(temp_path, "x", newline=newline, encoding="utf-8")  # noqa: SIM115
+            except OSError:
+                if can_write_target_in_place():
+                    return write_in_place()
+                raise
+
+            with temp_file as file:
                 write(file)
                 file.flush()
                 os.fsync(file.fileno())
             if os.path.exists(target):
                 os.chmod(temp_path, stat.S_IMODE(os.stat(target).st_mode))
-            os.replace(temp_path, target)
+            try:
+                os.replace(temp_path, target)
+            except OSError:
+                if can_write_target_in_place():
+                    return write_in_place()
+                raise
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
