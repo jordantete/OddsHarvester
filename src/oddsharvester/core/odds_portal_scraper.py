@@ -9,7 +9,7 @@ from playwright.async_api import Page
 
 from oddsharvester.core.base_scraper import BaseScraper
 from oddsharvester.core.browser.pagination import WalkVerdict
-from oddsharvester.core.exceptions import PageNotFoundError, RateLimitError
+from oddsharvester.core.exceptions import PageNotFoundError, RateLimitError, SeasonNotFoundError
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.scrape_result import ScrapeResult
 from oddsharvester.core.url_builder import URLBuilder, is_league_path, normalize_inplay_match_url, rebase_url
@@ -592,7 +592,7 @@ class OddsPortalScraper(BaseScraper):
         if urlparse(requested_url).path.rstrip("/") == urlparse(landed_url).path.rstrip("/"):
             return
 
-        raise PageNotFoundError(
+        raise SeasonNotFoundError(
             f"Season page redirected to {landed_url}; the season does not exist under this league slug.",
             url=requested_url,
         )

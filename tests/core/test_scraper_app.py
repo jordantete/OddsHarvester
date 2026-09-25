@@ -5,6 +5,7 @@ from unittest.mock import ANY, AsyncMock, MagicMock, patch
 import pytest
 
 from oddsharvester.core import scraper_app
+from oddsharvester.core.exceptions import SeasonNotFoundError
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import ListingResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
@@ -990,6 +991,49 @@ async def test_scrape_combos_keeps_going_when_one_listing_errors():
 
     assert [c["errored"] for c in result.combo_stats] == [False, True, False]
     assert result.stats.successful == 2
+
+
+async def test_scrape_combos_counts_a_redirected_season_as_zero_links():
+    """A season OddsPortal redirects away is an empty combo, not a failed listing."""
+
+    async def collect(league, season):
+        if league == "broken":
+            raise SeasonNotFoundError(
+                "Season page redirected to https://x/; the season does not exist under this league slug.",
+                url="https://x/epl-2010/results/",
+            )
+        return _listing(f"https://x/{league}/m1")
+
+    scraper = MagicMock()
+    scraper.extract_match_odds = AsyncMock(return_value=_odds_result(["https://x/epl/m1"]))
+
+    result = await _run_combos(collect, [("epl", "2023"), ("broken", "2010")], scraper=scraper)
+
+    assert result.failed == []
+    assert result.combo_stats == [
+        {"league": "epl", "season": "2023", "successful": 1, "failed": 0, "errored": False},
+        {"league": "broken", "season": "2010", "successful": 0, "failed": 0, "errored": False},
+    ]
+
+
+async def test_scrape_combos_links_only_counts_a_redirected_season_as_zero_links():
+    """Same as the odds-mode case, but for links_only."""
+
+    async def collect(league, season):
+        if league == "broken":
+            raise SeasonNotFoundError(
+                "Season page redirected to https://x/; the season does not exist under this league slug.",
+                url="https://x/epl-2010/results/",
+            )
+        return _listing(f"https://x/{league}/m1")
+
+    result = await _run_combos(collect, [("epl", "2023"), ("broken", "2010")], links_only=True)
+
+    assert result.failed == []
+    assert result.combo_stats == [
+        {"league": "epl", "season": "2023", "successful": 1, "failed": 0, "errored": False},
+        {"league": "broken", "season": "2010", "successful": 0, "failed": 0, "errored": False},
+    ]
 
 
 @patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)

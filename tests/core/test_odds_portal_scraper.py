@@ -5,7 +5,7 @@ from unittest.mock import ANY, AsyncMock, MagicMock, patch
 from playwright.async_api import Browser, BrowserContext, Page
 import pytest
 
-from oddsharvester.core.exceptions import PageNotFoundError
+from oddsharvester.core.exceptions import PageNotFoundError, SeasonNotFoundError
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import LinkCollectionResult, ListingResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
@@ -271,6 +271,17 @@ async def test_scrape_historic_fails_when_season_url_redirects(url_builder_mock,
 )
 def test_season_guard_accepts_the_requested_page(requested, landed):
     OddsPortalScraper._assert_season_page_reached(requested_url=requested, landed_url=landed or requested)
+
+
+def test_season_guard_raises_season_not_found_on_redirect():
+    """A redirected season is a SeasonNotFoundError, which is still a PageNotFoundError."""
+    with pytest.raises(SeasonNotFoundError) as excinfo:
+        OddsPortalScraper._assert_season_page_reached(
+            requested_url="https://oddsportal.com/football/spain/laliga-2010-2011/results/",
+            landed_url="https://oddsportal.com/football/spain/laliga/",
+        )
+
+    assert isinstance(excinfo.value, PageNotFoundError)
 
 
 @pytest.mark.asyncio

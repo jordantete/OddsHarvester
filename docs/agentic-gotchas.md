@@ -1031,11 +1031,13 @@ benefit.
 
 Because a zero-link result is the expected shape for an invalid pairing, not
 a scraper malfunction, a combo returning zero results is reported in the
-end-of-run summary table (`_format_combo_summary` in
-`cli/commands/historic.py`) as a zero-count row, not as an error, and does
-not affect the exit code. Only combos that raise (network error, parse
-exception) count toward the "errored" total; those are the ones worth
-re-running.
+end-of-run summary table (`format_combo_summary` in
+`cli/commands/_output.py`) as a zero-count row, not as an error, and does
+not affect the exit code. A season that OddsPortal redirects away (§4) is
+also reported as a zero-count row. Only combos whose listing failed (network
+error, parse exception, unknown league) count toward the "errored" total;
+they make the run exit 1 once the other combos' data is written, and they
+are the ones worth re-running.
 
 ### Detection signal
 
@@ -1064,7 +1066,7 @@ re-running.
 
 - §4's "HTTP 200 is not validation" point.
 - `core/scraper_app.py`: `_scrape_league_season_combos`.
-- `cli/commands/historic.py`: `_format_combo_summary`.
+- `cli/commands/_output.py`: `format_combo_summary`.
 - Issue #78.
 
 ---

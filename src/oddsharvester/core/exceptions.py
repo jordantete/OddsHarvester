@@ -79,6 +79,10 @@ class PageNotFoundError(ScraperError):
         super().__init__(message, url, is_retryable=False)
 
 
+class SeasonNotFoundError(PageNotFoundError):
+    """The requested season does not exist under this league slug; OddsPortal redirected it."""
+
+
 class PartialDataError(ScraperError):
     """
     Partial data was retrieved.

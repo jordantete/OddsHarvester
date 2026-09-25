@@ -8,7 +8,7 @@ from oddsharvester.core.browser.cookies import CookieDismisser
 from oddsharvester.core.browser.market_navigation import MarketTabNavigator
 from oddsharvester.core.browser.scrolling import PageScroller
 from oddsharvester.core.browser.selection import SelectionManager
-from oddsharvester.core.exceptions import ScraperError
+from oddsharvester.core.exceptions import ScraperError, SeasonNotFoundError
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import ListingResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
@@ -342,6 +342,9 @@ async def _scrape_combos(
                 listings[index] = await retry_scrape(collect, league=league, season=season)
                 if listings[index] is None:
                     logger.warning(f"No data returned for {label}")
+            except SeasonNotFoundError:
+                logger.info(f"Season does not exist for {label}, counting as zero links")
+                listings[index] = ListingResult()
             except Exception as e:
                 listing_errors[index] = e
                 logger.error(f"Failed to scrape {label}: {e}")
