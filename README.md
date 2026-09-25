@@ -300,6 +300,15 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 | `--local-kickoff` |       | Add venue-local kickoff time to each record (`--no-local-kickoff` to opt out explicitly). Distinct from `--timezone` | `--no-local-kickoff` |
 | `--stream-ndjson` |       | Emit each match as an NDJSON line on stdout as soon as it is scraped (`--no-stream-ndjson` to opt out explicitly) | `--no-stream-ndjson` |
 
+> **Breaking change:** a run now exits 1 when its output cannot be written. The batch is
+> then saved next to the requested output as `<name>.unsaved-<UTC timestamp>.json`, and the
+> message gives that path. `--append` no longer replaces an existing JSON file it cannot
+> read (invalid JSON, or JSON that is not a list): the file is left as it was and the batch
+> goes to that fallback file. JSON output, and CSV output without `--append`, is written to
+> a temporary file first and then moved into place, so an interrupted run never leaves a
+> truncated file. `historic` and `upcoming` also exit 1 when a league or season fails to
+> list, after writing the data of the others.
+
 > **Breaking change:** every output row now carries a `season` column. For odds
 > rows it is inserted directly after `match_date`; `--links-only` rows have no
 > `match_date` and carry `season` alongside the other link fields instead. It
@@ -438,7 +447,7 @@ oddsharvester historic --sport football --league russia-premier-league \
     --season 2010,2010-2011,2011,2011-2012 --links-only
 ```
 
-No pre-filtering is attempted to figure out which `(league, season)` pairs are valid before scraping them; a wrong-format pair (e.g. `2010` for a league that only ever used `2010-2011`) is simply scraped and returns zero links. That is normal, not an error: OddsPortal returns HTTP 200 for a dead season URL, so the only way to tell a valid combo from an invalid one is to scrape it and count the results (see `docs/agentic-gotchas.md` §15). When more than one combo runs, an end-of-run table lists each league/season pair with its count, then reports how many combos returned nothing and how many errored. A zero-count combo does not affect the exit code; only errored combos are worth re-running.
+No pre-filtering is attempted to figure out which `(league, season)` pairs are valid before scraping them; a wrong-format pair (e.g. `2010` for a league that only ever used `2010-2011`) is simply scraped and returns zero links. That is normal, not an error: OddsPortal returns HTTP 200 for a dead season URL, so the only way to tell a valid combo from an invalid one is to scrape it and count the results (see `docs/agentic-gotchas.md` §15). When more than one combo runs, an end-of-run table lists each league/season pair with its count, then reports how many combos returned nothing and how many errored. A zero-count combo does not affect the exit code. An errored combo makes the run exit 1 once the other combos' data is written, and is the only kind worth re-running.
 
 ### Local kickoff time
 
