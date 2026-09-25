@@ -1002,6 +1002,8 @@ async def test_scrape_combos_records_exhausted_retries_as_errored(mock_sleep):
     assert collect.await_count == OPERATION_RETRY_MAX_ATTEMPTS
     assert result.combo_stats == [{"league": "epl", "season": None, "successful": 0, "failed": 0, "errored": True}]
     assert result.success == []
+    assert [(f.error_type, f.url, f.is_retryable) for f in result.failed] == [(ErrorType.LISTING_PAGE, "epl", True)]
+    assert result.failed[0].error_message == "Listing failed for epl: Exception: Navigation timeout"
 
 
 async def test_scrape_combos_links_only_never_scrapes_odds_and_keeps_the_row_shape():
@@ -1025,6 +1027,95 @@ async def test_scrape_combos_links_only_never_scrapes_odds_and_keeps_the_row_sha
         {"league": "laliga", "season": "2023", "successful": 1, "failed": 0, "errored": False},
     ]
     assert (result.stats.successful, result.stats.failed, result.stats.total_urls) == (2, 1, 3)
+
+
+async def test_scrape_combos_reports_an_errored_combo_as_a_listing_failure():
+    """B3: a combo whose listing failed must show up in `failed`, or a multi-combo run looks complete."""
+
+    async def collect(league, season):
+        if league == "broken":
+            raise ValueError("Season page redirected")
+        return _listing(f"https://x/{league}/m1")
+
+    scraper = MagicMock()
+    scraper.extract_match_odds = AsyncMock(return_value=_odds_result(["https://x/epl/m1"]))
+
+    result = await _run_combos(collect, [("epl", "2023"), ("broken", "2023")], scraper=scraper)
+
+    [failure] = result.failed
+    assert failure.error_type is ErrorType.LISTING_PAGE
+    assert failure.url == "broken 2023"
+    assert failure.error_message == "Listing failed for broken 2023: ValueError: Season page redirected"
+    assert failure.is_retryable is False
+    assert (result.stats.successful, result.stats.failed, result.stats.total_urls) == (1, 1, 2)
+    assert result.combo_stats[1] == {
+        "league": "broken",
+        "season": "2023",
+        "successful": 0,
+        "failed": 0,
+        "errored": True,
+    }
+
+
+async def test_scrape_combos_links_only_reports_an_errored_combo_with_its_url():
+    from oddsharvester.core.exceptions import PageNotFoundError
+
+    async def collect(league, season):
+        if league == "gone":
+            raise PageNotFoundError("League page not found", url="https://www.oddsportal.com/football/x/gone/results/")
+        return _listing(f"https://x/{league}/m1")
+
+    result = await _run_combos(collect, [("epl", None), ("gone", None)], links_only=True)
+
+    [failure] = result.failed
+    assert failure.error_type is ErrorType.LISTING_PAGE
+    assert failure.url == "https://www.oddsportal.com/football/x/gone/results/"
+    assert failure.error_message.startswith("Listing failed for gone: PageNotFoundError: League page not found")
+    assert (result.stats.successful, result.stats.failed, result.stats.total_urls) == (1, 1, 2)
+
+
+@patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
+async def test_scrape_combos_keeps_a_rate_limited_listing_retryable(mock_sleep):
+    from oddsharvester.core.exceptions import RateLimitError
+
+    listing_url = "https://www.oddsportal.com/football/england/premier-league-2023-2024/results/"
+    collect = AsyncMock(
+        side_effect=RateLimitError("rate limited by OddsPortal: HTTP 429", url=listing_url, retry_after=0)
+    )
+
+    result = await _run_combos(collect, [("epl", "2023")], concurrency=1, links_only=True)
+
+    [failure] = result.failed
+    assert failure.url == listing_url
+    assert failure.is_retryable is True
+    assert "RateLimitError" in failure.error_message
+
+
+@patch("oddsharvester.core.scraper_app.OddsPortalScraper")
+@patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
+@patch("oddsharvester.core.scraper_app.PlaywrightManager")
+@patch("oddsharvester.core.scraper_app.ProxyManager")
+@patch("oddsharvester.core.scraper_app.SportMarketRegistrar")
+async def test_run_scraper_links_only_listing_failure_reaches_library_callers(
+    registrar_mock, proxy_mock, playwright_mock, extractor_mock, scraper_cls_mock
+):
+    """resolve_events_b.py reads res.failed[0] to tell a failed listing from an empty league."""
+    scraper_mock = scraper_cls_mock.return_value
+    scraper_mock.start_playwright = AsyncMock()
+    scraper_mock.stop_playwright = AsyncMock()
+    scraper_mock.collect_historic_links = AsyncMock(side_effect=ValueError("Season page redirected"))
+
+    result = await run_scraper(
+        command=CommandEnum.HISTORIC,
+        sport="football",
+        leagues=["england-premier-league"],
+        seasons=["2022-2023"],
+        links_only=True,
+    )
+
+    assert result.success == []
+    assert [f.error_type for f in result.failed] == [ErrorType.LISTING_PAGE]
+    assert "ValueError: Season page redirected" in result.failed[0].error_message
 
 
 async def test_scrape_combos_with_no_links_skips_the_odds_phase():

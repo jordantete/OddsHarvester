@@ -8,11 +8,12 @@ from oddsharvester.core.browser.cookies import CookieDismisser
 from oddsharvester.core.browser.market_navigation import MarketTabNavigator
 from oddsharvester.core.browser.scrolling import PageScroller
 from oddsharvester.core.browser.selection import SelectionManager
+from oddsharvester.core.exceptions import ScraperError
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import ListingResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
-from oddsharvester.core.retry import RequestPacer, RetryConfig, retry_with_backoff
-from oddsharvester.core.scrape_result import ScrapeResult
+from oddsharvester.core.retry import RequestPacer, RetryConfig, is_retryable_error, retry_with_backoff
+from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult
 from oddsharvester.core.sport_market_registry import SportMarketRegistrar
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.command_enum import CommandEnum
@@ -272,6 +273,25 @@ def _combo_stat(
     return {"league": league, "season": season, "successful": successful, "failed": failed, "errored": errored}
 
 
+def _combo_failure(league: str | None, season: str | None, error: Exception | None) -> FailedUrl:
+    """A combo whose listing failed hides all its matches, so it counts as one failed listing."""
+    label = _combo_label(league, season)
+    reason = f"{type(error).__name__}: {error}" if error else "no listing returned"
+    is_retryable = error.is_retryable if isinstance(error, ScraperError) else is_retryable_error(str(error or ""))
+    return FailedUrl(
+        url=getattr(error, "url", None) or label,
+        error_type=ErrorType.LISTING_PAGE,
+        error_message=f"Listing failed for {label}: {reason}",
+        is_retryable=is_retryable,
+    )
+
+
+def _add_failure(result: ScrapeResult, failure: FailedUrl) -> None:
+    result.failed.append(failure)
+    result.stats.failed += 1
+    result.stats.total_urls += 1
+
+
 async def _scrape_combos(
     scraper: OddsPortalScraper,
     combos: list[Combo],
@@ -307,6 +327,7 @@ async def _scrape_combos(
     logger.info(f"Starting scraping for {len(combos)} league/season combo(s)")
 
     listings: list[ListingResult | None] = [None] * len(combos)
+    listing_errors: list[Exception | None] = [None] * len(combos)
     semaphore = asyncio.Semaphore(concurrency)
     pacer = RequestPacer(request_delay)
 
@@ -320,6 +341,7 @@ async def _scrape_combos(
                 if listings[index] is None:
                     logger.warning(f"No data returned for {label}")
             except Exception as e:
+                listing_errors[index] = e
                 logger.error(f"Failed to scrape {label}: {e}")
 
     await asyncio.gather(*(list_combo(i, league, season) for i, (league, season) in enumerate(combos)))
@@ -339,6 +361,7 @@ async def _scrape_combos(
             listing = listings[index]
             if listing is None:
                 result.combo_stats.append(_combo_stat(league, season, errored=True))
+                _add_failure(result, _combo_failure(league, season, listing_errors[index]))
                 continue
             rows = [row for row in listing.rows if link_to_combo[row["match_link"]] == index]
             combo_result = ScrapeResult.from_links(
@@ -368,7 +391,9 @@ async def _scrape_combos(
         if index is not None:
             failed[index] += 1
     for index, listing in enumerate(listings):
-        if listing and listing.failed_page_urls:
+        if listing is None:
+            _add_failure(result, _combo_failure(*combos[index], listing_errors[index]))
+        elif listing.failed_page_urls:
             result.add_listing_failures(listing.failed_page_urls)
             failed[index] += len(listing.failed_page_urls)
 
