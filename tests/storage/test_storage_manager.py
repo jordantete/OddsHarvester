@@ -62,5 +62,5 @@ def test_store_data_exception_handling(sample_data, mock_storage):
     ):
         result = store_data(StorageType.LOCAL.value, sample_data, StorageFormat.JSON, "test.json")
 
-        mock_logger.error.assert_called_once_with("Error during data storage: Storage error")
+        mock_logger.error.assert_called_once_with("Error during data storage: Storage error", exc_info=True)
         assert result is False

@@ -32,5 +32,5 @@ def store_data(
         return True
 
     except Exception as e:
-        logger.error(f"Error during data storage: {e!s}")
+        logger.error(f"Error during data storage: {e!s}", exc_info=True)
         return False

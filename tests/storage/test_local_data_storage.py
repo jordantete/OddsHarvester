@@ -1,5 +1,7 @@
 import csv
 import json
+import os
+import stat
 from unittest.mock import mock_open, patch
 
 import pytest
@@ -71,20 +73,14 @@ def test_save_data_unsupported_format(local_data_storage, sample_data):
         local_data_storage.save_data(sample_data, storage_format="unsupported")
 
 
-def test_save_as_csv_overwrites_by_default(local_data_storage, sample_data):
-    """Default mode opens the file in write mode and always writes the header."""
-    mock_file = mock_open()
+def test_save_as_csv_overwrites_by_default(local_data_storage, sample_data, tmp_path):
+    target = tmp_path / "test_data.csv"
+    target.write_text("old,content\n1,2\n", encoding="utf-8")
 
-    with patch("builtins.open", mock_file):
-        local_data_storage._save_as_csv(sample_data, "test_data.csv")
+    local_data_storage._save_as_csv(sample_data, str(target))
 
-    mock_file.assert_called_once_with("test_data.csv", mode="w", newline="", encoding="utf-8")
-
-    handle = mock_file()
-    writer = csv.DictWriter(handle, fieldnames=sample_data[0].keys())
-    writer.writeheader()
-    writer.writerows(sample_data)
-    handle.write.assert_called()
+    with open(target, newline="", encoding="utf-8") as handle:
+        assert list(csv.DictReader(handle)) == [{"team": "Team A", "odds": "2.5"}, {"team": "Team B", "odds": "1.8"}]
 
 
 def test_save_as_csv_append_new_file(local_data_storage, sample_data):
@@ -107,58 +103,31 @@ def test_save_as_csv_append_existing_file(local_data_storage, sample_data):
     mock_file.assert_called_once_with("test_data.csv", mode="a", newline="", encoding="utf-8")
 
 
-def test_save_as_json_overwrites_by_default(local_data_storage, sample_data):
-    """Default mode writes only the new data, ignoring any existing file content."""
-    mock_file = mock_open(read_data=json.dumps([{"team": "Old Team", "odds": 3.0}]))
+def test_save_as_json_overwrites_by_default(local_data_storage, sample_data, tmp_path):
+    target = tmp_path / "test_data.json"
+    target.write_text(json.dumps([{"team": "Old Team", "odds": 3.0}]), encoding="utf-8")
 
-    with patch("builtins.open", mock_file), patch("os.path.exists", return_value=True):
-        local_data_storage._save_as_json(sample_data, "test_data.json")
+    local_data_storage._save_as_json(sample_data, str(target))
 
-    # Only the write call should happen — no read of existing data.
-    mock_file.assert_called_once_with("test_data.json", "w", encoding="utf-8")
-    handle = mock_file()
-    json.dump(sample_data, handle, indent=4)
-    handle.write.assert_called()
+    assert json.loads(target.read_text(encoding="utf-8")) == sample_data
 
 
-def test_save_as_json_new_file(local_data_storage, sample_data):
-    """When the file does not exist, both modes simply write the new data."""
-    mock_file = mock_open()
+def test_save_as_json_new_file(local_data_storage, sample_data, tmp_path):
+    target = tmp_path / "test_data.json"
 
-    with patch("builtins.open", mock_file), patch("os.path.exists", return_value=False):
-        local_data_storage._save_as_json(sample_data, "test_data.json", append=True)
+    local_data_storage._save_as_json(sample_data, str(target), append=True)
 
-    mock_file.assert_called_once_with("test_data.json", "w", encoding="utf-8")
-    handle = mock_file()
-    json.dump(sample_data, handle, indent=4)
-    handle.write.assert_called()
+    assert json.loads(target.read_text(encoding="utf-8")) == sample_data
 
 
-def test_save_as_json_append_existing_data(local_data_storage, sample_data):
-    """append=True concatenates new data after the existing JSON list."""
-    existing_data = [{"team": "Old Team", "odds": 3.0}]
-    expected_combined_data = existing_data + sample_data
+def test_save_as_json_append_existing_data(local_data_storage, sample_data, tmp_path):
+    existing = [{"team": "Old Team", "odds": 3.0}]
+    target = tmp_path / "test_data.json"
+    target.write_text(json.dumps(existing), encoding="utf-8")
 
-    mock_file = mock_open(read_data=json.dumps(existing_data))
+    local_data_storage._save_as_json(sample_data, str(target), append=True)
 
-    with patch("builtins.open", mock_file), patch("os.path.exists", return_value=True):
-        local_data_storage._save_as_json(sample_data, "test_data.json", append=True)
-
-    handle = mock_file()
-    json.dump(expected_combined_data, handle, indent=4)
-    handle.write.assert_called()
-
-
-def test_save_as_json_append_invalid_existing_file(local_data_storage, sample_data):
-    """append=True with a corrupted existing file falls back to writing only the new data."""
-    mock_file = mock_open(read_data="invalid json content")
-
-    with patch("builtins.open", mock_file), patch("os.path.exists", return_value=True):
-        local_data_storage._save_as_json(sample_data, "test_data.json", append=True)
-
-    handle = mock_file()
-    json.dump(sample_data, handle, indent=4)
-    handle.write.assert_called()
+    assert json.loads(target.read_text(encoding="utf-8")) == existing + sample_data
 
 
 def test_save_data_invalid_format_type(local_data_storage, sample_data):
@@ -230,6 +199,115 @@ def test_save_as_csv_keeps_a_null_column_from_the_first_row(local_data_storage, 
     assert list(written[0].keys()) == ["match_link", "kickoff_utc"]
     assert written[0]["kickoff_utc"] == "2026-07-20 18:30:00 UTC"
     assert written[1]["kickoff_utc"] == ""
+
+
+def test_save_as_json_append_refuses_an_invalid_existing_file(local_data_storage, sample_data, tmp_path):
+    """An unreadable file must never be replaced by the new batch alone."""
+    target = tmp_path / "test_data.json"
+    target.write_text("invalid json content", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="not valid JSON"):
+        local_data_storage._save_as_json(sample_data, str(target), append=True)
+
+    assert target.read_text(encoding="utf-8") == "invalid json content"
+
+
+def test_save_as_json_append_refuses_a_json_object(local_data_storage, sample_data, tmp_path):
+    target = tmp_path / "test_data.json"
+    target.write_text('{"team": "Old Team"}', encoding="utf-8")
+
+    with pytest.raises(ValueError, match="not a list"):
+        local_data_storage._save_as_json(sample_data, str(target), append=True)
+
+    assert target.read_text(encoding="utf-8") == '{"team": "Old Team"}'
+
+
+@pytest.mark.parametrize("content", ["", "  \n"])
+def test_save_as_json_append_treats_a_blank_file_as_empty(local_data_storage, sample_data, tmp_path, content):
+    target = tmp_path / "test_data.json"
+    target.write_text(content, encoding="utf-8")
+
+    local_data_storage._save_as_json(sample_data, str(target), append=True)
+
+    assert json.loads(target.read_text(encoding="utf-8")) == sample_data
+
+
+def test_json_write_failure_leaves_the_previous_file_intact(local_data_storage, tmp_path):
+    target = tmp_path / "out.json"
+    target.write_text('[{"team": "Old Team"}]', encoding="utf-8")
+
+    with pytest.raises(TypeError):
+        local_data_storage._save_as_json([{"team": object()}], str(target))
+
+    assert target.read_text(encoding="utf-8") == '[{"team": "Old Team"}]'
+    assert [p.name for p in tmp_path.iterdir()] == ["out.json"]
+
+
+def test_csv_write_failure_leaves_the_previous_file_intact(local_data_storage, sample_data, tmp_path):
+    target = tmp_path / "out.csv"
+    target.write_text("team,odds\nOld Team,3.0\n", encoding="utf-8")
+
+    with (
+        patch("oddsharvester.storage.local_data_storage.csv.DictWriter.writerows", side_effect=OSError("disk full")),
+        pytest.raises(OSError, match="disk full"),
+    ):
+        local_data_storage._save_as_csv(sample_data, str(target))
+
+    assert target.read_text(encoding="utf-8") == "team,odds\nOld Team,3.0\n"
+    assert [p.name for p in tmp_path.iterdir()] == ["out.csv"]
+
+
+def test_atomic_write_keeps_the_existing_file_mode(local_data_storage, sample_data, tmp_path):
+    target = tmp_path / "out.json"
+    target.write_text("[]", encoding="utf-8")
+    target.chmod(0o640)
+
+    local_data_storage._save_as_json(sample_data, str(target))
+
+    assert stat.S_IMODE(target.stat().st_mode) == 0o640
+
+
+def test_atomic_write_gives_a_new_file_the_umask_default_mode(local_data_storage, sample_data, tmp_path):
+    old_umask = os.umask(0o022)
+    try:
+        local_data_storage._save_as_json(sample_data, str(tmp_path / "new.json"))
+    finally:
+        os.umask(old_umask)
+
+    assert stat.S_IMODE((tmp_path / "new.json").stat().st_mode) == 0o644
+
+
+def test_atomic_write_follows_a_symlinked_output(local_data_storage, sample_data, tmp_path):
+    real = tmp_path / "real.json"
+    real.write_text("[]", encoding="utf-8")
+    link = tmp_path / "link.json"
+    link.symlink_to(real)
+
+    local_data_storage._save_as_json(sample_data, str(link))
+
+    assert link.is_symlink()
+    assert json.loads(real.read_text(encoding="utf-8")) == sample_data
+
+
+@pytest.mark.skipif(hasattr(os, "geteuid") and os.geteuid() == 0, reason="root can write any file")
+def test_atomic_write_refuses_a_read_only_output(local_data_storage, sample_data, tmp_path):
+    """os.replace only needs a writable directory, so a file the user made read-only is checked first."""
+    target = tmp_path / "out.json"
+    target.write_text("[]", encoding="utf-8")
+    target.chmod(0o444)
+
+    with pytest.raises(PermissionError):
+        local_data_storage._save_as_json(sample_data, str(target))
+
+    assert target.read_text(encoding="utf-8") == "[]"
+
+
+def test_save_data_creates_missing_directories(local_data_storage, sample_data, tmp_path):
+    target = tmp_path / "new" / "dir" / "out.json"
+
+    local_data_storage.save_data(sample_data, file_path=str(target), storage_format="json")
+
+    assert json.loads(target.read_text(encoding="utf-8")) == sample_data
 
 
 def test_save_as_csv_unions_columns_across_rows(local_data_storage, tmp_path):
