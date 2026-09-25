@@ -1057,6 +1057,25 @@ async def test_scrape_combos_reports_an_errored_combo_as_a_listing_failure():
     }
 
 
+async def test_scrape_combos_ignores_the_url_of_a_non_scraper_error():
+    """Only a ScraperError's url is trustworthy; an unrelated exception's url is not the failed listing's."""
+
+    class _HttpError(Exception):
+        def __init__(self, message):
+            super().__init__(message)
+            self.url = "https://elsewhere/"
+
+    async def collect(league, season):
+        if league == "broken":
+            raise _HttpError("boom")
+        return _listing(f"https://x/{league}/m1")
+
+    result = await _run_combos(collect, [("epl", "2023"), ("broken", "2023")], links_only=True)
+
+    [failure] = result.failed
+    assert failure.url == "broken 2023"
+
+
 async def test_scrape_combos_links_only_reports_an_errored_combo_with_its_url():
     from oddsharvester.core.exceptions import PageNotFoundError
 

@@ -277,9 +277,11 @@ def _combo_failure(league: str | None, season: str | None, error: Exception | No
     """A combo whose listing failed hides all its matches, so it counts as one failed listing."""
     label = _combo_label(league, season)
     reason = f"{type(error).__name__}: {error}" if error else "no listing returned"
-    is_retryable = error.is_retryable if isinstance(error, ScraperError) else is_retryable_error(str(error or ""))
+    is_scraper_error = isinstance(error, ScraperError)
+    is_retryable = error.is_retryable if is_scraper_error else is_retryable_error(str(error or ""))
+    url = error.url if is_scraper_error else None
     return FailedUrl(
-        url=getattr(error, "url", None) or label,
+        url=url or label,
         error_type=ErrorType.LISTING_PAGE,
         error_message=f"Listing failed for {label}: {reason}",
         is_retryable=is_retryable,
