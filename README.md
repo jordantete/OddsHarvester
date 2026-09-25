@@ -302,12 +302,14 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 
 > **Breaking change:** a run now exits 1 when its output cannot be written. The batch is
 > then saved next to the requested output as `<name>.unsaved-<UTC timestamp>.json`, and the
-> message gives that path. `--append` no longer replaces an existing JSON file it cannot
-> read (invalid JSON, or JSON that is not a list): the file is left as it was and the batch
-> goes to that fallback file. JSON output, and CSV output without `--append`, is written to
-> a temporary file first and then moved into place, so an interrupted run never leaves a
-> truncated file. `historic` and `upcoming` also exit 1 when a league or season fails to
-> list, after writing the data of the others.
+> message gives that path. `--append` onto an existing JSON file that is not a readable list
+> (invalid JSON, which used to be overwritten, or JSON that is not a list, which used to fail
+> silently) leaves that file as it was and sends the batch to the fallback file. JSON output,
+> and CSV output without `--append`, is written to a temporary file first and then moved into
+> place, so an interrupted run never leaves a truncated file. When the output's folder does
+> not allow a temporary file, the output is written in place as before. `historic` and
+> `upcoming` also exit 1 when a league or season fails to list, after writing the data of the
+> others.
 
 > **Breaking change:** every output row now carries a `season` column. For odds
 > rows it is inserted directly after `match_date`; `--links-only` rows have no
