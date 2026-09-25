@@ -363,10 +363,12 @@ Matches are dispatched round-robin across the proxies; a proxy that fails 3 time
 
 > **Breaking change:** `--odds-history` timestamps now carry the match's year
 > (the year before kickoff for a December opening of a January match) instead of
-> the year the scraper runs in. Every bookmaker entry gets exactly one
-> `odds_history_data` block per outcome, in outcome order; a block whose history
-> cannot be read is `{"odds_history": [], "opening_odds": null}` instead of being
-> dropped, which used to shift the remaining blocks. A market requested for a
+> the year the scraper runs in. They stay naive (no UTC offset) and are in the
+> browser timezone: `--timezone` when given, otherwise the host's. Every
+> bookmaker entry gets exactly one `odds_history_data` block per outcome, in
+> outcome order; a block whose history cannot be read is
+> `{"odds_history": [], "opening_odds": null}` instead of being dropped, which
+> used to shift the remaining blocks. A market requested for a
 > non-default `--period` that cannot be verified on the page is now returned empty
 > instead of carrying another period's odds.
 > Periods are verified through the URL for full time, football `1st_half` and
@@ -444,7 +446,7 @@ No pre-filtering is attempted to figure out which `(league, season)` pairs are v
 
 Resolution is best-effort from the record's venue country/town. Single-timezone countries resolve by country; USA, Canada, Mexico, Brazil, Russia, and Australia resolve by host city instead. A venue that can't be resolved gets `null` for both fields.
 
-Not compatible with `--links-only` (no match pages are visited, so there's no venue to resolve). Distinct from `--timezone`, which sets the browser's context timezone and does not affect the output fields.
+Not compatible with `--links-only` (no match pages are visited, so there's no venue to resolve). Distinct from `--timezone`, which sets the browser's context timezone and only affects the `--odds-history` timestamps.
 
 If you `--append` onto an existing CSV file, the header is frozen on the first write, so start a fresh file when you turn the flag on.
 
