@@ -119,12 +119,6 @@ def test_no_entry_is_missing_history_blocks(run):
     assert not missing, missing
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="odds_history_extractor also matches the non-leaf row of an expanded submarket, "
-    "so a bookmaker collects extra history blocks",
-)
 def test_no_entry_has_extra_history_blocks(run):
     extra = _extra_blocks(_match(run))
     assert not extra, extra
@@ -153,11 +147,6 @@ def test_match_date_format(run):
     assert MATCH_DATE.match(_match(run)["match_date"])
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="the history parser stamps the year the scraper runs in on every timestamp",
-)
 def test_history_timestamps_fall_in_the_year_before_kickoff(run):
     match = _match(run)
     kickoff = (

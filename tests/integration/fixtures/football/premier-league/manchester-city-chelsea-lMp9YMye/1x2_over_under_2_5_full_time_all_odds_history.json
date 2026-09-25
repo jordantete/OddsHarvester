@@ -1,6 +1,6 @@
 [
     {
-        "scraped_date": "2026-09-25 08:25:24 UTC",
+        "scraped_date": "2026-09-25 10:32:04 UTC",
         "match_date": "2026-01-04 18:30:00 UTC",
         "season": null,
         "match_link": "https://www.oddsportal.com/football/h2h/chelsea-4fGZN2oK/manchester-city-Wtn9Stg0/#lMp9YMye",
@@ -31,7 +31,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-27T18:08:00",
+                            "timestamp": "2025-12-27T18:08:00",
                             "odds": 1.6
                         }
                     },
@@ -43,7 +43,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-27T18:08:00",
+                            "timestamp": "2025-12-27T18:08:00",
                             "odds": 3.9
                         }
                     },
@@ -55,7 +55,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-27T18:08:00",
+                            "timestamp": "2025-12-27T18:08:00",
                             "odds": 4.55
                         }
                     }
@@ -77,7 +77,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-31T12:55:00",
+                            "timestamp": "2025-12-31T12:55:00",
                             "odds": 1.62
                         }
                     },
@@ -89,7 +89,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-31T12:55:00",
+                            "timestamp": "2025-12-31T12:55:00",
                             "odds": 3.8
                         }
                     },
@@ -101,7 +101,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-31T12:55:00",
+                            "timestamp": "2025-12-31T12:55:00",
                             "odds": 3.8
                         }
                     }
@@ -123,7 +123,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-27T18:37:00",
+                            "timestamp": "2025-12-27T18:37:00",
                             "odds": 1.57
                         }
                     },
@@ -135,7 +135,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-27T18:37:00",
+                            "timestamp": "2025-12-27T18:37:00",
                             "odds": 3.72
                         }
                     },
@@ -147,7 +147,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-27T18:37:00",
+                            "timestamp": "2025-12-27T18:37:00",
                             "odds": 4.3
                         }
                     }
@@ -169,7 +169,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-27T18:15:00",
+                            "timestamp": "2025-12-27T18:15:00",
                             "odds": 1.54
                         }
                     },
@@ -181,7 +181,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-27T18:15:00",
+                            "timestamp": "2025-12-27T18:15:00",
                             "odds": 3.55
                         }
                     },
@@ -193,7 +193,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-27T18:15:00",
+                            "timestamp": "2025-12-27T18:15:00",
                             "odds": 4.0
                         }
                     }
@@ -216,7 +216,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-27T18:09:00",
+                            "timestamp": "2025-12-27T18:09:00",
                             "odds": 1.45
                         }
                     },
@@ -228,103 +228,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-27T18:09:00",
-                            "odds": 2.13
-                        }
-                    },
-                    {
-                        "odds_history": [
-                            {
-                                "timestamp": "2026-01-04T18:11:00",
-                                "odds": 1.33
-                            }
-                        ],
-                        "opening_odds": {
-                            "timestamp": "2026-12-31T12:55:00",
-                            "odds": 1.46
-                        }
-                    },
-                    {
-                        "odds_history": [
-                            {
-                                "timestamp": "2026-01-04T18:29:00",
-                                "odds": 2.85
-                            }
-                        ],
-                        "opening_odds": {
-                            "timestamp": "2026-12-31T12:55:00",
-                            "odds": 2.37
-                        }
-                    },
-                    {
-                        "odds_history": [
-                            {
-                                "timestamp": "2026-01-04T18:28:00",
-                                "odds": 1.3
-                            }
-                        ],
-                        "opening_odds": {
-                            "timestamp": "2026-12-27T18:37:00",
-                            "odds": 1.47
-                        }
-                    },
-                    {
-                        "odds_history": [
-                            {
-                                "timestamp": "2026-01-04T18:28:00",
-                                "odds": 2.65
-                            }
-                        ],
-                        "opening_odds": {
-                            "timestamp": "2026-12-27T18:37:00",
-                            "odds": 2.08
-                        }
-                    },
-                    {
-                        "odds_history": [
-                            {
-                                "timestamp": "2026-01-04T18:29:00",
-                                "odds": 1.28
-                            }
-                        ],
-                        "opening_odds": {
-                            "timestamp": "2026-12-27T18:15:00",
-                            "odds": 1.46
-                        }
-                    },
-                    {
-                        "odds_history": [
-                            {
-                                "timestamp": "2026-01-04T18:07:00",
-                                "odds": 2.8
-                            }
-                        ],
-                        "opening_odds": {
-                            "timestamp": "2026-12-27T18:15:00",
-                            "odds": 2.15
-                        }
-                    },
-                    {
-                        "odds_history": [
-                            {
-                                "timestamp": "2026-01-04T18:29:00",
-                                "odds": 1.29
-                            }
-                        ],
-                        "opening_odds": {
-                            "timestamp": "2026-12-27T18:09:00",
-                            "odds": 1.45
-                        }
-                    },
-                    {
-                        "odds_history": [
-                            {
-                                "timestamp": "2026-01-04T18:29:00",
-                                "odds": 2.73
-                            }
-                        ],
-                        "opening_odds": {
-                            "timestamp": "2026-12-27T18:09:00",
+                            "timestamp": "2025-12-27T18:09:00",
                             "odds": 2.13
                         }
                     }
@@ -345,7 +249,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-31T12:55:00",
+                            "timestamp": "2025-12-31T12:55:00",
                             "odds": 1.46
                         }
                     },
@@ -357,7 +261,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-31T12:55:00",
+                            "timestamp": "2025-12-31T12:55:00",
                             "odds": 2.37
                         }
                     }
@@ -378,7 +282,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-27T18:37:00",
+                            "timestamp": "2025-12-27T18:37:00",
                             "odds": 1.47
                         }
                     },
@@ -390,7 +294,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-27T18:37:00",
+                            "timestamp": "2025-12-27T18:37:00",
                             "odds": 2.08
                         }
                     }
@@ -411,7 +315,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-27T18:15:00",
+                            "timestamp": "2025-12-27T18:15:00",
                             "odds": 1.46
                         }
                     },
@@ -423,7 +327,7 @@
                             }
                         ],
                         "opening_odds": {
-                            "timestamp": "2026-12-27T18:15:00",
+                            "timestamp": "2025-12-27T18:15:00",
                             "odds": 2.15
                         }
                     }
