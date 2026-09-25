@@ -361,6 +361,15 @@ Matches are dispatched round-robin across the proxies; a proxy that fails 3 time
 | `--bookies-filter`   | Bookmaker filter: `all`, `classic`, or `crypto`        | `all`          |
 | `--period`           | Match period (sport-specific: full-time, halves, etc.) | sport default  |
 
+> **Breaking change:** `--odds-history` timestamps now carry the match's year
+> (the year before kickoff for a December opening of a January match) instead of
+> the year the scraper runs in. Every bookmaker entry gets exactly one
+> `odds_history_data` block per outcome, in outcome order; a block whose history
+> cannot be read is `{"odds_history": [], "opening_odds": null}` instead of being
+> dropped, which used to shift the remaining blocks. A market requested for a
+> non-default `--period` that cannot be verified on the page is now returned empty
+> instead of carrying another period's odds.
+
 <details>
 <summary><strong>Preview Mode vs Full Mode</strong></summary>
 <br>

@@ -1479,6 +1479,9 @@ generations died at once, and several long-standing behaviours flipped:
   in the same tables and must be skipped. Expanded submarkets nest a full
   bookmaker table inside a following `<tr>` — only leaf `<tr>`s (no nested
   `tr`) are rows.
+  The odds-history hover follows the same rule (`LEAF_BOOKMAKER_ROW_CSS`):
+  up to 0.15 it matched the wrapper row too and gave the first bookmaker of an
+  expanded submarket every bookmaker's history blocks.
 - **Sub-nav tabs** (`sub-nav-active-tab`/`sub-nav-inactive-tab`) carry both the
   bookies filter (All/Classic/Crypto Bookies) and the period tabs;
   `bookies-filter-nav` and `kickoff-events-nav` containers are gone.
