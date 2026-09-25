@@ -75,7 +75,7 @@ def test_live_rejects_links_only_with_match_link(runner):
     assert result.exit_code != 0
 
 
-@patch("oddsharvester.cli.commands.live.store_data")
+@patch("oddsharvester.cli.commands._output.store_data")
 def test_live_invokes_run_scraper_with_live_command(store_mock, runner, mock_live_run_scraper):
     result = runner.invoke(cli, ["live", "--sport", "football", "--market", "1x2"])
 
@@ -86,7 +86,7 @@ def test_live_invokes_run_scraper_with_live_command(store_mock, runner, mock_liv
     assert store_mock.called
 
 
-@patch("oddsharvester.cli.commands.live.store_data")
+@patch("oddsharvester.cli.commands._output.store_data")
 def test_live_no_matches_exits_zero_without_storing(store_mock, runner):
     """Zero live matches is a normal outcome, not a failure."""
     with patch(
@@ -101,7 +101,7 @@ def test_live_no_matches_exits_zero_without_storing(store_mock, runner):
     assert not store_mock.called
 
 
-@patch("oddsharvester.cli.commands.live.store_data")
+@patch("oddsharvester.cli.commands._output.store_data")
 def test_live_exits_nonzero_when_scraper_returns_none(store_mock, runner):
     """A fatal scraper error must not be reported as a clean run."""
     with patch(
@@ -115,7 +115,7 @@ def test_live_exits_nonzero_when_scraper_returns_none(store_mock, runner):
     assert not store_mock.called
 
 
-@patch("oddsharvester.cli.commands.live.store_data")
+@patch("oddsharvester.cli.commands._output.store_data")
 def test_live_exits_nonzero_when_every_match_fails(store_mock, runner):
     """All matches failing is a scraping failure, not an empty-but-healthy snapshot.
 
@@ -145,7 +145,7 @@ def test_live_exits_nonzero_when_every_match_fails(store_mock, runner):
     assert "No live matches" not in result.output
 
 
-@patch("oddsharvester.cli.commands.live.store_data")
+@patch("oddsharvester.cli.commands._output.store_data")
 def test_live_forwards_preview_and_local_kickoff(store_mock, runner, mock_live_run_scraper):
     """Options accepted by the CLI must reach the scraper, not be silently dropped."""
     result = runner.invoke(cli, ["live", "--sport", "football", "--market", "1x2", "--preview-only", "--local-kickoff"])

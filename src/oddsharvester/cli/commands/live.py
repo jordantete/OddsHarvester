@@ -6,10 +6,10 @@ import sys
 
 import click
 
+from oddsharvester.cli.commands._output import write_output
 from oddsharvester.cli.options import common_options, merged_match_links
 from oddsharvester.core.scraper_app import run_scraper
 from oddsharvester.storage.ndjson_stream import NdjsonStreamWriter
-from oddsharvester.storage.storage_manager import store_data
 
 logger = logging.getLogger(__name__)
 
@@ -86,15 +86,10 @@ def live(ctx, **kwargs):
             click.echo("No live matches found right now.", err=stream_ndjson)
             return
 
+        write_failed = False
         # Without --output the stream is the output: skip the default scraped_data.json.
         if not stream_ndjson or kwargs.get("file_path"):
-            store_data(
-                storage_type=storage.value if storage else "local",
-                data=scraped_data.success,
-                storage_format=storage_format.value if storage_format else "json",
-                file_path=kwargs.get("file_path"),
-                append=kwargs.get("append", False),
-            )
+            write_failed = not write_output(scraped_data.success, kwargs, storage, storage_format)
 
         if links_only:
             click.echo(f"Collected {scraped_data.stats.successful} live match links.", err=stream_ndjson)
@@ -107,6 +102,9 @@ def live(ctx, **kwargs):
 
         if scraped_data.failed:
             click.echo(f"Failed URLs: {[f.url for f in scraped_data.failed]}", err=True)
+
+        if write_failed:
+            sys.exit(1)
 
     except click.UsageError:
         raise

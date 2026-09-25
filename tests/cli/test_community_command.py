@@ -29,7 +29,7 @@ def test_community_rejects_unknown_sport():
     assert "Invalid sport" in result.output
 
 
-@patch("oddsharvester.cli.commands.community.store_data", return_value=True)
+@patch("oddsharvester.cli.commands._output.store_data", return_value=True)
 @patch("oddsharvester.cli.commands.community.run_top_predictions", new_callable=AsyncMock, return_value=FAKE_RECORDS)
 def test_community_happy_path(mock_run, mock_store):
     result = CliRunner().invoke(cli, ["community", "--sport", "football", "--headless"])
@@ -46,7 +46,7 @@ def test_community_exits_nonzero_on_empty_result(mock_run):
     assert result.exit_code == 1
 
 
-@patch("oddsharvester.cli.commands.community.store_data", return_value=True)
+@patch("oddsharvester.cli.commands._output.store_data", return_value=True)
 @patch("oddsharvester.cli.commands.community.run_user_profile", new_callable=AsyncMock)
 def test_community_user_mode_dispatches_and_exits_zero_when_private(mock_run, mock_store):
     private_rec = {"mode": "user", "username": "z", "privacy": "private", "statistics": [], "predictions": []}
@@ -70,7 +70,7 @@ def test_community_user_mode_exits_one_when_no_username_at_all(mock_run):
     assert result.exit_code == 1
 
 
-@patch("oddsharvester.cli.commands.community.store_data", return_value=True)
+@patch("oddsharvester.cli.commands._output.store_data", return_value=True)
 @patch("oddsharvester.cli.commands.community.run_match_community", new_callable=AsyncMock)
 def test_community_match_url_mode_dispatches_and_exits_zero(mock_run, mock_store):
     rec = {"mode": "match", "match_url": "u", "markets": [{"market": "1x2"}]}

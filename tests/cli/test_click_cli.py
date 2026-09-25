@@ -391,7 +391,7 @@ class TestLinksOnly:
                 new_callable=AsyncMock,
                 return_value=self._links_result(),
             ) as scraper_mock,
-            patch("oddsharvester.cli.commands.historic.store_data") as store_mock,
+            patch("oddsharvester.cli.commands._output.store_data") as store_mock,
         ):
             result = runner.invoke(
                 cli,
@@ -409,7 +409,7 @@ class TestLinksOnly:
                 new_callable=AsyncMock,
                 return_value=self._links_result(),
             ) as scraper_mock,
-            patch("oddsharvester.cli.commands.upcoming.store_data") as store_mock,
+            patch("oddsharvester.cli.commands._output.store_data") as store_mock,
         ):
             result = runner.invoke(cli, ["upcoming", "-s", "football", "-d", FUTURE_DATE, "--links-only"])
         assert result.exit_code == 0
@@ -558,7 +558,7 @@ class TestComboSummaryRendering:
                 new_callable=AsyncMock,
                 return_value=self._combo_result(combo_stats, success=success),
             ),
-            patch("oddsharvester.cli.commands.historic.store_data"),
+            patch("oddsharvester.cli.commands._output.store_data"),
         ):
             result = runner.invoke(
                 cli,
@@ -638,7 +638,7 @@ class TestStreamNdjson:
                 new_callable=AsyncMock,
                 return_value=self._result(),
             ),
-            patch(f"oddsharvester.cli.commands.{command}.store_data"),
+            patch("oddsharvester.cli.commands._output.store_data"),
         )
 
     @pytest.mark.parametrize("command", list(COMMANDS))

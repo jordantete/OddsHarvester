@@ -6,13 +6,13 @@ import sys
 
 import click
 
+from oddsharvester.cli.commands._output import write_output
 from oddsharvester.cli.options import common_options, merged_match_links
 from oddsharvester.cli.types import COMMA_LIST
 from oddsharvester.cli.validators import validate_max_pages, validate_seasons
 from oddsharvester.core.scrape_result import ErrorType
 from oddsharvester.core.scraper_app import run_scraper
 from oddsharvester.storage.ndjson_stream import NdjsonStreamWriter
-from oddsharvester.storage.storage_manager import store_data
 from oddsharvester.utils.sport_market_constants import Sport
 
 logger = logging.getLogger(__name__)
@@ -116,16 +116,11 @@ def historic(ctx, **kwargs):
         )
 
         if scraped_data:
+            write_failed = False
             if scraped_data.success:
                 # Without --output the stream is the output: skip the default scraped_data.json.
                 if not stream_ndjson or kwargs.get("file_path"):
-                    store_data(
-                        storage_type=storage.value if storage else "local",
-                        data=scraped_data.success,
-                        storage_format=storage_format.value if storage_format else "json",
-                        file_path=kwargs.get("file_path"),
-                        append=kwargs.get("append", False),
-                    )
+                    write_failed = not write_output(scraped_data.success, kwargs, storage, storage_format)
                 if links_only:
                     click.echo(
                         f"Collected {scraped_data.stats.successful} match links "
@@ -160,6 +155,9 @@ def historic(ctx, **kwargs):
                     f"number of matches were never discovered. The partial data was still written.",
                     err=True,
                 )
+                sys.exit(1)
+
+            if write_failed:
                 sys.exit(1)
         else:
             logger.error("Scraper did not return valid data.")

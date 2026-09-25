@@ -6,12 +6,12 @@ import sys
 
 import click
 
+from oddsharvester.cli.commands._output import write_output
 from oddsharvester.cli.types import SPORT, STORAGE_FORMAT, STORAGE_TYPE
 from oddsharvester.cli.validators import validate_base_url, validate_file_path, validate_proxy_url
 from oddsharvester.core.community.match_community_scraper import run_match_community
 from oddsharvester.core.community.top_predictions_scraper import run_top_predictions
 from oddsharvester.core.community.user_profile_scraper import run_user_profile
-from oddsharvester.storage.storage_manager import store_data
 
 logger = logging.getLogger(__name__)
 
@@ -141,15 +141,11 @@ def community(ctx, **kwargs):
 
 
 def _store_or_exit(data, has_data, kwargs, storage, storage_format, ok_msg, empty_msg):
-    if has_data:
-        store_data(
-            storage_type=storage.value if storage else "local",
-            data=data,
-            storage_format=storage_format.value if storage_format else "json",
-            file_path=kwargs.get("file_path"),
-            append=kwargs.get("append", False),
-        )
-        click.echo(ok_msg)
-    else:
+    if not has_data:
         logger.error(empty_msg)
+        sys.exit(1)
+
+    written = write_output(data, kwargs, storage, storage_format)
+    click.echo(ok_msg)
+    if not written:
         sys.exit(1)

@@ -22,7 +22,7 @@ def _result(success=None, failed=None):
 
 def _patches():
     return (
-        patch("oddsharvester.cli.commands.team.store_data", return_value=True),
+        patch("oddsharvester.cli.commands._output.store_data", return_value=True),
         patch("oddsharvester.cli.commands.team.run_teams", new_callable=AsyncMock, return_value=_result()),
     )
 
@@ -107,7 +107,7 @@ def test_team_stores_the_records_and_reports_the_count():
 def test_team_reports_failures_without_failing_the_run():
     failure = FailedUrl(url="zzzzzzzz", error_type=ErrorType.PARSING, error_message="no payload", is_retryable=False)
     with (
-        patch("oddsharvester.cli.commands.team.store_data", return_value=True),
+        patch("oddsharvester.cli.commands._output.store_data", return_value=True),
         patch(
             "oddsharvester.cli.commands.team.run_teams",
             new_callable=AsyncMock,
@@ -123,7 +123,7 @@ def test_team_reports_failures_without_failing_the_run():
 def test_team_exits_nonzero_when_no_team_resolved():
     failure = FailedUrl(url="zzzzzzzz", error_type=ErrorType.PARSING, error_message="no payload", is_retryable=False)
     with (
-        patch("oddsharvester.cli.commands.team.store_data", return_value=True),
+        patch("oddsharvester.cli.commands._output.store_data", return_value=True),
         patch(
             "oddsharvester.cli.commands.team.run_teams",
             new_callable=AsyncMock,

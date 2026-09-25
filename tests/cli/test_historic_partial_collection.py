@@ -39,7 +39,7 @@ def _run(runner, result):
         )
 
 
-@patch("oddsharvester.cli.commands.historic.store_data")
+@patch("oddsharvester.cli.commands._output.store_data")
 def test_partial_collection_exits_nonzero_but_still_stores(store_mock, runner):
     result = _run(
         runner,
@@ -55,7 +55,7 @@ def test_partial_collection_exits_nonzero_but_still_stores(store_mock, runner):
     assert store_mock.called, "the partial data is still worth keeping for inspection or retry"
 
 
-@patch("oddsharvester.cli.commands.historic.store_data")
+@patch("oddsharvester.cli.commands._output.store_data")
 def test_complete_collection_exits_zero(store_mock, runner):
     result = _run(
         runner,
@@ -69,7 +69,7 @@ def test_complete_collection_exits_zero(store_mock, runner):
     assert store_mock.called
 
 
-@patch("oddsharvester.cli.commands.historic.store_data")
+@patch("oddsharvester.cli.commands._output.store_data")
 def test_per_match_failures_alone_do_not_fail_the_run(store_mock, runner):
     """Individual match failures are enumerable and retryable, so they stay non-fatal."""
     result = _run(

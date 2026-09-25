@@ -6,6 +6,7 @@ import sys
 
 import click
 
+from oddsharvester.cli.commands._output import write_output
 from oddsharvester.cli.types import COMMA_LIST, STORAGE_FORMAT, STORAGE_TYPE
 from oddsharvester.cli.validators import (
     validate_base_url,
@@ -15,7 +16,6 @@ from oddsharvester.cli.validators import (
     validate_teams_file,
 )
 from oddsharvester.core.team.team_scraper import run_teams
-from oddsharvester.storage.storage_manager import store_data
 
 logger = logging.getLogger(__name__)
 
@@ -118,19 +118,16 @@ def team(ctx, **kwargs):
             logger.error("No team data scraped.")
             sys.exit(1)
 
-        store_data(
-            storage_type=storage.value if storage else "local",
-            data=result.success,
-            storage_format=storage_format.value if storage_format else "json",
-            file_path=kwargs.get("file_path"),
-            append=kwargs.get("append", False),
-        )
+        written = write_output(result.success, kwargs, storage, storage_format)
         click.echo(
             f"Successfully scraped {result.stats.successful} team(s) ({result.stats.failed} failed, "
             f"{result.stats.success_rate:.1f}% success rate)."
         )
         if result.failed:
             click.echo(f"Failed teams: {[f.url for f in result.failed]}", err=True)
+
+        if not written:
+            sys.exit(1)
 
     except click.UsageError:
         raise
