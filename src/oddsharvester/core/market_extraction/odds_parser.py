@@ -5,6 +5,7 @@ from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
+from oddsharvester.core.market_extraction.bookmaker_name import resolve_bookmaker_name
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 
 _FRACTIONAL_RE = re.compile(r"^(\d+)/(\d+)$")
@@ -159,32 +160,13 @@ class OddsParser:
             return {}
 
     def _extract_bookmaker_name(self, block: Tag) -> str | None:
-        """Extract bookmaker name from a row using a fallback chain.
-
-        Strategies tried in order:
-        1. the name paragraph inside the bookmaker link
-        2. ``<a title="...">`` wrapping the logo / bonus link (the only source on
-           rows whose name is rendered as a logo only)
-        """
-        # 1. Primary: the visible name next to the logo
+        """Extract the bookmaker name: the label next to the logo, else the logo link title."""
         name_el = block.select_one(f"{OddsPortalSelectors.BOOKMAKER_LINK_CSS} p")
-        if name_el:
-            name = name_el.get_text(strip=True)
-            if name:
-                return name
-
-        # 2. Fallback: <a> with a title attribute (logo links)
         a_tag = block.find("a", attrs={"title": True})
-        if a_tag and a_tag["title"]:
-            name = a_tag["title"]
-            # Normalise CTA-style titles like "Go to Betfair Exchange website!"
-            if name.lower().startswith("go to ") and name.endswith("!"):
-                name = name[len("go to ") : -1].strip()
-                # Strip trailing "website" if present
-                if name.lower().endswith(" website"):
-                    name = name[: -len(" website")].strip()
-            self.logger.debug(f"Resolved bookmaker name via <a title>: {name}")
-            return name
-
-        self.logger.debug("Could not resolve bookmaker name from block")
-        return None
+        name = resolve_bookmaker_name(
+            name_el.get_text(strip=True) if name_el else None,
+            a_tag["title"] if a_tag else None,
+        )
+        if name is None:
+            self.logger.debug("Could not resolve bookmaker name from block")
+        return name
