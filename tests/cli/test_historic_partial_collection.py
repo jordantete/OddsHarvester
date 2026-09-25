@@ -89,3 +89,26 @@ def test_per_match_failures_alone_do_not_fail_the_run(store_mock, runner):
 
     assert result.exit_code == 0
     assert store_mock.called
+
+
+@patch("oddsharvester.cli.commands._output.store_data")
+def test_errored_combo_exits_nonzero_but_still_stores(store_mock, runner):
+    """Guard: an errored combo arrives as a LISTING_PAGE failure, which the existing check catches."""
+    result = _run(
+        runner,
+        ScrapeResult(
+            success=[{"home_team": "A"}],
+            failed=[
+                FailedUrl(
+                    url="england-premier-league 2021-2022",
+                    error_type=ErrorType.LISTING_PAGE,
+                    error_message="Listing failed for england-premier-league 2021-2022: ValueError: boom",
+                )
+            ],
+            stats=ScrapeStats(total_urls=2, successful=1, failed=1),
+        ),
+    )
+
+    assert result.exit_code == 1
+    assert "listing page" in result.output.lower()
+    assert store_mock.called

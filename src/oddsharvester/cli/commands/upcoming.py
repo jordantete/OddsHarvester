@@ -6,7 +6,7 @@ import sys
 
 import click
 
-from oddsharvester.cli.commands._output import write_output
+from oddsharvester.cli.commands._output import format_combo_summary, report_incomplete_collection, write_output
 from oddsharvester.cli.options import common_options, merged_match_links
 from oddsharvester.cli.validators import validate_date
 from oddsharvester.core.scraper_app import run_scraper
@@ -98,26 +98,35 @@ def upcoming(ctx, **kwargs):
             )
         )
 
-        if scraped_data and scraped_data.success:
+        if scraped_data:
             write_failed = False
-            # Without --output the stream is the output: skip the default scraped_data.json.
-            if not stream_ndjson or kwargs.get("file_path"):
-                write_failed = not write_output(scraped_data.success, kwargs, storage, storage_format)
-            if links_only:
-                click.echo(
-                    f"Collected {scraped_data.stats.successful} match links "
-                    f"({scraped_data.stats.failed} listing pages failed).",
-                    err=stream_ndjson,
-                )
-            else:
-                click.echo(
-                    f"Successfully scraped {scraped_data.stats.successful} matches "
-                    f"({scraped_data.stats.failed} failed, {scraped_data.stats.success_rate:.1f}% success rate).",
-                    err=stream_ndjson,
-                )
+            if scraped_data.success:
+                # Without --output the stream is the output: skip the default scraped_data.json.
+                if not stream_ndjson or kwargs.get("file_path"):
+                    write_failed = not write_output(scraped_data.success, kwargs, storage, storage_format)
+                if links_only:
+                    click.echo(
+                        f"Collected {scraped_data.stats.successful} match links "
+                        f"({scraped_data.stats.failed} listing pages failed).",
+                        err=stream_ndjson,
+                    )
+                else:
+                    click.echo(
+                        f"Successfully scraped {scraped_data.stats.successful} matches "
+                        f"({scraped_data.stats.failed} failed, {scraped_data.stats.success_rate:.1f}% success rate).",
+                        err=stream_ndjson,
+                    )
+
+            if len(scraped_data.combo_stats) > 1:
+                click.echo(format_combo_summary(scraped_data.combo_stats, links_only=links_only), err=stream_ndjson)
             if scraped_data.failed:
                 click.echo(f"Failed URLs: {[f.url for f in scraped_data.failed]}", err=True)
-            if write_failed:
+
+            if not scraped_data.success:
+                logger.error("Scraper did not return valid data.")
+                sys.exit(1)
+
+            if report_incomplete_collection(scraped_data) or write_failed:
                 sys.exit(1)
         else:
             logger.error("Scraper did not return valid data.")

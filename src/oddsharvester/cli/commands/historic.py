@@ -6,42 +6,15 @@ import sys
 
 import click
 
-from oddsharvester.cli.commands._output import write_output
+from oddsharvester.cli.commands._output import format_combo_summary, report_incomplete_collection, write_output
 from oddsharvester.cli.options import common_options, merged_match_links
 from oddsharvester.cli.types import COMMA_LIST
 from oddsharvester.cli.validators import validate_max_pages, validate_seasons
-from oddsharvester.core.scrape_result import ErrorType
 from oddsharvester.core.scraper_app import run_scraper
 from oddsharvester.storage.ndjson_stream import NdjsonStreamWriter
 from oddsharvester.utils.sport_market_constants import Sport
 
 logger = logging.getLogger(__name__)
-
-
-def _format_combo_summary(combo_stats: list[dict], links_only: bool) -> str:
-    """Render the per-combo breakdown shown at the end of a multi-combo run."""
-    unit = "links" if links_only else "matches"
-    labels = [f"{c['league']} {c['season']}".strip() if c["season"] else c["league"] for c in combo_stats]
-    width = max(len(label) for label in labels)
-
-    lines = [f"Collected {unit} across {len(combo_stats)} combos:"]
-    empty = errored = 0
-
-    for label, combo in zip(labels, combo_stats, strict=True):
-        if combo["errored"]:
-            lines.append(f"  {label:<{width}}  error")
-            errored += 1
-        else:
-            lines.append(f"  {label:<{width}}  {combo['successful']}")
-            if combo["successful"] == 0:
-                empty += 1
-
-    if empty:
-        lines.append(f"{empty} combo(s) returned nothing.")
-    if errored:
-        lines.append(f"{errored} combo(s) errored.")
-
-    return "\n".join(lines)
 
 
 @click.command("historic")
@@ -135,7 +108,7 @@ def historic(ctx, **kwargs):
                     )
 
             if len(scraped_data.combo_stats) > 1:
-                click.echo(_format_combo_summary(scraped_data.combo_stats, links_only=links_only), err=stream_ndjson)
+                click.echo(format_combo_summary(scraped_data.combo_stats, links_only=links_only), err=stream_ndjson)
             if scraped_data.failed:
                 click.echo(f"Failed URLs: {[f.url for f in scraped_data.failed]}", err=True)
 
@@ -143,21 +116,7 @@ def historic(ctx, **kwargs):
                 logger.error("Scraper did not return valid data.")
                 sys.exit(1)
 
-            # A failed listing page hides an unknown number of matches: they were
-            # never discovered, so nothing downstream can detect the gap from the
-            # data itself. Signal it through the exit code, but keep what was
-            # collected so it can be inspected or re-run.
-            listing_failures = [f for f in scraped_data.failed if f.error_type is ErrorType.LISTING_PAGE]
-            if listing_failures:
-                logger.error(f"Incomplete collection: {len(listing_failures)} listing page(s) failed.")
-                click.echo(
-                    f"Incomplete collection: {len(listing_failures)} listing page(s) failed, so an unknown "
-                    f"number of matches were never discovered. The partial data was still written.",
-                    err=True,
-                )
-                sys.exit(1)
-
-            if write_failed:
+            if report_incomplete_collection(scraped_data) or write_failed:
                 sys.exit(1)
         else:
             logger.error("Scraper did not return valid data.")

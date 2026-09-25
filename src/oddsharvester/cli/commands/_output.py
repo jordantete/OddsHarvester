@@ -5,6 +5,7 @@ import logging
 
 import click
 
+from oddsharvester.core.scrape_result import ErrorType, ScrapeResult
 from oddsharvester.storage.local_data_storage import LocalDataStorage
 from oddsharvester.storage.storage_format import StorageFormat
 from oddsharvester.storage.storage_manager import store_data
@@ -61,3 +62,44 @@ def _fallback_path(file_path: str | None) -> str:
             break
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     return f"{base}.unsaved-{stamp}.json"
+
+
+def format_combo_summary(combo_stats: list[dict], links_only: bool) -> str:
+    """Render the per-combo breakdown shown at the end of a multi-combo run."""
+    unit = "links" if links_only else "matches"
+    labels = [f"{c['league']} {c['season']}".strip() if c["season"] else c["league"] for c in combo_stats]
+    width = max(len(label) for label in labels)
+
+    lines = [f"Collected {unit} across {len(combo_stats)} combos:"]
+    empty = errored = 0
+
+    for label, combo in zip(labels, combo_stats, strict=True):
+        if combo["errored"]:
+            lines.append(f"  {label:<{width}}  error")
+            errored += 1
+        else:
+            lines.append(f"  {label:<{width}}  {combo['successful']}")
+            if combo["successful"] == 0:
+                empty += 1
+
+    if empty:
+        lines.append(f"{empty} combo(s) returned nothing.")
+    if errored:
+        lines.append(f"{errored} combo(s) errored.")
+
+    return "\n".join(lines)
+
+
+def report_incomplete_collection(result: ScrapeResult) -> bool:
+    """Say so when listing pages or whole combos failed: their matches were never discovered."""
+    listing_failures = [f for f in result.failed if f.error_type is ErrorType.LISTING_PAGE]
+    if not listing_failures:
+        return False
+
+    logger.error(f"Incomplete collection: {len(listing_failures)} listing page(s) failed.")
+    click.echo(
+        f"Incomplete collection: {len(listing_failures)} listing page(s) failed, so an unknown "
+        f"number of matches were never discovered. The partial data was kept.",
+        err=True,
+    )
+    return True

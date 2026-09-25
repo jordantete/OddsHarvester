@@ -8,7 +8,7 @@ import pytest
 
 from oddsharvester import __version__
 from oddsharvester.cli.cli import cli
-from oddsharvester.cli.commands.historic import _format_combo_summary
+from oddsharvester.cli.commands._output import format_combo_summary
 
 # Use a far future date to avoid date validation issues
 FUTURE_DATE = "20991231"
@@ -588,7 +588,7 @@ def test_all_registered_sport_periods_are_cli_selectable():
 
 
 def test_combo_summary_lists_every_combo_with_counts():
-    out = _format_combo_summary(
+    out = format_combo_summary(
         [
             {"league": "russia-premier-league", "season": "2010", "successful": 380, "failed": 0, "errored": False},
             {"league": "russia-premier-league", "season": "2011", "successful": 0, "failed": 0, "errored": False},
@@ -601,7 +601,7 @@ def test_combo_summary_lists_every_combo_with_counts():
 
 
 def test_combo_summary_marks_errored_combos_separately():
-    out = _format_combo_summary(
+    out = format_combo_summary(
         [
             {"league": "epl", "season": "2020", "successful": 0, "failed": 0, "errored": False},
             {"league": "epl", "season": "2021", "successful": 0, "failed": 0, "errored": True},
