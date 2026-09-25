@@ -3,6 +3,7 @@
 from oddsharvester.core.exceptions import (
     AllProxiesExhaustedError,
     MarketExtractionError,
+    MatchContentError,
     NavigationError,
     PageNotFoundError,
     ParsingError,
@@ -10,6 +11,7 @@ from oddsharvester.core.exceptions import (
     RateLimitError,
     ScraperError,
 )
+from oddsharvester.core.scrape_result import ErrorType
 
 
 class TestScraperError:
@@ -187,3 +189,12 @@ class TestH2HFragmentResolutionError:
         from oddsharvester.core.exceptions import ScraperError
 
         assert ScraperError("boom").error_type is None
+
+
+def test_match_content_error_is_retryable_and_typed_by_the_caller():
+    error = MatchContentError("boom", url="https://x/")
+    typed = MatchContentError("no header", url="https://x/", error_type=ErrorType.HEADER_NOT_FOUND)
+
+    assert error.is_retryable is True
+    assert error.error_type is ErrorType.PARSING
+    assert typed.error_type is ErrorType.HEADER_NOT_FOUND

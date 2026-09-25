@@ -1046,30 +1046,26 @@ async def test_scrape_match_data(setup_base_scraper_mocks):
 
 @pytest.mark.asyncio
 async def test_scrape_match_data_no_details(setup_base_scraper_mocks):
-    """Test scraping match data when no match details are found."""
+    """A page without match details is a typed, retryable content failure, not a silent None."""
+    from oddsharvester.core.exceptions import MatchContentError
+    from oddsharvester.core.scrape_result import ErrorType
+
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
-    page_mock = mocks["page_mock"]
-
-    # Mock _extract_match_details returning None
     scraper._hydrate_match_view = AsyncMock()
     scraper._dismiss_login_modal = AsyncMock()
     scraper._extract_match_details = AsyncMock(return_value=None)
 
-    page_mock.wait_for_timeout = AsyncMock()
-    page_mock.wait_for_selector = AsyncMock()
+    with pytest.raises(MatchContentError) as excinfo:
+        await scraper._scrape_match_data(
+            page=mocks["page_mock"],
+            sport="football",
+            match_link="https://oddsportal.com/football/england/arsenal-chelsea/123456",
+            markets=["1x2"],
+        )
 
-    # Call the method under test
-    result = await scraper._scrape_match_data(
-        page=page_mock,
-        sport="football",
-        match_link="https://oddsportal.com/football/england/arsenal-chelsea/123456",
-        markets=["1x2"],
-    )
-
-    # Verify result is None when no match details are found
-    assert result is None
-    # Verify market_extractor.scrape_markets was not called
+    assert excinfo.value.error_type is ErrorType.HEADER_NOT_FOUND
+    assert excinfo.value.is_retryable is True
     mocks["market_extractor_mock"].scrape_markets.assert_not_called()
 
 
@@ -1090,21 +1086,27 @@ async def test_scrape_match_data_reraises_proxy_error(setup_base_scraper_mocks):
 
 
 @pytest.mark.asyncio
-async def test_scrape_match_data_swallows_post_navigation_error(setup_base_scraper_mocks):
-    """Errors raised after a successful goto (DOM/selector drift) must degrade gracefully to
-    None, not be attributed to the proxy - navigation already succeeded."""
+async def test_scrape_match_data_types_a_post_navigation_error(setup_base_scraper_mocks):
+    """An error after a successful goto keeps its real type and message, and is not blamed on the proxy."""
+    from oddsharvester.core.exceptions import MatchContentError
+    from oddsharvester.core.retry import is_proxy_attributable_error
+    from oddsharvester.core.scrape_result import ErrorType
+
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._hydrate_match_view = AsyncMock()
+    mocks["selection_manager_mock"].ensure_selected = AsyncMock(side_effect=TimeoutError("Timeout 5000ms exceeded"))
 
-    mocks["selection_manager_mock"].ensure_selected = AsyncMock(side_effect=Exception("boom"))
+    with pytest.raises(MatchContentError) as excinfo:
+        await scraper._scrape_match_data(
+            page=mocks["page_mock"], sport="football", match_link="https://www.oddsportal.com/football/x/y/"
+        )
 
-    result = await scraper._scrape_match_data(
-        page=mocks["page_mock"],
-        sport="football",
-        match_link="https://www.oddsportal.com/football/x/y/",
-    )
-
-    assert result is None
+    assert str(excinfo.value).startswith("TimeoutError: Timeout 5000ms exceeded")
+    assert excinfo.value.error_type is ErrorType.PARSING
+    assert not is_proxy_attributable_error(excinfo.value.error_type)
+    assert isinstance(excinfo.value.__cause__, TimeoutError)
 
 
 @pytest.mark.asyncio
@@ -2552,6 +2554,107 @@ async def test_scrape_match_data_counts_429_after_a_redirect_to_the_www_host(set
         await scraper._scrape_match_data(
             page=page_mock, sport="football", match_link="https://oddsportal.com/football/h2h/a/b/#YDZojogM"
         )
+
+
+@pytest.mark.asyncio
+async def test_scrape_match_data_raises_rate_limit_when_a_refused_script_left_no_match_details(
+    setup_base_scraper_mocks,
+):
+    """A content failure during a 429 keeps the rate-limit delay and proxy penalty, like a failed hydration."""
+    from oddsharvester.core.exceptions import RateLimitError
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    listeners = _capture_response_listener(page_mock)
+
+    async def goto(*args, **kwargs):
+        for handler in listeners:
+            handler(_fake_response(429, "https://www.oddsportal.com/_next/static/chunks/a.js", "script"))
+
+    page_mock.goto = AsyncMock(side_effect=goto)
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._hydrate_match_view = AsyncMock()
+    scraper._extract_match_details = AsyncMock(return_value=None)
+
+    with pytest.raises(RateLimitError):
+        await scraper._scrape_match_data(
+            page=page_mock, sport="football", match_link="https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"
+        )
+
+
+@pytest.mark.asyncio
+async def test_extract_match_odds_retries_a_content_failure_once_and_reports_it(setup_base_scraper_mocks):
+    """B2: the real error reaches the failed list after one retry, and the proxy is not blamed."""
+    from oddsharvester.core.retry import RetryConfig
+    from oddsharvester.core.scrape_result import ErrorType
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    pm = mocks["playwright_manager_mock"]
+    scraper._hydrate_match_view = AsyncMock()
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._extract_match_details = AsyncMock(return_value=None)
+
+    result = await scraper.extract_match_odds(
+        sport="football",
+        match_links=["https://www.oddsportal.com/football/h2h/a/b/#WbDmMwm1"],
+        retry_config=RetryConfig(max_attempts=2, base_delay=0, max_delay=0),
+        request_delay=0,
+    )
+
+    assert result.stats.failed == 1
+    failed = result.failed[0]
+    assert failed.attempts == 2
+    assert failed.error_type is ErrorType.HEADER_NOT_FOUND
+    assert "No match details found" in failed.error_message
+    assert failed.is_retryable is True
+    assert scraper._extract_match_details.await_count == 2
+    pm.report_page_result.assert_called_once_with("direct", is_proxy_failure=False)
+
+
+@pytest.mark.asyncio
+async def test_extract_match_odds_recovers_when_the_retry_reads_the_page(setup_base_scraper_mocks):
+    from oddsharvester.core.retry import RetryConfig
+
+    link = "https://www.oddsportal.com/football/h2h/a/b/#WbDmMwm1"
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    scraper._hydrate_match_view = AsyncMock()
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._extract_match_details = AsyncMock(side_effect=[None, {"match_link": link, "home_team": "A"}])
+
+    result = await scraper.extract_match_odds(
+        sport="football",
+        match_links=[link],
+        retry_config=RetryConfig(max_attempts=2, base_delay=0, max_delay=0),
+        request_delay=0,
+    )
+
+    assert (result.stats.successful, result.stats.failed) == (1, 0)
+    assert result.success == [{"match_link": link, "home_team": "A"}]
+
+
+@pytest.mark.asyncio
+async def test_scrape_match_data_keeps_the_match_when_a_market_fails(setup_base_scraper_mocks):
+    """Guard: a failing market still gives the partial match the collector relies on."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    scraper._hydrate_match_view = AsyncMock()
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._extract_match_details = AsyncMock(
+        return_value={"home_team": "Arsenal", "match_date": "2023-05-01 20:00:00 UTC"}
+    )
+    mocks["market_extractor_mock"].scrape_markets = AsyncMock(side_effect=RuntimeError("tab switch failed"))
+
+    result = await scraper._scrape_match_data(
+        page=mocks["page_mock"],
+        sport="football",
+        match_link="https://www.oddsportal.com/football/h2h/a/b/#WbDmMwm1",
+        markets=["1x2"],
+    )
+
+    assert result == {"home_team": "Arsenal", "match_date": "2023-05-01 20:00:00 UTC"}
 
 
 def test_history_reference_converts_kickoff_to_the_browser_timezone():

@@ -20,7 +20,7 @@ from oddsharvester.core.browser.selection import (
     BOOKIES_FILTER_STRATEGY,
     SelectionManager,
 )
-from oddsharvester.core.exceptions import H2HFragmentResolutionError, RateLimitError
+from oddsharvester.core.exceptions import H2HFragmentResolutionError, MatchContentError, RateLimitError
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
@@ -32,7 +32,7 @@ from oddsharvester.core.retry import (
     is_retryable_error,
     retry_with_backoff,
 )
-from oddsharvester.core.scrape_result import FailedUrl, ScrapeResult, ScrapeStats
+from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult, ScrapeStats
 from oddsharvester.core.url_builder import URLBuilder
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import (
@@ -929,7 +929,7 @@ class BaseScraper:
                 period=period,
                 live_mode=live_mode,
             )
-        except H2HFragmentResolutionError as e:
+        except (H2HFragmentResolutionError, MatchContentError) as e:
             if refused:
                 raise self._rate_limit_error(match_link, [url for _, url in refused]) from e
             raise
@@ -978,15 +978,17 @@ class BaseScraper:
             period: The period enum to scrape odds for (FootballPeriod, TennisPeriod, or BasketballPeriod).
 
         Returns:
-            Optional[Dict[str, Any]]: A dictionary containing scraped data, or None if scraping fails.
+            Dict[str, Any]: A dictionary containing scraped data.
+
+        Raises:
+            MatchContentError: The page loaded but its match details or content could not be read.
         """
         self.logger.info(f"Scraping match: {match_link}")
 
         # Navigation is the proxy-sensitive step: let its failures propagate so
         # retry/backoff and multi-proxy failover can attribute them to the proxy.
-        # Errors after a successful load are content/DOM issues and must not
-        # blacklist a proxy, so they are swallowed to None below except
-        # H2HFragmentResolutionError, which is deliberately re-raised.
+        # Errors after a successful load are content/DOM issues: they become a
+        # MatchContentError, retried but typed so that no proxy is blamed.
         if urldefrag(page.url).url == urldefrag(match_link).url:
             # Same document: goto would only change the fragment, so a retry would reuse the broken view.
             await page.goto("about:blank")
@@ -1010,10 +1012,11 @@ class BaseScraper:
             match_details = await self._extract_match_details(page, match_link)
 
             if not match_details:
-                self.logger.warning(
-                    f"No match details found for {match_link} - page may be unavailable or structure changed"
+                raise MatchContentError(
+                    "No match details found - page may be unavailable or structure changed",
+                    url=match_link,
+                    error_type=ErrorType.HEADER_NOT_FOUND,
                 )
-                return None
 
             if live_mode:
                 live_info = _parse_live_info(BeautifulSoup(await page.content(), "lxml"))
@@ -1053,11 +1056,10 @@ class BaseScraper:
 
             return match_details
 
-        except H2HFragmentResolutionError:
+        except (H2HFragmentResolutionError, MatchContentError):
             raise
         except Exception as e:
-            self.logger.error(f"Error scraping match data from {match_link}: {e}")
-            return None
+            raise MatchContentError(f"{type(e).__name__}: {e}", url=match_link) from e
 
     def _resolved_browser_timezone(self) -> ZoneInfo:
         """

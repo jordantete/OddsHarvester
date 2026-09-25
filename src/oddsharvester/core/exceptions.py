@@ -120,3 +120,14 @@ class H2HFragmentResolutionError(ScraperError):
 
     def __init__(self, message: str, url: str | None = None):
         super().__init__(message, url, is_retryable=True, error_type=ErrorType.HEADER_NOT_FOUND)
+
+
+class MatchContentError(ScraperError):
+    """The match page loaded but its content could not be read.
+
+    Retryable, and typed by the raiser: classifying the message would turn a DOM timeout into a
+    proxy-attributable navigation failure.
+    """
+
+    def __init__(self, message: str, url: str | None = None, error_type: ErrorType = ErrorType.PARSING):
+        super().__init__(message, url, is_retryable=True, error_type=error_type)
