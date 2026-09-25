@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 import logging
 from typing import Any
 
@@ -270,17 +271,12 @@ class OddsPortalMarketExtractor:
             if sport:
                 period_enum = SportPeriodRegistry.from_internal_value(period, sport)
                 if period_enum:
-                    scope_selected = await self.period_selector.select_by_scope(
-                        page=page, sport=sport, internal_period=period
-                    )
-                    if scope_selected is None:
-                        display_label = period_enum.get_display_label(period_enum)
-                        await self.selection_manager.ensure_selected(
-                            page=page,
-                            target_value=display_label,
-                            display_label=display_label,
-                            strategy=PERIOD_STRATEGY,
+                    if not await self._select_period(page, sport, period, period_enum):
+                        self.logger.error(
+                            f"Could not verify period '{period}' for {main_market}; "
+                            "returning no odds rather than another period's."
                         )
+                        return []
                 else:
                     self.logger.debug(f"Period selection skipped for sport: {sport}")
 
@@ -363,3 +359,20 @@ class OddsPortalMarketExtractor:
         if modal_html is None:
             return empty_history_block()
         return self.odds_parser.parse_odds_history_modal(modal_html, reference=reference)
+
+    async def _select_period(self, page: Page, sport: str, period: str, period_enum: Enum) -> bool:
+        """Select the period; True when the odds on the page can be trusted to be that period's."""
+        if await self.period_selector.select_by_scope(page=page, sport=sport, internal_period=period) is True:
+            return True
+
+        display_label = period_enum.get_display_label(period_enum)
+        if await self.selection_manager.ensure_selected(
+            page=page, target_value=display_label, display_label=display_label, strategy=PERIOD_STRATEGY
+        ):
+            return True
+
+        # The page opens on the sport's default period and nothing in a run switches it away.
+        if period_enum == SportPeriodRegistry.get_default_period(sport):
+            self.logger.warning(f"Period '{period}' not verified on the page; keeping it as the sport's default.")
+            return True
+        return False

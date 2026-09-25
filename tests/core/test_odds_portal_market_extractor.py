@@ -843,6 +843,65 @@ class TestOddsPortalMarketExtractor:
         extractor.period_selector.select_by_scope.assert_not_called()
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("scope_result", [None, False])
+    async def test_unverified_scope_falls_back_to_label(
+        self, extractor, page_mock, selection_manager_mock, scope_result
+    ):
+        """Both an unknown scope (None) and a failed scope switch (False) try the label tab."""
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_page_load = AsyncMock()
+        extractor.odds_parser.parse_market_odds = MagicMock(
+            return_value=[{"1": "1.80", "2": "2.00", "bookmaker_name": "B1", "period": "FirstSet"}]
+        )
+        extractor.period_selector.select_by_scope = AsyncMock(return_value=scope_result)
+        selection_manager_mock.ensure_selected = AsyncMock(return_value=True)
+
+        result = await extractor.extract_market_odds(
+            page=page_mock, main_market="Home/Away", odds_labels=["1", "2"], sport="tennis", period="FirstSet"
+        )
+
+        selection_manager_mock.ensure_selected.assert_awaited_once()
+        assert len(result) == 1
+
+    @pytest.mark.asyncio
+    async def test_unverified_non_default_period_returns_no_odds(self, extractor, page_mock, selection_manager_mock):
+        """Tennis 1st set not reachable by scope nor label: no odds rather than full-time odds labelled FirstSet."""
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_page_load = AsyncMock()
+        extractor.odds_parser.parse_market_odds = MagicMock(
+            return_value=[{"1": "1.80", "2": "2.00", "bookmaker_name": "B1", "period": "FirstSet"}]
+        )
+        extractor.period_selector.select_by_scope = AsyncMock(return_value=False)
+        selection_manager_mock.ensure_selected = AsyncMock(return_value=False)
+
+        result = await extractor.extract_market_odds(
+            page=page_mock, main_market="Home/Away", odds_labels=["1", "2"], sport="tennis", period="FirstSet"
+        )
+
+        assert result == []
+        extractor.odds_parser.parse_market_odds.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_unverified_default_period_keeps_the_odds(self, extractor, page_mock, selection_manager_mock):
+        """Football full time is the page's default: an unverified selection keeps today's behaviour."""
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_page_load = AsyncMock()
+        extractor.odds_parser.parse_market_odds = MagicMock(
+            return_value=[{"1": "1.90", "X": "3.50", "2": "4.20", "bookmaker_name": "B1", "period": "FullTime"}]
+        )
+        extractor.period_selector.select_by_scope = AsyncMock(return_value=False)
+        selection_manager_mock.ensure_selected = AsyncMock(return_value=False)
+
+        result = await extractor.extract_market_odds(
+            page=page_mock, main_market="1X2", odds_labels=["1", "X", "2"], sport="football", period="FullTime"
+        )
+
+        assert len(result) == 1
+
+    @pytest.mark.asyncio
     async def test_extract_market_odds_preview_mode_passive(self, extractor, page_mock):
         """Test preview mode uses passive submarket extraction."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
