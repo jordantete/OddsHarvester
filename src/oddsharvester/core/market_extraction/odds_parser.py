@@ -27,6 +27,11 @@ def parse_odds_value(text: str) -> float:
     return float(text)
 
 
+def empty_history_block() -> dict[str, Any]:
+    """History block for an outcome whose odds movement could not be read."""
+    return {"odds_history": [], "opening_odds": None}
+
+
 class OddsParser:
     """Handles parsing of odds data from HTML content."""
 
@@ -103,20 +108,23 @@ class OddsParser:
         self.logger.info(f"Successfully parsed odds for {len(odds_data)} bookmakers.")
         return odds_data
 
-    def parse_odds_history_modal(self, modal_html: str) -> dict[str, Any]:
+    def parse_odds_history_modal(self, modal_html: str, reference: datetime | None = None) -> dict[str, Any]:
         """
         Parses the HTML content of an odds history modal.
 
         Args:
             modal_html (str): Raw HTML from the modal.
+            reference (datetime, optional): Kickoff as a naive datetime in the browser timezone. The modal omits
+                the year: each timestamp takes the kickoff's year, or the year before when its month comes after
+                the kickoff month. Without it, the current UTC year is used.
 
         Returns:
-            dict: Parsed odds history data, including historical odds and the opening odds.
+            dict: {"odds_history": [...], "opening_odds": {...} or None}; both empty when the modal is unreadable.
         """
         self.logger.info("Parsing modal content for odds history.")
-        soup = BeautifulSoup(modal_html, "html.parser")
 
         try:
+            soup = BeautifulSoup(modal_html, "html.parser")
             odds_history = []
             # Redesign: history columns are siblings inside a flex-row wrapper
             # (col 0 = timestamps, col 1 = values, col 2 = deltas).
@@ -127,27 +135,21 @@ class OddsParser:
             for ts, odd in zip(timestamps, odds_values, strict=False):
                 time_text = ts.get_text(strip=True)
                 try:
-                    dt = datetime.strptime(_MONTH_ABBR_RE.sub("Sep", time_text), "%d %b, %H:%M")
-                    formatted_time = dt.replace(year=datetime.now(UTC).year).isoformat()
+                    formatted_time = self._history_timestamp(time_text, reference)
                 except ValueError:
                     self.logger.warning(f"Failed to parse datetime: {time_text}")
                     continue
 
                 odds_history.append({"timestamp": formatted_time, "odds": parse_odds_value(odd.get_text(strip=True))})
 
-            # Parse opening odds
-            opening_odds_block = soup.select_one("div.mt-2.gap-1")
-            opening_ts_div = opening_odds_block.select_one("div.flex.gap-1 div")
-            opening_val_div = opening_odds_block.select_one("div.flex.gap-1 .font-bold")
-
             opening_odds = None
+            opening_odds_block = soup.select_one("div.mt-2.gap-1")
+            opening_ts_div = opening_odds_block.select_one("div.flex.gap-1 div") if opening_odds_block else None
+            opening_val_div = opening_odds_block.select_one("div.flex.gap-1 .font-bold") if opening_odds_block else None
             if opening_ts_div and opening_val_div:
                 try:
-                    dt = datetime.strptime(
-                        _MONTH_ABBR_RE.sub("Sep", opening_ts_div.get_text(strip=True)), "%d %b, %H:%M"
-                    )
                     opening_odds = {
-                        "timestamp": dt.replace(year=datetime.now(UTC).year).isoformat(),
+                        "timestamp": self._history_timestamp(opening_ts_div.get_text(strip=True), reference),
                         "odds": parse_odds_value(opening_val_div.get_text(strip=True)),
                     }
                 except ValueError:
@@ -157,7 +159,18 @@ class OddsParser:
 
         except Exception as e:
             self.logger.error(f"Failed to parse odds history modal: {e}")
-            return {}
+            return empty_history_block()
+
+    @staticmethod
+    def _history_timestamp(text: str, reference: datetime | None) -> str:
+        """ISO timestamp of a modal time such as '27 Dec, 18:08'."""
+        # Parsed against a leap year so that 29 February is accepted before the real year is known.
+        parsed = datetime.strptime(f"{_MONTH_ABBR_RE.sub('Sep', text)} 2000", "%d %b, %H:%M %Y")
+        if reference is None:
+            year = datetime.now(UTC).year
+        else:
+            year = reference.year - 1 if parsed.month > reference.month else reference.year
+        return datetime(year, parsed.month, parsed.day, parsed.hour, parsed.minute).isoformat()
 
     def _extract_bookmaker_name(self, block: Tag) -> str | None:
         """Extract the bookmaker name: the label next to the logo, else the logo link title."""

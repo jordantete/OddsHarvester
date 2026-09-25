@@ -163,20 +163,10 @@ class TestOddsPortalMarketExtractor:
             assert "opening_odds" in result
 
     def test_parse_odds_history_modal_invalid_html(self, extractor):
-        """Test parsing odds history from invalid HTML."""
-        # Arrange
-        with patch("oddsharvester.core.market_extraction.odds_parser.datetime") as mock_datetime:
-            mock_now = MagicMock()
-            mock_now.year = 2025
-            mock_datetime.now.return_value = mock_now
-            mock_datetime.strptime.side_effect = lambda *args, **kwargs: datetime.strptime(*args, **kwargs)
+        """An unreadable modal gives the empty block, never {}."""
+        result = extractor.odds_parser.parse_odds_history_modal("<div>Invalid HTML content</div>")
 
-            # Act
-            invalid_html = "<div>Invalid HTML content</div>"
-            result = extractor.odds_parser.parse_odds_history_modal(invalid_html)
-
-            # Assert
-            assert result == {}
+        assert result == {"odds_history": [], "opening_odds": None}
 
     def test_parse_odds_history_modal_invalid_date(self, extractor):
         """Test parsing odds history with invalid date format."""

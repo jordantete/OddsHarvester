@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -62,6 +63,60 @@ class TestOddsParser:
     </div>
 </div>
 """
+
+    @staticmethod
+    def _history_html(history, opening=None):
+        times = "".join(f'<div class="text-[10px] font-normal">{t}</div>' for t, _ in history)
+        values = "".join(f'<div class="text-[10px] font-bold">{v}</div>' for _, v in history)
+        opening_html = (
+            '<div class="mt-2 gap-1"><div class="text-[10px] font-bold">Opening odds:</div>'
+            f'<div class="flex gap-1"><div class="font-normal">{opening[0]}</div>'
+            f'<div class="font-bold">{opening[1]}</div></div></div>'
+            if opening
+            else ""
+        )
+        return (
+            '<div class="flex w-max flex-col gap-2"><div class="flex flex-row gap-3">'
+            f'<div class="flex flex-col gap-1">{times}</div><div class="flex flex-col gap-1">{values}</div>'
+            f"</div>{opening_html}</div>"
+        )
+
+    def test_history_year_before_january_kickoff(self, odds_parser):
+        html = self._history_html([("4 Jan, 18:27", "1.95")], opening=("27 Dec, 18:08", "2.10"))
+
+        result = odds_parser.parse_odds_history_modal(html, reference=datetime(2026, 1, 4, 18, 30))
+
+        assert result["odds_history"][0]["timestamp"] == "2026-01-04T18:27:00"
+        assert result["opening_odds"]["timestamp"] == "2025-12-27T18:08:00"
+
+    def test_history_year_same_and_earlier_month(self, odds_parser):
+        html = self._history_html([("20 May, 10:00", "1.95")], opening=("28 Apr, 09:00", "2.10"))
+
+        result = odds_parser.parse_odds_history_modal(html, reference=datetime(2023, 5, 21, 15, 0))
+
+        assert result["odds_history"][0]["timestamp"] == "2023-05-20T10:00:00"
+        assert result["opening_odds"]["timestamp"] == "2023-04-28T09:00:00"
+
+    def test_history_accepts_29_february_in_a_leap_year(self, odds_parser):
+        html = self._history_html([("29 Feb, 12:00", "1.95")])
+
+        result = odds_parser.parse_odds_history_modal(html, reference=datetime(2028, 3, 1, 20, 0))
+
+        assert result["odds_history"][0]["timestamp"] == "2028-02-29T12:00:00"
+
+    def test_history_without_reference_uses_the_current_year(self, odds_parser):
+        html = self._history_html([("10 Jun, 14:30", "1.95")])
+
+        result = odds_parser.parse_odds_history_modal(html)
+
+        assert result["odds_history"][0]["timestamp"] == f"{datetime.now(UTC).year}-06-10T14:30:00"
+
+    def test_history_is_kept_when_the_opening_block_is_missing(self, odds_parser):
+        html = self._history_html([("10 Jun, 14:30", "1.95")])
+
+        result = odds_parser.parse_odds_history_modal(html, reference=datetime(2025, 6, 11, 20, 0))
+
+        assert result == {"odds_history": [{"timestamp": "2025-06-10T14:30:00", "odds": 1.95}], "opening_odds": None}
 
     def test_parse_market_odds_success(self, odds_parser):
         """Test successful parsing of market odds."""
@@ -169,22 +224,10 @@ class TestOddsParser:
             assert "opening_odds" in result
 
     def test_parse_odds_history_modal_invalid_html(self, odds_parser):
-        """Test parsing odds history from invalid HTML."""
-        # Arrange
-        with patch("oddsharvester.core.market_extraction.odds_parser.datetime") as mock_datetime:
-            mock_now = MagicMock()
-            mock_now.year = 2025
-            mock_datetime.now.return_value = mock_now
-            mock_datetime.strptime.side_effect = lambda *args, **kwargs: __import__("datetime").datetime.strptime(
-                *args, **kwargs
-            )
+        """An unreadable modal gives the empty block, never {}."""
+        result = odds_parser.parse_odds_history_modal("<div>Invalid HTML content</div>")
 
-            # Act
-            invalid_html = "<div>Invalid HTML content</div>"
-            result = odds_parser.parse_odds_history_modal(invalid_html)
-
-            # Assert
-            assert result == {}
+        assert result == {"odds_history": [], "opening_odds": None}
 
     def test_parse_odds_history_modal_invalid_date(self, odds_parser):
         """Test parsing odds history with invalid date format."""
