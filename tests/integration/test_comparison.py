@@ -129,3 +129,17 @@ def test_missing_history_fails(match):
     actual = copy.deepcopy(expected)
     del actual["1x2_market"][0]["odds_history_data"]
     assert not compare_match_data(actual, expected).passed
+
+
+def test_market_regressed_to_none_fails(match):
+    actual = copy.deepcopy(match)
+    actual["1x2_market"] = None
+    result = compare_match_data(actual, match)
+    assert not result.passed
+    assert "1x2_market" in str(result)
+
+
+def test_identical_none_market_passes(match):
+    expected = copy.deepcopy(match)
+    expected["1x2_market"] = None
+    assert compare_match_data(copy.deepcopy(expected), expected).passed

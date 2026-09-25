@@ -52,7 +52,7 @@ def compare_match_data(actual: dict[str, Any], expected: dict[str, Any]) -> Comp
             result.add_error(f"'{key}' missing from actual")
         elif key not in expected:
             result.add_error(f"'{key}' not in fixture")
-        elif key.endswith(MARKET_SUFFIX):
+        elif key.endswith(MARKET_SUFFIX) and isinstance(actual[key], list) and isinstance(expected[key], list):
             for error in compare_market(key, actual[key], expected[key]).errors:
                 result.add_error(error)
         elif actual[key] != expected[key]:
