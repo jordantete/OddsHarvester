@@ -369,6 +369,10 @@ Matches are dispatched round-robin across the proxies; a proxy that fails 3 time
 > dropped, which used to shift the remaining blocks. A market requested for a
 > non-default `--period` that cannot be verified on the page is now returned empty
 > instead of carrying another period's odds.
+> Periods are verified through the URL for full time, football `1st_half` and
+> `2nd_half`, and tennis `1st_set`; the other non-default periods rely on finding
+> their English tab label, and basketball `1st_half` and `1st_quarter` currently
+> come back empty (earlier versions returned full-game odds for them).
 
 <details>
 <summary><strong>Preview Mode vs Full Mode</strong></summary>
