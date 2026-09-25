@@ -229,7 +229,9 @@ class TestFootballBasicMarkets:
             fixture_name,
         )
 
-        result = compare_match_data(actual[0], expected[0])
+        # The umbrella also yields lines this fixture was not captured for; compare only the captured ones.
+        captured = {k: v for k, v in actual[0].items() if not k.endswith("_market") or k in expected[0]}
+        result = compare_match_data(captured, expected[0])
         assert result.passed, str(result)
 
         record = actual[0]
