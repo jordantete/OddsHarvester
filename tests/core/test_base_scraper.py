@@ -2673,3 +2673,18 @@ def test_history_reference_defaults_to_utc():
 def test_history_reference_is_none_without_a_usable_match_date():
     assert _history_reference(None, "UTC") is None
     assert _history_reference("not a date", "UTC") is None
+
+
+@pytest.mark.asyncio
+async def test_extract_match_odds_keeps_results_when_closing_a_tab_fails(setup_base_scraper_mocks):
+    """A failed tab close must not escape the batch: retry_scrape would rerun and re-emit every match."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    mocks["page_mock"].close = AsyncMock(side_effect=Exception("Target page, context or browser has been closed"))
+    scraper._scrape_match_data = AsyncMock(side_effect=[{"match_link": "https://x/a"}, {"match_link": "https://x/b"}])
+
+    result = await scraper.extract_match_odds(
+        sport="football", match_links=["https://x/a", "https://x/b"], request_delay=0
+    )
+
+    assert (result.stats.successful, result.stats.failed) == (2, 0)

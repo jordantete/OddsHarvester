@@ -845,7 +845,10 @@ class BaseScraper:
 
                 finally:
                     if tab:
-                        await tab.close()
+                        try:
+                            await tab.close()
+                        except Exception as e:
+                            self.logger.warning(f"Could not close the tab used for {link}: {e}")
 
         # Execute all scraping tasks concurrently
         tasks = [scrape_with_semaphore(link) for link in match_links]
