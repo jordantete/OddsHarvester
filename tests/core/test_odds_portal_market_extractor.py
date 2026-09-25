@@ -399,6 +399,7 @@ class TestOddsPortalMarketExtractor:
     async def test_extract_market_odds_with_odds_history(self, extractor, page_mock):
         """Each outcome gets its block; a modal that could not be read becomes the empty block."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[{"1": "1.90", "X": "3.50", "2": "4.20", "bookmaker_name": "Bookmaker1", "period": "FullTime"}]
         )
@@ -433,6 +434,7 @@ class TestOddsPortalMarketExtractor:
     async def test_odds_history_pads_missing_modals_with_empty_blocks(self, extractor, page_mock):
         """Fewer modals than outcomes still gives one block per outcome."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[{"1": "1.90", "X": "3.50", "2": "4.20", "bookmaker_name": "Bookmaker1", "period": "FullTime"}]
         )
