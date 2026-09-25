@@ -327,6 +327,21 @@ def _extract_fragment_match_id(match_link: str) -> str | None:
     return OddsPortalSelectors.event_id_from_url(match_link)
 
 
+def _history_reference(match_date: str | None, tz_name: str | None) -> datetime | None:
+    """Kickoff as a naive datetime in the browser timezone, the frame odds-history timestamps are shown in."""
+    if not match_date:
+        return None
+    try:
+        kickoff = datetime.strptime(match_date, "%Y-%m-%d %H:%M:%S UTC").replace(tzinfo=UTC)
+    except ValueError:
+        return None
+    try:
+        tz = ZoneInfo(tz_name) if tz_name else UTC
+    except (ZoneInfoNotFoundError, ValueError):
+        tz = UTC
+    return kickoff.astimezone(tz).replace(tzinfo=None)
+
+
 class BaseScraper:
     """
     Base class for scraping match data from OddsPortal.
@@ -1024,6 +1039,9 @@ class BaseScraper:
                         scrape_odds_history=scrape_odds_history,
                         target_bookmaker=target_bookmaker,
                         preview_submarkets_only=preview_submarkets_only,
+                        history_reference=_history_reference(
+                            match_details.get("match_date"), getattr(self.playwright_manager, "timezone_id", None)
+                        ),
                     )
                     if market_data:
                         match_details.update(market_data)

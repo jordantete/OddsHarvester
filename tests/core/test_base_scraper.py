@@ -11,6 +11,7 @@ from tests.dom_builders import date_header, listing_row, live_block, match_heade
 from oddsharvester.core.base_scraper import (
     BaseScraper,
     _extract_fragment_match_id,
+    _history_reference,
     _is_offscreen_row,
     _parse_date_header,
     _parse_live_info,
@@ -1021,6 +1022,7 @@ async def test_scrape_match_data(setup_base_scraper_mocks):
         scrape_odds_history=True,
         target_bookmaker="bet365",
         preview_submarkets_only=False,
+        history_reference=datetime(2023, 5, 1, 20, 0),
     )
 
     # Verify the bookies filter was applied via SelectionManager with the right strategy
@@ -2550,3 +2552,21 @@ async def test_scrape_match_data_counts_429_after_a_redirect_to_the_www_host(set
         await scraper._scrape_match_data(
             page=page_mock, sport="football", match_link="https://oddsportal.com/football/h2h/a/b/#YDZojogM"
         )
+
+
+def test_history_reference_converts_kickoff_to_the_browser_timezone():
+    assert _history_reference("2026-06-04 18:30:00 UTC", "Europe/London") == datetime(2026, 6, 4, 19, 30)
+
+
+def test_history_reference_crosses_new_year_in_the_browser_timezone():
+    assert _history_reference("2025-12-31 23:30:00 UTC", "Asia/Tokyo") == datetime(2026, 1, 1, 8, 30)
+
+
+def test_history_reference_defaults_to_utc():
+    assert _history_reference("2026-01-04 18:30:00 UTC", None) == datetime(2026, 1, 4, 18, 30)
+    assert _history_reference("2026-01-04 18:30:00 UTC", "Not/AZone") == datetime(2026, 1, 4, 18, 30)
+
+
+def test_history_reference_is_none_without_a_usable_match_date():
+    assert _history_reference(None, "UTC") is None
+    assert _history_reference("not a date", "UTC") is None
