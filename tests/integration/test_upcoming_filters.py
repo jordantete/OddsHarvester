@@ -49,6 +49,16 @@ def _next_saturday(today: date) -> date:
     return today + timedelta(days=days_ahead or 7)
 
 
+def _empty_listing(exit_code: int, stderr: str) -> bool:
+    """`upcoming` exits 1 on a league with no match; a listing failure or a crash also names itself on stderr."""
+    return exit_code == 1 and "Failed URLs" not in stderr and "Traceback" not in stderr
+
+
+def _premier_league_break(today: date) -> bool:
+    """1 June to 10 August: the Premier League has no fixture to list."""
+    return (6, 1) <= (today.month, today.day) <= (8, 10)
+
+
 @pytest.mark.integration
 @pytest.mark.live_only
 class TestUpcomingLeagueDateFilter:
@@ -63,6 +73,8 @@ class TestUpcomingLeagueDateFilter:
             target_date=None,
             output_path=output_path,
         )
+        if _empty_listing(exit_code, stderr) and _premier_league_break(datetime.now(UTC).date()):
+            pytest.skip("Premier League summer break: no upcoming fixture to list.")
         assert exit_code == 0, f"Scraper failed: {stderr}"
 
         json_file = Path(f"{output_path}.json")
@@ -74,8 +86,8 @@ class TestUpcomingLeagueDateFilter:
     def test_upcoming_league_with_date_filters_to_that_date(self, temp_output_dir):
         """Core regression test: --league + --date should keep only matches of that date.
 
-        The `upcoming` CLI has pre-existing behavior of exiting 1 when no matches are
-        found, so we skip (rather than fail) on that outcome.
+        `upcoming` exits 1 when the league lists no match: that outcome skips, any other
+        failure fails.
         """
         output_path = temp_output_dir / "upcoming_league_date"
 
@@ -83,7 +95,7 @@ class TestUpcomingLeagueDateFilter:
         target = _next_saturday(datetime.now(UTC).date())
         target_str = target.strftime("%Y%m%d")
 
-        exit_code, _stdout, _stderr = _run_upcoming(
+        exit_code, _stdout, stderr = _run_upcoming(
             sport="football",
             league="england-premier-league",
             target_date=target_str,
@@ -91,11 +103,10 @@ class TestUpcomingLeagueDateFilter:
         )
 
         json_file = Path(f"{output_path}.json")
-        if exit_code != 0 or not json_file.exists():
-            pytest.skip(
-                f"No matches scheduled for {target_str} in Premier League (exit={exit_code}). "
-                "This is a pre-existing CLI behavior when the result set is empty."
-            )
+        if _empty_listing(exit_code, stderr):
+            pytest.skip(f"No Premier League match listed for {target_str} (upcoming exits 1 on an empty listing).")
+        assert exit_code == 0, f"Scraper failed: {stderr}"
+        assert json_file.exists(), f"exit 0 but no output written: {stderr[-2000:]}"
 
         data = json.loads(json_file.read_text())
         assert isinstance(data, list)

@@ -2,17 +2,14 @@ name: Scraper Health Check
 
 on:
   schedule:
-    - cron: "0 11 * * 1" # Runs every Monday at 11:00 UTC
-  workflow_dispatch: # Allows manual execution
-  push:
-    paths:
-      - "tests/test_website_layout.py"
-      - "tests/test_website_config.py"
+    - cron: "0 11 * * 1" # Mondays at 11:00 UTC
+  workflow_dispatch:
 
 jobs:
   test_scraper:
     name: Run Scraper Health Check
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
@@ -30,42 +27,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libxml2-dev libxslt-dev python3-dev build-essential
-
       - name: Install dependencies
-        run: uv sync --all-extras --dev
-
-      - name: Test configuration (no browser required)
-        run: |
-          echo "🔧 Testing configuration validity..."
-          uv run pytest tests/test_website_layout.py::test_test_configuration -v
-          uv run pytest tests/test_website_layout.py::test_sport_coverage -v
-          uv run pytest tests/test_website_layout.py::test_market_variety -v
-          uv run pytest tests/test_website_layout.py::test_url_validity -v
-          echo "✅ All configuration tests passed!"
+        run: uv sync --locked
 
       - name: Install Playwright Chromium Browser
         run: uv run playwright install chromium
 
-      - name: Run scraper layout tests
-        run: |
-          echo "🌐 Running multi-sport layout tests..."
-          uv run pytest tests/test_website_layout.py::test_match_layout_integrity -v || {
-            echo "⚠️ Multi-sport tests failed"
-            exit 0
-          }
-
-          echo "🔍 Running individual sport tests..."
-          uv run pytest tests/test_website_layout.py::test_individual_sport_functionality -v || {
-            echo "⚠️ Individual sport tests failed"
-            exit 0
-          }
-
-          echo "📊 Test Summary:"
-          echo "✅ Configuration tests completed"
-          echo "✅ Multi-sport layout tests completed"
-          echo "✅ Individual sport tests completed"
-          echo "🎉 All OddsPortal layout tests passed!"
+      - name: Run the live_only tests against OddsPortal
+        run: uv run pytest tests/integration -m live_only --live -q
