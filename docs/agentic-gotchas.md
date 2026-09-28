@@ -1202,10 +1202,10 @@ responses served from the browser HTTP cache during capture and therefore never
 recorded — `MyBookmarks` is provably in that category). Same family as the H2H
 fragment limit in the `live_only` tests.
 
-Consequence: do not write a replay test that asserts the live header. The
-existing one is kept as `xfail` rather than `live_only`, because the captured
-match is over and `--live` would have nothing to scrape, which would make the
-marker a permanent no-op.
+Consequence: do not write a replay test that asserts the live header. The one
+written for the 2026-07-20 capture was deleted with its HAR in 2026-09: it could
+only xfail on replay, and `live_only` would have made it a permanent no-op since
+the captured match is over.
 
 ### Related observation on §9 (unconfirmed)
 

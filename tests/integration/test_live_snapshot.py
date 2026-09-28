@@ -1,11 +1,10 @@
-"""Integration tests for the live (in-play) snapshot flow.
+"""Integration tests for the live (in-play) flow.
 
 Two complementary tests:
 
-- A deterministic HAR replay of a real live football match, captured while it was
-  in play on 2026-07-20. A live page is ephemeral, so once a match ends its
-  in-play view is gone for good: the HAR is the only way this flow can ever be
-  replayed. Runs by default, no network.
+- A deterministic HAR replay of the live-now listing captured on 2026-07-20. Runs
+  by default, no network. The in-play match page captured with it does not replay
+  (agentic-gotchas §16), so the match snapshot itself has no replay test.
 - A self-discovering live-network test that scrapes whatever is in play right now
   and skips when nothing is. Marked live_only, run with --live.
 
@@ -16,7 +15,6 @@ covers the real user-facing path.
 import json
 import os
 from pathlib import Path
-import re
 import subprocess
 
 import pytest
@@ -28,8 +26,6 @@ pytestmark = [pytest.mark.integration]
 REPLAY_MATCH = {
     "league": "club-friendly",
     "match_id": "samgurali-spaeri-0nx5GXqB",
-    "fixture": "live_1x2_all.json",
-    "url": ("https://www.oddsportal.com/football/h2h/samgurali-UVbdPPp5/spaeri-lhbBhs66/inplay-odds/#0nx5GXqB"),
 }
 
 # Wall-clock fields: they legitimately differ on every run.
@@ -61,78 +57,6 @@ def _run_live(sport: str, market: str, output_path: Path) -> tuple[int, str]:
         check=False,
     )
     return result.returncode, result.stdout + result.stderr
-
-
-@pytest.mark.xfail(
-    reason="an in-play page does not replay from a HAR: the app renders its pre-match "
-    "header, live-info never mounts and the record is dropped (agentic-gotchas §16)",
-    strict=False,
-)
-def test_live_snapshot_replays_captured_football_match(tmp_path, har_for_match):
-    """A captured in-play football match replays: fixed identity, live-shaped context.
-
-    The score and period are deliberately NOT asserted against captured values,
-    see the comment on the live-context assertions below.
-
-    Kept as xfail rather than live_only: the captured match is long over, so --live
-    has nothing to scrape and the marker would make this a permanent no-op. Running
-    it flags the day a replay renders the live view again.
-    """
-    har = har_for_match("football", REPLAY_MATCH["league"], REPLAY_MATCH["match_id"], REPLAY_MATCH["fixture"])
-    if har is None:
-        pytest.skip("no HAR for the captured match (or --live requested)")
-
-    expected_path = (
-        Path(__file__).parent / "fixtures" / "football" / REPLAY_MATCH["league"] / REPLAY_MATCH["match_id"]
-    ) / REPLAY_MATCH["fixture"]
-    expected = json.loads(expected_path.read_text())[0]
-
-    output_path = tmp_path / "replay.json"
-    cmd = [
-        "uv",
-        "run",
-        "oddsharvester",
-        "live",
-        "--sport",
-        "football",
-        "--match-link",
-        REPLAY_MATCH["url"],
-        "--market",
-        "1x2",
-        "--headless",
-        "--output",
-        str(output_path),
-    ]
-    env = {**os.environ, "ODDSHARVESTER_HAR_REPLAY": str(har)}
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300, check=False, env=env)  # noqa: S603
-
-    assert result.returncode == 0, f"replay failed\n{(result.stdout + result.stderr)[-2000:]}"
-    assert output_path.exists(), "replay produced no output"
-
-    records = json.loads(output_path.read_text())
-    assert len(records) == 1
-    actual = records[0]
-
-    # The in-play page self-refreshes via first-party .dat feeds, and the HAR was
-    # recorded in "full" mode, so it holds several snapshots of the live state, not
-    # one frozen instant. Replay timing picks one of them, which means live_period
-    # and live_score are legitimately non-deterministic across replays (captured at
-    # "Half-time", a later replay saw "49'"). Assert the SHAPE of the live context,
-    # not the captured values.
-    assert actual["live_period"], "a live record must carry a period marker"
-    assert re.fullmatch(r"\d+:\d+.*", actual["live_score_raw"]), (
-        f"live_score_raw should start with a numeric score, got {actual['live_score_raw']!r}"
-    )
-    assert str(actual["scraped_at_utc"]).endswith("Z")
-
-    # Match identity, on the other hand, is fixed: it must never drift on replay.
-    for key in ("home_team", "away_team", "league_name", "match_date"):
-        assert actual[key] == expected[key], f"{key} drifted from the capture"
-
-    # The odds table comes from the same in-play tab as the capture.
-    assert actual["1x2_market"], "the in-play odds table must be present"
-    book = actual["1x2_market"][0]
-    assert {"1", "X", "2", "bookmaker_name"} <= set(book)
 
 
 def test_live_listing_replays_captured_live_now_page(tmp_path, har_for_match):
