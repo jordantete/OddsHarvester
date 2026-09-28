@@ -15,6 +15,7 @@ from oddsharvester.cli.validators import (
     validate_match_links_file,
     validate_period,
     validate_proxy_url,
+    warn_ignored_odds_format,
 )
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.odds_format_enum import OddsFormat
@@ -237,6 +238,8 @@ def common_options(func):
         "--odds-format",
         type=ODDS_FORMAT,
         default=OddsFormat.DECIMAL_ODDS.value,
+        hidden=True,
+        callback=warn_ignored_odds_format,
         help="Odds display format.",
     )
     @click.option(

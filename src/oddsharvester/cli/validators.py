@@ -8,6 +8,7 @@ import click
 
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 from oddsharvester.core.url_builder import URLBuilder
+from oddsharvester.utils.odds_format_enum import OddsFormat
 from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from oddsharvester.utils.sport_market_constants import FOOTBALL_UMBRELLA_MARKETS, Sport
 from oddsharvester.utils.utils import get_supported_markets
@@ -293,3 +294,13 @@ def validate_teams_file(ctx, param, value):
         entries = [line.strip() for line in file if line.strip()]
 
     return list(dict.fromkeys(_to_team_id(entry) for entry in entries)) or None
+
+
+def warn_ignored_odds_format(ctx, param, value):
+    """--odds-format never reached the scraper: odds are always decimal."""
+    if value is not None and value is not OddsFormat.DECIMAL_ODDS:
+        click.echo(
+            "--odds-format has no effect: odds are always decimal. The option will be removed in a future release.",
+            err=True,
+        )
+    return value

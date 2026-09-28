@@ -705,3 +705,46 @@ class TestStreamNdjson:
 
         assert result.exit_code == 2
         assert "--links-only" in result.output
+
+
+class TestOddsFormatDeprecation:
+    ARGS: ClassVar[list[str]] = ["historic", "-s", "football", "-l", "england-premier-league", "--season", "2022-2023"]
+
+    @staticmethod
+    def _run(runner, args):
+        from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
+
+        result = ScrapeResult(success=[{"match_link": "https://x/a"}], stats=ScrapeStats(total_urls=1, successful=1))
+        with (
+            patch("oddsharvester.cli.commands.historic.run_scraper", new_callable=AsyncMock, return_value=result),
+            patch("oddsharvester.cli.commands.upcoming.run_scraper", new_callable=AsyncMock, return_value=result),
+            patch("oddsharvester.cli.commands._output.store_data", return_value=True),
+        ):
+            return runner.invoke(cli, args)
+
+    def test_option_is_hidden_from_help(self, runner):
+        result = runner.invoke(cli, ["historic", "--help"])
+        assert result.exit_code == 0
+        assert "--odds-format" not in result.output
+
+    def test_non_decimal_odds_format_warns(self, runner):
+        result = self._run(runner, [*self.ARGS, "--odds-format", "Fractional Odds"])
+        assert result.exit_code == 0, result.output
+        assert "--odds-format has no effect" in result.stderr
+
+    def test_default_odds_format_does_not_warn(self, runner):
+        result = self._run(runner, self.ARGS)
+        assert result.exit_code == 0, result.output
+        assert "--odds-format" not in result.stderr
+
+    def test_explicit_decimal_odds_format_does_not_warn(self, runner):
+        result = self._run(runner, [*self.ARGS, "--odds-format", "Decimal Odds"])
+        assert result.exit_code == 0, result.output
+        assert "--odds-format" not in result.stderr
+
+    def test_warning_keeps_the_ndjson_stream_clean(self, runner):
+        args = ["upcoming", "-s", "football", "-d", FUTURE_DATE, "--stream-ndjson", "--odds-format", "Fractional Odds"]
+        result = self._run(runner, args)
+        assert result.exit_code == 0, result.output
+        assert result.stdout == ""
+        assert "--odds-format has no effect" in result.stderr

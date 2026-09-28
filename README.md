@@ -367,10 +367,13 @@ Matches are dispatched round-robin across the proxies; a proxy that fails 3 time
 | -------------------- | ------------------------------------------------------ | -------------- |
 | `--target-bookmaker` | Filter odds for a specific bookmaker                   | —              |
 | `--odds-history`     | Include historical odds movement per match             | `False`        |
-| `--odds-format`      | Odds display format                                    | `Decimal Odds` |
 | `--preview-only`     | Fast mode — best/highest odds, no bookmaker details    | `False`        |
 | `--bookies-filter`   | Bookmaker filter: `all`, `classic`, or `crypto`        | `all`          |
 | `--period`           | Match period (sport-specific: full-time, halves, etc.) | sport default  |
+
+> **Deprecated:** `--odds-format` never changed anything: odds are always decimal. It is
+> hidden from `--help`, a non-decimal value prints a warning, and it will be removed in a
+> future release.
 
 > **Breaking change:** `--odds-history` timestamps now carry the match's year
 > (the year before kickoff for a December opening of a January match) instead of
