@@ -751,10 +751,14 @@ class TestOddsFormatDeprecation:
         assert "--odds-format has no effect" in result.stderr
 
 
-@pytest.mark.parametrize(("flag", "level"), [("-q", logging.ERROR), ("-v", logging.DEBUG)])
-def test_quiet_and_verbose_flags_still_set_the_log_level(runner, flag, level):
+@pytest.mark.parametrize(
+    ("flags", "level"),
+    [(["-q"], logging.ERROR), (["-v"], logging.DEBUG), ([], logging.INFO)],
+    ids=["quiet", "verbose", "no_flag"],
+)
+def test_quiet_and_verbose_flags_still_set_the_log_level(runner, flags, level):
     with patch("oddsharvester.cli.cli.setup_logger") as setup_mock:
-        result = runner.invoke(cli, [flag, "historic", "--help"])
+        result = runner.invoke(cli, [*flags, "historic", "--help"])
 
     assert result.exit_code == 0, result.output
     assert setup_mock.call_args.kwargs["log_level"] == level

@@ -659,13 +659,16 @@ class TestOddsPortalMarketExtractor:
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
-        extractor.odds_parser.parse_market_odds = MagicMock(return_value=[])
+        extractor.odds_parser.parse_market_odds = MagicMock(
+            return_value=[{"1": "1.70", "2": "2.10", "bookmaker_name": "B1", "period": "SecondSet"}]
+        )
         extractor.period_selector.select_by_scope = AsyncMock(return_value=None)
+        selection_manager_mock.ensure_selected = AsyncMock(return_value=True)
 
         mock_period = MagicMock()
         mock_period.get_display_label = MagicMock(return_value="2nd Set")
         with patch.object(SportPeriodRegistry, "from_internal_value", return_value=mock_period):
-            await extractor.extract_market_odds(
+            result = await extractor.extract_market_odds(
                 page=page_mock, main_market="Over/Under", odds_labels=["1", "2"], sport="tennis", period="SecondSet"
             )
 
@@ -675,6 +678,9 @@ class TestOddsPortalMarketExtractor:
             display_label="2nd Set",
             strategy=PERIOD_STRATEGY,
         )
+        assert result == [
+            {"1": "1.70", "2": "2.10", "bookmaker_name": "B1", "period": "SecondSet", "submarket_name": "Over/Under"}
+        ]
 
     async def test_extract_market_odds_period_not_found_skips(self, extractor, page_mock, selection_manager_mock):
         """Test that period selection is skipped when period enum is not found."""
@@ -747,6 +753,39 @@ class TestOddsPortalMarketExtractor:
         )
 
         assert len(result) == 1
+
+    async def test_label_fallback_on_the_default_period_keeps_the_odds(
+        self, extractor, page_mock, selection_manager_mock, caplog
+    ):
+        """A label switch that succeeds on the default period returns the odds, without the unverified warning."""
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
+        extractor.navigation_manager.wait_for_page_load = AsyncMock()
+        extractor.odds_parser.parse_market_odds = MagicMock(
+            return_value=[{"1": "1.90", "X": "3.50", "2": "4.20", "bookmaker_name": "B1", "period": "FullTime"}]
+        )
+        extractor.period_selector.select_by_scope = AsyncMock(return_value=None)
+        selection_manager_mock.ensure_selected = AsyncMock(return_value=True)
+
+        with caplog.at_level("WARNING"):
+            result = await extractor.extract_market_odds(
+                page=page_mock, main_market="1X2", odds_labels=["1", "X", "2"], sport="football", period="FullTime"
+            )
+
+        selection_manager_mock.ensure_selected.assert_awaited_once_with(
+            page=page_mock, target_value="Full Time", display_label="Full Time", strategy=PERIOD_STRATEGY
+        )
+        assert result == [
+            {
+                "1": "1.90",
+                "X": "3.50",
+                "2": "4.20",
+                "bookmaker_name": "B1",
+                "period": "FullTime",
+                "submarket_name": "1X2",
+            }
+        ]
+        assert "not verified" not in caplog.text
 
     async def test_extract_market_odds_preview_mode_passive(self, extractor, page_mock):
         """Test preview mode uses passive submarket extraction."""

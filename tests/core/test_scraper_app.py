@@ -1066,6 +1066,25 @@ async def test_scrape_combos_reports_an_errored_combo_as_a_listing_failure():
     }
 
 
+async def test_scrape_combos_records_a_none_listing_and_scrapes_the_other_combos():
+    """A collector that returns None is one LISTING_PAGE failure; the other combos are still scraped."""
+    listings = {"epl": _listing("https://x/epl/m1"), "empty": None, "laliga": _listing("https://x/laliga/m1")}
+    collect = AsyncMock(side_effect=lambda league, season: listings[league])
+    scraper = MagicMock()
+    scraper.extract_match_odds = AsyncMock(return_value=_odds_result(["https://x/epl/m1", "https://x/laliga/m1"]))
+
+    result = await _run_combos(collect, [("epl", "2023"), ("empty", "2023"), ("laliga", "2023")], scraper=scraper)
+
+    scraper.extract_match_odds.assert_awaited_once_with(match_links=["https://x/epl/m1", "https://x/laliga/m1"])
+    [failure] = result.failed
+    assert failure.error_type is ErrorType.LISTING_PAGE
+    assert failure.url == "empty 2023"
+    assert failure.error_message == "Listing failed for empty 2023: no listing returned"
+    assert failure.is_retryable is False
+    assert [combo["errored"] for combo in result.combo_stats] == [False, True, False]
+    assert (result.stats.successful, result.stats.failed, result.stats.total_urls) == (2, 1, 3)
+
+
 async def test_scrape_combos_ignores_the_url_of_a_non_scraper_error():
     """Only a ScraperError's url is trustworthy; an unrelated exception's url is not the failed listing's."""
 

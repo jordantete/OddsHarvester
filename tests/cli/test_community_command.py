@@ -132,6 +132,19 @@ def test_oh_sport_alone_still_selects_top_predictions(mock_run, mock_store):
     assert mock_run.call_args.kwargs["sport"] == "football"
 
 
+@patch("oddsharvester.cli.commands._output.store_data", return_value=True)
+@patch("oddsharvester.cli.commands.community.run_top_predictions", new_callable=AsyncMock)
+@patch("oddsharvester.cli.commands.community.run_user_profile", new_callable=AsyncMock)
+def test_oh_sport_and_oh_user_together_run_user_mode(mock_user, mock_top, mock_store):
+    mock_user.return_value = {"mode": "user", "username": "z", "privacy": "public", "statistics": [], "predictions": []}
+
+    result = CliRunner().invoke(cli, ["community"], env={"OH_SPORT": "football", "OH_USER": "z"})
+
+    assert result.exit_code == 0, result.output
+    assert mock_user.call_args.kwargs["username"] == "z"
+    mock_top.assert_not_called()
+
+
 def test_explicit_sport_with_user_is_still_refused():
     result = CliRunner().invoke(cli, ["community", "--sport", "football", "--user", "z"])
 

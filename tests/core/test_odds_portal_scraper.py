@@ -60,6 +60,14 @@ def setup_scraper_mocks():
     }
 
 
+def _assert_scroll_pace_left_to_the_scroller(scroll_mock):
+    """Listing call sites leave the scroll pace to the shared constants (SCROLL_PAUSE_S, MAX_SCROLL_ATTEMPTS)."""
+    assert scroll_mock.await_args_list, "the listing never scrolled"
+    for call in scroll_mock.await_args_list:
+        assert call.args == ()
+        assert {"scroll_pause_time", "max_scroll_attempts"}.isdisjoint(call.kwargs), call.kwargs
+
+
 async def test_start_playwright(setup_scraper_mocks):
     """Test initializing Playwright with various options."""
     mocks = setup_scraper_mocks
@@ -107,7 +115,7 @@ async def test_stop_playwright(setup_scraper_mocks):
 
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_collect_historic_links_reads_the_season_listing(url_builder_mock, setup_scraper_mocks):
-    """Test scraping historic odds data."""
+    """A season listing is read page by page into a ListingResult of match links."""
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
     page_mock = mocks["page_mock"]
@@ -211,7 +219,7 @@ def test_season_guard_raises_season_not_found_on_redirect():
 
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_collect_upcoming_links_reads_the_listing(url_builder_mock, setup_scraper_mocks):
-    """Test scraping upcoming matches odds data."""
+    """The upcoming listing is filtered by the requested date and returned as a ListingResult."""
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
     page_mock = mocks["page_mock"]
@@ -361,6 +369,7 @@ async def test_collect_upcoming_links_runs_on_its_own_tab(url_builder_mock, setu
     scraper._prepare_page_for_scraping.assert_awaited_once_with(page=tab)
     scraper.scroller.scroll_until_loaded.assert_awaited_once()
     assert scraper.scroller.scroll_until_loaded.await_args.kwargs["page"] is tab
+    _assert_scroll_pace_left_to_the_scroller(scraper.scroller.scroll_until_loaded)
     assert scraper.extract_match_rows.await_args.kwargs["page"] is tab
     assert scraper.extract_match_rows.await_args.kwargs["date_filter"] == date(2026, 6, 1)
     tab.close.assert_awaited_once()
@@ -541,6 +550,7 @@ async def test_collect_match_links_preserves_listing_order(setup_scraper_mocks):
 
     assert result.links == [*page1_links, "https://www.oddsportal.com/match6"]
     assert result.successful_pages == 2
+    _assert_scroll_pace_left_to_the_scroller(scraper.scroller.scroll_until_loaded)
 
 
 class TestFillPaginationGaps:
@@ -620,7 +630,10 @@ async def test_scrape_live_links_only(url_builder_mock, setup_scraper_mocks):
     assert result.success == [
         {"match_link": "https://www.oddsportal.com/x/inplay-odds/#a", "sport": "football", "league": None}
     ]
+    # The live links-only rows never carried the listing's period marker.
+    assert [list(row) for row in result.success] == [["match_link", "sport", "league"]]
     scraper.extract_match_odds.assert_not_awaited()
+    _assert_scroll_pace_left_to_the_scroller(scraper.scroller.scroll_until_loaded)
 
 
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
@@ -1180,17 +1193,3 @@ async def test_historic_checks_existence_of_a_league_path(url_builder_mock, setu
         await scraper.collect_historic_links(sport="football", league="football/bhutan/premier-league", season=None)
 
     scraper._collect_match_links.assert_not_called()
-
-
-async def test_live_links_only_rows_keep_their_columns(setup_scraper_mocks):
-    """Guard: the live links-only rows never carried the listing's period marker."""
-    mocks = setup_scraper_mocks
-    scraper = mocks["scraper"]
-    scraper._prepare_page_for_scraping = AsyncMock()
-    scraper.extract_live_match_links = AsyncMock(
-        return_value=[{"match_link": "https://www.oddsportal.com/football/h2h/a-b/inplay-odds/#x1"}]
-    )
-
-    result = await scraper.scrape_live(sport="football", links_only=True)
-
-    assert [list(row) for row in result.success] == [["match_link", "sport", "league"]]
