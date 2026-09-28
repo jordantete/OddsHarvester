@@ -67,7 +67,6 @@ async def test_run_scraper_historic(
     scraper_cls_mock.return_value = scraper_mock
 
     proxy_manager_instance = MagicMock()
-    proxy_manager_instance.get_current_proxy.return_value = {"server": "test-proxy"}
     proxy_manager_mock.return_value = proxy_manager_instance
 
     result = await run_scraper(
@@ -131,7 +130,6 @@ async def test_run_scraper_upcoming(
     scraper_cls_mock.return_value = scraper_mock
 
     proxy_manager_instance = MagicMock()
-    proxy_manager_instance.get_current_proxy.return_value = {"server": "test-proxy"}
     proxy_manager_mock.return_value = proxy_manager_instance
 
     result = await run_scraper(
@@ -186,7 +184,6 @@ async def test_run_scraper_match_links(
     scraper_cls_mock.return_value = scraper_mock
 
     proxy_manager_instance = MagicMock()
-    proxy_manager_instance.get_current_proxy.return_value = {"server": "test-proxy"}
     proxy_manager_mock.return_value = proxy_manager_instance
 
     match_links = ["https://oddsportal.com/match1", "https://oddsportal.com/match2"]
@@ -266,7 +263,6 @@ async def test_run_scraper_upcoming_forwards_concurrency(
     """run_scraper(concurrency_tasks=N) must forward concurrent_scraping_task=N to extract_match_odds (issue #64)."""
     scraper_mock = setup_mocks["scraper_mock"]
     scraper_cls_mock.return_value = scraper_mock
-    proxy_manager_mock.return_value.get_current_proxy.return_value = None
 
     await run_scraper(
         command=CommandEnum.UPCOMING_MATCHES,
@@ -297,7 +293,6 @@ async def test_run_scraper_upcoming_forwards_include_started(
     """run_scraper(include_started=True) must forward include_started=True to collect_upcoming_links (issue #58)."""
     scraper_mock = setup_mocks["scraper_mock"]
     scraper_cls_mock.return_value = scraper_mock
-    proxy_manager_mock.return_value.get_current_proxy.return_value = None
 
     await run_scraper(
         command=CommandEnum.UPCOMING_MATCHES,
@@ -327,7 +322,6 @@ async def test_run_scraper_upcoming_forwards_kickoff_within_hours(
     """run_scraper(kickoff_within_hours=N) must forward it to collect_upcoming_links (issue #77)."""
     scraper_mock = setup_mocks["scraper_mock"]
     scraper_cls_mock.return_value = scraper_mock
-    proxy_manager_mock.return_value.get_current_proxy.return_value = None
 
     await run_scraper(
         command=CommandEnum.UPCOMING_MATCHES,
@@ -383,7 +377,6 @@ async def test_run_scraper_historic_forwards_concurrency(
     """run_scraper(concurrency_tasks=N) must forward concurrent_scraping_task=N to extract_match_odds (issue #64)."""
     scraper_mock = setup_mocks["scraper_mock"]
     scraper_cls_mock.return_value = scraper_mock
-    proxy_manager_mock.return_value.get_current_proxy.return_value = None
 
     await run_scraper(
         command=CommandEnum.HISTORIC,
@@ -505,7 +498,6 @@ async def test_run_scraper_match_links_forwards_concurrency(
     """run_scraper(concurrency_tasks=N) must forward concurrent_scraping_task=N to scrape_matches (issue #64)."""
     scraper_mock = setup_mocks["scraper_mock"]
     scraper_cls_mock.return_value = scraper_mock
-    proxy_manager_mock.return_value.get_current_proxy.return_value = None
 
     await run_scraper(
         command=CommandEnum.UPCOMING_MATCHES,
@@ -596,7 +588,6 @@ async def test_run_scraper_error_handling(sport_market_registrar_mock, proxy_man
     scraper_cls_mock.return_value = scraper_mock
 
     proxy_manager_instance = MagicMock()
-    proxy_manager_instance.get_current_proxy.return_value = {"server": "test-proxy"}
     proxy_manager_mock.return_value = proxy_manager_instance
 
     result = await run_scraper(

@@ -20,62 +20,6 @@ class SubmarketExtractor:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    async def is_preview_compatible_market(self, page: Page, main_market: str) -> bool:
-        """
-        Determines if a market is compatible with preview mode by analyzing the HTML structure.
-
-        This method dynamically analyzes the page to see if there are multiple visible submarkets
-        that can be scraped without clicking.
-
-        Args:
-            page: The Playwright page instance.
-            main_market (str): The main market name (e.g., "Over/Under", "European Handicap").
-
-        Returns:
-            bool: True if the market supports preview mode, False otherwise.
-        """
-        try:
-            html_content = await page.content()
-            if not isinstance(html_content, str):
-                html_content = ""
-            soup = BeautifulSoup(html_content, "html.parser")
-
-            line_rows = _find_line_rows(soup)
-
-            if line_rows:
-                visible_submarkets_count = len(line_rows)
-                self.logger.debug(f"Found {visible_submarkets_count} visible submarkets for {main_market}")
-
-                # Check if any of these submarkets have visible odds
-                submarkets_with_odds = 0
-                for row in line_rows[:5]:  # Check first 5 submarkets
-                    odds_containers = row.select(OddsPortalSelectors.ODD_CELL_CSS)
-                    if len(odds_containers) >= 2:  # Need at least 2 odds to be useful
-                        submarkets_with_odds += 1
-
-                self.logger.debug(f"Found {submarkets_with_odds} submarkets with visible odds for {main_market}")
-
-                # If we have multiple visible submarkets with odds, the market is compatible
-                if visible_submarkets_count > 1 and submarkets_with_odds > 0:
-                    self.logger.info(
-                        f"Market {main_market} has {visible_submarkets_count} visible submarkets "
-                        f"({submarkets_with_odds} with odds) - compatible with preview mode"
-                    )
-                    return True
-                else:
-                    self.logger.info(
-                        f"Market {main_market} has {visible_submarkets_count} visible submarkets but only "
-                        f"{submarkets_with_odds} with odds - incompatible with preview mode"
-                    )
-                    return False
-            else:
-                self.logger.info(f"Market {main_market} has no visible submarkets - incompatible with preview mode")
-                return False
-
-        except Exception as e:
-            self.logger.error(f"Error analyzing market structure for {main_market}: {e}")
-            return False
-
     async def extract_visible_submarkets_passive(
         self, page: Page, main_market: str, period: str, odds_labels: list | None = None
     ) -> list[dict[str, Any]]:

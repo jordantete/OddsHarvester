@@ -2,8 +2,6 @@ from enum import Enum
 import logging
 import os
 
-from bs4 import BeautifulSoup
-
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 from oddsharvester.utils.sport_market_constants import (
     AmericanFootballAsianHandicapMarket,
@@ -170,23 +168,3 @@ def validate_and_convert_period(period: str | None, sport: str | None):
         f"Falling back to default: '{default_period.value}'"
     )
     return default_period
-
-
-def clean_html_text(html_content: str | None) -> str | None:
-    """
-    Remove HTML tags from text content while preserving the text.
-
-    Args:
-        html_content (Optional[str]): HTML content that may contain tags.
-
-    Returns:
-        Optional[str]: Clean text content without HTML tags, or None if input is None.
-    """
-    if html_content is None:
-        return None
-
-    if not isinstance(html_content, str):
-        html_content = str(html_content)
-
-    soup = BeautifulSoup(html_content, "html.parser")
-    return soup.get_text(strip=True)

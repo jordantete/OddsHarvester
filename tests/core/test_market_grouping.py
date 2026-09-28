@@ -69,57 +69,6 @@ class TestMarketGrouping:
         result = market_grouping.get_main_market_info(mock)
         assert result is None
 
-    # --- group_markets_by_main_market ---
-
-    def test_group_markets_by_main_market_empty_markets(self, market_grouping):
-        """Test grouping with empty markets list."""
-        result = market_grouping.group_markets_by_main_market([], {})
-        assert result == {}
-
-    def test_group_markets_single_group(self, market_grouping):
-        """Test grouping markets that share the same main market."""
-        main_market = "Over/Under"
-        odds_labels = ["odds_over", "odds_under"]
-        func_a = _make_lambda_with_closure(main_market, odds_labels)
-        func_b = _make_lambda_with_closure(main_market, odds_labels)
-
-        markets = ["over_under_1_5", "over_under_2_5"]
-        market_methods = {"over_under_1_5": func_a, "over_under_2_5": func_b}
-
-        result = market_grouping.group_markets_by_main_market(markets, market_methods)
-        assert result == {"Over/Under": ["over_under_1_5", "over_under_2_5"]}
-
-    def test_group_markets_multiple_groups(self, market_grouping):
-        """Test grouping markets into distinct main market groups."""
-        func_ou = _make_lambda_with_closure("Over/Under", ["odds_over", "odds_under"])
-        func_1x2 = _make_lambda_with_closure("1X2", ["1", "X", "2"])
-
-        markets = ["over_under_2_5", "1x2"]
-        market_methods = {"over_under_2_5": func_ou, "1x2": func_1x2}
-
-        result = market_grouping.group_markets_by_main_market(markets, market_methods)
-        assert result == {"Over/Under": ["over_under_2_5"], "1X2": ["1x2"]}
-
-    def test_group_markets_skips_unknown_markets(self, market_grouping):
-        """Test that markets not in market_methods are silently skipped."""
-        func = _make_lambda_with_closure("1X2", ["1", "X", "2"])
-        markets = ["1x2", "nonexistent"]
-        market_methods = {"1x2": func}
-
-        result = market_grouping.group_markets_by_main_market(markets, market_methods)
-        assert result == {"1X2": ["1x2"]}
-        assert "nonexistent" not in str(result)
-
-    def test_group_markets_skips_unextractable_info(self, market_grouping):
-        """Test that markets whose closure can't be inspected are skipped."""
-        mock = MagicMock()
-        mock.__closure__ = None
-        markets = ["broken_market"]
-        market_methods = {"broken_market": mock}
-
-        result = market_grouping.group_markets_by_main_market(markets, market_methods)
-        assert result == {}
-
     def test_logger_initialization(self, market_grouping):
         """Test that logger is properly initialized."""
         assert market_grouping.logger is not None

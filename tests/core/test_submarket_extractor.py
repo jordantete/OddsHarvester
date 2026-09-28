@@ -50,18 +50,12 @@ NO_NAME_ROW_HTML = odds_table(
     + '<td class="w-[var(--event-table-odd-col)]"><div class="font-bold"><p>2.00</p></div></td></tr>'
 )
 
-# Multiple submarkets page (for is_preview_compatible and extract_visible_submarkets_passive)
+# Multiple submarkets page (for extract_visible_submarkets_passive)
 MULTI_SUBMARKET_PAGE_HTML = odds_table(
     line_row("Over/Under +1.5", ["1.30", "3.40"])
     + line_row("Over/Under +2.5", ["1.85", "1.95"])
     + line_row("Over/Under +3.5", ["2.60", "1.50"])
 )
-
-# Single submarket (incompatible with preview mode)
-SINGLE_SUBMARKET_PAGE_HTML = odds_table(line_row("Over/Under +2.5", ["1.85", "1.95"]))
-
-# Submarkets without sufficient odds (incompatible with preview)
-NO_ODDS_PAGE_HTML = odds_table(line_row("Market A", ["1.85"]) + line_row("Market B", ["2.10"]))
 
 # Empty page
 EMPTY_PAGE_HTML = "<html><body></body></html>"
@@ -92,32 +86,6 @@ class TestSubmarketExtractor:
         mock = AsyncMock()
         mock.wait_for_timeout = AsyncMock()
         return mock
-
-    @pytest.mark.asyncio
-    async def test_is_preview_compatible_market_no_submarkets(self, submarket_extractor, page_mock):
-        """Test detection when no submarkets are found."""
-        # Arrange
-        main_market = "Over/Under"
-        page_mock.query_selector_all = AsyncMock(return_value=[])
-
-        # Act
-        result = await submarket_extractor.is_preview_compatible_market(page_mock, main_market)
-
-        # Assert
-        assert result is False
-
-    @pytest.mark.asyncio
-    async def test_is_preview_compatible_market_exception_handling(self, submarket_extractor, page_mock):
-        """Test exception handling during preview compatibility check."""
-        # Arrange
-        main_market = "Over/Under"
-        page_mock.query_selector_all = AsyncMock(side_effect=Exception("Test exception"))
-
-        # Act
-        result = await submarket_extractor.is_preview_compatible_market(page_mock, main_market)
-
-        # Assert
-        assert result is False
 
     @pytest.mark.asyncio
     async def test_extract_visible_submarkets_passive_no_submarkets(self, submarket_extractor, page_mock):
@@ -321,55 +289,6 @@ class TestExtractSubmarketName:
         row = self._parse_row(html)
         result = extractor._extract_submarket_name(row, "Over/Under")
         assert result == "Clean Winner"
-
-
-class TestIsPreviewCompatibleMarketHTML:
-    """Tests for is_preview_compatible_market with real HTML content."""
-
-    @pytest.fixture
-    def extractor(self):
-        return SubmarketExtractor()
-
-    @pytest.fixture
-    def page_mock(self):
-        mock = AsyncMock()
-        mock.wait_for_timeout = AsyncMock()
-        return mock
-
-    @pytest.mark.asyncio
-    async def test_compatible_multiple_submarkets_with_odds(self, extractor, page_mock):
-        """Returns True for multiple submarkets with >= 2 odds each."""
-        page_mock.content = AsyncMock(return_value=MULTI_SUBMARKET_PAGE_HTML)
-        result = await extractor.is_preview_compatible_market(page_mock, "Over/Under")
-        assert result is True
-
-    @pytest.mark.asyncio
-    async def test_incompatible_single_submarket(self, extractor, page_mock):
-        """Returns False for only 1 submarket (need > 1)."""
-        page_mock.content = AsyncMock(return_value=SINGLE_SUBMARKET_PAGE_HTML)
-        result = await extractor.is_preview_compatible_market(page_mock, "Over/Under")
-        assert result is False
-
-    @pytest.mark.asyncio
-    async def test_incompatible_no_odds(self, extractor, page_mock):
-        """Returns False when submarkets have < 2 odds containers."""
-        page_mock.content = AsyncMock(return_value=NO_ODDS_PAGE_HTML)
-        result = await extractor.is_preview_compatible_market(page_mock, "Over/Under")
-        assert result is False
-
-    @pytest.mark.asyncio
-    async def test_incompatible_empty_page(self, extractor, page_mock):
-        """Returns False for an empty page."""
-        page_mock.content = AsyncMock(return_value=EMPTY_PAGE_HTML)
-        result = await extractor.is_preview_compatible_market(page_mock, "Over/Under")
-        assert result is False
-
-    @pytest.mark.asyncio
-    async def test_non_string_content_handled(self, extractor, page_mock):
-        """Handles non-string content gracefully."""
-        page_mock.content = AsyncMock(return_value=None)
-        result = await extractor.is_preview_compatible_market(page_mock, "Over/Under")
-        assert result is False
 
 
 class TestExtractVisibleSubmarketsPassiveHTML:

@@ -42,28 +42,3 @@ class MarketGrouping:
             self.logger.debug(f"Could not extract market info from method: {e}")
 
         return None
-
-    def group_markets_by_main_market(self, markets: list[str], market_methods: dict) -> dict[str, list[str]]:
-        """
-        Group markets by their main market type for optimization in preview mode.
-
-        Args:
-            markets: List of market names to group
-            market_methods: Dictionary of market methods from SportMarketRegistry
-
-        Returns:
-            dict: Dictionary mapping main market names to lists of grouped markets
-        """
-        market_groups = {}
-
-        for market in markets:
-            if market in market_methods:
-                # Get the main market info from the existing market method
-                main_market_info = self.get_main_market_info(market_methods[market])
-                if main_market_info:
-                    main_market_name = main_market_info["main_market"]
-                    if main_market_name not in market_groups:
-                        market_groups[main_market_name] = []
-                    market_groups[main_market_name].append(market)
-
-        return market_groups

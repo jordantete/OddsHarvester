@@ -164,17 +164,3 @@ class ProxyManager:
                 )
         else:
             entry.consecutive_failures = 0
-
-    # Legacy accessors (single-proxy compatibility) ---------------------------------
-
-    def get_proxy(self) -> dict[str, str] | None:
-        """Legacy: return the first entry's config (single/no-proxy compatibility)."""
-        return self.entries[0].config
-
-    def get_current_proxy(self) -> dict[str, str] | None:
-        """Legacy method - use get_proxy() instead."""
-        return self.get_proxy()
-
-    def rotate_proxy(self):
-        """Legacy no-op; rotation now happens per request via next_proxy()."""
-        self.logger.debug("Proxy rotation handled per-request via next_proxy().")
