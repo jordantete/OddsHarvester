@@ -22,11 +22,9 @@ fixture with:
         --capture-har
 """
 
-import json
-
 import pytest
 
-from tests.integration.helpers.comparison import compare_match_data
+from tests.integration.helpers.replay import replay_and_compare
 
 BUNDESLIGA_MATCH = {
     "sport": "handball",
@@ -44,57 +42,18 @@ class TestHandballBasicMarkets:
     1x2_market, not just match metadata.
     """
 
-    def test_hb_001_1x2_full_time(
-        self,
-        run_scraper,
-        load_fixture,
-        temp_output_dir,
-        fixture_exists,
-        har_for_match,
-    ):
+    def test_hb_001_1x2_full_time(self, har_for_match, tmp_path):
         """HB-001: Handball 1x2 market, full time, all bookies — odds must be present."""
-        fixture_name = "1x2_full_time_all.json"
-
-        if not fixture_exists(
-            BUNDESLIGA_MATCH["sport"],
-            BUNDESLIGA_MATCH["league"],
-            BUNDESLIGA_MATCH["match_id"],
-            fixture_name,
-        ):
-            pytest.skip(f"Fixture not available: {fixture_name} — see module docstring")
-
-        output_path = temp_output_dir / "output"
-
-        exit_code, _stdout, stderr = run_scraper(
-            sport="handball",
-            match_link=BUNDESLIGA_MATCH["url"],
+        actual = replay_and_compare(
+            har_for_match,
+            tmp_path,
+            BUNDESLIGA_MATCH,
+            "1x2_full_time_all.json",
             markets=["1x2"],
-            output_path=output_path,
             period="full_time",
             bookies_filter="all",
-            har_path=har_for_match(
-                BUNDESLIGA_MATCH["sport"],
-                BUNDESLIGA_MATCH["league"],
-                BUNDESLIGA_MATCH["match_id"],
-                fixture_name,
-            ),
         )
-
-        assert exit_code == 0, f"Scraper failed: {stderr}"
-
-        with open(f"{output_path}.json") as f:
-            actual = json.load(f)
 
         # Regression guard: handball must store odds, not just match metadata.
         one_x_two = actual[0].get("1x2_market")
         assert one_x_two, "Handball regression: 1x2_market missing — scraper stored metadata only"
-
-        expected = load_fixture(
-            BUNDESLIGA_MATCH["sport"],
-            BUNDESLIGA_MATCH["league"],
-            BUNDESLIGA_MATCH["match_id"],
-            fixture_name,
-        )
-
-        result = compare_match_data(actual[0], expected[0])
-        assert result.passed, str(result)

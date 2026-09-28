@@ -25,26 +25,6 @@ def run_scraper():
 
 
 @pytest.fixture
-def load_fixture():
-    """
-    Factory fixture to load expected fixtures.
-
-    Returns a function that loads a fixture JSON file.
-    """
-
-    def _load(sport: str, league: str, match_id: str, fixture_name: str) -> list[dict[str, Any]]:
-        fixture_path = require_file(FIXTURES_DIR / sport / league / match_id / fixture_name)
-        data = json.loads(fixture_path.read_text())
-
-        # Ensure we always return a list
-        if isinstance(data, dict):
-            return [data]
-        return data
-
-    return _load
-
-
-@pytest.fixture
 def load_metadata():
     """
     Factory fixture to load match metadata.
@@ -57,21 +37,6 @@ def load_metadata():
         return json.loads(metadata_path.read_text())
 
     return _load
-
-
-@pytest.fixture
-def fixture_exists():
-    """
-    Factory fixture that fails the test when a committed fixture is missing.
-
-    Returns True otherwise, so the existing `if not fixture_exists(...)` guards keep working.
-    """
-
-    def _exists(sport: str, league: str, match_id: str, fixture_name: str) -> bool:
-        require_file(FIXTURES_DIR / sport / league / match_id / fixture_name)
-        return True
-
-    return _exists
 
 
 @pytest.fixture

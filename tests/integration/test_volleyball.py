@@ -22,11 +22,9 @@ fixture with:
         --capture-har
 """
 
-import json
-
 import pytest
 
-from tests.integration.helpers.comparison import compare_match_data
+from tests.integration.helpers.replay import replay_and_compare
 
 SUPERLEGA_MATCH = {
     "sport": "volleyball",
@@ -40,46 +38,17 @@ SUPERLEGA_MATCH = {
 class TestVolleyballBasicMarkets:
     """Regression tests for volleyball odds extraction (home_away_market must be non-empty)."""
 
-    def test_vb_001_home_away_full_time(
-        self,
-        run_scraper,
-        load_fixture,
-        temp_output_dir,
-        fixture_exists,
-        har_for_match,
-    ):
+    def test_vb_001_home_away_full_time(self, har_for_match, tmp_path):
         """VB-001: Volleyball home_away market, full time, all bookies — odds must be present."""
-        fixture_name = "home_away_full_time_all.json"
-
-        if not fixture_exists(
-            SUPERLEGA_MATCH["sport"],
-            SUPERLEGA_MATCH["league"],
-            SUPERLEGA_MATCH["match_id"],
-            fixture_name,
-        ):
-            pytest.skip(f"Fixture not available: {fixture_name} — see module docstring")
-
-        output_path = temp_output_dir / "output"
-
-        exit_code, _stdout, stderr = run_scraper(
-            sport="volleyball",
-            match_link=SUPERLEGA_MATCH["url"],
+        actual = replay_and_compare(
+            har_for_match,
+            tmp_path,
+            SUPERLEGA_MATCH,
+            "home_away_full_time_all.json",
             markets=["home_away"],
-            output_path=output_path,
             period="full_time",
             bookies_filter="all",
-            har_path=har_for_match(
-                SUPERLEGA_MATCH["sport"],
-                SUPERLEGA_MATCH["league"],
-                SUPERLEGA_MATCH["match_id"],
-                fixture_name,
-            ),
         )
-
-        assert exit_code == 0, f"Scraper failed: {stderr}"
-
-        with open(f"{output_path}.json") as f:
-            actual = json.load(f)
 
         # Regression guard: volleyball must store odds, not just match metadata.
         home_away = actual[0].get("home_away_market")
@@ -89,13 +58,3 @@ class TestVolleyballBasicMarkets:
         # JSON (eventData.staticInfo) no longer exists and the DOM carries no
         # equivalent note. Locked in as a known data regression (issue #85).
         assert actual[0].get("match_info") is None
-
-        expected = load_fixture(
-            SUPERLEGA_MATCH["sport"],
-            SUPERLEGA_MATCH["league"],
-            SUPERLEGA_MATCH["match_id"],
-            fixture_name,
-        )
-
-        result = compare_match_data(actual[0], expected[0])
-        assert result.passed, str(result)

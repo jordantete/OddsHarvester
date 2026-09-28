@@ -22,11 +22,9 @@ listings from France; the detail odds are absent from every region). Refresh wit
         --bookies-filter "all" --season current --capture-har --proxy-url http://<proxy>
 """
 
-import json
-
 import pytest
 
-from tests.integration.helpers.comparison import compare_match_data
+from tests.integration.helpers.replay import replay_and_compare
 
 ENGLAND_INDIA_MATCH = {
     "sport": "cricket",
@@ -40,51 +38,22 @@ ENGLAND_INDIA_MATCH = {
 class TestCricketBasicMarkets:
     """Regression tests for cricket scraping (metadata extraction; odds absent on OddsPortal)."""
 
-    def test_ck_001_home_away_full_including_ot(
-        self,
-        run_scraper,
-        load_fixture,
-        temp_output_dir,
-        fixture_exists,
-        har_for_match,
-    ):
+    def test_ck_001_home_away_full_including_ot(self, har_for_match, tmp_path):
         """CK-001: Cricket home_away, full match, all bookies.
 
         Metadata must be extracted correctly; home_away_market is empty because
         OddsPortal exposes no per-bookmaker odds table for cricket.
         """
-        fixture_name = "home_away_full_including_ot_all.json"
-
-        if not fixture_exists(
-            ENGLAND_INDIA_MATCH["sport"],
-            ENGLAND_INDIA_MATCH["league"],
-            ENGLAND_INDIA_MATCH["match_id"],
-            fixture_name,
-        ):
-            pytest.skip(f"Fixture not available: {fixture_name} (see module docstring)")
-
-        output_path = temp_output_dir / "output"
-
-        exit_code, _stdout, stderr = run_scraper(
-            sport="cricket",
-            match_link=ENGLAND_INDIA_MATCH["url"],
+        actual = replay_and_compare(
+            har_for_match,
+            tmp_path,
+            ENGLAND_INDIA_MATCH,
+            "home_away_full_including_ot_all.json",
             markets=["home_away"],
-            output_path=output_path,
             period="full_including_ot",
             bookies_filter="all",
             season="current",
-            har_path=har_for_match(
-                ENGLAND_INDIA_MATCH["sport"],
-                ENGLAND_INDIA_MATCH["league"],
-                ENGLAND_INDIA_MATCH["match_id"],
-                fixture_name,
-            ),
         )
-
-        assert exit_code == 0, f"Scraper failed: {stderr}"
-
-        with open(f"{output_path}.json") as f:
-            actual = json.load(f)
 
         # Metadata must be extracted correctly (the wiring works end-to-end).
         assert actual[0].get("home_team") == "England"
@@ -97,13 +66,3 @@ class TestCricketBasicMarkets:
         home_away = actual[0].get("home_away_market")
         assert home_away, "Cricket regression: home_away_market missing — scraper stored metadata only"
         assert all(e.get("bookmaker_name") for e in home_away)
-
-        expected = load_fixture(
-            ENGLAND_INDIA_MATCH["sport"],
-            ENGLAND_INDIA_MATCH["league"],
-            ENGLAND_INDIA_MATCH["match_id"],
-            fixture_name,
-        )
-
-        result = compare_match_data(actual[0], expected[0])
-        assert result.passed, str(result)
