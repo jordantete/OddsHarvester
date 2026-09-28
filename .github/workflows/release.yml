@@ -9,6 +9,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -32,7 +33,7 @@ jobs:
           sudo apt-get install -y libxml2-dev libxslt-dev python3-dev build-essential
 
       - name: Install dependencies
-        run: uv sync --all-extras --dev
+        run: uv sync --locked
 
       - name: Install Playwright Chromium Browser
         run: uv run playwright install chromium
@@ -43,6 +44,7 @@ jobs:
   integration-test:
     name: Run Integration Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -66,7 +68,7 @@ jobs:
           sudo apt-get install -y libxml2-dev libxslt-dev python3-dev build-essential
 
       - name: Install dependencies
-        run: uv sync --all-extras --dev
+        run: uv sync --locked
 
       - name: Install Playwright Chromium Browser
         run: uv run playwright install chromium
@@ -78,6 +80,7 @@ jobs:
     name: Build Package
     needs: [test, integration-test]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -103,6 +106,7 @@ jobs:
     name: Publish to PyPI
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: pypi
     permissions:
       id-token: write
@@ -120,6 +124,7 @@ jobs:
     name: Create GitHub Release
     needs: publish-pypi
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
