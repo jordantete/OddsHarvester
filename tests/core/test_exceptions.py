@@ -2,12 +2,9 @@
 
 from oddsharvester.core.exceptions import (
     AllProxiesExhaustedError,
-    MarketExtractionError,
     MatchContentError,
-    NavigationError,
     PageNotFoundError,
     ParsingError,
-    PartialDataError,
     RateLimitError,
     ScraperError,
 )
@@ -35,22 +32,6 @@ class TestScraperError:
         """Test non-retryable ScraperError."""
         error = ScraperError("Permanent error", is_retryable=False)
         assert error.is_retryable is False
-
-
-class TestNavigationError:
-    """Tests for NavigationError."""
-
-    def test_create_navigation_error(self):
-        """Test creating a NavigationError."""
-        error = NavigationError("Connection timeout", url="https://example.com")
-        assert error.message == "Connection timeout"
-        assert error.url == "https://example.com"
-        assert error.is_retryable is True  # Navigation errors are retryable
-
-    def test_navigation_error_is_scraper_error(self):
-        """Test that NavigationError is a ScraperError."""
-        error = NavigationError("Timeout", url="https://example.com")
-        assert isinstance(error, ScraperError)
 
 
 class TestParsingError:
@@ -94,53 +75,15 @@ class TestPageNotFoundError:
         assert error.is_retryable is False  # 404 errors are not retryable
 
 
-class TestPartialDataError:
-    """Tests for PartialDataError."""
-
-    def test_create_partial_data_error(self):
-        """Test creating a PartialDataError."""
-        partial_data = {"home_team": "Team A", "away_team": "Team B"}
-        error = PartialDataError(
-            "Missing market data",
-            url="https://example.com/match",
-            partial_data=partial_data,
-        )
-        assert error.message == "Missing market data"
-        assert error.partial_data == partial_data
-        assert error.is_retryable is False
-
-
-class TestMarketExtractionError:
-    """Tests for MarketExtractionError."""
-
-    def test_create_market_extraction_error(self):
-        """Test creating a MarketExtractionError."""
-        error = MarketExtractionError("Failed to extract odds", url="https://example.com")
-        assert error.message == "Failed to extract odds"
-        assert error.is_retryable is True  # Default is retryable
-
-    def test_market_extraction_error_not_retryable(self):
-        """Test non-retryable MarketExtractionError."""
-        error = MarketExtractionError(
-            "Market not supported",
-            url="https://example.com",
-            is_retryable=False,
-        )
-        assert error.is_retryable is False
-
-
 class TestExceptionHierarchy:
     """Tests for exception hierarchy and catching."""
 
     def test_all_exceptions_are_scraper_errors(self):
         """Test that all custom exceptions inherit from ScraperError."""
         errors = [
-            NavigationError("nav", url="url"),
             ParsingError("parse", url="url"),
             RateLimitError("rate", url="url"),
             PageNotFoundError("404", url="url"),
-            PartialDataError("partial", url="url", partial_data={}),
-            MarketExtractionError("market", url="url"),
         ]
 
         for error in errors:

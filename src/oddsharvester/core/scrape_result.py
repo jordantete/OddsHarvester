@@ -39,17 +39,6 @@ class FailedUrl:
     last_attempt: datetime = field(default_factory=lambda: datetime.now(UTC))
     is_retryable: bool = True
 
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
-        return {
-            "url": self.url,
-            "error_type": self.error_type.value,
-            "error_message": self.error_message,
-            "attempts": self.attempts,
-            "last_attempt": self.last_attempt.isoformat(),
-            "is_retryable": self.is_retryable,
-        }
-
 
 LISTING_PAGE_ERROR_MESSAGE = "Failed to collect links from listing page"
 
@@ -62,32 +51,12 @@ def listing_page_failures(urls: list[str]) -> list[FailedUrl]:
 
 
 @dataclass
-class PartialResult:
-    """Represents a match with partial data (e.g., missing markets)."""
-
-    url: str
-    data: dict[str, Any]
-    missing_markets: list[str] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
-        return {
-            "url": self.url,
-            "data": self.data,
-            "missing_markets": self.missing_markets,
-            "warnings": self.warnings,
-        }
-
-
-@dataclass
 class ScrapeStats:
     """Statistics for a scraping operation."""
 
     total_urls: int = 0
     successful: int = 0
     failed: int = 0
-    partial: int = 0
 
     @property
     def success_rate(self) -> float:
@@ -96,16 +65,6 @@ class ScrapeStats:
             return 0.0
         return (self.successful / self.total_urls) * 100
 
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
-        return {
-            "total_urls": self.total_urls,
-            "successful": self.successful,
-            "failed": self.failed,
-            "partial": self.partial,
-            "success_rate": f"{self.success_rate:.1f}%",
-        }
-
 
 @dataclass
 class ScrapeResult:
@@ -113,24 +72,13 @@ class ScrapeResult:
     Complete result of a scraping operation.
 
     Contains successful results, failed URLs with error details,
-    partial results, and overall statistics.
+    and overall statistics.
     """
 
     success: list[dict[str, Any]] = field(default_factory=list)
     failed: list[FailedUrl] = field(default_factory=list)
-    partial: list[PartialResult] = field(default_factory=list)
     stats: ScrapeStats = field(default_factory=ScrapeStats)
     combo_stats: list[dict[str, Any]] = field(default_factory=list)
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
-        return {
-            "success": self.success,
-            "failed": [f.to_dict() for f in self.failed],
-            "partial": [p.to_dict() for p in self.partial],
-            "stats": self.stats.to_dict(),
-            "combo_stats": self.combo_stats,
-        }
 
     @classmethod
     def from_links(
@@ -178,11 +126,9 @@ class ScrapeResult:
         """
         self.success.extend(other.success)
         self.failed.extend(other.failed)
-        self.partial.extend(other.partial)
         self.stats.total_urls += other.stats.total_urls
         self.stats.successful += other.stats.successful
         self.stats.failed += other.stats.failed
-        self.stats.partial += other.stats.partial
         return self
 
     def get_retryable_urls(self) -> list[str]:

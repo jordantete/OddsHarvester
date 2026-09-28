@@ -5,7 +5,6 @@ from datetime import datetime
 from oddsharvester.core.scrape_result import (
     ErrorType,
     FailedUrl,
-    PartialResult,
     ScrapeResult,
     ScrapeStats,
 )
@@ -44,64 +43,16 @@ class TestFailedUrl:
         assert failed.is_retryable is True
         assert isinstance(failed.last_attempt, datetime)
 
-    def test_failed_url_to_dict(self):
-        """Test converting FailedUrl to dictionary."""
-        failed = FailedUrl(
-            url="https://example.com/match1",
-            error_type=ErrorType.PARSING,
-            error_message="Invalid HTML",
-            attempts=1,
-            is_retryable=False,
-        )
-        result = failed.to_dict()
-        assert result["url"] == "https://example.com/match1"
-        assert result["error_type"] == "parsing"
-        assert result["error_message"] == "Invalid HTML"
-        assert result["attempts"] == 1
-        assert result["is_retryable"] is False
-        assert "last_attempt" in result
-
-
-class TestPartialResult:
-    """Tests for PartialResult dataclass."""
-
-    def test_create_partial_result(self):
-        """Test creating a PartialResult instance."""
-        partial = PartialResult(
-            url="https://example.com/match1",
-            data={"home_team": "Team A", "away_team": "Team B"},
-            missing_markets=["over_under"],
-            warnings=["Market data incomplete"],
-        )
-        assert partial.url == "https://example.com/match1"
-        assert partial.data["home_team"] == "Team A"
-        assert partial.missing_markets == ["over_under"]
-        assert partial.warnings == ["Market data incomplete"]
-
-    def test_partial_result_to_dict(self):
-        """Test converting PartialResult to dictionary."""
-        partial = PartialResult(
-            url="https://example.com/match1",
-            data={"home_team": "Team A"},
-            missing_markets=["1x2"],
-        )
-        result = partial.to_dict()
-        assert result["url"] == "https://example.com/match1"
-        assert result["data"]["home_team"] == "Team A"
-        assert result["missing_markets"] == ["1x2"]
-        assert result["warnings"] == []
-
 
 class TestScrapeStats:
     """Tests for ScrapeStats dataclass."""
 
     def test_create_scrape_stats(self):
         """Test creating a ScrapeStats instance."""
-        stats = ScrapeStats(total_urls=100, successful=80, failed=15, partial=5)
+        stats = ScrapeStats(total_urls=100, successful=80, failed=15)
         assert stats.total_urls == 100
         assert stats.successful == 80
         assert stats.failed == 15
-        assert stats.partial == 5
 
     def test_success_rate_calculation(self):
         """Test success rate property."""
@@ -113,16 +64,6 @@ class TestScrapeStats:
         stats = ScrapeStats()
         assert stats.success_rate == 0.0
 
-    def test_scrape_stats_to_dict(self):
-        """Test converting ScrapeStats to dictionary."""
-        stats = ScrapeStats(total_urls=50, successful=45, failed=3, partial=2)
-        result = stats.to_dict()
-        assert result["total_urls"] == 50
-        assert result["successful"] == 45
-        assert result["failed"] == 3
-        assert result["partial"] == 2
-        assert result["success_rate"] == "90.0%"
-
 
 class TestScrapeResult:
     """Tests for ScrapeResult dataclass."""
@@ -132,7 +73,6 @@ class TestScrapeResult:
         result = ScrapeResult()
         assert result.success == []
         assert result.failed == []
-        assert result.partial == []
         assert result.stats.total_urls == 0
 
     def test_create_scrape_result_with_data(self):
@@ -221,39 +161,10 @@ class TestScrapeResult:
         assert "https://example.com/nav1" in breakdown["navigation"]
         assert "https://example.com/parse1" in breakdown["parsing"]
 
-    def test_scrape_result_to_dict(self):
-        """Test converting ScrapeResult to dictionary."""
-        failed = FailedUrl(
-            url="https://example.com/failed",
-            error_type=ErrorType.NAVIGATION,
-            error_message="Timeout",
-        )
-        result = ScrapeResult(
-            success=[{"match": "data1"}],
-            failed=[failed],
-            stats=ScrapeStats(total_urls=2, successful=1, failed=1),
-        )
-
-        data = result.to_dict()
-        assert len(data["success"]) == 1
-        assert len(data["failed"]) == 1
-        assert data["stats"]["total_urls"] == 2
-        assert data["failed"][0]["error_type"] == "navigation"
-
 
 def test_combo_stats_defaults_to_empty_list():
     result = ScrapeResult()
     assert result.combo_stats == []
-
-
-def test_combo_stats_included_in_to_dict():
-    result = ScrapeResult()
-    result.combo_stats.append(
-        {"league": "england-premier-league", "season": "2021-2022", "successful": 380, "failed": 0, "errored": False}
-    )
-    assert result.to_dict()["combo_stats"] == [
-        {"league": "england-premier-league", "season": "2021-2022", "successful": 380, "failed": 0, "errored": False}
-    ]
 
 
 def test_merge_does_not_propagate_combo_stats():

@@ -30,18 +30,6 @@ class ScraperError(Exception):
         return self.message
 
 
-class NavigationError(ScraperError):
-    """
-    Error during page navigation.
-
-    Includes timeouts, connection errors, and other network-related failures.
-    These errors are typically retryable.
-    """
-
-    def __init__(self, message: str, url: str):
-        super().__init__(message, url, is_retryable=True)
-
-
 class ParsingError(ScraperError):
     """
     Error parsing page content.
@@ -81,31 +69,6 @@ class PageNotFoundError(ScraperError):
 
 class SeasonNotFoundError(PageNotFoundError):
     """The requested season does not exist under this league slug; OddsPortal redirected it."""
-
-
-class PartialDataError(ScraperError):
-    """
-    Partial data was retrieved.
-
-    Some data was successfully extracted but not all requested information
-    is available (e.g., missing markets). The partial data is attached.
-    """
-
-    def __init__(self, message: str, url: str, partial_data: dict):
-        super().__init__(message, url, is_retryable=False)
-        self.partial_data = partial_data
-
-
-class MarketExtractionError(ScraperError):
-    """
-    Error extracting market data.
-
-    The match details were retrieved but market extraction failed.
-    May be retryable depending on the cause.
-    """
-
-    def __init__(self, message: str, url: str, is_retryable: bool = True):
-        super().__init__(message, url, is_retryable=is_retryable)
 
 
 class AllProxiesExhaustedError(ScraperError):

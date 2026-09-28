@@ -133,8 +133,7 @@ async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
     mock_scrape_result = ScrapeResult(
         success=[{"match": "data1"}, {"match": "data2"}],
         failed=[],
-        partial=[],
-        stats=ScrapeStats(total_urls=2, successful=2, failed=0, partial=0),
+        stats=ScrapeStats(total_urls=2, successful=2, failed=0),
     )
     scraper.extract_match_odds = AsyncMock(return_value=mock_scrape_result)
     scraper._prepare_page_for_scraping = AsyncMock()
@@ -310,8 +309,7 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
     mock_scrape_result = ScrapeResult(
         success=[{"match": "data1"}, {"match": "data2"}],
         failed=[],
-        partial=[],
-        stats=ScrapeStats(total_urls=2, successful=2, failed=0, partial=0),
+        stats=ScrapeStats(total_urls=2, successful=2, failed=0),
     )
     scraper.extract_match_odds = AsyncMock(return_value=mock_scrape_result)
 
@@ -456,8 +454,7 @@ async def test_scrape_matches(setup_scraper_mocks):
     mock_scrape_result = ScrapeResult(
         success=[{"match": "data1"}, {"match": "data2"}],
         failed=[],
-        partial=[],
-        stats=ScrapeStats(total_urls=2, successful=2, failed=0, partial=0),
+        stats=ScrapeStats(total_urls=2, successful=2, failed=0),
     )
     scraper.extract_match_odds = AsyncMock(return_value=mock_scrape_result)
 
