@@ -2,7 +2,6 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from tests.dom_builders import match_view
 
 from oddsharvester.core.community.match_community_scraper import MatchCommunityScraper, run_match_community
@@ -24,7 +23,6 @@ def _manager_with_page(html):
     return manager
 
 
-@pytest.mark.asyncio
 async def test_scrape_returns_record_with_markets():
     manager = _manager_with_page(_PREMATCH_HTML)
     scraper = MatchCommunityScraper(manager, MagicMock(dismiss=AsyncMock()))
@@ -39,7 +37,6 @@ async def test_scrape_returns_record_with_markets():
     assert payload["fragment"] == "C2Nfvg77"
 
 
-@pytest.mark.asyncio
 async def test_scrape_non_hydrated_page_returns_empty_markets():
     manager = _manager_with_page("<html><body><h1>A - B</h1></body></html>")
     scraper = MatchCommunityScraper(manager, MagicMock(dismiss=AsyncMock()))
@@ -47,7 +44,6 @@ async def test_scrape_non_hydrated_page_returns_empty_markets():
     assert rec["markets"] == []
 
 
-@pytest.mark.asyncio
 async def test_run_match_community_stamps_scraped_at_and_cleans_up():
     with patch("oddsharvester.core.community.match_community_scraper.PlaywrightManager") as mgr_cls:
         manager = _manager_with_page(_PREMATCH_HTML)

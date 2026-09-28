@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from tests.dom_builders import community_column, community_row, community_section
 
 from oddsharvester.core.community.top_predictions_scraper import TopPredictionsScraper, run_top_predictions
@@ -49,7 +48,6 @@ def _make_scraper(page_html: str):
     return TopPredictionsScraper(playwright_manager=manager, cookie_dismisser=dismisser), page, dismisser
 
 
-@pytest.mark.asyncio
 async def test_scrape_navigates_and_parses():
     scraper, page, dismisser = _make_scraper(MINIMAL_PAGE_HTML)
     records = await scraper.scrape(sport="football")
@@ -70,7 +68,6 @@ async def test_scrape_navigates_and_parses():
     assert parsed.utcoffset() == timedelta(0)
 
 
-@pytest.mark.asyncio
 async def test_scrape_drops_only_wrong_sport_row_in_mixed_batch():
     # Literal "rows are dropped" contract: a football + tennis batch requested as
     # football keeps only the football row, unmodified in sport labelling.
@@ -81,7 +78,6 @@ async def test_scrape_drops_only_wrong_sport_row_in_mixed_batch():
     assert "/football/" in records[0]["match_url"]
 
 
-@pytest.mark.asyncio
 async def test_scrape_tags_batch_with_same_scraped_at():
     scraper, _, _ = _make_scraper(TWO_FOOTBALL_ROWS_HTML)
     records = await scraper.scrape(sport="football")
@@ -91,14 +87,12 @@ async def test_scrape_tags_batch_with_same_scraped_at():
     assert datetime.fromisoformat(stamps.pop()).utcoffset() == timedelta(0)
 
 
-@pytest.mark.asyncio
 async def test_scrape_uses_base_url_override():
     scraper, page, _ = _make_scraper(MINIMAL_PAGE_HTML)
     await scraper.scrape(sport="football", base_url="https://www.centroquote.it")
     assert page.goto.await_args.args[0].startswith("https://www.centroquote.it/community/predictions/")
 
 
-@pytest.mark.asyncio
 async def test_scrape_returns_empty_on_no_rows():
     scraper, page, _ = _make_scraper("<html><body></body></html>")
     page.wait_for_selector.side_effect = Exception("Timeout 10000ms exceeded")
@@ -106,7 +100,6 @@ async def test_scrape_returns_empty_on_no_rows():
     assert records == []
 
 
-@pytest.mark.asyncio
 async def test_scrape_drops_rows_of_wrong_sport():
     # Fragment routing is not guaranteed to honor non-default sports (gotchas §1; see §13):
     # rows whose match_url belongs to another sport must be dropped, not mislabeled.
@@ -115,7 +108,6 @@ async def test_scrape_drops_rows_of_wrong_sport():
     assert records == []
 
 
-@pytest.mark.asyncio
 async def test_scrape_maps_ice_hockey_to_site_slug():
     scraper, page, _ = _make_scraper("<html><body></body></html>")
     page.wait_for_selector.side_effect = Exception("Timeout 10000ms exceeded")
@@ -126,7 +118,6 @@ async def test_scrape_maps_ice_hockey_to_site_slug():
 # --- run_top_predictions runner (Playwright lifecycle) ---
 
 
-@pytest.mark.asyncio
 @patch(f"{_RUNNER}.CookieDismisser")
 @patch(f"{_RUNNER}.ProxyManager")
 @patch(f"{_RUNNER}.TopPredictionsScraper")
@@ -170,7 +161,6 @@ async def test_run_top_predictions_success(pm_cls, scraper_cls, proxy_cls, cooki
     assert result == records
 
 
-@pytest.mark.asyncio
 @patch(f"{_RUNNER}.retry_with_backoff")
 @patch(f"{_RUNNER}.CookieDismisser")
 @patch(f"{_RUNNER}.ProxyManager")
@@ -193,7 +183,6 @@ async def test_run_top_predictions_retry_exhausted(pm_cls, scraper_cls, proxy_cl
     assert any("Top predictions scrape failed" in r.message for r in caplog.records)
 
 
-@pytest.mark.asyncio
 @patch(f"{_RUNNER}.CookieDismisser")
 @patch(f"{_RUNNER}.TopPredictionsScraper")
 @patch(f"{_RUNNER}.PlaywrightManager")
@@ -212,7 +201,6 @@ async def test_run_top_predictions_multi_proxy_branch(proxy_cls, pm_cls, scraper
     proxy_cls.assert_called_once_with(proxy_urls=["http://a:1", "http://b:2"], proxy_user=None, proxy_pass=None)
 
 
-@pytest.mark.asyncio
 @patch(f"{_RUNNER}.CookieDismisser")
 @patch(f"{_RUNNER}.TopPredictionsScraper")
 @patch(f"{_RUNNER}.PlaywrightManager")

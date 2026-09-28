@@ -2,7 +2,6 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from tests.dom_builders import profile_page
 
 from oddsharvester.core.community.user_profile_scraper import UserProfileScraper, run_user_profile
@@ -21,7 +20,6 @@ def _manager_with_html(html):
     return manager
 
 
-@pytest.mark.asyncio
 async def test_scrape_parses_and_stamps_scraped_at():
     manager = _manager_with_html(_PUBLIC_HTML)
     scraper = UserProfileScraper(manager, MagicMock(dismiss=AsyncMock()))
@@ -30,7 +28,6 @@ async def test_scrape_parses_and_stamps_scraped_at():
     assert rec["privacy"] == "public"
 
 
-@pytest.mark.asyncio
 async def test_run_user_profile_stamps_scraped_at_and_cleans_up():
     with patch("oddsharvester.core.community.user_profile_scraper.PlaywrightManager") as mgr_cls:
         manager = _manager_with_html(_PUBLIC_HTML)

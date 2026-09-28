@@ -44,13 +44,11 @@ class TestSelectionManager:
     def manager(self):
         return SelectionManager()
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(("strategy", "target_value", "display_label"), STRATEGY_CASES)
     async def test_returns_false_when_tabs_absent(self, manager, strategy, target_value, display_label):
         page = _page([[]])
         assert await manager.ensure_selected(page, target_value, display_label, strategy) is False
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(("strategy", "target_value", "display_label"), STRATEGY_CASES)
     async def test_returns_true_noop_when_already_active(self, manager, strategy, target_value, display_label):
         target = _tab(display_label, active=True)
@@ -60,7 +58,6 @@ class TestSelectionManager:
 
         target.click.assert_not_awaited()
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(("strategy", "target_value", "display_label"), STRATEGY_CASES)
     async def test_clicks_and_verifies_activation(self, manager, strategy, target_value, display_label):
         before = _tab(display_label, active=False)
@@ -71,7 +68,6 @@ class TestSelectionManager:
 
         before.click.assert_awaited_once()
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(("strategy", "target_value", "display_label"), STRATEGY_CASES)
     async def test_returns_false_when_activation_never_confirms(self, manager, strategy, target_value, display_label):
         before = _tab(display_label, active=False)
@@ -81,7 +77,6 @@ class TestSelectionManager:
 
         before.click.assert_awaited_once()
 
-    @pytest.mark.asyncio
     async def test_returns_false_when_no_tab_matches_label(self, manager):
         page = _page([[_tab("All Bookies"), _tab("Crypto Bookies")]])
 
@@ -102,19 +97,16 @@ class TestPeriodSelector:
         page.evaluate = AsyncMock()
         return page
 
-    @pytest.mark.asyncio
     async def test_returns_none_when_no_scope_code(self, selector):
         page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;2")
         assert await selector.select_by_scope(page, "football", "NotAPeriod") is None
         page.evaluate.assert_not_awaited()
 
-    @pytest.mark.asyncio
     async def test_already_active_skips_hash_switch(self, selector):
         page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;3")
         assert await selector.select_by_scope(page, "football", "FirstHalf") is True
         page.evaluate.assert_not_awaited()
 
-    @pytest.mark.asyncio
     async def test_switches_scope_via_hash(self, selector):
         page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:over-under;2")
 
@@ -129,12 +121,10 @@ class TestPeriodSelector:
         payload = args[1] if len(args) >= 2 else kwargs.get("arg")
         assert payload == {"fragment": "id1", "code": "over-under", "scope": 3}
 
-    @pytest.mark.asyncio
     async def test_returns_false_when_scope_never_applies(self, selector):
         page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;2")
         assert await selector.select_by_scope(page, "football", "FirstHalf") is False
 
-    @pytest.mark.asyncio
     async def test_returns_false_without_market_fragment(self, selector):
         page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1")
         assert await selector.select_by_scope(page, "football", "FirstHalf") is False

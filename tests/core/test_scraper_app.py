@@ -48,7 +48,6 @@ def setup_mocks():
     }
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
 @patch("oddsharvester.core.scraper_app.PlaywrightManager")
@@ -111,7 +110,6 @@ async def test_run_scraper_historic(
     ]
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
 @patch("oddsharvester.core.scraper_app.PlaywrightManager")
@@ -165,7 +163,6 @@ async def test_run_scraper_upcoming(
     assert result.stats.successful == 1
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
 @patch("oddsharvester.core.scraper_app.PlaywrightManager")
@@ -212,7 +209,6 @@ async def test_run_scraper_match_links(
     assert result == {"result": "match_data"}
 
 
-@pytest.mark.asyncio
 async def test_run_scraper_builds_multi_proxy_manager(monkeypatch):
     """run_scraper(proxy_url=<tuple>) must build a single ProxyManager in multi-proxy mode
     and pass it (not a proxy dict) to start_playwright (issue: multi-proxy rotation)."""
@@ -246,7 +242,6 @@ async def test_run_scraper_builds_multi_proxy_manager(monkeypatch):
     assert captured["proxy_manager"].is_multi_proxy() is True
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
 @patch("oddsharvester.core.scraper_app.PlaywrightManager")
@@ -276,7 +271,6 @@ async def test_run_scraper_upcoming_forwards_concurrency(
     assert scraper_mock.extract_match_odds.await_args.kwargs["concurrent_scraping_task"] == 10
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
 @patch("oddsharvester.core.scraper_app.PlaywrightManager")
@@ -305,7 +299,6 @@ async def test_run_scraper_upcoming_forwards_include_started(
     assert scraper_mock.collect_upcoming_links.await_args.kwargs["include_started"] is True
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
 @patch("oddsharvester.core.scraper_app.PlaywrightManager")
@@ -334,7 +327,6 @@ async def test_run_scraper_upcoming_forwards_kickoff_within_hours(
     assert scraper_mock.collect_upcoming_links.await_args.kwargs["kickoff_within_hours"] == 6
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
 @patch("oddsharvester.core.scraper_app.PlaywrightManager")
@@ -360,7 +352,6 @@ async def test_run_scraper_upcoming_multi_league_forwards_kickoff_within_hours(
     assert all(c.kwargs["kickoff_within_hours"] == 3 for c in scraper_mock.collect_upcoming_links.await_args_list)
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
 @patch("oddsharvester.core.scraper_app.PlaywrightManager")
@@ -390,7 +381,6 @@ async def test_run_scraper_historic_forwards_concurrency(
     assert scraper_mock.extract_match_odds.await_args.kwargs["concurrent_scraping_task"] == 7
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
 @patch("oddsharvester.core.scraper_app.PlaywrightManager")
@@ -419,7 +409,6 @@ async def test_run_scraper_forwards_links_only_historic(
     ]
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
 @patch("oddsharvester.core.scraper_app.PlaywrightManager")
@@ -452,7 +441,6 @@ async def test_run_scraper_forwards_links_only_historic_multi_league(
     assert [row["league"] for row in result.success] == ["england-premier-league", "spain-laliga"]
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
 @patch("oddsharvester.core.scraper_app.PlaywrightManager")
@@ -481,7 +469,6 @@ async def test_run_scraper_forwards_links_only_upcoming(
     assert list(result.success[0].keys()) == ["match_link", "sport", "league", "date", "season", "kickoff_utc"]
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
 @patch("oddsharvester.core.scraper_app.PlaywrightManager")
@@ -510,7 +497,6 @@ async def test_run_scraper_match_links_forwards_concurrency(
     assert scraper_mock.scrape_matches.call_args.kwargs.get("concurrent_scraping_task") == 5
 
 
-@pytest.mark.asyncio
 async def test_retry_scrape_success():
     """Test retry_scrape function with successful first attempt."""
     mock_func = AsyncMock(return_value={"data": "test"})
@@ -521,7 +507,6 @@ async def test_retry_scrape_success():
     assert result == {"data": "test"}
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
 async def test_retry_scrape_transient_error(mock_sleep):
     """Test retry_scrape function with transient error that succeeds on retry."""
@@ -537,7 +522,6 @@ async def test_retry_scrape_transient_error(mock_sleep):
     assert result == {"data": "retry_success"}
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
 async def test_retry_scrape_non_retryable_error(mock_sleep):
     """A non-retryable error is raised at once, as itself."""
@@ -550,7 +534,6 @@ async def test_retry_scrape_non_retryable_error(mock_sleep):
     mock_sleep.assert_not_called()
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
 async def test_retry_scrape_reraises_the_last_error_when_retries_run_out(mock_sleep):
     """Exhausted retries surface the original exception instead of None, so callers can report it."""
@@ -563,7 +546,6 @@ async def test_retry_scrape_reraises_the_last_error_when_retries_run_out(mock_sl
     assert mock_sleep.call_count == OPERATION_RETRY_MAX_ATTEMPTS - 1
 
 
-@pytest.mark.asyncio
 async def test_retry_scrape_reraises_the_original_exception_type():
     from oddsharvester.core.exceptions import PageNotFoundError
 
@@ -576,7 +558,6 @@ async def test_retry_scrape_reraises_the_original_exception_type():
     assert excinfo.value is error
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.ProxyManager")
 @patch("oddsharvester.core.scraper_app.SportMarketRegistrar")
@@ -598,7 +579,6 @@ async def test_run_scraper_error_handling(sport_market_registrar_mock, proxy_man
     assert result is None
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.ProxyManager")
 @patch("oddsharvester.core.scraper_app.SportMarketRegistrar")
@@ -619,7 +599,6 @@ async def test_run_scraper_logs_the_error_type_and_traceback(registrar_mock, pro
     assert record.exc_info is not None
 
 
-@pytest.mark.asyncio
 async def test_run_scraper_multiple_leagues_historic():
     """Test run_scraper with multiple leagues for historic command."""
     with (
@@ -706,7 +685,6 @@ def test_run_scraper_accepts_local_kickoff_param():
     assert sig.parameters["local_kickoff"].default is False
 
 
-@pytest.mark.asyncio
 async def test_run_scraper_forwards_local_kickoff(monkeypatch):
     captured = {}
 
@@ -731,7 +709,6 @@ async def test_run_scraper_forwards_local_kickoff(monkeypatch):
     assert captured["local_kickoff"] is True
 
 
-@pytest.mark.asyncio
 async def test_multi_league_historic_none_seasons_lists_each_league_with_season_none():
     """Regression: seasons=None on the multi-league historic path must still pass season=None
     to collect_historic_links (a required param), not omit it and error every combo (issue #78)."""
@@ -761,7 +738,6 @@ async def test_multi_league_historic_none_seasons_lists_each_league_with_season_
     assert all(combo["errored"] is False for combo in result.combo_stats)
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
 @patch("oddsharvester.core.scraper_app.PlaywrightManager")
@@ -789,7 +765,6 @@ async def test_run_scraper_routes_live_command(
     assert result == {"result": "live_data"}
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
 @patch("oddsharvester.core.scraper_app.PlaywrightManager")
@@ -821,7 +796,6 @@ async def test_run_scraper_live_with_match_links_uses_scrape_live_not_scrape_mat
     ]
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.scraper_app.OddsPortalScraper")
 @patch("oddsharvester.core.scraper_app.OddsPortalMarketExtractor")
 @patch("oddsharvester.core.scraper_app.PlaywrightManager")

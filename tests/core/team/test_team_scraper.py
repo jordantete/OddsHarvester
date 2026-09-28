@@ -2,7 +2,6 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from tests.dom_builders import team_page
 
 from oddsharvester.core.team.team_scraper import TeamScraper, run_teams
@@ -18,7 +17,6 @@ def _manager_with(*pages):
     return manager
 
 
-@pytest.mark.asyncio
 async def test_scrape_returns_a_stamped_record():
     scraper = TeamScraper(_manager_with(team_page()), MagicMock(dismiss=AsyncMock()))
 
@@ -28,7 +26,6 @@ async def test_scrape_returns_a_stamped_record():
     assert record["scraped_at"].endswith("+00:00")
 
 
-@pytest.mark.asyncio
 async def test_scrape_requests_the_id_regardless_of_slug():
     """The id is authoritative; slug and sport prefix in the path are ignored by the site."""
     manager = _manager_with(team_page())
@@ -41,7 +38,6 @@ async def test_scrape_requests_the_id_regardless_of_slug():
     assert requested.startswith("https://www.oddsportal.com/")
 
 
-@pytest.mark.asyncio
 async def test_scrape_honors_base_url():
     manager = _manager_with(team_page())
     scraper = TeamScraper(manager, MagicMock(dismiss=AsyncMock()))
@@ -52,7 +48,6 @@ async def test_scrape_honors_base_url():
     assert record["logo_url"].startswith("https://www.centroquote.it/")
 
 
-@pytest.mark.asyncio
 async def test_run_teams_returns_one_record_per_team_and_cleans_up():
     with patch("oddsharvester.core.team.team_scraper.PlaywrightManager") as manager_cls:
         manager = _manager_with(team_page(), team_page(name="Everton", full_name="Everton FC"))
@@ -67,7 +62,6 @@ async def test_run_teams_returns_one_record_per_team_and_cleans_up():
     manager.cleanup.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_run_teams_keeps_going_after_a_team_without_payload():
     """A wrong id must not cost the run the teams queued behind it."""
     with patch("oddsharvester.core.team.team_scraper.PlaywrightManager") as manager_cls:
@@ -84,7 +78,6 @@ async def test_run_teams_keeps_going_after_a_team_without_payload():
     assert result.stats.failed == 1
 
 
-@pytest.mark.asyncio
 async def test_run_teams_warns_once_when_a_team_has_no_list_name(caplog):
     html = team_page(last_performance={"form": [], "formEvents": []})
     with patch("oddsharvester.core.team.team_scraper.PlaywrightManager") as manager_cls:
@@ -100,7 +93,6 @@ async def test_run_teams_warns_once_when_a_team_has_no_list_name(caplog):
     assert sum("list_name" in record.message for record in caplog.records) == 1
 
 
-@pytest.mark.asyncio
 async def test_the_cookie_banner_is_only_waited_for_until_it_is_dismissed():
     """The banner is per browser context, so re-checking costs a 10s timeout per team."""
     manager = _manager_with(team_page(), team_page(), team_page())

@@ -59,7 +59,6 @@ class TestOddsHistoryExtractor:
     def test_leaf_row_selector_excludes_rows_that_wrap_a_table(self):
         assert LEAF_BOOKMAKER_ROW_CSS == 'tr:has(a[href*="/bookmakers/"]):not(:has(tr))'
 
-    @pytest.mark.asyncio
     async def test_hovers_each_outcome_cell_of_the_matching_row(self, extractor, page):
         page.query_selector_all = AsyncMock(return_value=[_row("Bookmaker1", cells=3)])
         page.wait_for_selector = AsyncMock(side_effect=_modal_headers(["<a/>", "<b/>", "<c/>"]))
@@ -69,7 +68,6 @@ class TestOddsHistoryExtractor:
         assert result == ["<a/>", "<b/>", "<c/>"]
         page.query_selector_all.assert_awaited_once_with(LEAF_BOOKMAKER_ROW_CSS)
 
-    @pytest.mark.asyncio
     async def test_matches_the_exact_name_not_a_prefix(self, extractor, page):
         exchange, plain = _row("Betfair Exchange", cells=2), _row("Betfair", cells=2)
         page.query_selector_all = AsyncMock(return_value=[exchange, plain])
@@ -81,7 +79,6 @@ class TestOddsHistoryExtractor:
         exchange.query_selector_all.assert_not_awaited()
         plain.query_selector_all.assert_awaited_once()
 
-    @pytest.mark.asyncio
     async def test_matches_a_logo_only_row_by_its_normalised_title(self, extractor, page):
         page.query_selector_all = AsyncMock(return_value=[_row(title="Go to Betfair Exchange website!", cells=1)])
         page.wait_for_selector = AsyncMock(side_effect=_modal_headers(["<a/>"]))
@@ -90,7 +87,6 @@ class TestOddsHistoryExtractor:
 
         assert result == ["<a/>"]
 
-    @pytest.mark.asyncio
     async def test_name_match_ignores_whitespace_differences(self, extractor, page):
         page.query_selector_all = AsyncMock(return_value=[_row("Betfair\n  Exchange", cells=1)])
         page.wait_for_selector = AsyncMock(side_effect=_modal_headers(["<a/>"]))
@@ -99,7 +95,6 @@ class TestOddsHistoryExtractor:
 
         assert result == ["<a/>"]
 
-    @pytest.mark.asyncio
     async def test_hovers_at_most_cell_count_cells(self, extractor, page):
         row = _row("Bookmaker1", cells=4)
         page.query_selector_all = AsyncMock(return_value=[row])
@@ -111,7 +106,6 @@ class TestOddsHistoryExtractor:
         cells = row.query_selector_all.return_value
         cells[3].hover.assert_not_awaited()
 
-    @pytest.mark.asyncio
     async def test_fewer_cells_than_outcomes_pads_with_none(self, extractor, page):
         page.query_selector_all = AsyncMock(return_value=[_row("Bookmaker1", cells=2)])
         page.wait_for_selector = AsyncMock(side_effect=_modal_headers(["<a/>", "<b/>"]))
@@ -120,7 +114,6 @@ class TestOddsHistoryExtractor:
 
         assert result == ["<a/>", "<b/>", None]
 
-    @pytest.mark.asyncio
     async def test_failed_cell_keeps_its_slot(self, extractor, page):
         first, _, third = _modal_headers(["<a/>", "<unused/>", "<c/>"])
         page.query_selector_all = AsyncMock(return_value=[_row("Bookmaker1", cells=3)])
@@ -130,7 +123,6 @@ class TestOddsHistoryExtractor:
 
         assert result == ["<a/>", None, "<c/>"]
 
-    @pytest.mark.asyncio
     async def test_modal_without_element_gives_none(self, extractor, page):
         page.query_selector_all = AsyncMock(return_value=[_row("Bookmaker1", cells=1)])
         page.wait_for_selector = AsyncMock(side_effect=_modal_headers([None]))
@@ -139,7 +131,6 @@ class TestOddsHistoryExtractor:
 
         assert result == [None]
 
-    @pytest.mark.asyncio
     async def test_no_matching_row_gives_one_none_per_outcome(self, extractor, page):
         page.query_selector_all = AsyncMock(return_value=[_row("Other", cells=3)])
 
@@ -147,7 +138,6 @@ class TestOddsHistoryExtractor:
 
         assert result == [None, None, None]
 
-    @pytest.mark.asyncio
     async def test_row_listing_failure_gives_one_none_per_outcome(self, extractor, page):
         page.query_selector_all = AsyncMock(side_effect=Exception("detached"))
 
@@ -155,7 +145,6 @@ class TestOddsHistoryExtractor:
 
         assert result == [None, None]
 
-    @pytest.mark.asyncio
     async def test_unreadable_row_name_is_skipped(self, extractor, page):
         broken = AsyncMock()
         broken.query_selector = AsyncMock(side_effect=Exception("stale"))

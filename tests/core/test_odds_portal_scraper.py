@@ -60,7 +60,6 @@ def setup_scraper_mocks():
     }
 
 
-@pytest.mark.asyncio
 async def test_start_playwright(setup_scraper_mocks):
     """Test initializing Playwright with various options."""
     mocks = setup_scraper_mocks
@@ -97,7 +96,6 @@ async def test_start_playwright(setup_scraper_mocks):
     )
 
 
-@pytest.mark.asyncio
 async def test_stop_playwright(setup_scraper_mocks):
     """Test stopping Playwright."""
     mocks = setup_scraper_mocks
@@ -107,7 +105,6 @@ async def test_stop_playwright(setup_scraper_mocks):
     mocks["playwright_manager_mock"].cleanup.assert_called_once()
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_collect_historic_links_reads_the_season_listing(url_builder_mock, setup_scraper_mocks):
     """Test scraping historic odds data."""
@@ -160,7 +157,6 @@ async def test_collect_historic_links_reads_the_season_listing(url_builder_mock,
     ]
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_collect_historic_links_fails_when_season_url_redirects(url_builder_mock, setup_scraper_mocks):
     """A season URL redirected to the league's current fixtures must fail, not be scraped."""
@@ -213,7 +209,6 @@ def test_season_guard_raises_season_not_found_on_redirect():
     assert isinstance(excinfo.value, PageNotFoundError)
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_collect_upcoming_links_reads_the_listing(url_builder_mock, setup_scraper_mocks):
     """Test scraping upcoming matches odds data."""
@@ -261,7 +256,6 @@ async def test_collect_upcoming_links_reads_the_listing(url_builder_mock, setup_
     ]
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_collect_upcoming_links_keeps_rows_with_unknown_kickoff(url_builder_mock, setup_scraper_mocks):
     """A null kickoff must still occupy the column, or CSV writing raises (issue #81)."""
@@ -282,7 +276,6 @@ async def test_collect_upcoming_links_keeps_rows_with_unknown_kickoff(url_builde
     assert [row["kickoff_utc"] for row in listing.rows] == ["2026-07-20 18:30:00 UTC", None]
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.ODDSPORTAL_BASE_URL", "https://oddsportal.com")
 async def test_scrape_matches(setup_scraper_mocks):
     """Test scraping specific match links."""
@@ -332,7 +325,6 @@ async def test_scrape_matches(setup_scraper_mocks):
     assert result.stats.successful == 2
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_collect_upcoming_links_forwards_kickoff_within_hours(url_builder_mock, setup_scraper_mocks):
     """collect_upcoming_links must forward kickoff_within_hours to extract_match_rows (issue #77)."""
@@ -350,7 +342,6 @@ async def test_collect_upcoming_links_forwards_kickoff_within_hours(url_builder_
     assert scraper.extract_match_rows.call_args.kwargs.get("kickoff_within_hours") == 6
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_collect_upcoming_links_runs_on_its_own_tab(url_builder_mock, setup_scraper_mocks):
     """Each listing opens and closes its own tab, so several can run at once (issue #87)."""
@@ -379,7 +370,6 @@ async def test_collect_upcoming_links_runs_on_its_own_tab(url_builder_mock, setu
     assert listing.failed_page_urls == []
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_collect_upcoming_links_closes_the_tab_when_the_listing_raises(url_builder_mock, setup_scraper_mocks):
     """A listing that fails must not leave its tab open for the rest of the run."""
@@ -396,7 +386,6 @@ async def test_collect_upcoming_links_closes_the_tab_when_the_listing_raises(url
     tab.close.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_prepare_page_for_scraping(setup_scraper_mocks):
     """Test preparing the page for scraping."""
     mocks = setup_scraper_mocks
@@ -414,7 +403,6 @@ async def test_prepare_page_for_scraping(setup_scraper_mocks):
     mocks["cookie_dismisser_mock"].dismiss.assert_called_once_with(page=page_mock)
 
 
-@pytest.mark.asyncio
 async def test_get_pagination_info(setup_scraper_mocks):
     """_get_pagination_info returns a floor: gaps filled, capped, never a verdict."""
     mocks = setup_scraper_mocks
@@ -429,7 +417,6 @@ async def test_get_pagination_info(setup_scraper_mocks):
     assert await scraper._get_pagination_info(page=page_mock, max_pages=None) == [1]
 
 
-@pytest.mark.asyncio
 async def test_get_pagination_info_max_pages_overrides_safety_cap(setup_scraper_mocks):
     """When --max-pages exceeds MAX_PAGINATION_PAGES, the user value is respected."""
     mocks = setup_scraper_mocks
@@ -465,7 +452,6 @@ def instant_listing_retry():
         yield sleep_mock
 
 
-@pytest.mark.asyncio
 async def test_collect_match_links(setup_scraper_mocks):
     """Test collecting match links from multiple pages."""
     mocks = setup_scraper_mocks
@@ -507,7 +493,6 @@ async def test_collect_match_links(setup_scraper_mocks):
     assert result.failed_pages == []
 
 
-@pytest.mark.asyncio
 async def test_collect_match_links_error_handling(setup_scraper_mocks):
     """Test error handling in collect_match_links method."""
     mocks = setup_scraper_mocks
@@ -539,7 +524,6 @@ async def test_collect_match_links_error_handling(setup_scraper_mocks):
     assert tab_mock.close.call_count == 2  # Should still close tabs even after error
 
 
-@pytest.mark.asyncio
 async def test_collect_match_links_preserves_listing_order(setup_scraper_mocks):
     """Dedup must keep first-seen listing order across pages (issue #75)."""
     mocks = setup_scraper_mocks
@@ -600,7 +584,6 @@ class TestFillPaginationGaps:
         assert result == list(range(1, 11))
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_scrape_live_no_matches_returns_empty_result(url_builder_mock, setup_scraper_mocks):
     """No live match is a normal outcome: empty result, no failures."""
@@ -619,7 +602,6 @@ async def test_scrape_live_no_matches_returns_empty_result(url_builder_mock, set
     scraper.extract_match_odds.assert_not_awaited()
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_scrape_live_links_only(url_builder_mock, setup_scraper_mocks):
     """links_only=True returns the collected live links without scraping odds."""
@@ -641,7 +623,6 @@ async def test_scrape_live_links_only(url_builder_mock, setup_scraper_mocks):
     scraper.extract_match_odds.assert_not_awaited()
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_scrape_live_drops_ended_matches(url_builder_mock, setup_scraper_mocks):
     """A match that ended between listing and visit is dropped, not counted as scraped."""
@@ -672,7 +653,6 @@ async def test_scrape_live_drops_ended_matches(url_builder_mock, setup_scraper_m
     assert result.stats.total_urls == 1
 
 
-@pytest.mark.asyncio
 async def test_scrape_live_with_match_links_normalizes_urls(setup_scraper_mocks):
     """--match-link accepts a classic match URL and is normalized to its in-play form."""
     mocks = setup_scraper_mocks
@@ -694,7 +674,6 @@ async def test_scrape_live_with_match_links_normalizes_urls(setup_scraper_mocks)
     scraper.extract_live_match_links.assert_not_awaited()
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_scrape_live_never_scrapes_odds_history(url_builder_mock, setup_scraper_mocks):
     """Live snapshots carry no odds history: the in-play view does not expose it."""
@@ -715,7 +694,6 @@ async def test_scrape_live_never_scrapes_odds_history(url_builder_mock, setup_sc
     assert kwargs["period"] is None
 
 
-@pytest.mark.asyncio
 async def test_collect_match_links_treats_empty_page_as_failure(setup_scraper_mocks):
     """A page that yields zero links has not been collected, whatever the reason.
 
@@ -740,7 +718,6 @@ async def test_collect_match_links_treats_empty_page_as_failure(setup_scraper_mo
     assert result.failed_pages == [2, 3]
 
 
-@pytest.mark.asyncio
 async def test_collect_match_links_treats_partial_page_as_failure(setup_scraper_mocks):
     """A page below the frontier is not the last one, so it must come back full (issue #78).
 
@@ -766,7 +743,6 @@ async def test_collect_match_links_treats_partial_page_as_failure(setup_scraper_
     assert "https://p2m0" in result.links, "the rows it did render are still real data"
 
 
-@pytest.mark.asyncio
 async def test_collect_match_links_refetches_a_truncated_page(setup_scraper_mocks):
     """The truncation is transient, so the page is fetched again before being written off.
 
@@ -791,7 +767,6 @@ async def test_collect_match_links_refetches_a_truncated_page(setup_scraper_mock
     assert scraper.extract_match_links.call_count == 3, "page 1 fetched twice, page 2 once"
 
 
-@pytest.mark.asyncio
 async def test_collect_match_links_refetches_a_truncated_page_only_once(setup_scraper_mocks):
     """A page that stays truncated is reported, not retried forever."""
     mocks = setup_scraper_mocks
@@ -809,7 +784,6 @@ async def test_collect_match_links_refetches_a_truncated_page_only_once(setup_sc
     assert scraper.extract_match_links.call_count == 3, "page 1 fetched twice, then the walk moves on"
 
 
-@pytest.mark.asyncio
 async def test_collect_match_links_keeps_single_empty_page_successful(setup_scraper_mocks):
     """A genuinely empty season returns zero links on its only page, and that is not an error.
 
@@ -837,7 +811,6 @@ def _walk_tab(mocks):
     return tab
 
 
-@pytest.mark.asyncio
 async def test_collect_match_links_walks_past_an_empty_widget(setup_scraper_mocks, caplog):
     """Issue 79: an unreadable widget must not cap collection at one page.
 
@@ -861,7 +834,6 @@ async def test_collect_match_links_walks_past_an_empty_widget(setup_scraper_mock
     assert any("but the walk collected" in r.message for r in caplog.records)
 
 
-@pytest.mark.asyncio
 async def test_collect_match_links_walks_past_an_underreporting_widget(setup_scraper_mocks):
     """A widget that reports fewer pages than exist must not end collection either."""
     mocks = setup_scraper_mocks
@@ -879,7 +851,6 @@ async def test_collect_match_links_walks_past_an_underreporting_widget(setup_scr
     assert result.failed_pages == []
 
 
-@pytest.mark.asyncio
 async def test_collect_match_links_fails_empty_page_despite_lower_mid_walk_observed_max(setup_scraper_mocks):
     """A mid-walk widget read that only sees up to page 3 must not shrink the frontier.
 
@@ -905,7 +876,6 @@ async def test_collect_match_links_fails_empty_page_despite_lower_mid_walk_obser
     assert result.successful_pages == 7
 
 
-@pytest.mark.asyncio
 async def test_collect_match_links_stops_clean_one_page_past_the_end(setup_scraper_mocks):
     """A season whose last page is exactly full: page 9 renders nothing but the widget still says 8."""
     mocks = setup_scraper_mocks
@@ -925,7 +895,6 @@ async def test_collect_match_links_stops_clean_one_page_past_the_end(setup_scrap
     assert result.failed_pages == [], "walking one past the end is not a failure"
 
 
-@pytest.mark.asyncio
 async def test_collect_match_links_flags_an_empty_page_the_widget_says_exists(setup_scraper_mocks):
     """Gotcha 17: the widget says 8 pages and page 4 renders nothing, so page 4 was degraded."""
     mocks = setup_scraper_mocks
@@ -949,7 +918,6 @@ async def test_collect_match_links_flags_an_empty_page_the_widget_says_exists(se
     assert len(result.links) == 330, "the run continues past a failed page"
 
 
-@pytest.mark.asyncio
 async def test_collect_match_links_fails_a_short_page_with_incomplete_scroll(setup_scraper_mocks):
     """Issue 79 recreated via scroll failure: a short page at the frontier whose scroll did not
     finish must be flagged as failed, not silently read as a clean, complete season.
@@ -972,7 +940,6 @@ async def test_collect_match_links_fails_a_short_page_with_incomplete_scroll(set
     assert result.failed_pages == [8], "an incompletely scrolled short page must not read as a clean stop"
 
 
-@pytest.mark.asyncio
 async def test_collect_match_links_respects_the_page_limit(setup_scraper_mocks, caplog):
     """An explicit --max-pages bounds the walk even when every page is full."""
     mocks = setup_scraper_mocks
@@ -992,7 +959,6 @@ async def test_collect_match_links_respects_the_page_limit(setup_scraper_mocks, 
     assert any("raise --max-pages" in r.message for r in caplog.records)
 
 
-@pytest.mark.asyncio
 async def test_scrape_matches_honors_regional_base_url(setup_scraper_mocks):
     """Direct match links must use the configured regional base URL."""
     mocks = setup_scraper_mocks
@@ -1022,7 +988,6 @@ async def test_scrape_matches_honors_regional_base_url(setup_scraper_mocks):
     ]
 
 
-@pytest.mark.asyncio
 async def test_scrape_live_with_match_links_honors_regional_base_url(setup_scraper_mocks):
     """Direct live match links must use the configured regional base URL."""
     mocks = setup_scraper_mocks
@@ -1051,7 +1016,6 @@ async def test_scrape_live_with_match_links_honors_regional_base_url(setup_scrap
     ]
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_collect_historic_links_runs_on_its_own_tab_and_reports_failed_pages(
     url_builder_mock, setup_scraper_mocks
@@ -1086,7 +1050,6 @@ async def test_collect_historic_links_runs_on_its_own_tab_and_reports_failed_pag
     assert listing.failed_page_urls == [f"{base}#page/3"]
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_collect_historic_links_closes_the_tab_when_the_season_redirects(url_builder_mock, setup_scraper_mocks):
     """A redirected season raises before the walk; the tab must still be released (gotcha 4)."""
@@ -1115,7 +1078,6 @@ def _page_with_country_links(count):
     return page
 
 
-@pytest.mark.asyncio
 async def test_league_guard_rejects_a_page_without_its_country_breadcrumb():
     """A league path that does not exist answers 200 at the same URL ("Offside — page not found")."""
     page = _page_with_country_links(0)
@@ -1128,7 +1090,6 @@ async def test_league_guard_rejects_a_page_without_its_country_breadcrumb():
     page.locator.assert_called_once_with("a[href='/football/bhutan/']")
 
 
-@pytest.mark.asyncio
 async def test_league_guard_accepts_a_real_league_even_without_fixtures():
     await OddsPortalScraper._assert_league_page_exists(
         _page_with_country_links(2), "https://www.oddsportal.com/football/bhutan/premier-league/results/"
@@ -1141,7 +1102,6 @@ def _rate_limited_response():
     return response
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_upcoming_league_path_rate_limited_is_not_reported_as_missing(url_builder_mock, setup_scraper_mocks):
     """The nginx 429 body has no country breadcrumb: it must not read as an unknown league."""
@@ -1164,7 +1124,6 @@ async def test_upcoming_league_path_rate_limited_is_not_reported_as_missing(url_
     tab.close.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_historic_listing_rate_limited_raises_rate_limit(url_builder_mock, setup_scraper_mocks):
     from oddsharvester.core.exceptions import RateLimitError
@@ -1190,7 +1149,6 @@ async def test_historic_listing_rate_limited_raises_rate_limit(url_builder_mock,
     scraper._collect_match_links.assert_not_called()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(("league", "guarded"), [("football/bhutan/premier-league", True), ("premier-league", False)])
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_upcoming_checks_existence_of_league_paths_only(url_builder_mock, league, guarded, setup_scraper_mocks):
@@ -1208,7 +1166,6 @@ async def test_upcoming_checks_existence_of_league_paths_only(url_builder_mock, 
     assert scraper._assert_league_page_exists.await_count == (1 if guarded else 0)
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
 async def test_historic_checks_existence_of_a_league_path(url_builder_mock, setup_scraper_mocks):
     mocks = setup_scraper_mocks
@@ -1225,7 +1182,6 @@ async def test_historic_checks_existence_of_a_league_path(url_builder_mock, setu
     scraper._collect_match_links.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_live_links_only_rows_keep_their_columns(setup_scraper_mocks):
     """Guard: the live links-only rows never carried the listing's period marker."""
     mocks = setup_scraper_mocks

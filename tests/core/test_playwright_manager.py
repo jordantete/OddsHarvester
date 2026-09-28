@@ -27,7 +27,6 @@ def mock_playwright():
         yield {"playwright": playwright, "browser": browser, "context": context, "page": page}
 
 
-@pytest.mark.asyncio
 async def test_route_from_har_called_when_env_var_set(mock_playwright, monkeypatch, tmp_path):
     har_path = tmp_path / "snapshot.har"
     har_path.write_text("{}")
@@ -43,7 +42,6 @@ async def test_route_from_har_called_when_env_var_set(mock_playwright, monkeypat
     )
 
 
-@pytest.mark.asyncio
 async def test_route_from_har_not_called_when_env_var_unset(mock_playwright, monkeypatch):
     monkeypatch.delenv("ODDSHARVESTER_HAR_REPLAY", raising=False)
 
@@ -53,7 +51,6 @@ async def test_route_from_har_not_called_when_env_var_unset(mock_playwright, mon
     mock_playwright["context"].route_from_har.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_record_har_kwargs_when_record_env_var_set(mock_playwright, monkeypatch, tmp_path):
     har_path = tmp_path / "snapshot.har"
     monkeypatch.setenv("ODDSHARVESTER_HAR_RECORD", str(har_path))
@@ -68,7 +65,6 @@ async def test_record_har_kwargs_when_record_env_var_set(mock_playwright, monkey
     assert call_kwargs["record_har_url_filter"] == "**oddsportal.com/**"
 
 
-@pytest.mark.asyncio
 async def test_record_har_kwargs_absent_when_env_var_unset(mock_playwright, monkeypatch):
     monkeypatch.delenv("ODDSHARVESTER_HAR_RECORD", raising=False)
 
@@ -81,7 +77,6 @@ async def test_record_har_kwargs_absent_when_env_var_unset(mock_playwright, monk
     assert "record_har_url_filter" not in call_kwargs
 
 
-@pytest.mark.asyncio
 async def test_resolves_system_timezone_when_none_requested(mock_playwright):
     """With no explicit timezone, the effective browser timezone is captured."""
     mock_playwright["page"].evaluate = AsyncMock(return_value="Europe/Paris")
@@ -97,7 +92,6 @@ async def test_resolves_system_timezone_when_none_requested(mock_playwright):
     assert "formatToParts" in scripts[1]
 
 
-@pytest.mark.asyncio
 async def test_explicit_timezone_is_not_overridden(mock_playwright):
     """An explicit timezone_id is kept as-is and not re-resolved from the page."""
     pm = PlaywrightManager()
@@ -111,7 +105,6 @@ async def test_explicit_timezone_is_not_overridden(mock_playwright):
     assert "formatToParts" in script
 
 
-@pytest.mark.asyncio
 async def test_collects_browser_month_aliases(mock_playwright):
     """Browser locale month labels are captured without hard-coded languages."""
     mock_playwright["page"].evaluate = AsyncMock(
@@ -143,7 +136,6 @@ async def test_collects_browser_month_aliases(mock_playwright):
     assert '"long"' in script
 
 
-@pytest.mark.asyncio
 async def test_timezone_resolution_failure_falls_back_to_utc(mock_playwright):
     """If the timezone probe raises, fall back to UTC rather than crash."""
     mock_playwright["page"].evaluate = AsyncMock(side_effect=RuntimeError("probe failed"))
@@ -154,7 +146,6 @@ async def test_timezone_resolution_failure_falls_back_to_utc(mock_playwright):
     assert pm.timezone_id == "UTC"
 
 
-@pytest.mark.asyncio
 async def test_single_context_when_no_proxy_manager(mock_playwright):
     pm = PlaywrightManager()
     await pm.initialize(headless=True)
@@ -163,7 +154,6 @@ async def test_single_context_when_no_proxy_manager(mock_playwright):
     assert pm.non_default_context_keys() == []
 
 
-@pytest.mark.asyncio
 async def test_one_context_per_proxy_when_multi(mock_playwright):
     proxy_manager = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
     pm = PlaywrightManager()
@@ -176,7 +166,6 @@ async def test_one_context_per_proxy_when_multi(mock_playwright):
     assert len(pm.non_default_context_keys()) == 1
 
 
-@pytest.mark.asyncio
 async def test_new_rotated_page_reports_key(mock_playwright):
     proxy_manager = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
     pm = PlaywrightManager()
@@ -185,7 +174,6 @@ async def test_new_rotated_page_reports_key(mock_playwright):
     assert key in {"http://a.example.com:1", "http://b.example.com:2"}
 
 
-@pytest.mark.asyncio
 async def test_new_rotated_page_raises_when_exhausted(mock_playwright):
     proxy_manager = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
     pm = PlaywrightManager()

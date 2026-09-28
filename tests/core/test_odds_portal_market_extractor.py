@@ -62,7 +62,6 @@ class TestOddsPortalMarketExtractor:
         mock.wait_for_timeout = AsyncMock()
         return mock
 
-    @pytest.mark.asyncio
     async def test_parse_market_odds(self, extractor):
         """Test parsing odds from known HTML."""
         # Arrange
@@ -80,7 +79,6 @@ class TestOddsPortalMarketExtractor:
         assert result[0]["period"] == "FullTime"
         assert result[1]["bookmaker_name"] == "Bookmaker2"
 
-    @pytest.mark.asyncio
     async def test_parse_market_odds_with_target_bookmaker(self, extractor):
         """Test parsing odds with a specific target bookmaker."""
         # Arrange
@@ -97,7 +95,6 @@ class TestOddsPortalMarketExtractor:
         assert result[0]["X"] == "3.50"
         assert result[0]["2"] == "4.20"
 
-    @pytest.mark.asyncio
     async def test_parse_market_odds_no_bookmakers(self, extractor):
         """Test parsing odds when no bookmakers are found."""
         # Arrange
@@ -110,7 +107,6 @@ class TestOddsPortalMarketExtractor:
         # Assert
         assert len(result) == 0
 
-    @pytest.mark.asyncio
     async def test_parse_market_odds_missing_data(self, extractor):
         """Test parsing odds when a bookmaker has incomplete data."""
         # Arrange
@@ -122,7 +118,6 @@ class TestOddsPortalMarketExtractor:
         # Assert
         assert len(result) == 0
 
-    @pytest.mark.asyncio
     async def test_parse_market_odds_error_handling(self, extractor):
         """Test error handling during odds parsing."""
         # Arrange
@@ -185,7 +180,6 @@ class TestOddsPortalMarketExtractor:
             assert "odds_history" in result
             assert len(result["odds_history"]) == 0
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds(self, extractor, page_mock):
         """Test complete extraction of odds for a given market."""
         # Arrange
@@ -212,7 +206,6 @@ class TestOddsPortalMarketExtractor:
         assert len(result) == 1
         assert result[0]["bookmaker_name"] == "Bookmaker1"
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_with_specific_market(self, extractor, page_mock):
         """Test extracting odds with a specific sub-market."""
         # Arrange
@@ -244,7 +237,6 @@ class TestOddsPortalMarketExtractor:
         assert len(result) == 1
         assert result[0]["bookmaker_name"] == "Bookmaker1"
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_stamps_submarket_name(self, extractor, page_mock):
         """Line markets: every odds dict carries the rendered line via submarket_name (issue #78)."""
         # Arrange
@@ -272,7 +264,6 @@ class TestOddsPortalMarketExtractor:
         # Assert
         assert [entry["submarket_name"] for entry in result] == ["Over/Under +2.5", "Over/Under +2.5"]
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_stamps_main_market_name(self, extractor, page_mock):
         """Main markets (no specific_market): dicts carry the market label itself."""
         # Arrange
@@ -290,7 +281,6 @@ class TestOddsPortalMarketExtractor:
         # Assert
         assert result[0]["submarket_name"] == "1X2"
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_main_market_stamp_lands_last(self, extractor, page_mock):
         """The stamp is appended, never inserted before the odds or the bookmaker."""
         # Arrange
@@ -310,7 +300,6 @@ class TestOddsPortalMarketExtractor:
         # Assert
         assert list(result[0]) == ["btts_yes", "btts_no", "bookmaker_name", "period", "submarket_name"]
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_main_market_does_not_overwrite_existing_name(self, extractor, page_mock):
         """A name already set upstream wins over the main market label."""
         # Arrange
@@ -328,7 +317,6 @@ class TestOddsPortalMarketExtractor:
         # Assert
         assert result[0]["submarket_name"] == "Already set"
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_preserves_passive_submarket_name(self, extractor, page_mock):
         """Preview passive dicts already carry submarket_name; stamping must never overwrite it."""
         # Arrange
@@ -359,7 +347,6 @@ class TestOddsPortalMarketExtractor:
         # Assert
         assert result[0]["submarket_name"] == "Over/Under +1.5"
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_tab_not_found(self, extractor, page_mock):
         """Test behavior when the market tab is not found."""
         # Arrange
@@ -373,7 +360,6 @@ class TestOddsPortalMarketExtractor:
         # Assert
         assert result == []
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_specific_market_not_found(self, extractor, page_mock):
         """Test behavior when the specific market is not found."""
         # Arrange
@@ -395,7 +381,6 @@ class TestOddsPortalMarketExtractor:
         # Assert
         assert result == []
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_with_odds_history(self, extractor, page_mock):
         """Each outcome gets its block; a modal that could not be read becomes the empty block."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
@@ -430,7 +415,6 @@ class TestOddsPortalMarketExtractor:
         assert result[0]["odds_history_data"] == [parsed, {"odds_history": [], "opening_odds": None}, parsed]
         assert list(result[0])[-1] == "odds_history_data"
 
-    @pytest.mark.asyncio
     async def test_odds_history_pads_missing_modals_with_empty_blocks(self, extractor, page_mock):
         """Fewer modals than outcomes still gives one block per outcome."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
@@ -447,7 +431,6 @@ class TestOddsPortalMarketExtractor:
 
         assert result[0]["odds_history_data"] == [{"odds_history": [], "opening_odds": None}] * 3
 
-    @pytest.mark.asyncio
     async def test_scrape_markets_forwards_history_reference(self, extractor, page_mock):
         func = AsyncMock(return_value=[])
         reference = datetime(2026, 1, 4, 18, 30)
@@ -458,7 +441,6 @@ class TestOddsPortalMarketExtractor:
 
         assert func.await_args.kwargs["history_reference"] == reference
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_exception(self, extractor, page_mock):
         """Test handling of exceptions during market extraction."""
         # Arrange
@@ -470,7 +452,6 @@ class TestOddsPortalMarketExtractor:
         # Assert
         assert result == []
 
-    @pytest.mark.asyncio
     async def test_scrape_markets(self, extractor, page_mock):
         """Test scraping multiple markets for a match."""
         # Arrange
@@ -490,7 +471,6 @@ class TestOddsPortalMarketExtractor:
         assert "nonexistent_market_market" not in result
         assert mock_market_func.call_count == 2
 
-    @pytest.mark.asyncio
     async def test_scrape_markets_expands_over_under_umbrella(self, extractor, page_mock):
         """Test that an umbrella token expands into one `{token}_market` entry per discovered line."""
         # Arrange
@@ -515,7 +495,6 @@ class TestOddsPortalMarketExtractor:
             page=page_mock, main_market="Over/Under", sport="football", period="FullTime"
         )
 
-    @pytest.mark.asyncio
     async def test_scrape_markets_non_umbrella_markets_unchanged(self, extractor, page_mock):
         """Test that non-umbrella markets bypass line discovery entirely."""
         # Arrange
@@ -533,7 +512,6 @@ class TestOddsPortalMarketExtractor:
         assert "btts_market" in result
         extractor._discover_line_names.assert_not_called()
 
-    @pytest.mark.asyncio
     async def test_scrape_markets_umbrella_gated_to_football_only(self, extractor, page_mock):
         """Test that umbrella expansion never triggers for a non-football sport.
 
@@ -554,7 +532,6 @@ class TestOddsPortalMarketExtractor:
         extractor._discover_line_names.assert_not_called()
         assert not any(key.startswith("over_under_") for key in result)
 
-    @pytest.mark.asyncio
     async def test_scrape_markets_umbrella_discovery_exception_isolated(self, extractor, page_mock, caplog):
         """Test that an exception during umbrella line discovery is isolated to that umbrella only."""
         # Arrange
@@ -574,7 +551,6 @@ class TestOddsPortalMarketExtractor:
         assert result["1x2_market"] is not None
         assert any("over_under" in message for message in caplog.messages)
 
-    @pytest.mark.asyncio
     async def test_scrape_markets_umbrella_preview_submarkets_routing(self, extractor, page_mock):
         """Test that umbrella expansion composes with preview_submarkets_only grouping.
 
@@ -615,7 +591,6 @@ class TestOddsPortalMarketExtractor:
         assert "over_under_market" not in result
         mock_extract.assert_called_once()
 
-    @pytest.mark.asyncio
     async def test_scrape_markets_mixed_umbrella_and_explicit_token_deduped(self, extractor, page_mock):
         """Test that an umbrella token and an explicit literal token it would also produce are deduped.
 
@@ -645,7 +620,6 @@ class TestOddsPortalMarketExtractor:
         assert mock_market_func_2_5.call_count == 1
         assert mock_market_func_3_5.call_count == 1
 
-    @pytest.mark.asyncio
     async def test_scrape_markets_umbrella_zero_lines_discovered(self, extractor, page_mock, caplog):
         """Test that an umbrella token with no discovered lines logs a warning and contributes no keys."""
         # Arrange
@@ -662,7 +636,6 @@ class TestOddsPortalMarketExtractor:
         assert result == {}
         assert any("over_under" in message for message in caplog.messages)
 
-    @pytest.mark.asyncio
     async def test_discover_line_names_returns_submarket_names(self, extractor, page_mock):
         """Test that _discover_line_names navigates the tab and returns rendered submarket names."""
         # Arrange
@@ -686,7 +659,6 @@ class TestOddsPortalMarketExtractor:
             page=page_mock, market_tab_name="Over/Under"
         )
 
-    @pytest.mark.asyncio
     async def test_discover_line_names_tab_not_found_returns_empty(self, extractor, page_mock):
         """Test that _discover_line_names returns [] when the market tab can't be found."""
         # Arrange
@@ -700,7 +672,6 @@ class TestOddsPortalMarketExtractor:
         # Assert
         assert result == []
 
-    @pytest.mark.asyncio
     async def test_scrape_markets_with_exception(self, extractor, page_mock):
         """Test scraping markets where one market throws an exception."""
         # Arrange
@@ -719,7 +690,6 @@ class TestOddsPortalMarketExtractor:
         assert result["1x2_market"] is not None
         assert result["btts_market"] is None
 
-    @pytest.mark.asyncio
     async def test_scrape_markets_preview_mode_groups_markets(self, extractor, page_mock):
         """Test that preview mode groups markets by main market and scrapes once."""
         # Arrange — two markets sharing the same main market
@@ -751,7 +721,6 @@ class TestOddsPortalMarketExtractor:
         assert "over_under_2_5_market" in result
         mock_extract.assert_called_once()
 
-    @pytest.mark.asyncio
     async def test_scrape_markets_preview_mode_exception_sets_none(self, extractor, page_mock):
         """Test that grouped market exception in preview mode sets all group entries to None."""
         main_market = "Over/Under"
@@ -778,7 +747,6 @@ class TestOddsPortalMarketExtractor:
         assert result["over_under_1_5_market"] is None
         assert result["over_under_2_5_market"] is None
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_uses_scope_code_when_verified(
         self, extractor, page_mock, selection_manager_mock
     ):
@@ -802,7 +770,6 @@ class TestOddsPortalMarketExtractor:
         # Scope path handled it -> no label fallback.
         selection_manager_mock.ensure_selected.assert_not_called()
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_falls_back_to_label_when_no_scope(
         self, extractor, page_mock, selection_manager_mock
     ):
@@ -827,7 +794,6 @@ class TestOddsPortalMarketExtractor:
             strategy=PERIOD_STRATEGY,
         )
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_period_not_found_skips(self, extractor, page_mock, selection_manager_mock):
         """Test that period selection is skipped when period enum is not found."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
@@ -844,7 +810,6 @@ class TestOddsPortalMarketExtractor:
         selection_manager_mock.ensure_selected.assert_not_called()
         extractor.period_selector.select_by_scope.assert_not_called()
 
-    @pytest.mark.asyncio
     @pytest.mark.parametrize("scope_result", [None, False])
     async def test_unverified_scope_falls_back_to_label(
         self, extractor, page_mock, selection_manager_mock, scope_result
@@ -866,7 +831,6 @@ class TestOddsPortalMarketExtractor:
         selection_manager_mock.ensure_selected.assert_awaited_once()
         assert len(result) == 1
 
-    @pytest.mark.asyncio
     async def test_unverified_non_default_period_returns_no_odds(self, extractor, page_mock, selection_manager_mock):
         """Tennis 1st set not reachable by scope nor label: no odds rather than full-time odds labelled FirstSet."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
@@ -885,7 +849,6 @@ class TestOddsPortalMarketExtractor:
         assert result == []
         extractor.odds_parser.parse_market_odds.assert_not_called()
 
-    @pytest.mark.asyncio
     async def test_unverified_default_period_keeps_the_odds(self, extractor, page_mock, selection_manager_mock):
         """Football full time is the page's default: an unverified selection keeps today's behaviour."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
@@ -903,7 +866,6 @@ class TestOddsPortalMarketExtractor:
 
         assert len(result) == 1
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_preview_mode_passive(self, extractor, page_mock):
         """Test preview mode uses passive submarket extraction."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
@@ -923,7 +885,6 @@ class TestOddsPortalMarketExtractor:
         assert len(result) == 1
         assert result[0]["submarket_name"] == "Over/Under 2.5"
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_preview_mode_fallback_to_active(self, extractor, page_mock):
         """Test preview mode falls back to normal scraping when passive returns no data."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
@@ -946,7 +907,6 @@ class TestOddsPortalMarketExtractor:
         extractor.odds_parser.parse_market_odds.assert_called_once()
         assert len(result) == 1
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_preview_fallback_specific_market_not_found(self, extractor, page_mock):
         """Test preview fallback returns [] when specific market can't be selected."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
@@ -964,7 +924,6 @@ class TestOddsPortalMarketExtractor:
 
         assert result == []
 
-    @pytest.mark.asyncio
     async def test_extract_market_odds_history_skips_filtered_bk(self, extractor, page_mock):
         """Test that odds history is skipped for bookmakers not matching target."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)

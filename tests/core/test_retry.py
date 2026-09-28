@@ -120,7 +120,6 @@ class TestClassifyError:
 class TestRetryWithBackoff:
     """Tests for retry_with_backoff function."""
 
-    @pytest.mark.asyncio
     async def test_successful_first_attempt(self):
         """Test successful execution on first attempt."""
 
@@ -135,7 +134,6 @@ class TestRetryWithBackoff:
         assert result.last_error is None
         assert result.error_type is None
 
-    @pytest.mark.asyncio
     async def test_retry_on_transient_error(self):
         """Test retry behavior on transient errors."""
         call_count = 0
@@ -155,7 +153,6 @@ class TestRetryWithBackoff:
         assert result.attempts == 2
         assert call_count == 2
 
-    @pytest.mark.asyncio
     async def test_no_retry_on_permanent_error(self):
         """Test that permanent errors are not retried."""
         call_count = 0
@@ -173,7 +170,6 @@ class TestRetryWithBackoff:
         assert call_count == 1
         assert "not retryable" in result.last_error
 
-    @pytest.mark.asyncio
     async def test_max_retries_exceeded(self):
         """Test behavior when max retries are exceeded."""
         call_count = 0
@@ -191,7 +187,6 @@ class TestRetryWithBackoff:
         assert call_count == 3
         assert "TIMED_OUT" in result.last_error
 
-    @pytest.mark.asyncio
     async def test_function_with_arguments(self):
         """Test retry with function that takes arguments."""
 
@@ -203,7 +198,6 @@ class TestRetryWithBackoff:
         assert result.success is True
         assert result.result == 10
 
-    @pytest.mark.asyncio
     async def test_error_type_classification(self):
         """Test that error type is correctly classified."""
 
@@ -234,7 +228,6 @@ class TestProxyAttributableError:
         assert is_proxy_attributable_error(None) is False
 
 
-@pytest.mark.asyncio
 async def test_retry_honours_scraper_error_is_retryable():
     """A ScraperError marked retryable must be retried even though its message
     matches no TRANSIENT_ERROR_KEYWORDS entry."""
@@ -259,7 +252,6 @@ async def test_retry_honours_scraper_error_is_retryable():
     assert result.error_type is ErrorType.HEADER_NOT_FOUND
 
 
-@pytest.mark.asyncio
 async def test_retry_honours_scraper_error_non_retryable():
     """A ScraperError marked non-retryable must stop after the first attempt."""
     from oddsharvester.core.exceptions import ParsingError
@@ -280,7 +272,6 @@ async def test_retry_honours_scraper_error_non_retryable():
     assert result.is_retryable is False
 
 
-@pytest.mark.asyncio
 async def test_retry_plain_exception_still_uses_message_classification():
     """Regression guard: non-ScraperError paths keep the string-sniffing behaviour."""
     calls = []
@@ -298,7 +289,6 @@ async def test_retry_plain_exception_still_uses_message_classification():
     assert result.is_retryable is True
 
 
-@pytest.mark.asyncio
 async def test_retry_success_reports_not_retryable():
     async def succeeds():
         return {"ok": True}
@@ -348,7 +338,6 @@ class TestRequestPacer:
         mock_sleep.assert_not_awaited()
 
 
-@pytest.mark.asyncio
 async def test_retry_waits_the_rate_limit_delay_before_retrying():
     """OddsPortal sends no Retry-After; a 2 s backoff lands inside the same throttling window."""
     from oddsharvester.core.exceptions import RateLimitError
@@ -377,7 +366,6 @@ def test_rate_limit_error_is_typed_rate_limited_and_attributed_to_the_ip():
     assert is_proxy_attributable_error(error.error_type)
 
 
-@pytest.mark.asyncio
 async def test_retry_result_keeps_the_last_exception():
     error = ValueError("structure changed")
 
@@ -390,7 +378,6 @@ async def test_retry_result_keeps_the_last_exception():
     assert result.exception is error
 
 
-@pytest.mark.asyncio
 async def test_retry_result_keeps_the_exception_of_the_last_attempt():
     errors = [Exception("ERR_CONNECTION_RESET first"), Exception("ERR_CONNECTION_RESET second")]
 
@@ -402,7 +389,6 @@ async def test_retry_result_keeps_the_exception_of_the_last_attempt():
     assert str(result.exception) == "ERR_CONNECTION_RESET second"
 
 
-@pytest.mark.asyncio
 async def test_retry_success_has_no_exception():
     async def succeeds():
         return "ok"

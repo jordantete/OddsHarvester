@@ -75,7 +75,6 @@ def setup_base_scraper_mocks():
     }
 
 
-@pytest.mark.asyncio
 async def test_set_odds_format(setup_base_scraper_mocks):
     """Test setting odds format on the page."""
     mocks = setup_base_scraper_mocks
@@ -120,7 +119,6 @@ async def test_set_odds_format(setup_base_scraper_mocks):
     format_option1.click.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_set_odds_format_uses_text_based_button_selector(setup_base_scraper_mocks):
     """Regression for issue #68.
 
@@ -144,7 +142,6 @@ async def test_set_odds_format_uses_text_based_button_selector(setup_base_scrape
     assert "gap-2" not in selector_arg
 
 
-@pytest.mark.asyncio
 async def test_set_odds_format_timeout(setup_base_scraper_mocks):
     """Test handling timeout when setting odds format."""
     mocks = setup_base_scraper_mocks
@@ -161,7 +158,6 @@ async def test_set_odds_format_timeout(setup_base_scraper_mocks):
     page_mock.query_selector.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links(setup_base_scraper_mocks):
     """Rows are the match <a> elements; short hrefs (<= 3 path segments) are filtered out."""
     mocks = setup_base_scraper_mocks
@@ -184,7 +180,6 @@ async def test_extract_match_links(setup_base_scraper_mocks):
     ]
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.base_scraper.BeautifulSoup")
 async def test_extract_match_links_error(bs4_mock, setup_base_scraper_mocks):
     """Test handling errors when extracting match links."""
@@ -217,7 +212,6 @@ _LISTING_HTML = page(
 )
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_skips_started_rows_when_requested(setup_base_scraper_mocks):
     """With skip_started=True, finished AND live rows are dropped; upcoming
     and the no-status-box fail-safe row are kept."""
@@ -235,7 +229,6 @@ async def test_extract_match_links_skips_started_rows_when_requested(setup_base_
     assert len(result) == 2
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_default_keeps_started_rows(setup_base_scraper_mocks):
     """Default (skip_started=False) preserves prior behaviour: all rows are
     kept regardless of status."""
@@ -356,7 +349,6 @@ def _make_league_page_html() -> str:
     )
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_date_filter_matches_one_group(setup_base_scraper_mocks):
     """Only rows under the matching date-header should be kept."""
     mocks = setup_base_scraper_mocks
@@ -374,7 +366,6 @@ async def test_extract_match_links_date_filter_matches_one_group(setup_base_scra
     ]
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_date_filter_no_match_returns_empty(setup_base_scraper_mocks):
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
@@ -385,7 +376,6 @@ async def test_extract_match_links_date_filter_no_match_returns_empty(setup_base
     assert result == []
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_date_filter_none_preserves_all_links(setup_base_scraper_mocks):
     """Regression baseline: without date_filter, all links are returned."""
     mocks = setup_base_scraper_mocks
@@ -398,7 +388,6 @@ async def test_extract_match_links_date_filter_none_preserves_all_links(setup_ba
     assert all("/match-" in link for link in result)
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_unparseable_header_fails_safe(setup_base_scraper_mocks):
     """Rows under an unparseable header should be kept (fail-safe)."""
     mocks = setup_base_scraper_mocks
@@ -421,7 +410,6 @@ async def test_extract_match_links_unparseable_header_fails_safe(setup_base_scra
     assert f"{ODDSPORTAL_BASE_URL}/football/h2h/match-y/yyyyyyy1/#my" in result
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_date_filter_no_match_logs_timezone_diagnostic(setup_base_scraper_mocks, caplog):
     """A 0-result date filter emits a diagnostic listing the headers seen and
     the --timezone hint (GitHub issue #58 follow-up)."""
@@ -441,7 +429,6 @@ async def test_extract_match_links_date_filter_no_match_logs_timezone_diagnostic
     assert "--timezone" in diagnostic[0]
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_date_filter_match_emits_no_diagnostic(setup_base_scraper_mocks, caplog):
     """When the date filter yields matches, no 0-result diagnostic is logged."""
     mocks = setup_base_scraper_mocks
@@ -456,7 +443,6 @@ async def test_extract_match_links_date_filter_match_emits_no_diagnostic(setup_b
     assert not [r for r in caplog.records if "matched 0 matches" in r.message]
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_deduplicates_preserving_order(setup_base_scraper_mocks):
     """Duplicate links across rows should be deduplicated while preserving order."""
     mocks = setup_base_scraper_mocks
@@ -477,7 +463,6 @@ async def test_extract_match_links_deduplicates_preserving_order(setup_base_scra
     ]
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_uses_playwright_manager_timezone(setup_base_scraper_mocks):
     """Reference timezone should be read from PlaywrightManager when filtering."""
     mocks = setup_base_scraper_mocks
@@ -523,7 +508,6 @@ def _make_kickoff_window_html() -> str:
     )
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_kickoff_window_keeps_only_matches_within_window(setup_base_scraper_mocks):
     """Only matches kicking off within the window are kept; later ones dropped."""
     mocks = setup_base_scraper_mocks
@@ -540,7 +524,6 @@ async def test_extract_match_links_kickoff_window_keeps_only_matches_within_wind
     assert len(result) == 2
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_kickoff_window_none_preserves_all(setup_base_scraper_mocks):
     """Regression: without the window filter, all rows are returned."""
     mocks = setup_base_scraper_mocks
@@ -552,7 +535,6 @@ async def test_extract_match_links_kickoff_window_none_preserves_all(setup_base_
     assert len(result) == 3
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_kickoff_window_unparseable_time_fails_safe(setup_base_scraper_mocks):
     """A row with no parseable HH:MM (e.g. a live marker) has no computable
     kickoff, so it is kept rather than silently dropped."""
@@ -574,7 +556,6 @@ async def test_extract_match_links_kickoff_window_unparseable_time_fails_safe(se
     assert not any("late-match/bbbbbbb2" in url for url in result)
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_kickoff_window_row_without_date_header_fails_safe(setup_base_scraper_mocks):
     """Without a date-header, a row's kickoff date is unknown, so it is kept."""
     mocks = setup_base_scraper_mocks
@@ -590,7 +571,6 @@ async def test_extract_match_links_kickoff_window_row_without_date_header_fails_
     assert any("orphan-match/ccccccc1" in url for url in result)
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_kickoff_window_composes_with_skip_started(setup_base_scraper_mocks):
     """Window filter and skip_started compose: started rows dropped by
     skip_started, far-future rows dropped by the window, the near upcoming row
@@ -659,7 +639,6 @@ def _make_kickoff_column_html() -> str:
     )
 
 
-@pytest.mark.asyncio
 async def test_extract_match_rows_converts_kickoff_from_browser_tz_to_utc(setup_base_scraper_mocks):
     """Listing times render in the browser timezone (gotcha 10); output is UTC."""
     mocks = setup_base_scraper_mocks
@@ -674,7 +653,6 @@ async def test_extract_match_rows_converts_kickoff_from_browser_tz_to_utc(setup_
     assert normal["kickoff_utc"] == "2026-04-18 18:30:00 UTC"
 
 
-@pytest.mark.asyncio
 async def test_extract_match_rows_without_collect_kickoff_leaves_every_kickoff_null(setup_base_scraper_mocks):
     """The default keeps the historic pagination path at its current behaviour."""
     mocks = setup_base_scraper_mocks
@@ -689,7 +667,6 @@ async def test_extract_match_rows_without_collect_kickoff_leaves_every_kickoff_n
     assert all(row["kickoff_utc"] is None for row in rows)
 
 
-@pytest.mark.asyncio
 async def test_extract_match_rows_started_row_has_null_kickoff(setup_base_scraper_mocks):
     """A started row (time-item is a period marker) yields no kickoff, and is
     only reachable at all because skip_started defaults to False."""
@@ -705,7 +682,6 @@ async def test_extract_match_rows_started_row_has_null_kickoff(setup_base_scrape
     assert started["kickoff_utc"] is None
 
 
-@pytest.mark.asyncio
 async def test_extract_match_rows_unparseable_date_header_yields_null_kickoff(setup_base_scraper_mocks):
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
@@ -723,7 +699,6 @@ async def test_extract_match_rows_unparseable_date_header_yields_null_kickoff(se
     assert rows[0]["kickoff_utc"] is None
 
 
-@pytest.mark.asyncio
 async def test_extract_match_rows_missing_time_item_yields_null_kickoff(setup_base_scraper_mocks):
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
@@ -739,7 +714,6 @@ async def test_extract_match_rows_missing_time_item_yields_null_kickoff(setup_ba
     assert rows[0]["kickoff_utc"] is None
 
 
-@pytest.mark.asyncio
 async def test_extract_match_rows_shares_one_kickoff_across_a_groups_rows(setup_base_scraper_mocks):
     """Rows of the same group and kickoff time each carry that kickoff."""
     mocks = setup_base_scraper_mocks
@@ -760,7 +734,6 @@ async def test_extract_match_rows_shares_one_kickoff_across_a_groups_rows(setup_
     assert {row["kickoff_utc"] for row in rows} == {"2026-04-18 20:30:00 UTC"}
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_still_returns_plain_strings(setup_base_scraper_mocks):
     """Contract guard: the historic pagination path reads bare URLs."""
     mocks = setup_base_scraper_mocks
@@ -813,7 +786,6 @@ class TestIsOffscreenRow:
         assert _is_offscreen_row(row) is False
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_skips_offscreen_phantom_row(setup_base_scraper_mocks):
     """Regression for issue #61: OddsPortal sometimes duplicates an event row
     in the DOM — one visible, one CSS-hidden offscreen with a corrupted href
@@ -844,7 +816,6 @@ async def test_extract_match_links_skips_offscreen_phantom_row(setup_base_scrape
     ]
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_offscreen_skipped_before_date_filter(setup_base_scraper_mocks):
     """An offscreen row must be skipped even if its inherited date-header
     matches the filter — otherwise the phantom URL leaks into the results."""
@@ -864,7 +835,6 @@ async def test_extract_match_links_offscreen_skipped_before_date_filter(setup_ba
     assert result == [f"{ODDSPORTAL_BASE_URL}/football/h2h/real-aaa/match-bbb/#x1"]
 
 
-@pytest.mark.asyncio
 async def test_extract_match_links_offscreen_row_keeps_header_inheritance(setup_base_scraper_mocks):
     """Skipping a phantom row must not strip the header inheritance of the
     visible rows that follow it."""
@@ -884,7 +854,6 @@ async def test_extract_match_links_offscreen_row_keeps_header_inheritance(setup_
     assert result == [f"{ODDSPORTAL_BASE_URL}/football/h2h/real-aaa/match-bbb/#x1"]
 
 
-@pytest.mark.asyncio
 async def test_extract_match_odds(setup_base_scraper_mocks):
     """Test extracting odds for multiple match links concurrently."""
     mocks = setup_base_scraper_mocks
@@ -925,7 +894,6 @@ async def test_extract_match_odds(setup_base_scraper_mocks):
     assert result.stats.failed == 0
 
 
-@pytest.mark.asyncio
 async def test_extract_match_odds_warms_non_default_contexts(setup_base_scraper_mocks):
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
@@ -938,7 +906,6 @@ async def test_extract_match_odds_warms_non_default_contexts(setup_base_scraper_
     assert "http://b.example.com:2" in scraper._warmed_proxy_keys
 
 
-@pytest.mark.asyncio
 async def test_warm_failure_blacklists_proxy(setup_base_scraper_mocks):
     """A proxy whose context can't be warmed must be removed from rotation entirely,
     not merely dinged with a single strike - a cold context silently corrupts odds."""
@@ -955,7 +922,6 @@ async def test_warm_failure_blacklists_proxy(setup_base_scraper_mocks):
     pm.blacklist_proxy.assert_called_once_with("http://b.example.com:2")
 
 
-@pytest.mark.asyncio
 async def test_extract_match_odds_uses_rotated_page(setup_base_scraper_mocks):
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
@@ -969,7 +935,6 @@ async def test_extract_match_odds_uses_rotated_page(setup_base_scraper_mocks):
     pm.report_page_result.assert_called()
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data(setup_base_scraper_mocks):
     """Test scraping data for a specific match."""
     mocks = setup_base_scraper_mocks
@@ -1045,7 +1010,6 @@ async def test_scrape_match_data(setup_base_scraper_mocks):
     assert "over_under_2_5" in result
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_no_details(setup_base_scraper_mocks):
     """A page without match details is a typed, retryable content failure, not a silent None."""
     from oddsharvester.core.exceptions import MatchContentError
@@ -1070,7 +1034,6 @@ async def test_scrape_match_data_no_details(setup_base_scraper_mocks):
     mocks["market_extractor_mock"].scrape_markets.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_reraises_proxy_error(setup_base_scraper_mocks):
     """Proxy-attributable navigation errors must propagate so failover can blacklist the dead proxy."""
     mocks = setup_base_scraper_mocks
@@ -1086,7 +1049,6 @@ async def test_scrape_match_data_reraises_proxy_error(setup_base_scraper_mocks):
         )
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_types_a_post_navigation_error(setup_base_scraper_mocks):
     """An error after a successful goto keeps its real type and message, and is not blamed on the proxy."""
     from oddsharvester.core.exceptions import MatchContentError
@@ -1110,7 +1072,6 @@ async def test_scrape_match_data_types_a_post_navigation_error(setup_base_scrape
     assert isinstance(excinfo.value.__cause__, TimeoutError)
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
 async def test_extract_match_odds_rate_limiting(mock_sleep, setup_base_scraper_mocks):
     """Test that rate limiting delay is applied between match requests."""
@@ -1141,7 +1102,6 @@ async def test_extract_match_odds_rate_limiting(mock_sleep, setup_base_scraper_m
     assert len(result.success) == 3
 
 
-@pytest.mark.asyncio
 @patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
 async def test_extract_match_odds_no_delay_when_zero(mock_sleep, setup_base_scraper_mocks):
     """Test that no delay is applied when request_delay is 0."""
@@ -1421,7 +1381,6 @@ def test_extract_fragment_match_id_strips_whitespace():
     assert _extract_fragment_match_id("https://www.oddsportal.com/x/#abc   ") == "abc"
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_propagates_h2h_fragment_error(setup_base_scraper_mocks):
     """The hydration failure must survive the broad handler in _scrape_match_data."""
     from oddsharvester.core.exceptions import H2HFragmentResolutionError
@@ -1470,7 +1429,6 @@ class TestBaseScraperBaseUrl:
         )
         assert scraper.base_url == "https://www.centroquote.it"
 
-    @pytest.mark.asyncio
     async def test_extract_match_links_default_uses_oddsportal_base(self, setup_base_scraper_mocks):
         """With no base_url, extract_match_links prefixes with the canonical OddsPortal domain."""
         mocks = setup_base_scraper_mocks
@@ -1482,7 +1440,6 @@ class TestBaseScraperBaseUrl:
 
         assert result == [f"{ODDSPORTAL_BASE_URL}{_SERIE_A_HREF}"]
 
-    @pytest.mark.asyncio
     async def test_extract_match_links_regional_base_url_applied(self, setup_base_scraper_mocks):
         """With base_url set, extract_match_links prefixes with the regional domain instead."""
         mocks = setup_base_scraper_mocks
@@ -1528,7 +1485,6 @@ def _build_odds_portal_scraper(setup_base_scraper_mocks, base_url=None):
 
 
 class TestOddsPortalScraperUrlWiring:
-    @pytest.mark.asyncio
     async def test_collect_historic_links_forwards_base_url_to_url_builder(self, setup_base_scraper_mocks, monkeypatch):
         from oddsharvester.core import odds_portal_scraper as ops
 
@@ -1549,7 +1505,6 @@ class TestOddsPortalScraperUrlWiring:
             await scraper.collect_historic_links(sport="football", league="england-premier-league", season="current")
         assert captured["base_url"] == "https://www.centroquote.it"
 
-    @pytest.mark.asyncio
     async def test_collect_upcoming_links_forwards_base_url_to_url_builder(self, setup_base_scraper_mocks, monkeypatch):
         from oddsharvester.core import odds_portal_scraper as ops
 
@@ -1570,7 +1525,6 @@ class TestOddsPortalScraperUrlWiring:
             await scraper.collect_upcoming_links(sport="football", date="2025-01-15")
         assert captured["base_url"] == "https://www.centroquote.it"
 
-    @pytest.mark.asyncio
     async def test_collect_historic_links_default_base_url_is_none(self, setup_base_scraper_mocks, monkeypatch):
         from oddsharvester.core import odds_portal_scraper as ops
 
@@ -1713,7 +1667,6 @@ LIVE_NOW_LISTING_HTML = page(
 )
 
 
-@pytest.mark.asyncio
 async def test_extract_live_match_links(setup_base_scraper_mocks):
     """Live-now rows yield absolute in-play links."""
     mocks = setup_base_scraper_mocks
@@ -1729,7 +1682,6 @@ async def test_extract_live_match_links(setup_base_scraper_mocks):
     ]
 
 
-@pytest.mark.asyncio
 async def test_extract_live_match_links_skips_offscreen_twin(setup_base_scraper_mocks):
     """The CSS-hidden duplicate row is dropped, not returned as a third match."""
     mocks = setup_base_scraper_mocks
@@ -1743,7 +1695,6 @@ async def test_extract_live_match_links_skips_offscreen_twin(setup_base_scraper_
     assert not any("hidden-twin-corrupt" in r["match_link"] for r in rows)
 
 
-@pytest.mark.asyncio
 async def test_extract_live_match_links_league_filter(setup_base_scraper_mocks):
     """A league slug keeps only rows whose href sits under that league path."""
     mocks = setup_base_scraper_mocks
@@ -1757,7 +1708,6 @@ async def test_extract_live_match_links_league_filter(setup_base_scraper_mocks):
     assert "arsenal-chelsea" in rows[0]["match_link"]
 
 
-@pytest.mark.asyncio
 async def test_extract_live_match_links_empty_listing(setup_base_scraper_mocks):
     """No live matches is a normal outcome, not an error."""
     mocks = setup_base_scraper_mocks
@@ -1768,7 +1718,6 @@ async def test_extract_live_match_links_empty_listing(setup_base_scraper_mocks):
     assert await scraper.extract_live_match_links(page=page_mock) == []
 
 
-@pytest.mark.asyncio
 async def test_extract_live_match_links_ignores_non_inplay_anchors(setup_base_scraper_mocks):
     """Rows whose only anchor is a league link (not a match) are skipped."""
     mocks = setup_base_scraper_mocks
@@ -1787,7 +1736,6 @@ async def test_extract_live_match_links_ignores_non_inplay_anchors(setup_base_sc
     assert await scraper.extract_live_match_links(page=page_mock) == []
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_live_mode_adds_live_fields(setup_base_scraper_mocks):
     """Live mode enriches the match record with score, period and a scrape timestamp."""
     mocks = setup_base_scraper_mocks
@@ -1809,7 +1757,6 @@ async def test_scrape_match_data_live_mode_adds_live_fields(setup_base_scraper_m
     assert data["scraped_at_utc"].endswith("Z")
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_live_mode_flags_ended_match(setup_base_scraper_mocks):
     """A page without a live-info header means the match ended; flag it for the caller to drop."""
     mocks = setup_base_scraper_mocks
@@ -1827,7 +1774,6 @@ async def test_scrape_match_data_live_mode_flags_ended_match(setup_base_scraper_
     assert data == {"_live_ended": True, "match_link": "https://x/inplay-odds/#a"}
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_without_live_mode_adds_no_live_fields(setup_base_scraper_mocks):
     """Default (non-live) scraping is untouched by the live-mode branch."""
     mocks = setup_base_scraper_mocks
@@ -1843,7 +1789,6 @@ async def test_scrape_match_data_without_live_mode_adds_no_live_fields(setup_bas
     assert data == {"home_team": "A"}
 
 
-@pytest.mark.asyncio
 async def test_extract_match_odds_retries_h2h_fragment_failure(setup_base_scraper_mocks):
     """Issue #83: a resync timeout must be retried in-run, and a second attempt
     that succeeds must land in result.success rather than in the failed list."""
@@ -1874,7 +1819,6 @@ async def test_extract_match_odds_retries_h2h_fragment_failure(setup_base_scrape
     assert scraper._extract_match_details.await_count == 2
 
 
-@pytest.mark.asyncio
 async def test_extract_match_odds_h2h_failure_is_reported_retryable(setup_base_scraper_mocks):
     """When every attempt times out, the URL is reported retryable and typed
     HEADER_NOT_FOUND, and the proxy is not blamed for a client-side render race."""
@@ -1946,7 +1890,6 @@ _MATCHING_LD_JSON = (
 _STALE_LD_JSON = _MATCHING_LD_JSON.replace("2026-05-24T18:00:00+01:00", "2026-12-26T16:00:00+01:00")
 
 
-@pytest.mark.asyncio
 async def test_extract_match_details_from_hydrated_dom(setup_base_scraper_mocks):
     """Happy path: every field comes from the DOM; venue from the matching JSON-LD."""
     mocks = setup_base_scraper_mocks
@@ -1975,7 +1918,6 @@ async def test_extract_match_details_from_hydrated_dom(setup_base_scraper_mocks)
     assert "scraped_date" in result
 
 
-@pytest.mark.asyncio
 async def test_extract_match_details_ignores_stale_ld_json_venue(setup_base_scraper_mocks):
     """The SSR JSON-LD describes the *next upcoming* meeting (gotchas 1b): a
     startDate that does not match the DOM date must not contribute venue data."""
@@ -1994,7 +1936,6 @@ async def test_extract_match_details_ignores_stale_ld_json_venue(setup_base_scra
     assert result["venue_country"] is None
 
 
-@pytest.mark.asyncio
 async def test_extract_match_details_returns_none_without_landmarks(setup_base_scraper_mocks):
     """A non-hydrated page (H2H landing skeleton) has neither teams nor kickoff."""
     mocks = setup_base_scraper_mocks
@@ -2008,7 +1949,6 @@ async def test_extract_match_details_returns_none_without_landmarks(setup_base_s
     assert result is None
 
 
-@pytest.mark.asyncio
 async def test_extract_match_details_declares_null_season(setup_base_scraper_mocks):
     """Every row carries a season column; commands with no season leave it null (issue #78)."""
     mocks = setup_base_scraper_mocks
@@ -2026,7 +1966,6 @@ async def test_extract_match_details_declares_null_season(setup_base_scraper_moc
     assert keys.index("match_link") == keys.index("season") + 1
 
 
-@pytest.mark.asyncio
 async def test_local_kickoff_disabled_adds_no_keys(setup_base_scraper_mocks):
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
@@ -2040,7 +1979,6 @@ async def test_local_kickoff_disabled_adds_no_keys(setup_base_scraper_mocks):
     assert "match_date_venue_local" not in result
 
 
-@pytest.mark.asyncio
 async def test_local_kickoff_enabled_adds_local_fields(setup_base_scraper_mocks):
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
@@ -2055,7 +1993,6 @@ async def test_local_kickoff_enabled_adds_local_fields(setup_base_scraper_mocks)
     assert result["match_date_venue_local"] is not None
 
 
-@pytest.mark.asyncio
 async def test_local_kickoff_enabled_unresolved_venue_sets_none(setup_base_scraper_mocks):
     """Without a trustworthy JSON-LD venue, both local-kickoff fields stay None."""
     mocks = setup_base_scraper_mocks
@@ -2071,7 +2008,6 @@ async def test_local_kickoff_enabled_unresolved_venue_sets_none(setup_base_scrap
     assert result["match_date_venue_local"] is None
 
 
-@pytest.mark.asyncio
 async def test_extract_match_details_teams_via_participant_name_testid(setup_base_scraper_mocks):
     """Live pages carry the team name in a [data-testid='participant-name'] element
     that is not necessarily a <p>."""
@@ -2099,7 +2035,6 @@ def test_extract_fragment_match_id_strips_market_suffix():
     assert _extract_fragment_match_id("https://www.oddsportal.com/x/h2h/a/b/#OOklm0j3:1X2;2") == "OOklm0j3"
 
 
-@pytest.mark.asyncio
 async def test_hydrate_match_view_success_first_attempt(setup_base_scraper_mocks):
     """The view renders on load, so a first successful wait nudges nothing."""
     mocks = setup_base_scraper_mocks
@@ -2116,7 +2051,6 @@ async def test_hydrate_match_view_success_first_attempt(setup_base_scraper_mocks
     page_mock.evaluate.assert_not_awaited()
 
 
-@pytest.mark.asyncio
 async def test_hydrate_match_view_two_outcome_sport_uses_home_away(setup_base_scraper_mocks):
     """The retry nudge targets a market tab the sport actually has."""
     mocks = setup_base_scraper_mocks
@@ -2134,7 +2068,6 @@ async def test_hydrate_match_view_two_outcome_sport_uses_home_away(setup_base_sc
     assert payload["code"] == "home-away"
 
 
-@pytest.mark.asyncio
 async def test_hydrate_match_view_exhaustion_raises_retryable(setup_base_scraper_mocks):
     from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
@@ -2157,7 +2090,6 @@ async def test_hydrate_match_view_exhaustion_raises_retryable(setup_base_scraper
     assert page_mock.evaluate.await_count == 3
 
 
-@pytest.mark.asyncio
 async def test_hydrate_match_view_without_fragment_waits_directly(setup_base_scraper_mocks):
     """Legacy non-fragment match URLs skip the hash nudge entirely."""
     mocks = setup_base_scraper_mocks
@@ -2191,7 +2123,6 @@ _INPLAY_HEADER_HTML = """
 """
 
 
-@pytest.mark.asyncio
 async def test_hydrate_match_view_inplay_waits_without_market_nudge(setup_base_scraper_mocks):
     """/inplay-odds/ pages hydrate on their own and route their own market codes;
     forcing '#id:1X2;2' can flip the view to Pre-match Odds. Wait first."""
@@ -2211,7 +2142,6 @@ async def test_hydrate_match_view_inplay_waits_without_market_nudge(setup_base_s
     page_mock.wait_for_selector.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_hydrate_match_view_inplay_nudges_bare_id_on_timeout(setup_base_scraper_mocks):
     from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
@@ -2254,7 +2184,6 @@ def test_parse_match_date_from_dom_uses_browser_month_aliases(setup_base_scraper
     assert scraper._parse_match_date_from_dom(soup) == "2026-09-16 18:45:00 UTC"
 
 
-@pytest.mark.asyncio
 async def test_extract_match_odds_streams_each_success_before_the_run_ends(setup_base_scraper_mocks):
     """Each match reaches the callback as it completes, not once every link is done."""
     mocks = setup_base_scraper_mocks
@@ -2288,7 +2217,6 @@ async def test_extract_match_odds_streams_each_success_before_the_run_ends(setup
     assert result.stats.successful == 2
 
 
-@pytest.mark.asyncio
 async def test_extract_match_odds_does_not_stream_failed_matches(setup_base_scraper_mocks):
     from oddsharvester.core.retry import RetryConfig
 
@@ -2309,7 +2237,6 @@ async def test_extract_match_odds_does_not_stream_failed_matches(setup_base_scra
     assert emitted == []
 
 
-@pytest.mark.asyncio
 async def test_extract_match_odds_without_callback_is_unchanged(setup_base_scraper_mocks):
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
@@ -2321,7 +2248,6 @@ async def test_extract_match_odds_without_callback_is_unchanged(setup_base_scrap
     assert result.success == [{"match_link": "https://x/a"}]
 
 
-@pytest.mark.asyncio
 async def test_extract_match_odds_survives_a_failing_callback(setup_base_scraper_mocks):
     """A broken consumer must not turn a scraped match into a failed one."""
     mocks = setup_base_scraper_mocks
@@ -2351,7 +2277,6 @@ def _capture_response_listener(page_mock):
     return listeners
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_raises_rate_limit_when_a_429_blocked_hydration(setup_base_scraper_mocks):
     """A 429 on the match feed leaves the view empty: report the rate limit, not a render race."""
     from oddsharvester.core.exceptions import H2HFragmentResolutionError, RateLimitError
@@ -2379,7 +2304,6 @@ async def test_scrape_match_data_raises_rate_limit_when_a_429_blocked_hydration(
     assert excinfo.value.is_retryable is True
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_raises_rate_limit_instead_of_partial_markets(setup_base_scraper_mocks):
     """A 429 while switching market tabs must not return a record with a silently empty market."""
     from oddsharvester.core.exceptions import RateLimitError
@@ -2408,7 +2332,6 @@ async def test_scrape_match_data_raises_rate_limit_instead_of_partial_markets(se
         )
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_ignores_third_party_429(setup_base_scraper_mocks):
     """Ad and analytics hosts throttle on their own; only OddsPortal's 429 means the IP is limited."""
     mocks = setup_base_scraper_mocks
@@ -2433,7 +2356,6 @@ async def test_scrape_match_data_ignores_third_party_429(setup_base_scraper_mock
     page_mock.remove_listener.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_retry_reloads_a_page_already_on_the_match(setup_base_scraper_mocks):
     """goto to the URL the tab already shows only changes the fragment: the retry would reuse the broken view."""
     mocks = setup_base_scraper_mocks
@@ -2453,7 +2375,6 @@ async def test_scrape_match_data_retry_reloads_a_page_already_on_the_match(setup
     assert targets == ["about:blank", "https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"]
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_fresh_tab_navigates_once(setup_base_scraper_mocks):
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
@@ -2472,7 +2393,6 @@ async def test_scrape_match_data_fresh_tab_navigates_once(setup_base_scraper_moc
     assert targets == ["https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"]
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_keeps_a_complete_record_when_only_an_image_got_429(setup_base_scraper_mocks):
     """Images and chunks are the first to be refused; a view that rendered with every market is a good record."""
     from unittest.mock import ANY
@@ -2500,7 +2420,6 @@ async def test_scrape_match_data_keeps_a_complete_record_when_only_an_image_got_
     page_mock.on.assert_called_once_with("response", ANY)
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_reports_rate_limit_when_a_refused_script_blocked_hydration(setup_base_scraper_mocks):
     from oddsharvester.core.exceptions import H2HFragmentResolutionError, RateLimitError
 
@@ -2526,7 +2445,6 @@ async def test_scrape_match_data_reports_rate_limit_when_a_refused_script_blocke
     page_mock.remove_listener.assert_called_once_with("response", handler)
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_counts_429_after_a_redirect_to_the_www_host(setup_base_scraper_mocks):
     """A bare-host --match-link redirects to www; the refused feed is then on www."""
     from oddsharvester.core.exceptions import RateLimitError
@@ -2551,7 +2469,6 @@ async def test_scrape_match_data_counts_429_after_a_redirect_to_the_www_host(set
         )
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_raises_rate_limit_when_a_refused_script_left_no_match_details(
     setup_base_scraper_mocks,
 ):
@@ -2578,7 +2495,6 @@ async def test_scrape_match_data_raises_rate_limit_when_a_refused_script_left_no
         )
 
 
-@pytest.mark.asyncio
 async def test_extract_match_odds_retries_a_content_failure_once_and_reports_it(setup_base_scraper_mocks):
     """B2: the real error reaches the failed list after one retry, and the proxy is not blamed."""
     from oddsharvester.core.retry import RetryConfig
@@ -2608,7 +2524,6 @@ async def test_extract_match_odds_retries_a_content_failure_once_and_reports_it(
     pm.report_page_result.assert_called_once_with("direct", is_proxy_failure=False)
 
 
-@pytest.mark.asyncio
 async def test_extract_match_odds_recovers_when_the_retry_reads_the_page(setup_base_scraper_mocks):
     from oddsharvester.core.retry import RetryConfig
 
@@ -2630,7 +2545,6 @@ async def test_extract_match_odds_recovers_when_the_retry_reads_the_page(setup_b
     assert result.success == [{"match_link": link, "home_team": "A"}]
 
 
-@pytest.mark.asyncio
 async def test_scrape_match_data_keeps_the_match_when_a_market_fails(setup_base_scraper_mocks):
     """Guard: a failing market still gives the partial match the collector relies on."""
     mocks = setup_base_scraper_mocks
@@ -2670,7 +2584,6 @@ def test_history_reference_is_none_without_a_usable_match_date():
     assert _history_reference("not a date", "UTC") is None
 
 
-@pytest.mark.asyncio
 async def test_extract_match_odds_keeps_results_when_closing_a_tab_fails(setup_base_scraper_mocks):
     """A failed tab close must not escape the batch: retry_scrape would rerun and re-emit every match."""
     mocks = setup_base_scraper_mocks

@@ -34,7 +34,6 @@ class TestNavigationManager:
         mock.wait_for_timeout = AsyncMock()
         return mock
 
-    @pytest.mark.asyncio
     async def test_navigate_to_market_tab_success(self, navigation_manager, page_mock, tab_navigator_mock):
         """Test successful navigation to a market tab."""
         # Arrange
@@ -50,7 +49,6 @@ class TestNavigationManager:
             page=page_mock, market_tab_name=market_tab_name, timeout=DEFAULT_MARKET_TIMEOUT_MS
         )
 
-    @pytest.mark.asyncio
     async def test_navigate_to_market_tab_failure(self, navigation_manager, page_mock, tab_navigator_mock):
         """Test failed navigation to a market tab."""
         # Arrange
@@ -63,7 +61,6 @@ class TestNavigationManager:
         # Assert
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_wait_for_market_switch_success(self, navigation_manager, page_mock):
         """Test successful market switch wait."""
         # Arrange
@@ -79,7 +76,6 @@ class TestNavigationManager:
         assert result is True
         page_mock.wait_for_timeout.assert_called_with(MARKET_SWITCH_WAIT_TIME_MS)
 
-    @pytest.mark.asyncio
     async def test_wait_for_market_switch_wrong_market(self, navigation_manager, page_mock):
         """Test market switch wait with wrong market name."""
         # Arrange
@@ -94,7 +90,6 @@ class TestNavigationManager:
         # Assert
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_wait_for_market_switch_no_active_tab(self, navigation_manager, page_mock):
         """Test market switch wait when no active tab is found."""
         # Arrange
@@ -107,7 +102,6 @@ class TestNavigationManager:
         # Assert
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_wait_for_market_switch_exception_handling(self, navigation_manager, page_mock):
         """Test market switch wait with exception handling."""
         # Arrange
@@ -120,7 +114,6 @@ class TestNavigationManager:
         # Assert
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_select_specific_market_success(self, navigation_manager, page_mock, scroller_mock):
         """Test successful selection of a specific market."""
         # Arrange
@@ -139,7 +132,6 @@ class TestNavigationManager:
             click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
         )
 
-    @pytest.mark.asyncio
     async def test_select_specific_market_matches_language_independent_tail(
         self, navigation_manager, page_mock, scroller_mock
     ):
@@ -161,7 +153,6 @@ class TestNavigationManager:
             click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
         )
 
-    @pytest.mark.asyncio
     async def test_select_specific_market_failure(self, navigation_manager, page_mock, scroller_mock):
         """Test failed selection of a specific market."""
         # Arrange
@@ -174,7 +165,6 @@ class TestNavigationManager:
         # Assert
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_close_specific_market_success(self, navigation_manager, page_mock, scroller_mock):
         """Test successful closing of a specific market."""
         # Arrange
@@ -193,7 +183,6 @@ class TestNavigationManager:
             click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
         )
 
-    @pytest.mark.asyncio
     async def test_close_specific_market_matches_language_independent_tail(
         self, navigation_manager, page_mock, scroller_mock
     ):
@@ -215,7 +204,6 @@ class TestNavigationManager:
             click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
         )
 
-    @pytest.mark.asyncio
     async def test_close_specific_market_failure(self, navigation_manager, page_mock, scroller_mock):
         """Test failed closing of a specific market."""
         # Arrange
@@ -228,7 +216,6 @@ class TestNavigationManager:
         # Assert
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_wait_for_page_load(self, navigation_manager, page_mock):
         """Test waiting for page load."""
         # Act

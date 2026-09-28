@@ -11,7 +11,6 @@ class TestPageScroller:
     def scroller(self):
         return PageScroller()
 
-    @pytest.mark.asyncio
     async def test_scroll_until_loaded_success_with_selector(self, scroller, mock_page):
         """Test successful scrolling with content selector."""
         # Mock page evaluation and element counting
@@ -24,7 +23,6 @@ class TestPageScroller:
         )
         assert result is True
 
-    @pytest.mark.asyncio
     async def test_scroll_until_loaded_success_height_based(self, scroller, mock_page):
         """Test successful scrolling with height-based detection."""
         # Mock page evaluation with changing height then stable
@@ -34,7 +32,6 @@ class TestPageScroller:
         result = await scroller.scroll_until_loaded(mock_page, timeout=1, scroll_pause_time=0.1, max_scroll_attempts=2)
         assert result is True
 
-    @pytest.mark.asyncio
     async def test_scroll_until_loaded_timeout(self, scroller, mock_page):
         """Test scrolling that times out."""
         # Mock page evaluation with changing height (never stabilizes)
@@ -55,7 +52,6 @@ class TestPageScroller:
         )
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_scroll_until_loaded_with_changing_content(self, scroller, mock_page):
         """Test scrolling with content that keeps changing."""
         # Mock page evaluation and changing element count
@@ -68,7 +64,6 @@ class TestPageScroller:
         )
         assert result is True
 
-    @pytest.mark.asyncio
     async def test_scroll_until_visible_and_click_parent_success_with_text(self, scroller, mock_page):
         """Test successful scroll and click with text matching."""
         # Mock element with matching text and bounding box
@@ -86,7 +81,6 @@ class TestPageScroller:
         )
         assert result is True
 
-    @pytest.mark.asyncio
     async def test_scroll_until_visible_and_click_parent_success_without_text(self, scroller, mock_page):
         """Test successful scroll and click without text matching."""
         # Mock element with bounding box
@@ -103,7 +97,6 @@ class TestPageScroller:
         )
         assert result is True
 
-    @pytest.mark.asyncio
     async def test_scroll_until_visible_and_click_parent_no_bounding_box(self, scroller, mock_page):
         """Test scroll and click when element has no bounding box."""
         # Mock element without bounding box
@@ -120,7 +113,6 @@ class TestPageScroller:
         )
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_scroll_until_visible_and_click_parent_timeout(self, scroller, mock_page):
         """Test scroll and click that times out."""
         # Mock no elements found
@@ -133,7 +125,6 @@ class TestPageScroller:
         )
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_scroll_until_visible_and_click_parent_text_not_found(self, scroller, mock_page):
         """Test scroll and click when text is not found."""
         # Mock element with different text
@@ -149,7 +140,6 @@ class TestPageScroller:
         )
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_scroll_until_loaded_zero_timeout(self, scroller, mock_page):
         """Test scrolling with zero timeout."""
         mock_page.evaluate.return_value = 1000
@@ -158,7 +148,6 @@ class TestPageScroller:
         result = await scroller.scroll_until_loaded(mock_page, timeout=0)
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_scroll_until_loaded_negative_timeout(self, scroller, mock_page):
         """Test scrolling with negative timeout."""
         mock_page.evaluate.return_value = 1000
@@ -167,19 +156,16 @@ class TestPageScroller:
         result = await scroller.scroll_until_loaded(mock_page, timeout=-1)
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_scroll_until_visible_and_click_parent_empty_selector(self, scroller, mock_page):
         """Test scroll and click with empty selector."""
         result = await scroller.scroll_until_visible_and_click_parent(mock_page, "", "test-text", timeout=0.1)
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_scroll_until_visible_and_click_parent_none_selector(self, scroller, mock_page):
         """Test scroll and click with None selector."""
         result = await scroller.scroll_until_visible_and_click_parent(mock_page, None, "test-text", timeout=0.1)
         assert result is False
 
-    @pytest.mark.asyncio
     async def test_logging_during_scrolling(self, scroller, mock_page, caplog):
         """Test logging during scrolling operations."""
         with caplog.at_level(logging.INFO):
@@ -192,7 +178,6 @@ class TestPageScroller:
             # The test might complete before timeout, so check for either completion or timeout
             assert any(msg in caplog.text for msg in ["Page height stabilized", "Reached scrolling timeout"])
 
-    @pytest.mark.asyncio
     async def test_full_scrolling_flow(self, scroller, mock_page):
         """Test the complete scrolling flow."""
         # Mock successful scrolling

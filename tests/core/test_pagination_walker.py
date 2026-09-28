@@ -119,28 +119,23 @@ def _page_with(texts):
 class TestReadWidget:
     """The widget renders digit buttons/spans plus localized Prev/Next items."""
 
-    @pytest.mark.asyncio
     async def test_keeps_digits_and_drops_navigation_labels(self, walker):
         page = _page_with(["1", "2", "3", "4", "5", "6", "7", "8", "Next"])
         assert await walker.read_widget(page=page) == [1, 2, 3, 4, 5, 6, 7, 8]
 
-    @pytest.mark.asyncio
     async def test_drops_prev_label(self, walker):
         page = _page_with(["Prev", "1", "2", "3", "4", "5", "6", "7", "8"])
         assert await walker.read_widget(page=page) == [1, 2, 3, 4, 5, 6, 7, 8]
 
-    @pytest.mark.asyncio
     async def test_absent_widget_returns_empty(self, walker):
         page = _page_with([])
         assert await walker.read_widget(page=page) == []
 
-    @pytest.mark.asyncio
     async def test_ellipsis_range_keeps_endpoints(self, walker):
         """Gotcha 2a: long ranges collapse to endpoints, gap filling happens downstream."""
         page = _page_with(["1", "2", "3", "27", "Next"])
         assert await walker.read_widget(page=page) == [1, 2, 3, 27]
 
-    @pytest.mark.asyncio
     async def test_query_failure_returns_empty(self, walker):
         page = MagicMock()
         page.query_selector_all = AsyncMock(side_effect=RuntimeError("detached"))

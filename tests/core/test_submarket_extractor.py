@@ -87,7 +87,6 @@ class TestSubmarketExtractor:
         mock.wait_for_timeout = AsyncMock()
         return mock
 
-    @pytest.mark.asyncio
     async def test_extract_visible_submarkets_passive_no_submarkets(self, submarket_extractor, page_mock):
         """Test extraction when no submarkets are visible."""
         # Arrange
@@ -105,7 +104,6 @@ class TestSubmarketExtractor:
         # Assert
         assert result == []
 
-    @pytest.mark.asyncio
     async def test_extract_visible_submarkets_passive_no_bookmakers(self, submarket_extractor, page_mock):
         """Test extraction when no bookmakers are found."""
         # Arrange
@@ -126,7 +124,6 @@ class TestSubmarketExtractor:
         # Assert
         assert result == []
 
-    @pytest.mark.asyncio
     async def test_extract_visible_submarkets_passive_missing_odds_data(self, submarket_extractor, page_mock):
         # Arrange
         main_market = "Over/Under"
@@ -146,7 +143,6 @@ class TestSubmarketExtractor:
         # Assert
         assert result == []
 
-    @pytest.mark.asyncio
     async def test_extract_visible_submarkets_passive_without_odds_labels(self, submarket_extractor, page_mock):
         """Test extraction without providing odds labels."""
         # Arrange
@@ -167,7 +163,6 @@ class TestSubmarketExtractor:
         # Assert
         assert result == []
 
-    @pytest.mark.asyncio
     async def test_extract_visible_submarkets_passive_exception_handling(self, submarket_extractor, page_mock):
         """Test exception handling during submarket extraction."""
         # Arrange
@@ -185,7 +180,6 @@ class TestSubmarketExtractor:
         # Assert
         assert result == []
 
-    @pytest.mark.asyncio
     async def test_extract_visible_submarkets_passive_bookmaker_row_exception(self, submarket_extractor, page_mock):
         """Test exception handling when processing individual bookmaker rows."""
         # Arrange
@@ -304,7 +298,6 @@ class TestExtractVisibleSubmarketsPassiveHTML:
         mock.wait_for_timeout = AsyncMock()
         return mock
 
-    @pytest.mark.asyncio
     async def test_extract_over_under_submarkets(self, extractor, page_mock):
         """Extracts multiple Over/Under submarkets with correct odds."""
         page_mock.content = AsyncMock(return_value=MULTI_SUBMARKET_PAGE_HTML)
@@ -327,7 +320,6 @@ class TestExtractVisibleSubmarketsPassiveHTML:
 
         assert result[2]["submarket_name"] == "Over/Under +3.5"
 
-    @pytest.mark.asyncio
     async def test_extract_empty_page(self, extractor, page_mock):
         """Returns empty list for page with no submarkets."""
         page_mock.content = AsyncMock(return_value=EMPTY_PAGE_HTML)
@@ -338,7 +330,6 @@ class TestExtractVisibleSubmarketsPassiveHTML:
 
         assert result == []
 
-    @pytest.mark.asyncio
     async def test_extract_with_default_labels(self, extractor, page_mock):
         """Uses default Over/Under labels when odds_labels is None."""
         page_mock.content = AsyncMock(return_value=MULTI_SUBMARKET_PAGE_HTML)
@@ -349,7 +340,6 @@ class TestExtractVisibleSubmarketsPassiveHTML:
         assert "odds_over" in result[0]
         assert "odds_under" in result[0]
 
-    @pytest.mark.asyncio
     async def test_extract_correct_score_default_labels(self, extractor, page_mock):
         """Uses correct_score default label when market is Correct Score."""
         page_mock.content = AsyncMock(return_value=CORRECT_SCORE_PAGE_HTML)
@@ -362,7 +352,6 @@ class TestExtractVisibleSubmarketsPassiveHTML:
         assert result[1]["submarket_name"] == "2:1"
         assert result[1]["correct_score"] == "8.00"
 
-    @pytest.mark.asyncio
     async def test_extract_with_extra_odds(self, extractor, page_mock):
         """Extra odds beyond labels are stored with generic keys."""
         page_mock.content = AsyncMock(return_value=EXTRA_ODDS_HTML)
@@ -374,7 +363,6 @@ class TestExtractVisibleSubmarketsPassiveHTML:
         assert result[0]["odds_x"] == "3.10"
         assert result[0]["odds_option_3"] == "2.80"
 
-    @pytest.mark.asyncio
     async def test_extract_skips_rows_with_insufficient_odds(self, extractor, page_mock):
         """Rows with fewer odds than required labels are skipped."""
         html = """
@@ -393,7 +381,6 @@ class TestExtractVisibleSubmarketsPassiveHTML:
 
         assert result == []
 
-    @pytest.mark.asyncio
     async def test_extract_non_string_content(self, extractor, page_mock):
         """Handles non-string page content gracefully."""
         page_mock.content = AsyncMock(return_value=None)
@@ -404,7 +391,6 @@ class TestExtractVisibleSubmarketsPassiveHTML:
 
         assert result == []
 
-    @pytest.mark.asyncio
     async def test_extract_skips_nameless_rows(self, extractor, page_mock):
         """Rows where submarket name cannot be determined are skipped."""
         page_mock.content = AsyncMock(return_value=f"<html><body>{NO_NAME_ROW_HTML}</body></html>")
