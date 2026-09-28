@@ -34,7 +34,6 @@ dependencies = [
     "click>=8.1.0",
     "lxml>=6.0.2",
     "playwright>=1.57.0",
-    "pytz>=2025.2",
     "tzdata>=2025.2"
 ]
 
@@ -111,8 +110,6 @@ force-sort-within-sections = true
 [tool.ruff.lint.per-file-ignores]
 # Tests can use more flexible patterns
 "tests/**" = ["S101", "S105", "S106", "S108", "PT011", "SIM117"]
-# Lambda handler may need different patterns
-"src/oddsharvester/lambda_handler.py" = ["T201"]
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
