@@ -1512,7 +1512,7 @@ def _build_odds_portal_scraper(setup_base_scraper_mocks, base_url=None):
     playwright_manager_mock.page is set explicitly because PlaywrightManager.page is
     an instance attribute (not a class-level method), so MagicMock(spec=...) doesn't
     include it automatically. Setting it to page_mock makes the truthy guard in
-    scrape_historic / scrape_upcoming pass before the URLBuilder call fires.
+    collect_historic_links / collect_upcoming_links pass before the URLBuilder call fires.
     """
     mocks = setup_base_scraper_mocks
     mocks["playwright_manager_mock"].page = mocks["page_mock"]
@@ -1528,7 +1528,7 @@ def _build_odds_portal_scraper(setup_base_scraper_mocks, base_url=None):
 
 class TestOddsPortalScraperUrlWiring:
     @pytest.mark.asyncio
-    async def test_scrape_historic_forwards_base_url_to_url_builder(self, setup_base_scraper_mocks, monkeypatch):
+    async def test_collect_historic_links_forwards_base_url_to_url_builder(self, setup_base_scraper_mocks, monkeypatch):
         from oddsharvester.core import odds_portal_scraper as ops
 
         scraper = _build_odds_portal_scraper(setup_base_scraper_mocks, base_url="https://www.centroquote.it")
@@ -1545,13 +1545,11 @@ class TestOddsPortalScraperUrlWiring:
         monkeypatch.setattr(ops.URLBuilder, "get_historic_matches_url", staticmethod(fake_get_historic))
 
         with pytest.raises(_StopError):
-            await scraper.scrape_historic(
-                sport="football", league="england-premier-league", season="current", markets=["1x2"]
-            )
+            await scraper.collect_historic_links(sport="football", league="england-premier-league", season="current")
         assert captured["base_url"] == "https://www.centroquote.it"
 
     @pytest.mark.asyncio
-    async def test_scrape_upcoming_forwards_base_url_to_url_builder(self, setup_base_scraper_mocks, monkeypatch):
+    async def test_collect_upcoming_links_forwards_base_url_to_url_builder(self, setup_base_scraper_mocks, monkeypatch):
         from oddsharvester.core import odds_portal_scraper as ops
 
         scraper = _build_odds_portal_scraper(setup_base_scraper_mocks, base_url="https://www.centroquote.it")
@@ -1568,11 +1566,11 @@ class TestOddsPortalScraperUrlWiring:
         monkeypatch.setattr(ops.URLBuilder, "get_upcoming_matches_url", staticmethod(fake_get_upcoming))
 
         with pytest.raises(_StopError):
-            await scraper.scrape_upcoming(sport="football", date="2025-01-15", markets=["1x2"])
+            await scraper.collect_upcoming_links(sport="football", date="2025-01-15")
         assert captured["base_url"] == "https://www.centroquote.it"
 
     @pytest.mark.asyncio
-    async def test_scrape_historic_default_base_url_is_none(self, setup_base_scraper_mocks, monkeypatch):
+    async def test_collect_historic_links_default_base_url_is_none(self, setup_base_scraper_mocks, monkeypatch):
         from oddsharvester.core import odds_portal_scraper as ops
 
         scraper = _build_odds_portal_scraper(setup_base_scraper_mocks)
@@ -1589,9 +1587,7 @@ class TestOddsPortalScraperUrlWiring:
         monkeypatch.setattr(ops.URLBuilder, "get_historic_matches_url", staticmethod(fake_get_historic))
 
         with pytest.raises(_StopError):
-            await scraper.scrape_historic(
-                sport="football", league="england-premier-league", season="current", markets=["1x2"]
-            )
+            await scraper.collect_historic_links(sport="football", league="england-premier-league", season="current")
         assert captured["base_url"] is None
 
 

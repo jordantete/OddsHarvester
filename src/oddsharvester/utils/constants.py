@@ -62,7 +62,7 @@ RESULTS_PAGE_SIZE = 50
 # RETRY CONSTANTS
 # =============================================================================
 
-# Operation-level retries (for scrape_historic, scrape_upcoming, scrape_matches)
+# Operation-level retries (listings, scrape_matches, scrape_live)
 OPERATION_RETRY_MAX_ATTEMPTS = 3
 OPERATION_RETRY_BASE_DELAY = 20.0
 OPERATION_RETRY_MAX_DELAY = 60.0

@@ -263,7 +263,7 @@ async def test_run_scraper_upcoming_forwards_concurrency(
     scraper_cls_mock,
     setup_mocks,
 ):
-    """run_scraper(concurrency_tasks=N) must forward concurrent_scraping_task=N to scrape_upcoming (issue #64)."""
+    """run_scraper(concurrency_tasks=N) must forward concurrent_scraping_task=N to extract_match_odds (issue #64)."""
     scraper_mock = setup_mocks["scraper_mock"]
     scraper_cls_mock.return_value = scraper_mock
     proxy_manager_mock.return_value.get_current_proxy.return_value = None
@@ -294,7 +294,7 @@ async def test_run_scraper_upcoming_forwards_include_started(
     scraper_cls_mock,
     setup_mocks,
 ):
-    """run_scraper(include_started=True) must forward include_started=True to scrape_upcoming (issue #58)."""
+    """run_scraper(include_started=True) must forward include_started=True to collect_upcoming_links (issue #58)."""
     scraper_mock = setup_mocks["scraper_mock"]
     scraper_cls_mock.return_value = scraper_mock
     proxy_manager_mock.return_value.get_current_proxy.return_value = None
@@ -324,7 +324,7 @@ async def test_run_scraper_upcoming_forwards_kickoff_within_hours(
     scraper_cls_mock,
     setup_mocks,
 ):
-    """run_scraper(kickoff_within_hours=N) must forward it to scrape_upcoming (issue #77)."""
+    """run_scraper(kickoff_within_hours=N) must forward it to collect_upcoming_links (issue #77)."""
     scraper_mock = setup_mocks["scraper_mock"]
     scraper_cls_mock.return_value = scraper_mock
     proxy_manager_mock.return_value.get_current_proxy.return_value = None
@@ -380,7 +380,7 @@ async def test_run_scraper_historic_forwards_concurrency(
     scraper_cls_mock,
     setup_mocks,
 ):
-    """run_scraper(concurrency_tasks=N) must forward concurrent_scraping_task=N to scrape_historic (issue #64)."""
+    """run_scraper(concurrency_tasks=N) must forward concurrent_scraping_task=N to extract_match_odds (issue #64)."""
     scraper_mock = setup_mocks["scraper_mock"]
     scraper_cls_mock.return_value = scraper_mock
     proxy_manager_mock.return_value.get_current_proxy.return_value = None

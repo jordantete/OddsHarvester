@@ -49,10 +49,6 @@ class ListingResult:
     rows: list[dict] = field(default_factory=list)
     failed_page_urls: list[str] = field(default_factory=list)
 
-    @property
-    def links(self) -> list[str]:
-        return [row["match_link"] for row in self.rows]
-
 
 class OddsPortalScraper(BaseScraper):
     """
@@ -79,70 +75,6 @@ class OddsPortalScraper(BaseScraper):
     async def stop_playwright(self):
         """Stops Playwright and cleans up resources."""
         await self.playwright_manager.cleanup()
-
-    async def scrape_historic(
-        self,
-        sport: str,
-        league: str,
-        season: str,
-        markets: list[str] | None = None,
-        scrape_odds_history: bool = False,
-        target_bookmaker: str | None = None,
-        max_pages: int | None = None,
-        bookies_filter: BookiesFilter = BookiesFilter.ALL,
-        period: Enum | None = None,
-        request_delay: float = DEFAULT_REQUEST_DELAY_S,
-        concurrent_scraping_task: int = 3,
-        links_only: bool = False,
-    ) -> ScrapeResult:
-        """
-        Scrapes historical odds data.
-
-        Args:
-            sport (str): The sport to scrape.
-            league (str): The league to scrape.
-            season (str): The season to scrape.
-            markets (Optional[List[str]]): List of markets.
-            scrape_odds_history (bool): Whether to scrape and attach odds history.
-            target_bookmaker (str): If set, only scrape odds for this bookmaker.
-            max_pages (Optional[int]): Maximum number of pages to scrape (default is None for all pages).
-            links_only (bool): If True, stop after link collection and return the links (no odds scraping).
-
-        Returns:
-            ScrapeResult: Contains successful results, failed URLs, and statistics.
-        """
-        listing = await self.collect_historic_links(sport=sport, league=league, season=season, max_pages=max_pages)
-
-        if links_only:
-            self.logger.info(f"Links-only mode: returning {len(listing.rows)} match links without odds.")
-            return ScrapeResult.from_links(
-                rows=listing.rows,
-                context={"sport": sport, "league": league, "season": season},
-                failed_page_urls=listing.failed_page_urls,
-            )
-
-        self.logger.info("Step 3: Extracting odds from collected match links...")
-        self.logger.info(f"Total unique matches to process: {len(listing.rows)}")
-
-        result = await self.extract_match_odds(
-            sport=sport,
-            match_links=listing.links,
-            markets=markets,
-            scrape_odds_history=scrape_odds_history,
-            target_bookmaker=target_bookmaker,
-            concurrent_scraping_task=concurrent_scraping_task,
-            preview_submarkets_only=self.preview_submarkets_only,
-            bookies_filter=bookies_filter,
-            period=period,
-            request_delay=request_delay,
-        )
-
-        for row in result.success:
-            row["season"] = season
-
-        result.add_listing_failures(listing.failed_page_urls)
-
-        return result
 
     async def collect_historic_links(
         self,
@@ -284,75 +216,6 @@ class OddsPortalScraper(BaseScraper):
             self.logger.warning("No match links found for upcoming matches.")
 
         return ListingResult(rows=rows)
-
-    async def scrape_upcoming(
-        self,
-        sport: str,
-        date: str,
-        league: str | None = None,
-        markets: list[str] | None = None,
-        scrape_odds_history: bool = False,
-        target_bookmaker: str | None = None,
-        bookies_filter: BookiesFilter = BookiesFilter.ALL,
-        period: Enum | None = None,
-        request_delay: float = DEFAULT_REQUEST_DELAY_S,
-        concurrent_scraping_task: int = 3,
-        include_started: bool = False,
-        kickoff_within_hours: float | None = None,
-        links_only: bool = False,
-    ) -> ScrapeResult:
-        """
-        Scrapes upcoming match odds.
-
-        Args:
-            sport (str): The sport to scrape.
-            date (str): The date to scrape.
-            league (Optional[str]): The league to scrape.
-            markets (Optional[List[str]]): List of markets.
-            scrape_odds_history (bool): Whether to scrape and attach odds history.
-            target_bookmaker (str): If set, only scrape odds for this bookmaker.
-            include_started (bool): If True, also return matches that have
-                already started or finished. Default False keeps the listing
-                page's true "upcoming" semantics (GitHub issue #58).
-            kickoff_within_hours (Optional[float]): If set, only scrape matches
-                kicking off within this many hours from now, cutting request
-                volume by skipping far-off matches (GitHub issue #77).
-            links_only (bool): If True, stop after link collection and return the links (no odds scraping).
-
-        Returns:
-            ScrapeResult: Contains successful results, failed URLs, and statistics.
-        """
-        listing = await self.collect_upcoming_links(
-            sport=sport,
-            date=date,
-            league=league,
-            include_started=include_started,
-            kickoff_within_hours=kickoff_within_hours,
-            collect_kickoff=links_only,
-        )
-
-        if not listing.rows:
-            return ScrapeResult()
-
-        if links_only:
-            self.logger.info(f"Links-only mode: returning {len(listing.rows)} match links without odds.")
-            return ScrapeResult.from_links(
-                rows=listing.rows,
-                context={"sport": sport, "league": league, "date": date, "season": None},
-            )
-
-        return await self.extract_match_odds(
-            sport=sport,
-            match_links=listing.links,
-            markets=markets,
-            scrape_odds_history=scrape_odds_history,
-            target_bookmaker=target_bookmaker,
-            concurrent_scraping_task=concurrent_scraping_task,
-            preview_submarkets_only=self.preview_submarkets_only,
-            bookies_filter=bookies_filter,
-            period=period,
-            request_delay=request_delay,
-        )
 
     async def scrape_live(
         self,

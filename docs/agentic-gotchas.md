@@ -282,7 +282,7 @@ the ranges to be contiguous, one slug per era.
 
 ### A dead season URL can redirect to the current fixtures (Sept 2026)
 
-Worse than a not-found page, and the reason the guard in `scrape_historic`
+Worse than a not-found page, and the reason the guard in `collect_historic_links`
 exists. `mexico/liga-mx-2012-2013/results/` (right league, season that lives
 under the old `primera-division` slug) **redirects to
 `mexico/liga-mx/`**, the current fixtures listing. Before the guard, that run
@@ -693,7 +693,7 @@ text content shape, which is what OddsPortal renders for users to read.
 ### Fix pattern
 
 `base_scraper._row_has_started(row)` combines both checks. Wired through
-`extract_match_links(skip_started=…)` → `scrape_upcoming(include_started=…)`
+`extract_match_links(skip_started=…)` → `collect_upcoming_links(include_started=…)`
 → CLI `--include-started/--no-include-started` (default no = filter out
 started/finished). The helper is fail-safe: a row missing both elements
 (future DOM rename) is kept rather than silently dropped.
@@ -1059,7 +1059,7 @@ are the ones worth re-running.
   not remove the brute force: the selector is read from the same page the walk
   already loads, and a season the selector lists can still hold no odds.
 - A wrong pair does not always come back empty. Some redirect to the league's
-  current fixtures, which is why `scrape_historic` fails a season whose landed
+  current fixtures, which is why `collect_historic_links` fails a season whose landed
   URL no longer matches the requested one (§4).
 
 ### References

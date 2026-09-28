@@ -9,7 +9,7 @@ from oddsharvester.core.exceptions import PageNotFoundError, SeasonNotFoundError
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import LinkCollectionResult, ListingResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
-from oddsharvester.core.scrape_result import ErrorType, ScrapeResult, ScrapeStats
+from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
 from oddsharvester.utils.constants import GOTO_TIMEOUT_LONG_MS, MAX_PAGINATION_PAGES, RESULTS_PAGE_SIZE
 from oddsharvester.utils.proxy_manager import ProxyManager
 
@@ -109,7 +109,7 @@ async def test_stop_playwright(setup_scraper_mocks):
 
 @pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
-async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
+async def test_collect_historic_links_reads_the_season_listing(url_builder_mock, setup_scraper_mocks):
     """Test scraping historic odds data."""
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
@@ -128,24 +128,13 @@ async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
         failed_pages=[],
     )
     scraper._collect_match_links = AsyncMock(return_value=link_result)
-
-    # Mock extract_match_odds to return ScrapeResult
-    mock_scrape_result = ScrapeResult(
-        success=[{"match": "data1"}, {"match": "data2"}],
-        failed=[],
-        stats=ScrapeStats(total_urls=2, successful=2, failed=0),
-    )
-    scraper.extract_match_odds = AsyncMock(return_value=mock_scrape_result)
     scraper._prepare_page_for_scraping = AsyncMock()
 
     # Call the method under test
-    result = await scraper.scrape_historic(
+    listing = await scraper.collect_historic_links(
         sport="football",
         league="premier-league",
         season="2023",
-        markets=["1x2"],
-        scrape_odds_history=True,
-        target_bookmaker="bet365",
         max_pages=2,
     )
 
@@ -162,77 +151,18 @@ async def test_scrape_historic(url_builder_mock, setup_scraper_mocks):
         page_limit=2,
         max_pages=2,
     )
-    scraper.extract_match_odds.assert_called_once_with(
-        sport="football",
-        match_links=["https://oddsportal.com/match1", "https://oddsportal.com/match2"],
-        markets=["1x2"],
-        scrape_odds_history=True,
-        target_bookmaker="bet365",
-        concurrent_scraping_task=ANY,
-        preview_submarkets_only=False,
-        bookies_filter=ANY,
-        period=ANY,
-        request_delay=ANY,
-    )
 
-    # Verify the result is a ScrapeResult
-    assert isinstance(result, ScrapeResult)
-    assert len(result.success) == 2
-    assert result.stats.successful == 2
-
-
-@pytest.mark.asyncio
-@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
-async def test_scrape_historic_links_only(url_builder_mock, setup_scraper_mocks):
-    """links_only=True stops after link collection and returns link rows."""
-    mocks = setup_scraper_mocks
-    scraper = mocks["scraper"]
-
-    base = "https://oddsportal.com/football/england/premier-league-2022-2023"
-    url_builder_mock.get_historic_matches_url.return_value = base
-    scraper._get_pagination_info = AsyncMock(return_value=[1, 2, 3])
-    scraper._collect_match_links = AsyncMock(
-        return_value=LinkCollectionResult(
-            links=["https://oddsportal.com/match1", "https://oddsportal.com/match2"],
-            successful_pages=2,
-            failed_pages=[3],
-        )
-    )
-    scraper.extract_match_odds = AsyncMock()
-    scraper._prepare_page_for_scraping = AsyncMock()
-
-    result = await scraper.scrape_historic(
-        sport="football",
-        league="england-premier-league",
-        season="2022-2023",
-        links_only=True,
-    )
-
-    scraper.extract_match_odds.assert_not_called()
-    assert result.success == [
-        {
-            "match_link": "https://oddsportal.com/match1",
-            "sport": "football",
-            "league": "england-premier-league",
-            "season": "2022-2023",
-        },
-        {
-            "match_link": "https://oddsportal.com/match2",
-            "sport": "football",
-            "league": "england-premier-league",
-            "season": "2022-2023",
-        },
+    # Verify the result is a ListingResult carrying the collected links
+    assert isinstance(listing, ListingResult)
+    assert [row["match_link"] for row in listing.rows] == [
+        "https://oddsportal.com/match1",
+        "https://oddsportal.com/match2",
     ]
-    assert list(result.success[0].keys()) == ["match_link", "sport", "league", "season"]
-    assert [f.url for f in result.failed] == [f"{base}#page/3"]
-    assert result.stats.successful == 2
-    assert result.stats.failed == 1
-    assert result.stats.total_urls == 3
 
 
 @pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
-async def test_scrape_historic_fails_when_season_url_redirects(url_builder_mock, setup_scraper_mocks):
+async def test_collect_historic_links_fails_when_season_url_redirects(url_builder_mock, setup_scraper_mocks):
     """A season URL redirected to the league's current fixtures must fail, not be scraped."""
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
@@ -249,7 +179,7 @@ async def test_scrape_historic_fails_when_season_url_redirects(url_builder_mock,
     scraper._prepare_page_for_scraping = AsyncMock()
 
     with pytest.raises(PageNotFoundError):
-        await scraper.scrape_historic(sport="football", league="mexico-liga-mx", season="2012-2013", links_only=True)
+        await scraper.collect_historic_links(sport="football", league="mexico-liga-mx", season="2012-2013")
 
     scraper._collect_match_links.assert_not_called()
 
@@ -285,7 +215,7 @@ def test_season_guard_raises_season_not_found_on_redirect():
 
 @pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
-async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
+async def test_collect_upcoming_links_reads_the_listing(url_builder_mock, setup_scraper_mocks):
     """Test scraping upcoming matches odds data."""
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
@@ -305,21 +235,11 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
         ]
     )
 
-    # Mock extract_match_odds to return ScrapeResult
-    mock_scrape_result = ScrapeResult(
-        success=[{"match": "data1"}, {"match": "data2"}],
-        failed=[],
-        stats=ScrapeStats(total_urls=2, successful=2, failed=0),
-    )
-    scraper.extract_match_odds = AsyncMock(return_value=mock_scrape_result)
-
     # Call the method under test
-    result = await scraper.scrape_upcoming(
+    listing = await scraper.collect_upcoming_links(
         sport="football",
         date="20260601",
         league="premier-league",
-        markets=["1x2", "over_under"],
-        scrape_odds_history=False,
     )
 
     # Verify the interactions
@@ -332,74 +252,18 @@ async def test_scrape_upcoming(url_builder_mock, setup_scraper_mocks):
     _, extract_kwargs = scraper.extract_match_rows.call_args
     assert extract_kwargs["page"] is page_mock
     assert extract_kwargs["date_filter"] == date(2026, 6, 1)
-    scraper.extract_match_odds.assert_called_once_with(
-        sport="football",
-        match_links=["https://oddsportal.com/match1", "https://oddsportal.com/match2"],
-        markets=["1x2", "over_under"],
-        scrape_odds_history=False,
-        target_bookmaker=None,
-        concurrent_scraping_task=ANY,
-        preview_submarkets_only=False,
-        bookies_filter=ANY,
-        period=ANY,
-        request_delay=ANY,
-    )
 
-    # Verify the result is a ScrapeResult
-    assert isinstance(result, ScrapeResult)
-    assert len(result.success) == 2
-    assert result.stats.successful == 2
+    # Verify the result is a ListingResult carrying the collected rows
+    assert isinstance(listing, ListingResult)
+    assert [row["match_link"] for row in listing.rows] == [
+        "https://oddsportal.com/match1",
+        "https://oddsportal.com/match2",
+    ]
 
 
 @pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
-async def test_scrape_upcoming_links_only(url_builder_mock, setup_scraper_mocks):
-    """links_only=True returns link rows with a date column; league may be None.
-
-    `season` is always present (None here) so every row of every command carries
-    the column. `kickoff_utc` is last and always present (issue #81).
-    """
-    mocks = setup_scraper_mocks
-    scraper = mocks["scraper"]
-
-    url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/matches/football/20260720/"
-    scraper.extract_match_rows = AsyncMock(
-        return_value=[{"match_link": "https://oddsportal.com/m1", "kickoff_utc": "2026-07-20 18:30:00 UTC"}]
-    )
-    scraper.extract_match_odds = AsyncMock()
-    scraper._prepare_page_for_scraping = AsyncMock()
-
-    result = await scraper.scrape_upcoming(sport="football", date="20260720", league=None, links_only=True)
-
-    scraper.extract_match_odds.assert_not_called()
-    assert result.success == [
-        {
-            "match_link": "https://oddsportal.com/m1",
-            "sport": "football",
-            "league": None,
-            "date": "20260720",
-            "season": None,
-            "kickoff_utc": "2026-07-20 18:30:00 UTC",
-        }
-    ]
-    assert list(result.success[0].keys()) == [
-        "match_link",
-        "sport",
-        "league",
-        "date",
-        "season",
-        "kickoff_utc",
-    ]
-    assert result.failed == []
-    assert result.stats.successful == 1
-    assert result.stats.total_urls == 1
-
-
-@pytest.mark.asyncio
-@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
-async def test_scrape_upcoming_links_only_keeps_the_column_when_kickoff_is_unknown(
-    url_builder_mock, setup_scraper_mocks
-):
+async def test_collect_upcoming_links_keeps_rows_with_unknown_kickoff(url_builder_mock, setup_scraper_mocks):
     """A null kickoff must still occupy the column, or CSV writing raises (issue #81)."""
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
@@ -411,32 +275,11 @@ async def test_scrape_upcoming_links_only_keeps_the_column_when_kickoff_is_unkno
             {"match_link": "https://oddsportal.com/m2", "kickoff_utc": None},
         ]
     )
-    scraper.extract_match_odds = AsyncMock()
     scraper._prepare_page_for_scraping = AsyncMock()
 
-    result = await scraper.scrape_upcoming(sport="football", date="20260720", league=None, links_only=True)
+    listing = await scraper.collect_upcoming_links(sport="football", date="20260720", league=None, collect_kickoff=True)
 
-    assert [row["kickoff_utc"] for row in result.success] == ["2026-07-20 18:30:00 UTC", None]
-    assert all("kickoff_utc" in row for row in result.success)
-
-
-@pytest.mark.asyncio
-@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
-async def test_scrape_upcoming_requests_kickoff_only_in_links_only_mode(url_builder_mock, setup_scraper_mocks):
-    """Odds runs get the match date from the match page, so they pay nothing here."""
-    mocks = setup_scraper_mocks
-    scraper = mocks["scraper"]
-
-    url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/matches/football/20260720/"
-    scraper.extract_match_rows = AsyncMock(
-        return_value=[{"match_link": "https://oddsportal.com/m1", "kickoff_utc": None}]
-    )
-    scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
-    scraper._prepare_page_for_scraping = AsyncMock()
-
-    await scraper.scrape_upcoming(sport="football", date="20260720", links_only=False)
-
-    assert scraper.extract_match_rows.call_args.kwargs.get("collect_kickoff") is False
+    assert [row["kickoff_utc"] for row in listing.rows] == ["2026-07-20 18:30:00 UTC", None]
 
 
 @pytest.mark.asyncio
@@ -491,8 +334,8 @@ async def test_scrape_matches(setup_scraper_mocks):
 
 @pytest.mark.asyncio
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
-async def test_scrape_upcoming_forwards_concurrent_scraping_task(url_builder_mock, setup_scraper_mocks):
-    """scrape_upcoming must forward concurrent_scraping_task to extract_match_odds (issue #64)."""
+async def test_collect_upcoming_links_forwards_kickoff_within_hours(url_builder_mock, setup_scraper_mocks):
+    """collect_upcoming_links must forward kickoff_within_hours to extract_match_rows (issue #77)."""
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
 
@@ -501,28 +344,8 @@ async def test_scrape_upcoming_forwards_concurrent_scraping_task(url_builder_moc
     scraper.extract_match_rows = AsyncMock(
         return_value=[{"match_link": "https://oddsportal.com/m1", "kickoff_utc": None}]
     )
-    scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
 
-    await scraper.scrape_upcoming(sport="football", date="20260601", concurrent_scraping_task=10)
-
-    assert scraper.extract_match_odds.call_args.kwargs.get("concurrent_scraping_task") == 10
-
-
-@pytest.mark.asyncio
-@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
-async def test_scrape_upcoming_forwards_kickoff_within_hours(url_builder_mock, setup_scraper_mocks):
-    """scrape_upcoming must forward kickoff_within_hours to extract_match_rows (issue #77)."""
-    mocks = setup_scraper_mocks
-    scraper = mocks["scraper"]
-
-    url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/football/matches/20260601"
-    scraper._prepare_page_for_scraping = AsyncMock()
-    scraper.extract_match_rows = AsyncMock(
-        return_value=[{"match_link": "https://oddsportal.com/m1", "kickoff_utc": None}]
-    )
-    scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
-
-    await scraper.scrape_upcoming(sport="football", date="20260601", kickoff_within_hours=6)
+    await scraper.collect_upcoming_links(sport="football", date="20260601", kickoff_within_hours=6)
 
     assert scraper.extract_match_rows.call_args.kwargs.get("kickoff_within_hours") == 6
 
@@ -552,7 +375,7 @@ async def test_collect_upcoming_links_runs_on_its_own_tab(url_builder_mock, setu
     tab.close.assert_awaited_once()
     mocks["page_mock"].goto.assert_not_called()
     assert isinstance(listing, ListingResult)
-    assert listing.links == ["https://oddsportal.com/m1"]
+    assert [row["match_link"] for row in listing.rows] == ["https://oddsportal.com/m1"]
     assert listing.failed_page_urls == []
 
 
@@ -571,70 +394,6 @@ async def test_collect_upcoming_links_closes_the_tab_when_the_listing_raises(url
         await scraper.collect_upcoming_links(sport="football", date="20260601", league="premier-league")
 
     tab.close.assert_awaited_once()
-
-
-@pytest.mark.asyncio
-@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
-async def test_scrape_upcoming_closes_its_listing_tab(url_builder_mock, setup_scraper_mocks):
-    """The composed method still runs the listing on its own tab and releases it."""
-    mocks = setup_scraper_mocks
-    scraper = mocks["scraper"]
-    url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/matches/football/20260720/"
-    scraper._prepare_page_for_scraping = AsyncMock()
-    scraper.extract_match_rows = AsyncMock(
-        return_value=[{"match_link": "https://oddsportal.com/m1", "kickoff_utc": None}]
-    )
-    scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
-
-    await scraper.scrape_upcoming(sport="football", date="20260720", league=None)
-
-    mocks["context_mock"].new_page.assert_awaited_once()
-    mocks["page_mock"].close.assert_awaited_once()
-
-
-@pytest.mark.asyncio
-@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
-async def test_scrape_historic_forwards_concurrent_scraping_task(url_builder_mock, setup_scraper_mocks):
-    """scrape_historic must forward concurrent_scraping_task to extract_match_odds (issue #64)."""
-    mocks = setup_scraper_mocks
-    scraper = mocks["scraper"]
-
-    url_builder_mock.get_historic_matches_url.return_value = "https://oddsportal.com/football/england/premier-league"
-    scraper._prepare_page_for_scraping = AsyncMock()
-    scraper._get_pagination_info = AsyncMock(return_value=[1])
-    scraper._collect_match_links = AsyncMock(
-        return_value=LinkCollectionResult(links=["https://oddsportal.com/m1"], successful_pages=1, failed_pages=[])
-    )
-    scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
-
-    await scraper.scrape_historic(sport="football", league="premier-league", season="2024", concurrent_scraping_task=7)
-
-    assert scraper.extract_match_odds.call_args.kwargs.get("concurrent_scraping_task") == 7
-
-
-@pytest.mark.asyncio
-@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
-async def test_scrape_historic_stamps_season_on_rows(url_builder_mock, setup_scraper_mocks):
-    """Historic rows carry the season of their combo (issue #78)."""
-    mocks = setup_scraper_mocks
-    scraper = mocks["scraper"]
-
-    url_builder_mock.get_historic_matches_url.return_value = "https://oddsportal.com/football/england/premier-league"
-    scraper._prepare_page_for_scraping = AsyncMock()
-    scraper._get_pagination_info = AsyncMock(return_value=[1])
-    scraper._collect_match_links = AsyncMock(
-        return_value=LinkCollectionResult(links=["https://oddsportal.com/m1"], successful_pages=1, failed_pages=[])
-    )
-    scraper.extract_match_odds = AsyncMock(
-        return_value=ScrapeResult(
-            success=[{"match_date": "2022-04-09 14:00:00 UTC", "season": None}],
-            stats=ScrapeStats(total_urls=1, successful=1),
-        )
-    )
-
-    result = await scraper.scrape_historic(sport="football", league="premier-league", season="2021-2022")
-
-    assert result.success[0]["season"] == "2021-2022"
 
 
 @pytest.mark.asyncio
@@ -954,66 +713,6 @@ async def test_scrape_live_never_scrapes_odds_history(url_builder_mock, setup_sc
     kwargs = scraper.extract_match_odds.call_args.kwargs
     assert kwargs["scrape_odds_history"] is False
     assert kwargs["period"] is None
-
-
-@pytest.mark.asyncio
-@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
-async def test_scrape_historic_surfaces_failed_listing_pages_in_odds_path(url_builder_mock, setup_scraper_mocks):
-    """A failed listing page silently loses ~50 unknown matches, so it must reach the result.
-
-    Without this the odds path reports 100% success on a dataset missing entire
-    pages, which is undetectable downstream.
-    """
-    mocks = setup_scraper_mocks
-    scraper = mocks["scraper"]
-
-    url_builder_mock.get_historic_matches_url.return_value = "https://oddsportal.com/football/epl/results/"
-    scraper._prepare_page_for_scraping = AsyncMock()
-    scraper._get_pagination_info = AsyncMock(return_value=[1, 2, 3])
-    scraper._collect_match_links = AsyncMock(
-        return_value=LinkCollectionResult(links=["https://oddsportal.com/m1"], successful_pages=1, failed_pages=[2, 3])
-    )
-    scraper.extract_match_odds = AsyncMock(
-        return_value=ScrapeResult(
-            success=[{"home_team": "A"}],
-            stats=ScrapeStats(total_urls=1, successful=1, failed=0),
-        )
-    )
-
-    result = await scraper.scrape_historic(
-        sport="football", league="england-premier-league", season="2022-2023", markets=["1x2"]
-    )
-
-    listing_failures = [f for f in result.failed if f.error_type is ErrorType.LISTING_PAGE]
-    assert len(listing_failures) == 2, "both failed listing pages must be reported"
-    assert result.stats.failed == 2
-    assert result.stats.total_urls == 3
-    assert result.success == [{"home_team": "A", "season": "2022-2023"}]
-
-
-@pytest.mark.asyncio
-@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
-async def test_scrape_historic_clean_run_reports_no_listing_failures(url_builder_mock, setup_scraper_mocks):
-    """A complete collection must not be polluted with phantom failures."""
-    mocks = setup_scraper_mocks
-    scraper = mocks["scraper"]
-
-    url_builder_mock.get_historic_matches_url.return_value = "https://oddsportal.com/football/epl/results/"
-    scraper._prepare_page_for_scraping = AsyncMock()
-    scraper._get_pagination_info = AsyncMock(return_value=[1])
-    scraper._collect_match_links = AsyncMock(
-        return_value=LinkCollectionResult(links=["https://oddsportal.com/m1"], successful_pages=1, failed_pages=[])
-    )
-    scraper.extract_match_odds = AsyncMock(
-        return_value=ScrapeResult(success=[{"home_team": "A"}], stats=ScrapeStats(total_urls=1, successful=1))
-    )
-
-    result = await scraper.scrape_historic(
-        sport="football", league="england-premier-league", season="2022-2023", markets=["1x2"]
-    )
-
-    assert result.failed == []
-    assert result.stats.failed == 0
 
 
 @pytest.mark.asyncio
@@ -1485,9 +1184,7 @@ async def test_historic_listing_rate_limited_raises_rate_limit(url_builder_mock,
     scraper._collect_match_links = AsyncMock()
 
     with pytest.raises(RateLimitError):
-        await scraper.scrape_historic(
-            sport="football", league="football/bhutan/premier-league", season=None, links_only=True
-        )
+        await scraper.collect_historic_links(sport="football", league="football/bhutan/premier-league", season=None)
 
     scraper._assert_league_page_exists.assert_not_called()
     scraper._collect_match_links.assert_not_called()
@@ -1523,8 +1220,6 @@ async def test_historic_checks_existence_of_a_league_path(url_builder_mock, setu
     scraper._collect_match_links = AsyncMock()
 
     with pytest.raises(PageNotFoundError):
-        await scraper.scrape_historic(
-            sport="football", league="football/bhutan/premier-league", season=None, links_only=True
-        )
+        await scraper.collect_historic_links(sport="football", league="football/bhutan/premier-league", season=None)
 
     scraper._collect_match_links.assert_not_called()
