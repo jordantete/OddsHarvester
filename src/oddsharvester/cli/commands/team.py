@@ -86,8 +86,7 @@ logger = logging.getLogger(__name__)
     envvar="OH_BASE_URL",
     help="Regional OddsPortal domain to scrape instead of www.oddsportal.com.",
 )
-@click.pass_context
-def team(ctx, **kwargs):
+def team(**kwargs):
     """Scrape team metadata: names, venue, coach and recent form.
 
     Teams are given as ids or team page URLs, via --team and/or --teams-file.
@@ -129,8 +128,6 @@ def team(ctx, **kwargs):
         if not written:
             sys.exit(1)
 
-    except click.UsageError:
-        raise
     except Exception as e:
         logger.error(f"Error during team scraping: {e}", exc_info=True)
         sys.exit(1)

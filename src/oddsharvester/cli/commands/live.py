@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 
 @click.command("live")
 @common_options
-@click.pass_context
-def live(ctx, **kwargs):
+def live(**kwargs):
     """Scrape a one-shot snapshot of in-play odds for currently live matches."""
     if kwargs.get("scrape_odds_history"):
         raise click.UsageError("--odds-history is not supported for live scraping.")
@@ -105,9 +104,6 @@ def live(ctx, **kwargs):
 
         if write_failed:
             sys.exit(1)
-
-    except click.UsageError:
-        raise
 
     except Exception as e:
         logger.error(f"Error during scraping: {e}", exc_info=True)

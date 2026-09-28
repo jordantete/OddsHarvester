@@ -33,8 +33,7 @@ logger = logging.getLogger(__name__)
     callback=validate_max_pages,
     help="Maximum number of pages to scrape.",
 )
-@click.pass_context
-def historic(ctx, **kwargs):
+def historic(**kwargs):
     """Scrape historical odds for a league/season."""
     sport = kwargs["sport"]
     storage = kwargs["storage"]

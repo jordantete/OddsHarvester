@@ -37,8 +37,7 @@ logger = logging.getLogger(__name__)
     default=None,
     help="Only scrape matches kicking off within this many hours from now (reduces request volume).",
 )
-@click.pass_context
-def upcoming(ctx, **kwargs):
+def upcoming(**kwargs):
     """Scrape odds for upcoming matches."""
     match_links = merged_match_links(kwargs)
 

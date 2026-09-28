@@ -139,8 +139,6 @@ def community(ctx, **kwargs):
                 f"Successfully scraped {len(record['markets'])} community markets for the match.",
                 "No community vote data for this match (finished match or empty).",
             )
-    except click.UsageError:
-        raise
     except Exception as e:
         logger.error(f"Error during community scraping: {e}", exc_info=True)
         sys.exit(1)

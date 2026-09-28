@@ -13,8 +13,7 @@ from oddsharvester.utils.setup_logging import setup_logger
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output.")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress all output except errors.")
 @click.version_option(version=__version__, prog_name="oddsharvester")
-@click.pass_context
-def cli(ctx, verbose, quiet):
+def cli(verbose, quiet):
     """OddsHarvester - Scrape sports betting odds from OddsPortal.
 
     Use 'upcoming' to scrape upcoming matches or 'historic' for historical data.
@@ -37,12 +36,7 @@ def cli(ctx, verbose, quiet):
     else:
         log_level = logging.INFO
 
-    setup_logger(log_level=log_level, save_to_file=False)
-
-    # Store context for subcommands
-    ctx.ensure_object(dict)
-    ctx.obj["verbose"] = verbose
-    ctx.obj["quiet"] = quiet
+    setup_logger(log_level=log_level)
 
 
 # Register commands

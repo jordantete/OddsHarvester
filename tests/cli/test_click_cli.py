@@ -1,5 +1,6 @@
 """Tests for the Click-based CLI."""
 
+import logging
 from typing import ClassVar
 from unittest.mock import AsyncMock, patch
 
@@ -748,3 +749,12 @@ class TestOddsFormatDeprecation:
         assert result.exit_code == 0, result.output
         assert result.stdout == ""
         assert "--odds-format has no effect" in result.stderr
+
+
+@pytest.mark.parametrize(("flag", "level"), [("-q", logging.ERROR), ("-v", logging.DEBUG)])
+def test_quiet_and_verbose_flags_still_set_the_log_level(runner, flag, level):
+    with patch("oddsharvester.cli.cli.setup_logger") as setup_mock:
+        result = runner.invoke(cli, [flag, "historic", "--help"])
+
+    assert result.exit_code == 0, result.output
+    assert setup_mock.call_args.kwargs["log_level"] == level
