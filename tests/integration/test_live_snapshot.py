@@ -100,7 +100,6 @@ def test_live_listing_replays_captured_live_now_page(tmp_path, har_for_match):
 
 
 @pytest.mark.live_only
-@pytest.mark.slow
 def test_live_snapshot_self_discovering(tmp_path):
     """A live snapshot carries per-match live context and only genuinely live matches."""
     for sport, market in CANDIDATE_SPORTS:

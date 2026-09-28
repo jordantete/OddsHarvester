@@ -65,16 +65,6 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_configure(config):
-    """Register custom markers."""
-    config.addinivalue_line("markers", "integration: mark test as integration test (requires network)")
-    config.addinivalue_line("markers", "slow: mark test as slow (>30 seconds)")
-    config.addinivalue_line(
-        "markers",
-        "live_only: test cannot be replayed from HAR; runs only when --live is passed",
-    )
-
-
 def pytest_collection_modifyitems(config, items):
     """Skip live_only tests unless --live is passed."""
     if config.getoption("--live"):

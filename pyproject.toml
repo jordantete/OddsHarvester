@@ -65,8 +65,7 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = [
     "integration: marks tests as integration tests (deselected by default, run with: pytest -m integration)",
-    "slow: marks tests as slow (>30 seconds)",
-    "asyncio: marks tests as async tests",
+    "live_only: test cannot be replayed from HAR; runs only when --live is passed",
 ]
 
 [tool.ruff]
