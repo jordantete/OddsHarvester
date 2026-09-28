@@ -1,7 +1,6 @@
 """Comparison utilities for integration testing."""
 
 from collections import Counter
-import json
 import re
 from typing import Any
 
@@ -116,35 +115,3 @@ def _mask_point(point: Any) -> Any:
     if isinstance(point, dict) and isinstance(point.get("timestamp"), str):
         return {**point, "timestamp": _YEAR.sub("YYYY-", point["timestamp"])}
     return point
-
-
-def compare_json_files(actual_path: str, expected_path: str) -> ComparisonResult:
-    """Compare two JSON files containing match data."""
-    with open(actual_path) as f:
-        actual_data = json.load(f)
-
-    with open(expected_path) as f:
-        expected_data = json.load(f)
-
-    # Handle both single match and list of matches
-    if isinstance(actual_data, dict):
-        actual_data = [actual_data]
-    if isinstance(expected_data, dict):
-        expected_data = [expected_data]
-
-    result = ComparisonResult()
-
-    if len(actual_data) != len(expected_data):
-        result.add_error(f"Match count mismatch: actual={len(actual_data)}, expected={len(expected_data)}")
-        return result
-
-    # Compare each match
-    for i, (actual_match, expected_match) in enumerate(zip(actual_data, expected_data, strict=False)):
-        match_result = compare_match_data(actual_match, expected_match)
-        if not match_result.passed:
-            result.add_error(f"Match {i} comparison failed:")
-            for error in match_result.errors:
-                result.add_error(f"  {error}")
-        result.warnings.extend(match_result.warnings)
-
-    return result

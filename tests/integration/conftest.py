@@ -90,38 +90,6 @@ def har_for_match(request):
     return _har
 
 
-def get_all_fixtures() -> list[tuple[str, str, str, str]]:
-    """
-    Discovers all fixture files for parameterized tests.
-
-    Returns list of (sport, league, match_id, fixture_name) tuples.
-    """
-    fixtures = []
-
-    if not FIXTURES_DIR.exists():
-        return fixtures
-
-    for sport_dir in FIXTURES_DIR.iterdir():
-        if not sport_dir.is_dir() or sport_dir.name.startswith("."):
-            continue
-
-        for league_dir in sport_dir.iterdir():
-            if not league_dir.is_dir():
-                continue
-
-            for match_dir in league_dir.iterdir():
-                if not match_dir.is_dir():
-                    continue
-
-                for fixture_file in match_dir.glob("*.json"):
-                    if fixture_file.name == "metadata.json":
-                        continue
-
-                    fixtures.append((sport_dir.name, league_dir.name, match_dir.name, fixture_file.name))
-
-    return fixtures
-
-
 def pytest_addoption(parser):
     """Register --live flag to bypass HAR replay and hit the real network."""
     parser.addoption(
