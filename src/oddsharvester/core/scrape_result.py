@@ -103,16 +103,20 @@ class ScrapeResult:
             stats=ScrapeStats(total_urls=len(success) + len(failed), successful=len(success), failed=len(failed)),
         )
 
+    def add_failure(self, failure: FailedUrl) -> None:
+        """Count one failure the match scraping itself did not record."""
+        self.failed.append(failure)
+        self.stats.failed += 1
+        self.stats.total_urls += 1
+
     def add_listing_failures(self, failed_page_urls: list[str]) -> None:
         """Count listing pages that could not be collected.
 
         Their matches were never discovered, so they cannot show up as per-match
         failures; without this a run reports 100% success on an incomplete dataset.
         """
-        failures = listing_page_failures(failed_page_urls)
-        self.failed.extend(failures)
-        self.stats.failed += len(failures)
-        self.stats.total_urls += len(failures)
+        for failure in listing_page_failures(failed_page_urls):
+            self.add_failure(failure)
 
     def merge(self, other: "ScrapeResult") -> "ScrapeResult":
         """

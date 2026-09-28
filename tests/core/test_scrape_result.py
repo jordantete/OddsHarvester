@@ -216,3 +216,13 @@ class TestLinksOnlyResult:
 
         assert result.failed == []
         assert (result.stats.failed, result.stats.total_urls) == (0, 1)
+
+
+def test_add_failure_appends_and_counts():
+    result = ScrapeResult(stats=ScrapeStats(total_urls=2, successful=2))
+    failure = FailedUrl(url="epl 2023", error_type=ErrorType.LISTING_PAGE, error_message="Listing failed")
+
+    result.add_failure(failure)
+
+    assert result.failed == [failure]
+    assert (result.stats.total_urls, result.stats.successful, result.stats.failed) == (3, 2, 1)

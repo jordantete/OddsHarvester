@@ -1,6 +1,6 @@
 import asyncio
 from collections.abc import Callable
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta, tzinfo
 from enum import Enum
 import json
 import logging
@@ -112,10 +112,7 @@ def _parse_date_header(header_text: str, tz_name: str | None = None) -> date | N
     if " - " in text:
         text = text.split(" - ", 1)[0].strip()
 
-    try:
-        tz = ZoneInfo(tz_name) if tz_name else UTC
-    except (ZoneInfoNotFoundError, ValueError):
-        tz = UTC
+    tz = _timezone_or_utc(tz_name)
 
     now_date = datetime.now(tz).date()
 
@@ -327,6 +324,16 @@ def _extract_fragment_match_id(match_link: str) -> str | None:
     return OddsPortalSelectors.event_id_from_url(match_link)
 
 
+def _timezone_or_utc(tz_name: str | None) -> tzinfo:
+    """The named timezone, or UTC for an empty or unknown name."""
+    if not tz_name:
+        return UTC
+    try:
+        return ZoneInfo(tz_name)
+    except (ZoneInfoNotFoundError, ValueError):
+        return UTC
+
+
 def _history_reference(match_date: str | None, tz_name: str | None) -> datetime | None:
     """Kickoff as a naive datetime in the browser timezone, the frame odds-history timestamps are shown in."""
     if not match_date:
@@ -335,10 +342,7 @@ def _history_reference(match_date: str | None, tz_name: str | None) -> datetime 
         kickoff = datetime.strptime(match_date, "%Y-%m-%d %H:%M:%S UTC").replace(tzinfo=UTC)
     except ValueError:
         return None
-    try:
-        tz = ZoneInfo(tz_name) if tz_name else UTC
-    except (ZoneInfoNotFoundError, ValueError):
-        tz = UTC
+    tz = _timezone_or_utc(tz_name)
     return kickoff.astimezone(tz).replace(tzinfo=None)
 
 

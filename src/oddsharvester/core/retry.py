@@ -48,6 +48,10 @@ class RetryConfig:
     exponential_base: float = 2.0
     jitter_factor: float = 0.1
 
+    def __post_init__(self) -> None:
+        if self.max_attempts < 1:
+            raise ValueError(f"max_attempts must be at least 1, got {self.max_attempts}")
+
 
 @dataclass
 class RetryResult:

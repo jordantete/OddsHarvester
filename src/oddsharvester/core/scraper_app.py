@@ -288,12 +288,6 @@ def _combo_failure(league: str | None, season: str | None, error: Exception | No
     )
 
 
-def _add_failure(result: ScrapeResult, failure: FailedUrl) -> None:
-    result.failed.append(failure)
-    result.stats.failed += 1
-    result.stats.total_urls += 1
-
-
 async def _scrape_combos(
     scraper: OddsPortalScraper,
     combos: list[Combo],
@@ -366,7 +360,7 @@ async def _scrape_combos(
             listing = listings[index]
             if listing is None:
                 result.combo_stats.append(_combo_stat(league, season, errored=True))
-                _add_failure(result, _combo_failure(league, season, listing_errors[index]))
+                result.add_failure(_combo_failure(league, season, listing_errors[index]))
                 continue
             rows = [row for row in listing.rows if link_to_combo[row["match_link"]] == index]
             combo_result = ScrapeResult.from_links(
@@ -397,7 +391,7 @@ async def _scrape_combos(
             failed[index] += 1
     for index, listing in enumerate(listings):
         if listing is None:
-            _add_failure(result, _combo_failure(*combos[index], listing_errors[index]))
+            result.add_failure(_combo_failure(*combos[index], listing_errors[index]))
         elif listing.failed_page_urls:
             result.add_listing_failures(listing.failed_page_urls)
             failed[index] += len(listing.failed_page_urls)

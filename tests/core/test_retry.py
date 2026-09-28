@@ -410,3 +410,9 @@ async def test_retry_success_has_no_exception():
     result = await retry_with_backoff(succeeds)
 
     assert result.exception is None
+
+
+@pytest.mark.parametrize("attempts", [0, -1])
+def test_retry_config_needs_at_least_one_attempt(attempts):
+    with pytest.raises(ValueError, match="max_attempts"):
+        RetryConfig(max_attempts=attempts)

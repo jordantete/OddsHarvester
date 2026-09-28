@@ -77,15 +77,9 @@ class NavigationManager:
         )
 
     async def close_specific_market(self, page: Page, specific_market: str, main_market: str | None = None) -> bool:
-        """Close a specific submarket after scraping."""
+        """Close a specific submarket after scraping; its header click toggles it."""
         self.logger.info(f"Closing sub-market: {specific_market}")
-        text = OddsPortalSelectors.submarket_match_text(specific_market, main_market)
-        return await self.scroller.scroll_until_visible_and_click_parent(
-            page=page,
-            selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
-            text=text,
-            click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
-        )
+        return await self.select_specific_market(page, specific_market, main_market=main_market)
 
     async def wait_for_page_load(self, page: Page) -> None:
         """Wait for page content to load."""

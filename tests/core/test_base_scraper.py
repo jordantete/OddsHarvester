@@ -17,6 +17,7 @@ from oddsharvester.core.base_scraper import (
     _parse_live_info,
     _row_has_started,
     _row_kickoff_datetime,
+    _timezone_or_utc,
 )
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
@@ -2682,3 +2683,12 @@ async def test_extract_match_odds_keeps_results_when_closing_a_tab_fails(setup_b
     )
 
     assert (result.stats.successful, result.stats.failed) == (2, 0)
+
+
+@pytest.mark.parametrize("name", [None, "", "Not/AZone"])
+def test_timezone_or_utc_falls_back_to_utc(name):
+    assert _timezone_or_utc(name) is UTC
+
+
+def test_timezone_or_utc_returns_the_named_zone():
+    assert _timezone_or_utc("Europe/London") == ZoneInfo("Europe/London")
