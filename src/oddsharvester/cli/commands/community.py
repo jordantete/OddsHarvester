@@ -5,6 +5,7 @@ import logging
 import sys
 
 import click
+from click.core import ParameterSource
 
 from oddsharvester.cli.commands._output import write_output
 from oddsharvester.cli.types import SPORT, STORAGE_FORMAT, STORAGE_TYPE
@@ -78,6 +79,11 @@ def community(ctx, **kwargs):
     sport = kwargs.get("sport")
     username = kwargs.get("username")
     match_url = kwargs.get("match_url")
+
+    # OH_SPORT exported for the other commands must not turn --user or --match-url into two modes.
+    if (username or match_url) and ctx.get_parameter_source("sport") is ParameterSource.ENVIRONMENT:
+        sport = None
+
     storage = kwargs["storage"]
     storage_format = kwargs["storage_format"]
 

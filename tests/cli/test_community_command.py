@@ -95,3 +95,45 @@ def test_community_match_url_mode_exits_one_when_no_markets(mock_run):
     )
 
     assert result.exit_code == 1
+
+
+@patch("oddsharvester.cli.commands._output.store_data", return_value=True)
+@patch("oddsharvester.cli.commands.community.run_user_profile", new_callable=AsyncMock)
+def test_oh_sport_does_not_block_user_mode(mock_run, mock_store):
+    mock_run.return_value = {"mode": "user", "username": "z", "privacy": "public", "statistics": [], "predictions": []}
+
+    result = CliRunner().invoke(cli, ["community", "--user", "z"], env={"OH_SPORT": "football"})
+
+    assert result.exit_code == 0, result.output
+    mock_run.assert_called_once()
+
+
+@patch("oddsharvester.cli.commands._output.store_data", return_value=True)
+@patch("oddsharvester.cli.commands.community.run_match_community", new_callable=AsyncMock)
+def test_oh_sport_does_not_block_match_url_mode(mock_run, mock_store):
+    mock_run.return_value = {"markets": [{"market": "1X2"}]}
+
+    result = CliRunner().invoke(
+        cli,
+        ["community", "--match-url", "https://www.oddsportal.com/football/h2h/a/b/"],
+        env={"OH_SPORT": "football"},
+    )
+
+    assert result.exit_code == 0, result.output
+    mock_run.assert_called_once()
+
+
+@patch("oddsharvester.cli.commands._output.store_data", return_value=True)
+@patch("oddsharvester.cli.commands.community.run_top_predictions", new_callable=AsyncMock, return_value=FAKE_RECORDS)
+def test_oh_sport_alone_still_selects_top_predictions(mock_run, mock_store):
+    result = CliRunner().invoke(cli, ["community"], env={"OH_SPORT": "football"})
+
+    assert result.exit_code == 0, result.output
+    assert mock_run.call_args.kwargs["sport"] == "football"
+
+
+def test_explicit_sport_with_user_is_still_refused():
+    result = CliRunner().invoke(cli, ["community", "--sport", "football", "--user", "z"])
+
+    assert result.exit_code == 2
+    assert "exactly one" in result.output.lower()
