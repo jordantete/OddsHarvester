@@ -130,8 +130,25 @@ def test_history_year_difference_fails(match):
 
     [error] = result.errors
     assert error.startswith("1x2_market: entry ('Betclic.fr', 'FullTime', '1X2') differs in ['odds_history_data']; ")
-    # Both history values are longer than VALUE_WIDTH, so both are cut.
-    assert error.count("...") == 2
+    # Both history values are longer than VALUE_WIDTH and cut on both sides of the windowed difference.
+    assert error.count("...") == 4
+
+
+def test_long_values_differing_only_after_char_200_show_the_difference(match):
+    actual = copy.deepcopy(match)
+    expected = copy.deepcopy(match)
+    padding = "x" * 200
+    _entry(actual, "Betclic.fr")["padding"] = padding + "AAA" + "y" * 100
+    _entry(expected, "Betclic.fr")["padding"] = padding + "BBB" + "y" * 100
+
+    result = compare_match_data(actual, expected)
+
+    [error] = result.errors
+    actual_part = error.split("actual=")[1].split(" vs expected=")[0]
+    expected_part = error.split(" vs expected=")[1]
+    assert actual_part != expected_part
+    assert "AAA" in actual_part
+    assert "BBB" in expected_part
 
 
 def test_history_month_difference_fails(match):

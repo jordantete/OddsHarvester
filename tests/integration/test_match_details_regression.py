@@ -49,7 +49,7 @@ def test_match_details_match_curated_metadata(match, load_metadata, har_for_matc
         period="full_time",
         bookies_filter="all",
     )
-    record = actual[0] if isinstance(actual, list) else actual
+    record = actual[0]
 
     expected = load_metadata(match["sport"], match["league"], match["match_id"])
 

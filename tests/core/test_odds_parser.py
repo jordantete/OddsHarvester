@@ -106,8 +106,8 @@ class TestOddsParser:
     def test_history_drops_a_29_february_point_when_the_inferred_year_is_not_leap(self, odds_parser):
         """Pins today's behaviour: the ValueError is caught and only that point is dropped.
 
-        Cannot happen for real: a 29 February point lands in a non-leap year only when it
-        sits at least eleven months before kickoff.
+        With a kickoff reference this cannot happen for real: a 29 February point lands in a
+        non-leap year only when it sits at least eleven months before kickoff.
         """
         html = self._history_html(
             [("8 Mar, 12:00", "2.10"), ("29 Feb, 10:00", "2.00")], opening=("25 Feb, 09:00", "1.90")

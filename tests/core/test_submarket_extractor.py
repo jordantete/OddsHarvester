@@ -229,8 +229,8 @@ class TestExtractSubmarketName:
         result = extractor._extract_submarket_name(row, "Over/Under")
         assert result == "Over/Under +2.5"
 
-    def test_strategy1_data_testid_fallback_to_first_p(self, extractor):
-        """Fallback: no clean-name class, first non-numeric text wins."""
+    def test_strategy2_fallback_on_an_over_under_line(self, extractor):
+        """Strategy 2: no clean-name class, first non-numeric text wins on an Over/Under line."""
         row = self._parse_row(OVER_UNDER_FALLBACK_P_HTML)
         result = extractor._extract_submarket_name(row, "Over/Under")
         assert result == "Over/Under +1.5"
@@ -241,8 +241,8 @@ class TestExtractSubmarketName:
         result = extractor._extract_submarket_name(row, "European Handicap")
         assert result == "European Handicap -1"
 
-    def test_strategy2_flex_classes_fallback_to_first_p(self, extractor):
-        """Fallback for handicap labels without a clean-name class."""
+    def test_strategy2_fallback_on_a_handicap_line(self, extractor):
+        """Strategy 2: no clean-name class, first non-numeric text wins on a handicap line."""
         row = self._parse_row(HANDICAP_FLEX_FALLBACK_HTML)
         result = extractor._extract_submarket_name(row, "Asian Handicap")
         assert result == "Asian Handicap -0.5"
@@ -263,13 +263,6 @@ class TestExtractSubmarketName:
         row = self._parse_row(NO_NAME_ROW_HTML)
         result = extractor._extract_submarket_name(row, "Over/Under")
         assert result is None
-
-    def test_market_key_normalization(self, extractor):
-        """data-testid pattern handles special characters in market name."""
-        # "Over/Under" -> "over-under-collapsed-option-box"
-        row = self._parse_row(OVER_UNDER_HTML)
-        result = extractor._extract_submarket_name(row, "Over/Under")
-        assert result == "Over/Under +2.5"
 
     def test_strategy1_takes_priority_over_strategy2(self, extractor):
         """The clean-name element is tried before the generic text fallback."""

@@ -88,15 +88,42 @@ def _index_entries(
 
 
 def _entry_difference(market: str, key: tuple[Any, Any, Any], actual: dict[str, Any], expected: dict[str, Any]) -> str:
-    """One line naming the differing fields, each with its actual and expected value cut to VALUE_WIDTH."""
+    """One line naming the differing fields, each with actual/expected windowed around their first difference."""
     union = actual.keys() | expected.keys()
     fields = sorted((f for f in union if actual.get(f, _MISSING) != expected.get(f, _MISSING)), key=str)
     details = "; ".join(
-        f"{f!r}: actual={_clip(actual.get(f, _MISSING))} vs expected={_clip(expected.get(f, _MISSING))}" for f in fields
+        f"{f!r}: actual={a} vs expected={e}"
+        for f in fields
+        for a, e in (_clip_pair(actual.get(f, _MISSING), expected.get(f, _MISSING)),)
     )
     return f"{market}: entry {key} differs in {fields}; {details}"
 
 
-def _clip(value: Any) -> str:
-    text = repr(value)
-    return text if len(text) <= VALUE_WIDTH else text[: VALUE_WIDTH - 3] + "..."
+def _clip_pair(actual_value: Any, expected_value: Any) -> tuple[str, str]:
+    """Cut each repr to VALUE_WIDTH, windowed around where the two reprs first diverge.
+
+    A cut starting from the string's own start (like the old flat clip) can leave both sides
+    showing the same unchanged prefix, hiding a difference that sits past the cut.
+    """
+    actual_text, expected_text = repr(actual_value), repr(expected_value)
+    if len(actual_text) <= VALUE_WIDTH and len(expected_text) <= VALUE_WIDTH:
+        return actual_text, expected_text
+    diff_at = _first_diff_index(actual_text, expected_text)
+    start = max(0, diff_at - 20)
+    return _window(actual_text, start), _window(expected_text, start)
+
+
+def _first_diff_index(a: str, b: str) -> int:
+    for i, (ca, cb) in enumerate(zip(a, b, strict=False)):
+        if ca != cb:
+            return i
+    return min(len(a), len(b))
+
+
+def _window(text: str, start: int) -> str:
+    if len(text) <= VALUE_WIDTH:
+        return text
+    end = start + VALUE_WIDTH
+    prefix = "..." if start > 0 else ""
+    suffix = "..." if end < len(text) else ""
+    return prefix + text[start:end] + suffix

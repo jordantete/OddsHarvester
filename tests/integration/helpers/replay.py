@@ -32,7 +32,9 @@ def run_replay(
         **scraper_args,
     )
     assert exit_code == 0, f"Scraper failed: {stderr}"
-    return json.loads(Path(f"{output_path}.json").read_text())
+    out = Path(f"{output_path}.json")
+    assert out.exists(), f"no output written: {stderr[-2000:]}"
+    return json.loads(out.read_text())
 
 
 def replay_and_compare(
