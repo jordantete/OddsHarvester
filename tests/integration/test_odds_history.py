@@ -130,6 +130,7 @@ def test_history_blocks_have_the_collector_shape(run):
             assert isinstance(block, dict), (key, entry.get("bookmaker_name"), block)
             assert "odds_history" in block, (key, entry.get("bookmaker_name"), block)
             assert "opening_odds" in block, (key, entry.get("bookmaker_name"), block)
+            assert block["odds_history"] or block["opening_odds"], (key, entry.get("bookmaker_name"), block)
 
 
 def test_history_timestamps_are_naive_iso(run):
