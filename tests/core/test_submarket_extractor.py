@@ -235,8 +235,8 @@ class TestExtractSubmarketName:
         result = extractor._extract_submarket_name(row, "Over/Under")
         assert result == "Over/Under +1.5"
 
-    def test_strategy2_flex_classes_with_clean_name(self, extractor):
-        """Clean-name element also works for handicap labels."""
+    def test_strategy1_clean_name_on_a_handicap_line(self, extractor):
+        """Strategy 1 also reads the clean-name element of a handicap line."""
         row = self._parse_row(HANDICAP_FLEX_HTML)
         result = extractor._extract_submarket_name(row, "European Handicap")
         assert result == "European Handicap -1"
@@ -247,17 +247,16 @@ class TestExtractSubmarketName:
         result = extractor._extract_submarket_name(row, "Asian Handicap")
         assert result == "Asian Handicap -0.5"
 
-    def test_strategy3_font_bold_p(self, extractor):
-        """Strategy 3: font-bold class on <p> tag."""
-        row = self._parse_row(FONT_BOLD_HTML)
-        result = extractor._extract_submarket_name(row, "Draw No Bet")
-        assert result == "Draw No Bet"
-
-    def test_strategy4_correct_score_colon(self, extractor):
-        """Strategy 4: Correct Score submarket with colon pattern."""
-        row = self._parse_row(CORRECT_SCORE_HTML)
-        result = extractor._extract_submarket_name(row, "Correct Score")
-        assert result == "1:0"
+    @pytest.mark.parametrize(
+        ("html", "main_market", "expected"),
+        [(FONT_BOLD_HTML, "Draw No Bet", "Draw No Bet"), (CORRECT_SCORE_HTML, "Correct Score", "1:0")],
+        ids=["bold_paragraph", "correct_score_colon"],
+    )
+    def test_strategy2_first_non_numeric_text(self, extractor, html, main_market, expected):
+        """Strategy 2: without a clean-name element, the first text that is neither a number nor a percentage."""
+        row = self._parse_row(html)
+        result = extractor._extract_submarket_name(row, main_market)
+        assert result == expected
 
     def test_no_name_returns_none(self, extractor):
         """Returns None when no submarket name can be identified."""

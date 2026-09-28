@@ -1358,6 +1358,19 @@ def test_parse_results_from_dom_normalizes_nbsp_in_partial(setup_base_scraper_mo
     assert partial == "(1:0, 1:1)"
 
 
+def test_parse_results_from_dom_logs_and_returns_none_on_an_unexpected_error(setup_base_scraper_mocks, caplog):
+    scraper = setup_base_scraper_mocks["scraper"]
+    soup = BeautifulSoup(_make_results_html(), "html.parser")
+
+    with (
+        patch("oddsharvester.core.base_scraper.OddsPortalSelectors.match_date_cell", side_effect=RuntimeError("boom")),
+        caplog.at_level(logging.WARNING),
+    ):
+        assert scraper._parse_results_from_dom(soup) == (None, None, None)
+
+    assert "DOM parse failed for results: boom" in caplog.text
+
+
 def test_extract_fragment_match_id_returns_fragment_when_present():
     url = "https://www.oddsportal.com/baseball/h2h/a-team/b-team/#WbDmMwm1"
     assert _extract_fragment_match_id(url) == "WbDmMwm1"

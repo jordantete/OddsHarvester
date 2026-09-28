@@ -174,14 +174,20 @@ class TestOddsParser:
         # Assert
         assert len(result) == 0
 
-    def test_parse_market_odds_error_handling(self, odds_parser):
-        """A bookmaker row with no odds cells at all is not a bookmaker row."""
-        odds_labels = ["1", "X", "2"]
-        broken_html = self._table(['<tr><td><a href="/proxy/bookmakers/x/link/"><p>Bookmaker1</p></a></td></tr>'])
+    @pytest.mark.parametrize(
+        "broken_html",
+        [
+            odds_table('<tr><td><a href="/proxy/bookmakers/x/link/"><p>Bookmaker1</p></a></td></tr>'),
+            '<div class="border-black-borders flex h-9"><img class="bookmaker-logo" title="Bookmaker1">'
+            "<!-- Data manquante/corrompue --></div>",
+        ],
+        ids=["row_without_odds_cells", "comment_only_block"],
+    )
+    def test_parse_market_odds_error_handling(self, odds_parser, broken_html):
+        """A bookmaker row with no odds cells, or a block holding only a comment, yields no odds."""
+        result = odds_parser.parse_market_odds(broken_html, "FullTime", ["1", "X", "2"])
 
-        result = odds_parser.parse_market_odds(broken_html, "FullTime", odds_labels)
-
-        assert len(result) == 0
+        assert result == []
 
     def test_parse_market_odds_duplicate_odds_removal(self, odds_parser):
         """Doubled odds strings ('1.901.90') are collapsed to a single value."""
