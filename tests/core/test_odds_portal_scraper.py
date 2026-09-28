@@ -629,7 +629,7 @@ async def test_scrape_live_links_only(url_builder_mock, setup_scraper_mocks):
     url_builder_mock.get_live_matches_url.return_value = "https://oddsportal.com/inplay-odds/live-now/football/"
     scraper._prepare_page_for_scraping = AsyncMock()
     scraper.extract_live_match_links = AsyncMock(
-        return_value=[{"match_link": "https://www.oddsportal.com/x/inplay-odds/#a", "live_period": "1H"}]
+        return_value=[{"match_link": "https://www.oddsportal.com/x/inplay-odds/#a"}]
     )
     scraper.extract_match_odds = AsyncMock()
 
@@ -652,8 +652,8 @@ async def test_scrape_live_drops_ended_matches(url_builder_mock, setup_scraper_m
     scraper._prepare_page_for_scraping = AsyncMock()
     scraper.extract_live_match_links = AsyncMock(
         return_value=[
-            {"match_link": "https://www.oddsportal.com/x/inplay-odds/#a", "live_period": "1H"},
-            {"match_link": "https://www.oddsportal.com/y/inplay-odds/#b", "live_period": "2H"},
+            {"match_link": "https://www.oddsportal.com/x/inplay-odds/#a"},
+            {"match_link": "https://www.oddsportal.com/y/inplay-odds/#b"},
         ]
     )
     live_match = {"home_team": "A", "away_team": "B", "live_period": "1H"}
@@ -704,7 +704,7 @@ async def test_scrape_live_never_scrapes_odds_history(url_builder_mock, setup_sc
     url_builder_mock.get_live_matches_url.return_value = "https://oddsportal.com/inplay-odds/live-now/football/"
     scraper._prepare_page_for_scraping = AsyncMock()
     scraper.extract_live_match_links = AsyncMock(
-        return_value=[{"match_link": "https://www.oddsportal.com/x/inplay-odds/#a", "live_period": "1H"}]
+        return_value=[{"match_link": "https://www.oddsportal.com/x/inplay-odds/#a"}]
     )
     scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
 
@@ -1223,3 +1223,18 @@ async def test_historic_checks_existence_of_a_league_path(url_builder_mock, setu
         await scraper.collect_historic_links(sport="football", league="football/bhutan/premier-league", season=None)
 
     scraper._collect_match_links.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_live_links_only_rows_keep_their_columns(setup_scraper_mocks):
+    """Guard: the live links-only rows never carried the listing's period marker."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.extract_live_match_links = AsyncMock(
+        return_value=[{"match_link": "https://www.oddsportal.com/football/h2h/a-b/inplay-odds/#x1"}]
+    )
+
+    result = await scraper.scrape_live(sport="football", links_only=True)
+
+    assert [list(row) for row in result.success] == [["match_link", "sport", "league"]]

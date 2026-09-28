@@ -8,10 +8,8 @@ from playwright.async_api import ElementHandle, Page
 from oddsharvester.core.browser.market_navigation import HASH_SWITCH_JS
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import (
-    BOOKIES_FILTER_TIMEOUT_MS,
     FALLBACK_VERIFY_WAIT_MS,
     MARKET_SWITCH_WAIT_TIME_MS,
-    PERIOD_SELECTOR_TIMEOUT_MS,
 )
 
 
@@ -27,7 +25,6 @@ class SelectionStrategy:
     name: str
     tab_selector: str
     active_style_marker: str
-    timeout_ms: int
 
 
 def _is_active(style: str | None, strategy: SelectionStrategy) -> bool:
@@ -152,12 +149,10 @@ BOOKIES_FILTER_STRATEGY = SelectionStrategy(
     name="bookies-filter",
     tab_selector=OddsPortalSelectors.SUB_NAV_TAB_ANY,
     active_style_marker=OddsPortalSelectors.SUB_NAV_ACTIVE_STYLE_MARKER,
-    timeout_ms=BOOKIES_FILTER_TIMEOUT_MS,
 )
 
 PERIOD_STRATEGY = SelectionStrategy(
     name="period",
     tab_selector=OddsPortalSelectors.SUB_NAV_TAB_ANY,
     active_style_marker=OddsPortalSelectors.SUB_NAV_ACTIVE_STYLE_MARKER,
-    timeout_ms=PERIOD_SELECTOR_TIMEOUT_MS,
 )

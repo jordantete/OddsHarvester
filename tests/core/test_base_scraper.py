@@ -1714,7 +1714,7 @@ LIVE_NOW_LISTING_HTML = page(
 
 @pytest.mark.asyncio
 async def test_extract_live_match_links(setup_base_scraper_mocks):
-    """Live-now rows yield absolute in-play links plus their period marker."""
+    """Live-now rows yield absolute in-play links."""
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
     page_mock = mocks["page_mock"]
@@ -1726,8 +1726,6 @@ async def test_extract_live_match_links(setup_base_scraper_mocks):
         "https://www.oddsportal.com/tennis/h2h/janvier-maxime-S4riPNES/kuzmanov-dimitar-WEwUtEGs/inplay-odds/#t0bmQMVh",
         "https://www.oddsportal.com/football/h2h/arsenal-chelsea-xYz12345/inplay-odds/#aB3dE6fG",
     ]
-    assert rows[0]["live_period"] == "1S"
-    assert rows[1]["live_period"] == "65'"
 
 
 @pytest.mark.asyncio

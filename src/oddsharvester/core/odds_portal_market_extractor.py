@@ -44,8 +44,6 @@ class OddsPortalMarketExtractor:
             selection_manager (SelectionManager): Manages period selection.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.scroller = scroller
-        self.tab_navigator = tab_navigator
         self.selection_manager = selection_manager
         self.period_selector = PeriodSelector()
 

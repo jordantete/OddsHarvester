@@ -131,7 +131,6 @@ class TestRedesignSelectors:
         assert OddsPortalSelectors.page_fragment(12) == "#page/12"
 
     def test_pagination_selectors(self):
-        assert OddsPortalSelectors.PAGINATION_CONTAINER == "nav.pagination"
         assert "button" in OddsPortalSelectors.PAGINATION_ITEM
         assert "span" in OddsPortalSelectors.PAGINATION_ITEM
 

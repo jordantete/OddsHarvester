@@ -617,7 +617,7 @@ class BaseScraper:
         league: str | None = None,
     ) -> list[dict[str, Any]]:
         """
-        Extract match links and listing context from a live-now in-play listing.
+        Extract match links from a live-now in-play listing.
 
         Rows are the match <a> elements, whose hrefs here carry the
         `/inplay-odds/#<id>` suffix. The same match can appear twice in the DOM,
@@ -630,7 +630,7 @@ class BaseScraper:
                 under the league URL path from SPORTS_LEAGUES_URLS_MAPPING.
 
         Returns:
-            List[dict]: One dict per live match: {"match_link": str, "live_period": str | None}.
+            List[dict]: One dict per live match: {"match_link": str}.
         """
         try:
             league_path_prefix = None
@@ -674,12 +674,9 @@ class BaseScraper:
                     league_filtered_out += 1
                     continue
 
-                period = _row_status_cell_text(row) or None
-
                 results.append(
                     {
                         "match_link": f"{self.base_url or ODDSPORTAL_BASE_URL}{href}",
-                        "live_period": period,
                     }
                 )
 

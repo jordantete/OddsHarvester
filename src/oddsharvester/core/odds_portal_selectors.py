@@ -11,14 +11,9 @@ class OddsPortalSelectors:
     # 2026-09 (issue #86): OddsPortal stripped every data-testid from the DOM.
     # Anchors are hrefs, HTML semantics and text shape; see gotchas §20.
 
-    # The SPA nests page content in a second <main>; parsing is scoped to the
-    # innermost one so sidebar widgets never leak into listing/match extraction.
-    CONTENT_ROOT = "main"
-
     # 2026-08 redesign (issue #85). Digits are <button>s, the current page a <span>;
     # the widget's parent stays display:none until the listing is scrolled to the
     # bottom, so read text_content (not inner_text) on the items.
-    PAGINATION_CONTAINER = "nav.pagination"
     PAGINATION_ITEM = "nav.pagination button, nav.pagination span"
 
     # Listing rows: each row is an <a> to the match H2H fragment URL. Its two
