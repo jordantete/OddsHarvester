@@ -104,7 +104,7 @@ class LocalDataStorage:
             self.logger.info(f"Successfully saved {len(data)} record(s) to {file_path}")
 
         except Exception as e:
-            self.logger.error(f"Error saving data to {file_path}: {e!s}", exc_info=True)
+            self.logger.error(f"Error saving data to {file_path}: {e!s}")
             raise
 
     def _save_as_json(self, data: list[dict], file_path: str, append: bool = False):
@@ -118,7 +118,7 @@ class LocalDataStorage:
             self.logger.info(f"Successfully saved {len(data)} record(s) to {file_path}")
 
         except Exception as e:
-            self.logger.error(f"Error saving data to {file_path}: {e!s}", exc_info=True)
+            self.logger.error(f"Error saving data to {file_path}: {e!s}")
             raise
 
     @staticmethod

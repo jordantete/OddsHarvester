@@ -114,4 +114,4 @@ def test_append_to_an_unreadable_json_keeps_it_and_saves_the_batch_aside(tmp_pat
     [(None, "scraped_data"), ("out.csv", "out"), ("data/out.json", "data/out"), ("out", "out")],
 )
 def test_fallback_path_sits_next_to_the_output(file_path, prefix):
-    assert re.fullmatch(rf"{re.escape(prefix)}\.unsaved-\d{{8}}T\d{{6}}Z\.json", _fallback_path(file_path))
+    assert re.fullmatch(rf"{re.escape(prefix)}\.unsaved-\d{{8}}T\d{{12}}Z\.json", _fallback_path(file_path))

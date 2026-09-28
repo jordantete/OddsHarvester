@@ -60,7 +60,7 @@ def _fallback_path(file_path: str | None) -> str:
         if base.endswith(extension):
             base = base[: -len(extension)]
             break
-    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     return f"{base}.unsaved-{stamp}.json"
 
 

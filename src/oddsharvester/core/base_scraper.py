@@ -768,7 +768,7 @@ class BaseScraper:
                 max_delay=MATCH_RETRY_MAX_DELAY,
             )
 
-        async def scrape_single_match(page: Page, link: str) -> dict[str, Any] | None:
+        async def scrape_single_match(page: Page, link: str) -> dict[str, Any]:
             """Inner function to scrape a single match (used for retry)."""
             return await self._scrape_match_data(
                 page=page,
@@ -907,7 +907,7 @@ class BaseScraper:
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
         live_mode: bool = False,
-    ) -> dict[str, Any] | None:
+    ) -> dict[str, Any]:
         """Scrape one match, raising RateLimitError when OddsPortal answered 429 during the visit."""
         # A 429 on a request of the page (feed, script, tab switch) leaves the view or a market empty
         # while the document itself loads; only the response stream shows it (gotchas §23).
@@ -965,7 +965,7 @@ class BaseScraper:
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
         live_mode: bool = False,
-    ) -> dict[str, Any] | None:
+    ) -> dict[str, Any]:
         """
         Scrape data for a specific match based on the desired markets.
 
