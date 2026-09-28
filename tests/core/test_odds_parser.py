@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-from unittest.mock import MagicMock, patch
 
 import pytest
 from tests.dom_builders import bookmaker_row, line_row, odds_cell, odds_table
@@ -103,6 +102,34 @@ class TestOddsParser:
         result = odds_parser.parse_odds_history_modal(html, reference=datetime(2028, 3, 1, 20, 0))
 
         assert result["odds_history"][0]["timestamp"] == "2028-02-29T12:00:00"
+
+    def test_history_drops_a_29_february_point_when_the_inferred_year_is_not_leap(self, odds_parser):
+        """Pins today's behaviour: the ValueError is caught and only that point is dropped.
+
+        Cannot happen for real: a 29 February point lands in a non-leap year only when it
+        sits at least eleven months before kickoff.
+        """
+        html = self._history_html(
+            [("8 Mar, 12:00", "2.10"), ("29 Feb, 10:00", "2.00")], opening=("25 Feb, 09:00", "1.90")
+        )
+
+        result = odds_parser.parse_odds_history_modal(html, reference=datetime(2025, 3, 10, 20, 0))
+
+        assert result == {
+            "odds_history": [{"timestamp": "2025-03-08T12:00:00", "odds": 2.1}],
+            "opening_odds": {"timestamp": "2025-02-25T09:00:00", "odds": 1.9},
+        }
+
+    def test_history_later_in_the_kickoff_month_keeps_the_kickoff_year(self, odds_parser):
+        """The rule compares months only: a point after kickoff in the same month keeps the kickoff year."""
+        html = self._history_html([("20 Jan, 10:00", "1.95")], opening=("28 Dec, 09:00", "2.10"))
+
+        result = odds_parser.parse_odds_history_modal(html, reference=datetime(2026, 1, 4, 18, 30))
+
+        assert result == {
+            "odds_history": [{"timestamp": "2026-01-20T10:00:00", "odds": 1.95}],
+            "opening_odds": {"timestamp": "2025-12-28T09:00:00", "odds": 2.1},
+        }
 
     def test_history_without_reference_uses_the_current_year(self, odds_parser):
         html = self._history_html([("10 Jun, 14:30", "1.95")])
@@ -209,25 +236,18 @@ class TestOddsParser:
         assert result[0]["bookmaker_name"] == "Bookmaker1"
 
     def test_parse_odds_history_modal_success(self, odds_parser):
-        """Test successful parsing of odds history modal."""
-        # Arrange
-        with patch("oddsharvester.core.market_extraction.odds_parser.datetime") as mock_datetime:
-            mock_now = MagicMock()
-            mock_now.year = 2025
-            mock_datetime.now.return_value = mock_now
-            mock_datetime.strptime.side_effect = lambda *args, **kwargs: __import__("datetime").datetime.strptime(
-                *args, **kwargs
-            )
+        """Every point and the opening odds are dated from the kickoff reference."""
+        result = odds_parser.parse_odds_history_modal(
+            self.SAMPLE_HTML_ODDS_HISTORY, reference=datetime(2025, 6, 10, 20, 0)
+        )
 
-            # Act
-            result = odds_parser.parse_odds_history_modal(self.SAMPLE_HTML_ODDS_HISTORY)
-
-            # Assert
-            assert "odds_history" in result
-            assert len(result["odds_history"]) == 2
-            assert result["odds_history"][0]["odds"] == 1.95
-            assert result["odds_history"][1]["odds"] == 1.90
-            assert "opening_odds" in result
+        assert result == {
+            "odds_history": [
+                {"timestamp": "2025-06-10T14:30:00", "odds": 1.95},
+                {"timestamp": "2025-06-10T12:00:00", "odds": 1.90},
+            ],
+            "opening_odds": {"timestamp": "2025-06-10T08:00:00", "odds": 1.85},
+        }
 
     def test_parse_odds_history_modal_invalid_html(self, odds_parser):
         """An unreadable modal gives the empty block, never {}."""
@@ -236,21 +256,12 @@ class TestOddsParser:
         assert result == {"odds_history": [], "opening_odds": None}
 
     def test_parse_odds_history_modal_invalid_date(self, odds_parser):
-        """Test parsing odds history with invalid date format."""
-        # Arrange
-        with patch("oddsharvester.core.market_extraction.odds_parser.datetime") as mock_datetime:
-            mock_now = MagicMock()
-            mock_now.year = 2025
-            mock_datetime.now.return_value = mock_now
-            # Force ValueError on strptime
-            mock_datetime.strptime.side_effect = ValueError("Invalid date format")
+        """A timestamp that does not parse drops its own point; the opening odds go the same way."""
+        html = self._history_html([("10 Jun, 14:30", "1.95"), ("Yesterday", "1.90")], opening=("Opened early", "1.85"))
 
-            # Act
-            result = odds_parser.parse_odds_history_modal(self.SAMPLE_HTML_ODDS_HISTORY)
+        result = odds_parser.parse_odds_history_modal(html, reference=datetime(2025, 6, 10, 20, 0))
 
-            # Assert
-            assert "odds_history" in result
-            assert len(result["odds_history"]) == 0
+        assert result == {"odds_history": [{"timestamp": "2025-06-10T14:30:00", "odds": 1.95}], "opening_odds": None}
 
     def test_parse_odds_history_modal_fractional_odds(self, odds_parser):
         """Test parsing odds history when bookmaker returns fractional odds."""
@@ -277,21 +288,16 @@ class TestOddsParser:
             </div>
         </div>
         """
-        with patch("oddsharvester.core.market_extraction.odds_parser.datetime") as mock_datetime:
-            mock_now = MagicMock()
-            mock_now.year = 2025
-            mock_datetime.now.return_value = mock_now
-            mock_datetime.strptime.side_effect = lambda *args, **kwargs: __import__("datetime").datetime.strptime(
-                *args, **kwargs
-            )
+        result = odds_parser.parse_odds_history_modal(fractional_html, reference=datetime(2025, 6, 10, 20, 0))
 
-            result = odds_parser.parse_odds_history_modal(fractional_html)
-
-            assert "odds_history" in result
-            assert len(result["odds_history"]) == 2
-            assert result["odds_history"][0]["odds"] == pytest.approx(1.8)  # 4/5 + 1
-            assert result["odds_history"][1]["odds"] == pytest.approx(2.05)  # 21/20 + 1
-            assert result["opening_odds"]["odds"] == pytest.approx(5.5)  # 9/2 + 1
+        assert [point["timestamp"] for point in result["odds_history"]] == [
+            "2025-06-10T14:30:00",
+            "2025-06-10T12:00:00",
+        ]
+        assert result["odds_history"][0]["odds"] == pytest.approx(1.8)  # 4/5 + 1
+        assert result["odds_history"][1]["odds"] == pytest.approx(2.05)  # 21/20 + 1
+        assert result["opening_odds"]["timestamp"] == "2025-06-10T08:00:00"
+        assert result["opening_odds"]["odds"] == pytest.approx(5.5)  # 9/2 + 1
 
     def test_parse_market_odds_bookmaker_name_fallback_a_tag(self, odds_parser):
         """Name resolution falls back to <a title> on rows showing only a logo."""

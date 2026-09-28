@@ -2587,6 +2587,14 @@ def test_history_reference_crosses_new_year_in_the_browser_timezone():
     assert _history_reference("2025-12-31 23:30:00 UTC", "Asia/Tokyo") == datetime(2026, 1, 1, 8, 30)
 
 
+def test_history_reference_follows_the_london_clock_changes():
+    """Kickoffs on the two 2026 Europe/London clock-change days, either side of the switch."""
+    assert _history_reference("2026-03-29 00:30:00 UTC", "Europe/London") == datetime(2026, 3, 29, 0, 30)
+    assert _history_reference("2026-03-29 14:00:00 UTC", "Europe/London") == datetime(2026, 3, 29, 15, 0)
+    assert _history_reference("2026-10-25 00:30:00 UTC", "Europe/London") == datetime(2026, 10, 25, 1, 30)
+    assert _history_reference("2026-10-25 14:00:00 UTC", "Europe/London") == datetime(2026, 10, 25, 14, 0)
+
+
 def test_history_reference_defaults_to_utc():
     assert _history_reference("2026-01-04 18:30:00 UTC", None) == datetime(2026, 1, 4, 18, 30)
     assert _history_reference("2026-01-04 18:30:00 UTC", "Not/AZone") == datetime(2026, 1, 4, 18, 30)
