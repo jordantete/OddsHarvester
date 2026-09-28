@@ -201,3 +201,10 @@ class TestPageScroller:
 
         result = await scroller.scroll_until_loaded(mock_page, timeout=1, scroll_pause_time=0.1, max_scroll_attempts=2)
         assert result is True
+
+
+def test_listing_scroll_pace_matches_what_the_listings_always_used():
+    """E1: the three listings passed 2 s / 3 attempts in-line; the constants now carry those values."""
+    from oddsharvester.utils.constants import MAX_SCROLL_ATTEMPTS, SCROLL_PAUSE_S
+
+    assert (SCROLL_PAUSE_S, MAX_SCROLL_ATTEMPTS) == (2, 3)

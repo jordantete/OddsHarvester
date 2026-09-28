@@ -195,8 +195,6 @@ class OddsPortalScraper(BaseScraper):
             scroll_success = await self.scroller.scroll_until_loaded(
                 page=tab,
                 timeout=30,
-                scroll_pause_time=2,
-                max_scroll_attempts=3,
                 content_check_selector=OddsPortalSelectors.LISTING_ROW_SELECTOR,
             )
             if not scroll_success:
@@ -270,8 +268,6 @@ class OddsPortalScraper(BaseScraper):
             await self.scroller.scroll_until_loaded(
                 page=current_page,
                 timeout=30,
-                scroll_pause_time=2,
-                max_scroll_attempts=3,
                 content_check_selector=OddsPortalSelectors.LISTING_ROW_SELECTOR,
             )
 
@@ -537,8 +533,6 @@ class OddsPortalScraper(BaseScraper):
                 scroll_success = await self.scroller.scroll_until_loaded(
                     page=tab,
                     timeout=30,
-                    scroll_pause_time=2,
-                    max_scroll_attempts=3,
                     content_check_selector=OddsPortalSelectors.LISTING_ROW_SELECTOR,
                 )
                 if not scroll_success:
