@@ -1,12 +1,12 @@
 """Comparison utilities for integration testing."""
 
 from collections import Counter
-import re
 from typing import Any
 
 MARKET_SUFFIX = "_market"
 IGNORED_FIELDS = frozenset({"scraped_date"})
-_YEAR = re.compile(r"^\d{4}-")
+VALUE_WIDTH = 120
+_MISSING = "<missing>"
 
 
 class ComparisonResult:
@@ -69,13 +69,8 @@ def compare_market(market: str, actual: list[dict[str, Any]], expected: list[dic
             result.add_error(f"{market}: entry {key} missing from actual")
         elif key not in expected_by_key:
             result.add_error(f"{market}: entry {key} not in fixture")
-        else:
-            actual_entry = _mask_history_years(actual_by_key[key])
-            expected_entry = _mask_history_years(expected_by_key[key])
-            if actual_entry != expected_entry:
-                result.add_error(
-                    f"{market}: entry {key} differs: actual={actual_entry!r} vs expected={expected_entry!r}"
-                )
+        elif actual_by_key[key] != expected_by_key[key]:
+            result.add_error(_entry_difference(market, key, actual_by_key[key], expected_by_key[key]))
     return result
 
 
@@ -92,26 +87,16 @@ def _index_entries(
     return {_entry_key(entry): entry for entry in entries}
 
 
-def _mask_history_years(entry: dict[str, Any]) -> dict[str, Any]:
-    # The history parser stamps the run's year on every timestamp, so it varies with the replay date.
-    blocks = entry.get("odds_history_data")
-    if not blocks:
-        return entry
-    return {**entry, "odds_history_data": [_mask_block(block) for block in blocks]}
+def _entry_difference(market: str, key: tuple[Any, Any, Any], actual: dict[str, Any], expected: dict[str, Any]) -> str:
+    """One line naming the differing fields, each with its actual and expected value cut to VALUE_WIDTH."""
+    union = actual.keys() | expected.keys()
+    fields = sorted((f for f in union if actual.get(f, _MISSING) != expected.get(f, _MISSING)), key=str)
+    details = "; ".join(
+        f"{f!r}: actual={_clip(actual.get(f, _MISSING))} vs expected={_clip(expected.get(f, _MISSING))}" for f in fields
+    )
+    return f"{market}: entry {key} differs in {fields}; {details}"
 
 
-def _mask_block(block: Any) -> Any:
-    if not isinstance(block, dict):
-        return block
-    masked = dict(block)
-    if isinstance(block.get("odds_history"), list):
-        masked["odds_history"] = [_mask_point(point) for point in block["odds_history"]]
-    if isinstance(block.get("opening_odds"), dict):
-        masked["opening_odds"] = _mask_point(block["opening_odds"])
-    return masked
-
-
-def _mask_point(point: Any) -> Any:
-    if isinstance(point, dict) and isinstance(point.get("timestamp"), str):
-        return {**point, "timestamp": _YEAR.sub("YYYY-", point["timestamp"])}
-    return point
+def _clip(value: Any) -> str:
+    text = repr(value)
+    return text if len(text) <= VALUE_WIDTH else text[: VALUE_WIDTH - 3] + "..."

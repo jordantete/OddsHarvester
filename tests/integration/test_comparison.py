@@ -80,6 +80,17 @@ def test_changed_odd_fails(match):
     assert not compare_match_data(actual, match).passed
 
 
+def test_one_differing_field_gives_one_short_line_naming_it(match):
+    actual = copy.deepcopy(match)
+    _entry(actual, "Betclic.fr")["1"] = "3.51"
+
+    result = compare_match_data(actual, match)
+
+    assert result.errors == [
+        "1x2_market: entry ('Betclic.fr', 'FullTime', '1X2') differs in ['1']; '1': actual='3.51' vs expected='3.50'"
+    ]
+
+
 def test_extra_market_fails(match):
     actual = copy.deepcopy(match)
     actual["btts_market"] = []
@@ -108,13 +119,19 @@ def test_duplicate_entry_fails(match):
     assert "2 times" in str(result)
 
 
-def test_history_year_difference_is_ignored(match):
+def test_history_year_difference_fails(match):
     expected = _with_history(match)
     actual = copy.deepcopy(expected)
     block = actual["1x2_market"][0]["odds_history_data"][0]
     block["odds_history"][0]["timestamp"] = "2027-01-03T14:57:00"
     block["opening_odds"]["timestamp"] = "2027-12-20T10:00:00"
-    assert compare_match_data(actual, expected).passed
+
+    result = compare_match_data(actual, expected)
+
+    [error] = result.errors
+    assert error.startswith("1x2_market: entry ('Betclic.fr', 'FullTime', '1X2') differs in ['odds_history_data']; ")
+    # Both history values are longer than VALUE_WIDTH, so both are cut.
+    assert error.count("...") == 2
 
 
 def test_history_month_difference_fails(match):
