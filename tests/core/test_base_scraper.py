@@ -892,11 +892,14 @@ async def test_extract_match_odds_warms_non_default_contexts(setup_base_scraper_
     scraper = mocks["scraper"]
     pm = mocks["playwright_manager_mock"]
     pm.non_default_context_keys = MagicMock(return_value=["http://b.example.com:2"])
+    mocks["page_mock"].url = "https://www.oddsportal.com/"
+    _odds_dropdown(mocks["page_mock"], "Decimal Odds", [])
 
     await scraper.extract_match_odds(sport="football", match_links=[], markets=["1x2"])
 
     pm.new_page_on_key.assert_awaited_with("http://b.example.com:2")
     assert "http://b.example.com:2" in scraper._warmed_proxy_keys
+    pm.blacklist_proxy.assert_not_called()
 
 
 async def test_warm_failure_blacklists_proxy(setup_base_scraper_mocks):
