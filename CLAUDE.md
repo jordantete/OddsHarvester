@@ -129,7 +129,8 @@ Integration tests run in **HAR replay mode by default** (deterministic, no netwo
 **Modes:**
 
 - Default (`pytest tests/integration/ -m integration`) — replay only, `live_only` tests skipped.
-- `--live` — bypass HAR, hit OddsPortal directly (slow, flaky on fixture drift; for nightly checks and re-capture).
+- `--live`: bypass HAR and hit OddsPortal directly. Golden comparisons then check structure only (every golden field present, the markets the golden fills non-empty, the entry keys its entries share), since odds and the bookmaker panel move; replay stays an exact compare (`compare_golden` in `tests/integration/helpers/comparison.py`).
+- Weekly health check: `.github/workflows/scraper_health_check.yml` runs `uv run pytest tests/integration -m live_only --live -q` every Monday at 11:00 UTC and on demand (`workflow_dispatch`). A red run means a scrape broke against the live site; a self-discovering test with nothing in play skips. GitHub disables the scheduled workflows of a public repo after 60 days without activity: re-enable it from the Actions tab.
 
 **Capture / refresh:**
 
@@ -138,11 +139,14 @@ Integration tests run in **HAR replay mode by default** (deterministic, no netwo
 uv run python -m tests.integration.helpers.capture --sport football --league premier-league \
     --match-url "https://..." --markets "1x2" --period "full_time" --bookies-filter "all" --capture-har
 
-# Bulk re-capture
+# Every fixture, or one kind (matches, community, team, live)
 uv run python scripts/capture_all_hars.py
+uv run python scripts/capture_all_hars.py --only community
+# List every HAR and its command, no network
+uv run python scripts/capture_all_hars.py --dry-run
 ```
 
-Recapture on parsing changes, Playwright upgrades, or quarterly.
+`scripts/capture_all_hars.py` derives match captures from each `metadata.json` and fixture name, and holds the exact command of the other fixtures (community, team, live listing, odds history) in `SPECIAL_FIXTURES`. A community, team or live capture replaces the committed HAR and golden only when its command succeeded and wrote records. Recapture on parsing changes, Playwright upgrades, or quarterly.
 
 **`live_only` tests:** tests that exercise listing walks and other flows against the real site (no HAR); skipped by default, run with `--live`. The pre-redesign "H2H fragment + cache-busted AJAX" replay limit is gone: since the 2026-08 redesign the SPA fetches match data by the fragment event id with stable URLs, so every match-page fixture replays deterministically (gotchas §19). One residual: the community profile Feed AJAX is still cache-busted, so profile predictions are live-verified only.
 

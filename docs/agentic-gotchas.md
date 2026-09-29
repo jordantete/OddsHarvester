@@ -473,26 +473,31 @@ live: `1X2`, `home-away`, `over-under`, `ah`, `eh`, `bts`, `cs`, `double`, `dnb`
 (plus out-of-scope `ht-ft`, `odd-even`). The map lives in
 `OddsPortalSelectors.MARKET_TAB_CODES`, keyed by the English `main_market` label.
 
-`MarketTabNavigator.navigate_to_tab` keeps label matching as the fast path
-(unchanged on `.com`) and, only when it fails, falls back to `_navigate_by_code`:
-click each tab, read `location.hash`, match the code. The `More` overflow button
-is opened via `data-testid="more-button"` (its text is localized too: `Más`),
-and its expanded state is detected via the `.drop-arrow-hide` arrow element, not
-text. `NavigationManager.wait_for_market_switch` likewise confirms the active
-market via the URL code first, falling back to label text.
+Since the 2026-08 redesign the fragment drives the tab bar itself (§19).
+`MarketTabNavigator.navigate_to_tab` (`core/browser/market_navigation.py`)
+tries two paths in order:
 
-Two non-obvious traps for the next contributor:
+1. **Hash.** `_navigate_by_hash` reads the event id and the current `;<scope>`
+   from the page URL and runs `HASH_SWITCH_JS`, which writes
+   `#<id>:<code>;<scope>` into `location.hash` and dispatches a
+   `HashChangeEvent`. The SPA re-renders the match view on that event, and the
+   period survives the market switch. The path succeeds only when the URL then
+   carries the requested code and the tab bar (`li.tab-item`) has rendered. It
+   is skipped on in-play pages (`/inplay-odds/`), which route their own codes
+   (`O/U`, not `over-under`), and for a market missing from `MARKET_TAB_CODES`.
+2. **Click.** `_click_tab_by_text` clicks the first `li.tab-item` whose text
+   contains the English market name, then checks that the bold (active) tab
+   carries that name. This path reads labels, so on a localized mirror only the
+   hash path can reach a market.
 
-1. **You cannot navigate markets by setting `location.hash` directly.** The SPA's
-   market router ignores a synthetic `hashchange` for market switching (unlike the
-   match-id resync trick in §1 / issue #60). Only a real tab **click** drives it —
-   which is why the fallback clicks tabs and *reads* the resulting code rather than
-   writing it.
-2. **`main_market="Handicap"` (rugby) has no matching tab.** OddsPortal only has
-   `Asian Handicap`/`European Handicap`. The old substring match resolved
-   `"Handicap"` to the first tab containing it (`Asian Handicap`); the code map
-   pins `"Handicap" → "ah"` to preserve that exact behaviour. Revisit if rugby
-   handicap is ever meant to be European (`eh`).
+`NavigationManager.wait_for_market_switch` confirms the active market through
+the URL code first, then through the active tab's text.
+
+One trap when extending the code map: **`main_market="Handicap"` (rugby) has no
+matching tab.** OddsPortal only has `Asian Handicap`/`European Handicap`. The
+old substring match resolved `"Handicap"` to the first tab containing it
+(`Asian Handicap`); the code map pins `"Handicap" → "ah"` to preserve that exact
+behaviour. Revisit if rugby handicap is ever meant to be European (`eh`).
 
 ### The label trap recurs below the tab — submarket lines (issue #70 follow-up)
 
@@ -532,12 +537,14 @@ period is the `;<scope>` segment of the fragment (`…:over-under;2`). Scope ids
 are **global OddsPortal period ids, identical across mirrors and across sports**
 (verified live: `FullTime`=2 on football/tennis/baseball, `1st Set`=12 on `.com`
 *and* `cuotasahora.com`, football `1st Half`=3 / `2nd Half`=4, baseball
-`FT incl. OT`=1). `PeriodSelector.select_by_scope` reads the current scope
-(no click if already correct — the common Full-Time case) else clicks each period
-tab and re-reads the scope until it matches. It returns `True` **only on an exact
-scope match**, so a wrong period is never silently selected; `None` when the
-`(sport, period)` scope is not in the verified map, which makes the extractor
-fall back to the old label matching (unchanged on `.com`).
+`FT incl. OT`=1). `PeriodSelector.select_by_scope` (`core/browser/selection.py`)
+reads the current scope and stops there when it already matches (the common
+Full-Time case); otherwise it rewrites the fragment to `#<id>:<code>;<target>`
+with the same `HASH_SWITCH_JS` as the market switch, then re-reads the scope.
+It returns `True` **only on an exact scope match**, so a wrong period is never
+silently selected; `None` when the `(sport, period)` scope is not in the
+verified map, which makes the extractor fall back to the old label matching
+(unchanged on `.com`).
 
 Two traps when extending the scope map (`OddsPortalSelectors.PERIOD_SCOPE_CODES_*`):
 
@@ -1164,10 +1171,12 @@ A live HAR is not a frozen instant. The page self-refreshes via first-party
 `.dat` feeds, and recording in `record_har_mode="full"` stores every snapshot
 that arrived during capture. On replay, timing selects one of them, so
 `live_period` and `live_score` are non-deterministic across replays of the same
-HAR (a match captured at `Half-time` replayed later as `49'`). A replay test must
-assert the *shape* of the live context (a period marker is present, the score
-matches `\d+:\d+`) and the *fixed identity* of the match (teams, league, date,
-odds table), never the captured period or score value.
+HAR (a match captured at `Half-time` replayed later as `49'`). Since an in-play
+page does not replay at all (next subsection), the live context is checked by
+the self-discovering live test instead (`test_live_snapshot_self_discovering`,
+run with `--live` and by the weekly health check). It asserts the *shape* of
+each record (a UTC scrape timestamp, the `live_period` and `live_score_raw`
+keys, no finished match) and never a captured period or score value.
 
 ### An in-play page does not replay from a HAR
 
@@ -1199,8 +1208,9 @@ Investigated 2026-07-26, five causes ruled out by isolated experiment:
 
 The remaining suspect is state the HAR cannot hold (a real-time channel, or
 responses served from the browser HTTP cache during capture and therefore never
-recorded — `MyBookmarks` is provably in that category). Same family as the H2H
-fragment limit in the `live_only` tests.
+recorded; `MyBookmarks` is provably in that category). Pre-match H2H fragment
+pages had a similar replay limit until the 2026-08 redesign; they replay since
+(§19), so the in-play view is the one match view left that a HAR cannot serve.
 
 Consequence: do not write a replay test that asserts the live header. The one
 written for the 2026-07-20 capture was deleted with its HAR in 2026-09: it could
