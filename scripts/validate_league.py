@@ -62,8 +62,6 @@ async def load_listing(page: Page, scraper: OddsPortalScraper, url: str) -> None
     await scraper.scroller.scroll_until_loaded(
         page=page,
         timeout=30,
-        scroll_pause_time=2,
-        max_scroll_attempts=3,
         content_check_selector=OddsPortalSelectors.LISTING_ROW_SELECTOR,
     )
 

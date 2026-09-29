@@ -1,19 +1,12 @@
 """Integration tests for cricket scraping.
 
-Unlike every other sport, OddsPortal does NOT expose a per-bookmaker odds table on
-cricket match-detail pages. Cricket detail pages render "No odds available for this
-match" and their `home_away_market` comes back empty, even for marquee internationals
-(verified on England vs India, One Day International) and even through a non-France
-proxy. The listing pages show aggregate teaser odds only. See docs/agentic-gotchas.md.
-
-So this test is the inverse of the other sports' regression guards: it asserts that
-cricket scraping extracts match metadata correctly end-to-end (teams, league,
-structure) AND that `home_away_market` is empty, which is the real, current OddsPortal
-behavior. It guards the cricket wiring (a parsing regression would corrupt the metadata
-or crash) without asserting odds that the source does not provide.
+Since the 2026-08 redesign, cricket match pages carry a per-bookmaker odds table like the
+other sports (docs/agentic-gotchas.md §19, which supersedes the empty-market rule of §14).
+The test compares the full golden, then checks the teams and league and that
+`home_away_market` is non-empty with a bookmaker name on every entry.
 
 The fixture + HAR were captured via a non-France proxy (OddsPortal geo-hides cricket
-listings from France; the detail odds are absent from every region). Refresh with:
+listings from France). Refresh with:
 
     uv run python -m tests.integration.helpers.capture --sport cricket \
         --league one-day-international \
@@ -36,14 +29,10 @@ ENGLAND_INDIA_MATCH = {
 
 @pytest.mark.integration
 class TestCricketBasicMarkets:
-    """Regression tests for cricket scraping (metadata extraction; odds absent on OddsPortal)."""
+    """Regression tests for cricket scraping (metadata and per-bookmaker odds)."""
 
     def test_ck_001_home_away_full_including_ot(self, har_for_match, tmp_path):
-        """CK-001: Cricket home_away, full match, all bookies.
-
-        Metadata must be extracted correctly; home_away_market is empty because
-        OddsPortal exposes no per-bookmaker odds table for cricket.
-        """
+        """CK-001: Cricket home_away, full match, all bookies: metadata and per-bookmaker odds."""
         actual = replay_and_compare(
             har_for_match,
             tmp_path,

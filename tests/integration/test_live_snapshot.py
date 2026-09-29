@@ -29,9 +29,6 @@ REPLAY_MATCH = {
     "match_id": "samgurali-spaeri-0nx5GXqB",
 }
 
-# Wall-clock fields: they legitimately differ on every run.
-VOLATILE_FIELDS = {"scraped_at_utc", "scraped_date"}
-
 # Ordered by how likely each sport is to have something in play at an arbitrary hour.
 CANDIDATE_SPORTS = [("tennis", "match_winner"), ("basketball", "home_away"), ("football", "1x2")]
 

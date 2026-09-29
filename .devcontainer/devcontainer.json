@@ -16,8 +16,7 @@
     "vscode": {
       "settings": {
         "terminal.integrated.shell.linux": "/bin/bash",
-        "python.pythonPath": "/var/task/src/main.py",
-        "python.defaultInterpreterPath": "/usr/bin/python3"
+        "python.defaultInterpreterPath": "/app/.venv/bin/python"
       },
       "extensions": [
         "ms-python.python",
