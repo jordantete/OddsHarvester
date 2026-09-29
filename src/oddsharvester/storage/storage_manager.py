@@ -1,5 +1,6 @@
 import logging
 
+from oddsharvester.storage.remote_data_storage import S3UploadError
 from oddsharvester.storage.storage_format import StorageFormat
 from oddsharvester.storage.storage_type import StorageType
 
@@ -15,21 +16,20 @@ def store_data(
 ):
     """Handles storing data in the chosen storage type.
 
-    When ``append`` is True and the storage is local, the new data is concatenated to
-    any existing file at ``file_path``. When False (default), the file is overwritten.
-    Remote storage ignores ``append``.
+    Both storage types write the local file at ``file_path``; ``append`` concatenates the new data to
+    it, otherwise it is overwritten. Remote storage then uploads that file. False when the local write
+    fails; an upload failure raises S3UploadError instead, since the local file already holds the data.
     """
     try:
         storage_enum = StorageType(storage_type)
         storage = storage_enum.get_storage_instance()
-
-        if storage_type == StorageType.REMOTE.value:
-            storage.process_and_upload(data=data, file_path=file_path)
-        else:
-            storage.save_data(data=data, file_path=file_path, storage_format=storage_format, append=append)
+        storage.save_data(data=data, file_path=file_path, storage_format=storage_format, append=append)
 
         logger.info(f"Successfully stored {len(data)} records.")
         return True
+
+    except S3UploadError:
+        raise
 
     except Exception as e:
         logger.error(f"Error during data storage: {e!s}", exc_info=True)

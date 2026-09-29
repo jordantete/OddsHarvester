@@ -7,6 +7,7 @@ import click
 
 from oddsharvester.core.scrape_result import ErrorType, ScrapeResult
 from oddsharvester.storage.local_data_storage import LocalDataStorage
+from oddsharvester.storage.remote_data_storage import S3UploadError
 from oddsharvester.storage.storage_format import StorageFormat
 from oddsharvester.storage.storage_manager import store_data
 
@@ -16,16 +17,28 @@ _EXTENSIONS = (".json", ".csv")
 
 
 def write_output(data: list[dict], kwargs: dict, storage, storage_format) -> bool:
-    """Store the batch; when that fails, save it to a local JSON fallback and say where. False on failure."""
+    """Store the batch; when that fails, save it to a local JSON fallback and say where. False on failure.
+
+    A failed upload needs no fallback: the local file already holds the batch, so the message names it.
+    """
     file_path = kwargs.get("file_path")
     fmt = storage_format.value if storage_format else "json"
-    if store_data(
-        storage_type=storage.value if storage else "local",
-        data=data,
-        storage_format=fmt,
-        file_path=file_path,
-        append=kwargs.get("append", False),
-    ):
+    try:
+        stored = store_data(
+            storage_type=storage.value if storage else "local",
+            data=data,
+            storage_format=fmt,
+            file_path=file_path,
+            append=kwargs.get("append", False),
+        )
+    except S3UploadError as e:
+        click.echo(
+            f"The {len(data)} records were written to {e.local_path}, but uploading them to {e.s3_uri} failed: "
+            f"{e.error}",
+            err=True,
+        )
+        return False
+    if stored:
         return True
 
     target = _target_path(file_path, fmt)

@@ -11,6 +11,7 @@ from oddsharvester.cli.options import common_options, merged_match_links
 from oddsharvester.cli.validators import validate_date
 from oddsharvester.core.scraper_app import run_scraper
 from oddsharvester.storage.ndjson_stream import NdjsonStreamWriter
+from oddsharvester.storage.storage_type import StorageType
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,10 @@ def upcoming(**kwargs):
     stream_ndjson = kwargs.get("stream_ndjson", False)
     if stream_ndjson and links_only:
         raise click.UsageError("--stream-ndjson cannot be combined with --links-only (no match records are produced).")
+    if stream_ndjson and kwargs["storage"] is StorageType.REMOTE and not kwargs.get("file_path"):
+        raise click.UsageError(
+            "--storage remote with --stream-ndjson needs --output: the stream alone writes no file to upload."
+        )
     stream_writer = NdjsonStreamWriter() if stream_ndjson else None
 
     # Convert enums to values for the scraper

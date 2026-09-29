@@ -21,7 +21,7 @@ def test_storage_type_remote(monkeypatch):
 
     storage_instance = storage_type.get_storage_instance()
     assert storage_instance is not None
-    assert hasattr(storage_instance, "process_and_upload")
+    assert hasattr(storage_instance, "save_data")
 
 
 def test_storage_type_invalid():

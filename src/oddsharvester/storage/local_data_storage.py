@@ -35,7 +35,7 @@ class LocalDataStorage:
         file_path: str | None = None,
         storage_format: StorageFormat | None = None,
         append: bool = False,
-    ):
+    ) -> str:
         """
         Save scraped data to a local CSV or JSON file.
 
@@ -45,6 +45,9 @@ class LocalDataStorage:
             storage_format (StorageFormat, optional): The format to save the data in ("csv" or "json").
             Defaults to `self.default_storage_format`.
             append (bool): When True, append to the existing file; when False (default), overwrite it.
+
+        Returns:
+            str: The path written, with the format's extension added when it was missing.
 
         Raises:
             ValueError: If the data is not in the correct format (dict or list of dicts).
@@ -75,6 +78,8 @@ class LocalDataStorage:
             self._save_as_json(data, target_file_path, append=append)
         else:
             raise ValueError("Unsupported file format.")
+
+        return target_file_path
 
     def _save_as_csv(self, data: list[dict], file_path: str, append: bool = False):
         """Save data in CSV format. Overwrites by default; appends when append=True."""

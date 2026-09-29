@@ -291,7 +291,7 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 
 | Option      | Short | Description                                                                | Default        |
 | ----------- | ----- | -------------------------------------------------------------------------- | -------------- |
-| `--storage` |       | `local` or `remote` (S3)                                                   | `local`        |
+| `--storage` |       | `local` or `remote` (S3, see [Uploading to S3](#uploading-to-s3))            | `local`        |
 | `--format`  | `-f`  | `json` or `csv`                                                            | `json`         |
 | `--output`  | `-o`  | Output file path                                                           | `scraped_data` |
 | `--append`  |       | Append to the output file instead of overwriting it (`--no-append` to opt out explicitly) | `--no-append`  |
@@ -491,6 +491,27 @@ Failures are not streamed: they stay visible on stderr and in the exit code. Ava
 `upcoming`, `historic` and `live`; not compatible with `--links-only`, which never visits match
 pages. A run that spans several leagues or seasons streams every match into one flat sequence with
 no marker between combos.
+
+### Uploading to S3
+
+`--storage remote` writes the output file exactly as `--storage local` does, then uploads that file
+to an S3 bucket:
+
+```bash
+pip install 'oddsharvester[s3]'
+export OH_S3_BUCKET=my-odds-bucket
+export OH_AWS_REGION=eu-west-1   # optional, default eu-west-3
+oddsharvester historic -s football -l england-premier-league --season 2024-2025 -m 1x2 \
+    --storage remote -f csv -o data/epl.csv
+```
+
+The object key is the local path as written: `data/epl.csv` above, `scraped_data.json` without
+`--output`. The local file stays on disk, and `--format` and `--append` apply to it as they do
+locally, so each run uploads the whole file. Credentials come from the usual AWS sources
+(environment variables, `~/.aws/credentials`, an instance role). When the upload fails, the command
+exits 1 and names both the local file that holds the records and the `s3://` location it could not
+reach. With `--stream-ndjson`, remote storage needs `--output`, since the stream alone writes no
+file to upload.
 
 ### Blocked odds
 

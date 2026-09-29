@@ -1,7 +1,8 @@
-import json
 import logging
 import os
-from typing import Any
+
+from oddsharvester.storage.local_data_storage import LocalDataStorage
+from oddsharvester.storage.storage_format import StorageFormat
 
 _DEFAULT_AWS_REGION = "eu-west-3"
 
@@ -11,7 +12,19 @@ def s3_bucket() -> str:
     return os.environ.get("OH_S3_BUCKET", "").strip()
 
 
+class S3UploadError(Exception):
+    """The batch reached the local file but not the bucket."""
+
+    def __init__(self, local_path: str, s3_uri: str, error: Exception):
+        super().__init__(f"Upload of {local_path} to {s3_uri} failed: {error}")
+        self.local_path = local_path
+        self.s3_uri = s3_uri
+        self.error = error
+
+
 class RemoteDataStorage:
+    """Writes the output file as local storage does, then uploads that file to the S3 bucket."""
+
     def __init__(self):
         """
         Initializes the RemoteDataStorage class with an S3 client and logger.
@@ -28,61 +41,35 @@ class RemoteDataStorage:
             raise ValueError("Remote storage needs a bucket: export OH_S3_BUCKET=<bucket>")
         self.region = os.environ.get("OH_AWS_REGION", "").strip() or _DEFAULT_AWS_REGION
         self.s3_client = boto3.client("s3", region_name=self.region)
+        self.local_storage = LocalDataStorage()
         self.logger.info(f"RemoteDataStorage initialized for region: {self.region} and bucket: {self.bucket}")
 
-    def _save_to_json(self, data: list[dict[str, Any]], file_name: str) -> None:
+    def save_data(
+        self,
+        data: dict | list[dict],
+        file_path: str | None = None,
+        storage_format: StorageFormat | None = None,
+        append: bool = False,
+    ) -> str:
         """
-        Saves the data to a JSON file locally.
+        Write the local file exactly as local storage does, then upload it with its path as the object key.
 
-        Args:
-            data: The raw scraped data.
-            file_name: The name of the JSON file.
+        Returns:
+            str: The local path written, which is also the object key.
+
+        Raises:
+            S3UploadError: If the local file was written but the upload failed.
+            Exception: Whatever the local write raised; nothing is uploaded then.
         """
-        self.logger.info(f"Saving data to JSON file: {file_name}")
+        local_path = self.local_storage.save_data(
+            data=data, file_path=file_path, storage_format=storage_format, append=append
+        )
+        s3_uri = f"s3://{self.bucket}/{local_path}"
         try:
-            with open(file_name, "w", encoding="utf-8") as file:
-                json.dump(data, file, indent=4)
-            self.logger.info(f"Data successfully saved to {file_name}")
-
+            self.s3_client.upload_file(local_path, self.bucket, local_path)
         except Exception as e:
-            self.logger.error(f"Failed to save data to JSON: {e}")
-            raise
+            self.logger.error(f"Failed to upload {local_path} to {s3_uri}: {e}")
+            raise S3UploadError(local_path=local_path, s3_uri=s3_uri, error=e) from e
 
-    def _upload_to_s3(self, file_name: str, object_name: str | None = None) -> None:
-        """
-        Uploads a file to the configured S3 bucket.
-
-        Args:
-            file_name: The file to upload.
-            object_name: The name of the object in S3. Defaults to the filename.
-        """
-        if object_name is None:
-            object_name = file_name
-
-        try:
-            self.logger.info(f"Uploading {file_name} to bucket {self.bucket} as {object_name}")
-            self.s3_client.upload_file(file_name, self.bucket, object_name)
-            self.logger.info(f"File uploaded successfully to {self.bucket}/{object_name}")
-
-        except Exception as e:
-            self.logger.error(f"Failed to upload {file_name} to S3: {e}")
-            raise
-
-    def process_and_upload(self, data: list[dict[str, Any]], file_path: str, object_name: str | None = None) -> None:
-        """
-        Saves data as a JSON file locally and uploads it to S3.
-
-        Args:
-            data: The raw scraped data.
-            file_path: The path of the JSON file.
-            object_name: The name of the object in S3. Defaults to the filename.
-        """
-        try:
-            self.logger.info("Starting the process to save and upload data.")
-            self._save_to_json(data=data, file_name=file_path)
-            self._upload_to_s3(file_name=file_path, object_name=object_name)
-            self.logger.info("Data processed and uploaded successfully.")
-
-        except Exception as e:
-            self.logger.error(f"Failed to process and upload data: {e}")
-            raise
+        self.logger.info(f"File uploaded successfully to {s3_uri}")
+        return local_path

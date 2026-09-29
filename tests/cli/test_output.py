@@ -1,10 +1,12 @@
 """A failed write must be visible and must not lose the scraped batch."""
 
+import csv
 import importlib.util
 import json
 import re
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
+from botocore.exceptions import NoCredentialsError
 from click.testing import CliRunner
 import pytest
 
@@ -172,4 +174,71 @@ def test_remote_without_boto3_exits_2_with_the_install_command(command, tmp_path
 
     assert result.exit_code == 2, result.output
     assert "pip install 'oddsharvester[s3]'" in result.output
+    run_mock.assert_not_awaited()
+
+
+def test_remote_csv_append_appends_to_the_local_file_and_uploads_it(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("OH_S3_BUCKET", "test-bucket")
+    monkeypatch.delenv("OH_AWS_REGION", raising=False)
+    (tmp_path / "out.csv").write_text("match_link,home_team\r\nhttps://x/old,Old\r\n", encoding="utf-8")
+    client = MagicMock()
+
+    with patch("boto3.client", return_value=client) as client_factory:
+        result, _ = _invoke_with_runner_mock(
+            "historic", ["--storage", "remote", "-f", "csv", "-o", "out.csv", "--append"]
+        )
+
+    assert result.exit_code == 0, result.output
+    with open(tmp_path / "out.csv", newline="", encoding="utf-8") as handle:
+        assert list(csv.DictReader(handle)) == [
+            {"match_link": "https://x/old", "home_team": "Old"},
+            {"match_link": "https://x/a", "home_team": "A"},
+        ]
+    client_factory.assert_called_once_with("s3", region_name="eu-west-3")
+    client.upload_file.assert_called_once_with("out.csv", "test-bucket", "out.csv")
+    assert not list(tmp_path.glob("*.unsaved-*"))
+
+
+def test_remote_without_output_writes_and_uploads_the_default_file(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("OH_S3_BUCKET", "test-bucket")
+    client = MagicMock()
+
+    with patch("boto3.client", return_value=client):
+        result, _ = _invoke_with_runner_mock("upcoming", ["--storage", "remote", "-f", "csv"])
+
+    assert result.exit_code == 0, result.output
+    with open(tmp_path / "scraped_data.csv", newline="", encoding="utf-8") as handle:
+        assert list(csv.DictReader(handle)) == RECORDS
+    client.upload_file.assert_called_once_with("scraped_data.csv", "test-bucket", "scraped_data.csv")
+
+
+@pytest.mark.parametrize("command", list(CASES))
+def test_failed_upload_exits_1_and_names_both_locations(command, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("OH_S3_BUCKET", "test-bucket")
+    client = MagicMock()
+    client.upload_file.side_effect = NoCredentialsError()
+
+    with patch("boto3.client", return_value=client):
+        result, _ = _invoke_with_runner_mock(command, ["--storage", "remote", "-o", "out.json"])
+
+    assert result.exit_code == 1, result.output
+    assert json.loads((tmp_path / "out.json").read_text(encoding="utf-8")) == RECORDS
+    assert "written to out.json" in result.stderr
+    assert "s3://test-bucket/out.json" in result.stderr
+    assert "Unable to locate credentials" in result.stderr
+    assert not list(tmp_path.glob("*.unsaved-*"))
+
+
+@pytest.mark.parametrize("command", ["upcoming", "historic", "live"])
+def test_remote_stream_without_output_exits_2_before_scraping(command, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("OH_S3_BUCKET", "test-bucket")
+
+    result, run_mock = _invoke_with_runner_mock(command, ["--storage", "remote", "--stream-ndjson"])
+
+    assert result.exit_code == 2, result.output
+    assert "--stream-ndjson needs --output" in result.output
     run_mock.assert_not_awaited()

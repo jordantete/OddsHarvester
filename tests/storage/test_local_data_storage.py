@@ -69,6 +69,19 @@ def test_save_data_propagates_append(local_data_storage, sample_data):
         mock_save.assert_called_once_with(sample_data, "test.json", append=True)
 
 
+@pytest.mark.parametrize(
+    ("file_path", "storage_format", "written"),
+    [("out", "csv", "out.csv"), ("out.json", "json", "out.json"), (None, "json", "test_data.json")],
+)
+def test_save_data_returns_the_path_it_wrote(
+    local_data_storage, sample_data, tmp_path, monkeypatch, file_path, storage_format, written
+):
+    monkeypatch.chdir(tmp_path)
+
+    assert local_data_storage.save_data(sample_data, file_path=file_path, storage_format=storage_format) == written
+    assert (tmp_path / written).exists()
+
+
 def test_save_data_unsupported_format(local_data_storage, sample_data):
     with pytest.raises(ValueError, match=r"Invalid storage format\. Supported formats are: csv, json\."):
         local_data_storage.save_data(sample_data, storage_format="unsupported")
