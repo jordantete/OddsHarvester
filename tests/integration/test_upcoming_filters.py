@@ -55,8 +55,8 @@ def _empty_listing(exit_code: int, stderr: str) -> bool:
 
 
 def _premier_league_break(today: date) -> bool:
-    """1 June to 10 August: the Premier League has no fixture to list."""
-    return (6, 1) <= (today.month, today.day) <= (8, 10)
+    """15 May to 10 August: the Premier League has no fixture left or none published yet."""
+    return (5, 15) <= (today.month, today.day) <= (8, 10)
 
 
 @pytest.mark.integration

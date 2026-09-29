@@ -95,5 +95,6 @@ def test_match_community_command_har_replay(temp_output_dir):
     assert record["markets"], "expected at least one community market on replay"
     assert record["markets"][0]["market"] == expected["markets"][0]["market"]
     assert record["markets"] == expected["markets"]
+    assert record["is_prematch"] == expected["is_prematch"]
     for outcome in record["markets"][0]["outcomes"]:
         assert 0 <= outcome["votes_pct"] <= 100

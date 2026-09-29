@@ -129,7 +129,7 @@ Integration tests run in **HAR replay mode by default** (deterministic, no netwo
 **Modes:**
 
 - Default (`pytest tests/integration/ -m integration`) — replay only, `live_only` tests skipped.
-- `--live`: bypass HAR and hit OddsPortal directly. Golden comparisons then check structure only (every golden field present, the markets the golden fills non-empty, the entry keys its entries share), since odds and the bookmaker panel move; replay stays an exact compare (`compare_golden` in `tests/integration/helpers/comparison.py`).
+- `--live`: bypass HAR and hit OddsPortal directly. Golden comparisons then check structure only (every golden field present, the markets the golden fills non-empty, the entry keys its entries share, a field the golden fills must not come back null, venue fields excepted), since odds and the bookmaker panel move; replay stays an exact compare (`compare_golden` in `tests/integration/helpers/comparison.py`).
 - Weekly health check: `.github/workflows/scraper_health_check.yml` runs `uv run pytest tests/integration -m live_only --live -q` every Monday at 11:00 UTC and on demand (`workflow_dispatch`). A red run means a scrape broke against the live site; a self-discovering test with nothing in play skips. GitHub disables the scheduled workflows of a public repo after 60 days without activity: re-enable it from the Actions tab.
 
 **Capture / refresh:**
