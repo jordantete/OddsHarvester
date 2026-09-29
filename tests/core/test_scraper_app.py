@@ -2,6 +2,7 @@ import asyncio
 import logging
 from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
+from playwright.async_api import BrowserContext, Page
 import pytest
 
 from oddsharvester.core import scraper_app
@@ -1274,3 +1275,58 @@ async def test_run_scraper_single_league_listing_failure_returns_an_errored_resu
         {"league": "england-premier-league", "season": None, "successful": 0, "failed": 0, "errored": True}
     ]
     scraper_mock.extract_match_odds.assert_not_awaited()
+
+
+def _upcoming_scraper(tab) -> OddsPortalScraper:
+    """A scraper whose listing tab is `tab`; everything but the listing read is mocked."""
+    playwright_manager = MagicMock(spec=PlaywrightManager)
+    playwright_manager.context = AsyncMock(spec=BrowserContext)
+    playwright_manager.context.new_page = AsyncMock(return_value=tab)
+    scraper = OddsPortalScraper(
+        playwright_manager=playwright_manager,
+        market_extractor=MagicMock(spec=OddsPortalMarketExtractor),
+        scroller=AsyncMock(),
+        cookie_dismisser=AsyncMock(),
+        selection_manager=AsyncMock(),
+    )
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.extract_match_odds = AsyncMock()
+    return scraper
+
+
+async def _list_upcoming(scraper: OddsPortalScraper) -> ScrapeResult:
+    async def collect(league, season):
+        return await scraper.collect_upcoming_links(sport="football", date="20260601", league=league)
+
+    return await _run_combos(collect, [("england-premier-league", None)], scraper=scraper)
+
+
+async def test_scrape_combos_errors_an_upcoming_listing_whose_rows_cannot_be_read():
+    """B6: an extraction crash errors the combo, which the CLI reports as a failed listing and exits 1 on."""
+    tab = AsyncMock(spec=Page)
+    tab.content.side_effect = RuntimeError("renderer crashed")
+    scraper = _upcoming_scraper(tab)
+
+    result = await _list_upcoming(scraper)
+
+    assert result.combo_stats == [
+        {"league": "england-premier-league", "season": None, "successful": 0, "failed": 0, "errored": True}
+    ]
+    [failure] = result.failed
+    assert failure.error_type is ErrorType.LISTING_PAGE
+    assert failure.error_message == "Listing failed for england-premier-league: RuntimeError: renderer crashed"
+    scraper.extract_match_odds.assert_not_awaited()
+
+
+async def test_scrape_combos_keeps_an_upcoming_listing_without_rows_a_success():
+    """A league with no match on the date is an empty listing, not a failed one."""
+    tab = AsyncMock(spec=Page)
+    tab.content.return_value = "<html><body></body></html>"
+    scraper = _upcoming_scraper(tab)
+
+    result = await _list_upcoming(scraper)
+
+    assert result.combo_stats == [
+        {"league": "england-premier-league", "season": None, "successful": 0, "failed": 0, "errored": False}
+    ]
+    assert result.failed == []

@@ -553,6 +553,52 @@ async def test_collect_match_links_preserves_listing_order(setup_scraper_mocks):
     _assert_scroll_pace_left_to_the_scroller(scraper.scroller.scroll_until_loaded)
 
 
+async def test_collect_match_links_counts_an_extraction_crash_as_a_failed_page(setup_scraper_mocks):
+    """B6: a page whose rows cannot be read is a failed page, not a season that ends after page 1."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock(spec=Page)
+    tab.content.side_effect = RuntimeError("renderer crashed")
+    mocks["context_mock"].new_page = AsyncMock(return_value=tab)
+
+    result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1])
+
+    assert result.failed_pages == [1]
+    assert result.successful_pages == 0
+    assert result.links == []
+    tab.close.assert_awaited_once()
+
+
+async def test_collect_match_links_keeps_an_empty_first_page_a_success(setup_scraper_mocks):
+    """A season page that loads with no row is still a complete listing."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock(spec=Page)
+    tab.content.return_value = "<html><body></body></html>"
+    mocks["context_mock"].new_page = AsyncMock(return_value=tab)
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[])
+
+    result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1])
+
+    assert (result.failed_pages, result.successful_pages, result.links) == ([], 1, [])
+
+
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_scrape_live_raises_when_the_listing_cannot_be_read(url_builder_mock, setup_scraper_mocks):
+    """A live listing that crashes must fail the run, not read as 'no live matches'."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    url_builder_mock.get_live_matches_url.return_value = "https://oddsportal.com/inplay-odds/live-now/football/"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    mocks["page_mock"].content.side_effect = RuntimeError("Target page crashed")
+    scraper.extract_match_odds = AsyncMock()
+
+    with pytest.raises(RuntimeError, match="Target page crashed"):
+        await scraper.scrape_live(sport="football")
+
+    scraper.extract_match_odds.assert_not_awaited()
+
+
 class TestFillPaginationGaps:
     """Tests for _fill_pagination_gaps behavior."""
 
@@ -710,9 +756,8 @@ async def test_scrape_live_never_scrapes_odds_history(url_builder_mock, setup_sc
 async def test_collect_match_links_treats_empty_page_as_failure(setup_scraper_mocks):
     """A page that yields zero links has not been collected, whatever the reason.
 
-    extract_match_links swallows its exceptions and returns [], and a throttled
-    or blocked page renders no rows at all. Counting either as a successful page
-    is how a run silently returns page 1 only while reporting zero failures.
+    A throttled or blocked page renders no rows at all. Counting it as a successful
+    page is how a run silently returns page 1 only while reporting zero failures.
     """
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]

@@ -181,20 +181,13 @@ async def test_extract_match_links(setup_base_scraper_mocks):
 
 
 @patch("oddsharvester.core.base_scraper.BeautifulSoup")
-async def test_extract_match_links_error(bs4_mock, setup_base_scraper_mocks):
-    """Test handling errors when extracting match links."""
+async def test_extract_match_links_reraises_a_parsing_error(bs4_mock, setup_base_scraper_mocks):
+    """A listing that cannot be read is a failed page for the caller, never an empty one."""
     mocks = setup_base_scraper_mocks
-    scraper = mocks["scraper"]
-    page_mock = mocks["page_mock"]
+    bs4_mock.side_effect = ValueError("Parsing error")
 
-    # Mock an exception in BeautifulSoup processing
-    bs4_mock.side_effect = Exception("Parsing error")
-
-    # Call the method under test
-    result = await scraper.extract_match_links(page=page_mock)
-
-    # Verify error handling
-    assert result == []
+    with pytest.raises(ValueError, match="Parsing error"):
+        await mocks["scraper"].extract_match_links(page=mocks["page_mock"])
 
 
 # -- skip_started filter (GitHub issue #58) ---------------------------------
@@ -1729,6 +1722,15 @@ async def test_extract_live_match_links_empty_listing(setup_base_scraper_mocks):
     page_mock.content = AsyncMock(return_value="<html><body></body></html>")
 
     assert await scraper.extract_live_match_links(page=page_mock) == []
+
+
+async def test_extract_live_match_links_reraises_a_page_error(setup_base_scraper_mocks):
+    """A live listing that cannot be read must not pass for 'nothing in play'."""
+    mocks = setup_base_scraper_mocks
+    mocks["page_mock"].content = AsyncMock(side_effect=RuntimeError("Target page crashed"))
+
+    with pytest.raises(RuntimeError, match="Target page crashed"):
+        await mocks["scraper"].extract_live_match_links(page=mocks["page_mock"])
 
 
 async def test_extract_live_match_links_ignores_non_inplay_anchors(setup_base_scraper_mocks):

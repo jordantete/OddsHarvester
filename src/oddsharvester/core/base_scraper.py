@@ -480,6 +480,10 @@ class BaseScraper:
         Returns:
             List[dict]: One entry per unique match link, each carrying
                 `match_link` and `kickoff_utc` (None when undeterminable).
+
+        Raises:
+            Exception: Whatever reading or parsing the page raised, so the caller
+                records a failed listing instead of an empty one.
         """
         try:
             html_content = await page.content()
@@ -593,7 +597,7 @@ class BaseScraper:
 
         except Exception as e:
             self.logger.error(f"Error extracting match links: {e}", exc_info=True)
-            return []
+            raise
 
     async def extract_match_links(
         self,
@@ -635,6 +639,10 @@ class BaseScraper:
 
         Returns:
             List[dict]: One dict per live match: {"match_link": str}.
+
+        Raises:
+            Exception: Whatever reading or parsing the page raised, so the run
+                fails instead of reporting nothing in play.
         """
         try:
             league_path_prefix = None
@@ -693,7 +701,7 @@ class BaseScraper:
 
         except Exception as e:
             self.logger.error(f"Error extracting live match links: {e}", exc_info=True)
-            return []
+            raise
 
     async def _warm_proxy_contexts(self):
         """Warm each non-default proxy context once.
