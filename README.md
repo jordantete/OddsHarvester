@@ -79,6 +79,8 @@ oddsharvester community -s football --headless
 
 > **Umbrella tokens (football):** `over_under` and `asian_handicap` are umbrella market tokens — pass either as `--market` and it expands at scrape time to every line OddsPortal actually renders for that match (e.g. `over_under_1_5_market`, `over_under_2_5_market`, …), instead of listing each line by hand.
 
+> **Tennis and volleyball lines:** OddsPortal prints no `Sets`, `Games` or `Points` word on a line, so a tennis sets line and a games line of the same value (O/U `6.5` to `10.5`, AH `-2.5` and `+2.5`), and a volleyball sets handicap and points handicap (`-2.5`, `-1.5`, `+1.5`, `+2.5`), cannot be told apart on the page. Those markets are refused: they come back empty with a warning naming the market that shares the line.
+
 > **Cricket:** OddsPortal does not currently publish a per-bookmaker odds table for cricket, so cricket scraping returns match metadata (teams, league, score, result) with an empty odds list. The `home_away` market is wired and will populate if OddsPortal adds cricket odds.
 
 100+ leagues supported across all sports: Premier League, La Liga, Serie A, NBA, NFL, MLB, NHL, ATP/WTA Grand Slams, and [many more](src/oddsharvester/utils/sport_league_constants.py).
@@ -392,10 +394,11 @@ Matches are dispatched round-robin across the proxies; a proxy that fails 3 time
 > used to shift the remaining blocks. A market requested for a
 > non-default `--period` that cannot be verified on the page is now returned empty
 > instead of carrying another period's odds.
-> Periods are verified through the URL for full time, football `1st_half` and
-> `2nd_half`, and tennis `1st_set`; the other non-default periods rely on finding
-> their English tab label, and basketball `1st_half` and `1st_quarter` currently
-> come back empty (earlier versions returned full-game odds for them).
+> Every period is selected through its URL scope code, on `www.oddsportal.com` and
+> on regional mirrors alike, and a non-default period is kept only when its tab is
+> the one on screen: a period the match does not offer (for example NFL `2nd_half`
+> or baseball `full_time` on a match without that tab) comes back empty instead of
+> carrying the default period's odds.
 
 <details>
 <summary><strong>Preview Mode vs Full Mode</strong></summary>

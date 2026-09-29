@@ -509,17 +509,31 @@ resolved correctly but `over_under` markets still returned `[]` on
 full English label `"Over/Under +20.5 Games"` and the row reads
 `"Más/Menos de +20.5 Games"`.
 
-**The fix — match the untranslated tail, not the full label.** Only the
-main-market *prefix* is translated (`Over/Under` → `Más/Menos de`); the numeric
-line and axis word (`+20.5 Games`, `-2.5 Sets`) are byte-identical across mirrors
-(verified: the `Games`/`Sets` suffix stays English on the Spanish mirror).
+**The fix: match the untranslated line, not the full label.** Only the
+main-market *prefix* is translated (`Over/Under` → `Más/Menos de`); the line
+(`+20.5`) is byte-identical across mirrors.
 `OddsPortalSelectors.submarket_match_text(specific_market, main_market)` strips
-the English `main_market` prefix and the substring matcher in
-`PageScroller.scroll_until_visible_and_click_parent` finds the row on every
-mirror. The retained leading `+`/`-`/`:` is load-bearing: it stops `+2.5` from
-matching `+20.5`. The submarket option box also carries a language-independent
-`data-testid="<code>-collapsed-option-box"` (e.g. `over-under-collapsed-option-box`)
-if a future change needs to scope by market rather than by label tail.
+the English `main_market` prefix, and `PageScroller.scroll_until_visible_and_click_parent`
+in exact mode (`exact_tail=True`, passed by `NavigationManager.select_specific_market`)
+keeps a row only when the last whitespace tokens of one of its label spans are
+the line (`OddsPortalSelectors.line_label_matches`). A substring match is not
+enough: lines render in ascending order, so `-1` found `Asian Handicap -1.75`
+first (the same for `-2`, `-3`, `-4`), and a missing `+2` would have opened
+`+2.25` (probe of 2026-09-29). Two rules come with it:
+
+- A span holding only a bare number never matches: every line row also carries
+  its bookmaker count as a lone number span (`0`), which would pass for the
+  `Asian Handicap 0` line.
+- When two different rows end with the line, the selection fails with
+  `Line '<line>' matches N different rows; refusing to pick one.` and the market
+  comes back empty. ATP Beijing showed `+1.5` twice in its Asian Handicap list,
+  a sets row and a games row, neither labelled (§8).
+
+The umbrella tokens (`over_under`, `asian_handicap`) read their lines the same
+way: `line_name_to_token` takes the last whitespace token of the rendered name
+as the line, so `Más/Menos de +2.5` and `Over/Under +2.5` both give
+`over_under_2_5`. It used to require the English prefix, and `-m over_under`
+found no line at all on `cuotasahora.com`.
 
 ### The period selector has the same trap — fixed via the fragment scope code
 
@@ -532,33 +546,51 @@ active tab and the extractor ignores the return), but a **non-default** period
 (e.g. tennis `1st Set`) silently fell back to Full Time data — a §1-class
 silent-wrong-data risk.
 
-**The fix — select by the fragment scope, like the market tab.** The active
-period is the `;<scope>` segment of the fragment (`…:over-under;2`). Scope ids
-are **global OddsPortal period ids, identical across mirrors and across sports**
-(verified live: `FullTime`=2 on football/tennis/baseball, `1st Set`=12 on `.com`
-*and* `cuotasahora.com`, football `1st Half`=3 / `2nd Half`=4, baseball
-`FT incl. OT`=1). `PeriodSelector.select_by_scope` (`core/browser/selection.py`)
-reads the current scope and stops there when it already matches (the common
-Full-Time case); otherwise it rewrites the fragment to `#<id>:<code>;<target>`
-with the same `HASH_SWITCH_JS` as the market switch, then re-reads the scope.
-It returns `True` **only on an exact scope match**, so a wrong period is never
-silently selected; `None` when the `(sport, period)` scope is not in the
-verified map, which makes the extractor fall back to the old label matching
-(unchanged on `.com`).
+**The fix: select by the fragment scope, like the market tab, then check the
+screen.** The active period is the `;<scope>` segment of the fragment
+(`…:over-under;2`). Scope ids are **global OddsPortal period ids, identical
+across mirrors and across sports**. Clicking every period tab of one match per
+sport on 2026-09-29 gave:
 
-Two traps when extending the scope map (`OddsPortalSelectors.PERIOD_SCOPE_CODES_*`):
+| Scope | Tab | Internal period |
+|---|---|---|
+| 1 | FT including OT | `FullIncludingOT` |
+| 2 | Full Time | `FullTime` |
+| 3 | 1st Half | `FirstHalf` |
+| 4 | 2nd Half | `SecondHalf` |
+| 5 to 7 | 1st to 3rd Period | `FirstPeriod` to `ThirdPeriod` |
+| 8 to 11 | 1st to 4th Quarter | `FirstQuarter` to `FourthQuarter` |
+| 12 to 16 | 1st to 5th Set | `FirstSet` to `FifthSet` |
+| 17 | 1st Inning (baseball) | none |
 
-1. **Scope is keyed by period *concept*, not by enum name.** Baseball's
-   `FirstHalf` enum renders as `1st Inning` = scope **17**, not the football half
-   = scope 3. So `FirstHalf`/`SecondHalf`/`FirstSet` live in the per-sport map,
-   not the universal one. Only `FullTime`=2 is universal (verified across three
-   disparate sports).
-2. **Only add scopes you verify live.** Do not guess the remaining ones
-   (quarters, later sets, hockey periods, `FT incl. OT` on basketball/amfootball):
-   the `/results/` listings lazy-load match links, so capture from an in-play or
-   finished match detail page and read `location.hash` after clicking each tab.
-   Unverified periods stay on the label fallback — correct on `.com`, no silent
-   wrong data on mirrors thanks to the exact-match rule.
+`OddsPortalSelectors.PERIOD_SCOPE_CODES_UNIVERSAL` holds codes 1 to 16 for every
+sport; no period of ours maps to 17. `PeriodSelector.select_by_scope`
+(`core/browser/selection.py`) rewrites the fragment to `#<id>:<code>;<target>`
+with the same `HASH_SWITCH_JS` as the market switch, unless the target is
+already there, then re-reads the scope.
+
+**The URL is not enough for a period the match lacks.** Forcing a scope whose
+tab the match does not have (NFL `;4`, baseball `;2`) puts the scope in the URL
+while the page keeps its first tab, the sport's default period, active with the
+same odds, so a URL check alone returned the default period's odds under the
+requested label. For any period other than the sport's default
+(`SportPeriodRegistry.get_default_period`), `select_by_scope` also reads the
+period bar: the sub-nav button group after the bookies filter (both are
+`div.no-scrollbar` groups of `main button[type='button']`, identical on `.com`
+and `cuotasahora.com`). It returns `True` only when the bold tab
+(`font-weight: 700`) is not the bar's first tab, and reads no label, so it holds
+on mirrors. The default period keeps the URL check alone (the collector's path).
+After a `False`, the extractor still tries the English tab label, which finds no
+tab for a period the match lacks and fails on mirrors, and then returns the
+market empty.
+
+One trap when extending this: **the scope is keyed by period concept and is the
+same on every sport.** Baseball shows `1st Half` (scope 3) and `1st Inning`
+(scope 17) side by side; our `FirstHalf` is the half, as everywhere else (an
+earlier version of this section said baseball `FirstHalf` rendered as
+`1st Inning`; the probe of 2026-09-29 disproved it). Give a new period its code
+by clicking its tab on a live, in-play or finished match detail page and
+reading `location.hash`; the `/results/` listings lazy-load their match links.
 
 ### The odds-history tooltip header has the same trap (issue #70 follow-up)
 
@@ -627,20 +659,28 @@ HAR fixtures for mirror domains — replay them as `.com` and test the
 **Severity:** High — registering only one axis silently drops half the volleyball O/U and AH submarkets.
 
 Unlike handball (single goals axis), volleyball's `Over/Under` and `Asian Handicap`
-tabs each contain TWO independent submarket families, disambiguated only by a
-suffix word in the row label:
+tabs each hold two independent submarket families: sets and points. In May 2026
+a suffix word told them apart (`Over/Under +3.5 Sets`, `Over/Under +184.5 Points`).
+On 2026-09-29 the rows carry no such word: Perugia - Piacenza showed `+3.5`,
+`+4.5` and `+184.5` in one O/U list and `+2.5` twice in the AH list. Tennis is
+the same (`Games` / `Sets` gone): ATP Beijing mixed the sets line `+2.5` with the
+games lines `+21` to `+24`, and showed `+1.5` twice in AH.
 
-| Tab | Submarket label form | Example |
-|---|---|---|
-| Over/Under | `Over/Under +{N}.5 Sets` | `Over/Under +3.5 Sets` |
-| Over/Under | `Over/Under +{N}.5 Points` | `Over/Under +184.5 Points` |
-| Asian Handicap | `Asian Handicap {±N}.5 Sets` | `Asian Handicap -2.5 Sets` |
-| Asian Handicap | `Asian Handicap {±N}.5 Points` | `Asian Handicap +5.5 Points` |
+So the registry builds labels without the axis word, and a line value both
+axes use cannot be told apart. `SportMarketRegistry.ambiguous_markets(sport)`
+computes those markets from the registry, and `scrape_markets` returns each one
+empty with `Market '<token>' refused: its line reads the same as <token>, and the
+page does not tell them apart.`:
 
-The `specific_market` string passed to the extractor MUST include the trailing
-` Sets` / ` Points` word or the wrong family is matched. This mirrors tennis
-(`Games` vs `Sets`), not handball. Verified live against Italian SuperLega,
-May 2026.
+| Sport | Refused markets |
+|---|---|
+| Volleyball | AH sets and points `-2.5`, `-1.5`, `+1.5`, `+2.5` |
+| Tennis | O/U sets and games `6.5` to `10.5`; AH sets and games `-2.5`, `+2.5` |
+
+Every other line is unambiguous by value (volleyball O/U sets stop at `4.5`,
+points start at `150.5`) and is matched on its exact value (§7). If the page
+brings the axis word back, restore it in `sport_market_registry.py`; the
+refusals then disappear on their own.
 
 Volleyball also has NO draw-based markets (no `1X2`, `DNB`, `Double Chance`) —
 only `Home/Away`. Periods are `Full Time` + `1st`–`5th Set`. `Correct Score`
@@ -1860,6 +1900,36 @@ empty result.
 
 - `core/url_builder.py` — `get_league_url`, `is_league_path`.
 - `core/odds_portal_scraper.py` — `_assert_league_page_exists`.
+
+---
+
+## §25: A sport's site path is not always its CLI name
+
+**Severity:** High (wrong data under the requested sport).
+
+The `Sport` enum value is the site's path segment for every sport but one:
+`ice-hockey` lives under `/hockey/` (`/hockey/usa/nhl/`, `/hockey/h2h/...`).
+`upcoming --sport ice-hockey --date <d>` used to build `/matches/ice-hockey/<d>/`;
+the site answered with its default football page, and the run returned 60
+football links labelled `ice-hockey` (2026-09-29). The community predictions page
+had met the same trap first (`#sport/hockey/`).
+
+### Detection signal
+
+Rows of a listing whose href starts with another sport's path, or, in the log,
+`None of the N rows of this listing links under /<slug>/: it lists no '<sport>' match.`
+
+### Fix pattern
+
+- `site_slug(sport)` in `core/url_builder.py` (with `SPORT_SITE_SLUGS`) is the one
+  place that maps a sport to its path; build every sport-level URL with it (date
+  listing, live-now listing, community predictions).
+- The listing guard: `extract_match_rows` and `extract_live_match_links` take the
+  requested sport and keep only rows whose href starts with `/<site_slug>/`,
+  counting the others in their summary log line. With the right URL it never
+  fires; it keeps a future path change from mixing sports into the output.
+- League URLs in `sport_league_constants.py` already use the site path;
+  `tests/utils/test_sport_league_constants.py` pins it for every league.
 
 ---
 
