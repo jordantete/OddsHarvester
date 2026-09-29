@@ -422,6 +422,27 @@ class TestOddsPortalMarketExtractor:
             page=page_mock, main_market="Over/Under", sport="football", period="FullTime"
         )
 
+    async def test_scrape_markets_expands_the_umbrella_from_localized_line_names(self, extractor, page_mock):
+        """--base-url https://www.cuotasahora.com renders 'Más/Menos de +2.5'; the tokens are the .com ones."""
+        mock_market_func = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor._discover_line_names = AsyncMock(return_value=["Más/Menos de +2.5", "Más/Menos de +3.5"])
+
+        with patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping:
+            mock_get_mapping.return_value = {"over_under_2_5": mock_market_func, "over_under_3_5": mock_market_func}
+
+            result = await extractor.scrape_markets(page=page_mock, sport="football", markets=["over_under"])
+
+        assert set(result) == {"over_under_2_5_market", "over_under_3_5_market"}
+
+    async def test_scrape_markets_skips_the_umbrella_when_no_name_ends_with_a_line(self, extractor, page_mock, caplog):
+        extractor._discover_line_names = AsyncMock(return_value=["Más/Menos de +2.5 Goles"])
+
+        with patch.object(SportMarketRegistry, "get_market_mapping", return_value={}), caplog.at_level("WARNING"):
+            result = await extractor.scrape_markets(page=page_mock, sport="football", markets=["over_under"])
+
+        assert result == {}
+        assert "Umbrella market 'over_under' discovered no lines on the page; skipping." in caplog.text
+
     async def test_scrape_markets_non_umbrella_markets_unchanged(self, extractor, page_mock):
         """Test that non-umbrella markets bypass line discovery entirely."""
         # Arrange
