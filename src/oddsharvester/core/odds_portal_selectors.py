@@ -209,19 +209,29 @@ class OddsPortalSelectors:
         """Return the language-independent portion of a submarket label.
 
         On localized mirrors only the main-market prefix is translated
-        ('Over/Under' -> 'Más/Menos de'); the numeric line + axis word
-        ('+20.5 Games') is identical across mirrors. Stripping the English
-        main-market prefix lets the substring match in
-        PageScroller.scroll_until_visible_and_click_parent work on every mirror
-        (gotchas §7). The retained '+'/'-'/':' guards against adjacent-line
-        collisions. Falls back to the full label when no prefix is given or it
-        is not present.
+        ('Over/Under' -> 'Más/Menos de'); the line ('+20.5') is identical across
+        mirrors. Stripping the English main-market prefix lets
+        `line_label_matches` find the row on every mirror (gotchas §7). Falls
+        back to the full label when no prefix is given or it is not present.
         """
         if main_market and specific_market.startswith(main_market):
             tail = specific_market[len(main_market) :].strip()
             if tail:
                 return tail
         return specific_market
+
+    @staticmethod
+    def line_label_matches(label: str, line: str) -> bool:
+        """True when the label's last whitespace tokens are the line's tokens.
+
+        '-1' matches 'Asian Handicap -1' and 'Hándicap asiático -1', never '-1.75'.
+        A label made of the line alone matches only when the line is not a bare
+        number: every line row also carries its bookmaker count as a lone number.
+        """
+        label_tokens, line_tokens = label.split(), line.split()
+        if not line_tokens or label_tokens[-len(line_tokens) :] != line_tokens:
+            return False
+        return len(label_tokens) > len(line_tokens) or not line.strip().isdigit()
 
     # OddsPortal strikes through an odds value when the feed's per-outcome `act`
     # flag is false (bookmaker no longer offering that bet). A CSS selector, not a

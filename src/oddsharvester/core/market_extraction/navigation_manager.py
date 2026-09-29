@@ -66,7 +66,8 @@ class NavigationManager:
         """Select a specific submarket within the main market.
 
         On localized mirrors the submarket label prefix is translated, so match
-        on the language-independent tail (gotchas §7).
+        on the language-independent tail (gotchas §7). The tail must be the end
+        of the row's label, and a tail two rows share selects nothing.
         """
         text = OddsPortalSelectors.submarket_match_text(specific_market, main_market)
         return await self.scroller.scroll_until_visible_and_click_parent(
@@ -74,6 +75,7 @@ class NavigationManager:
             selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
             text=text,
             click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
+            exact_tail=True,
         )
 
     async def close_specific_market(self, page: Page, specific_market: str, main_market: str | None = None) -> bool:

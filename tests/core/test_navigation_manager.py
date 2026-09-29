@@ -130,6 +130,7 @@ class TestNavigationManager:
             selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
             text=specific_market,
             click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
+            exact_tail=True,
         )
 
     async def test_select_specific_market_matches_language_independent_tail(
@@ -151,6 +152,7 @@ class TestNavigationManager:
             selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
             text="+20.5 Games",
             click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
+            exact_tail=True,
         )
 
     async def test_select_specific_market_failure(self, navigation_manager, page_mock, scroller_mock):
@@ -181,6 +183,7 @@ class TestNavigationManager:
             selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
             text=specific_market,
             click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
+            exact_tail=True,
         )
 
     async def test_close_specific_market_matches_language_independent_tail(
@@ -202,6 +205,7 @@ class TestNavigationManager:
             selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
             text="+20.5 Games",
             click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
+            exact_tail=True,
         )
 
     async def test_close_specific_market_failure(self, navigation_manager, page_mock, scroller_mock):

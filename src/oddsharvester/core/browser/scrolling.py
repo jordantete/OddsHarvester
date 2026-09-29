@@ -3,8 +3,9 @@
 import logging
 import time
 
-from playwright.async_api import Page
+from playwright.async_api import ElementHandle, Page
 
+from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import (
     MAX_SCROLL_ATTEMPTS,
     SCROLL_PAUSE_S,
@@ -14,6 +15,15 @@ from oddsharvester.utils.constants import (
 )
 
 _SCROLL_STEP_PX = 500
+
+_CLICK_TARGET_JS = "(element, ancestor) => ancestor ? element.closest(ancestor) : element.parentElement"
+# Two spans of one row share this rank, two rows never do.
+_CLICK_TARGET_RANK_JS = """
+(element, ancestor) => {
+    const target = ancestor ? element.closest(ancestor) : element.parentElement;
+    return target ? Array.from(document.querySelectorAll(ancestor || "*")).indexOf(target) : -1;
+}
+"""
 
 
 class PageScroller:
@@ -97,41 +107,45 @@ class PageScroller:
         timeout: int = SCROLL_UNTIL_CLICK_TIMEOUT_S,
         scroll_pause_time: int = SCROLL_UNTIL_CLICK_PAUSE_S,
         click_ancestor: str | None = None,
+        exact_tail: bool = False,
     ) -> bool:
         """Scroll until an element matching selector (and optional text) is visible, then click its parent.
 
         When `click_ancestor` is given, the closest ancestor matching that
         selector is clicked instead of the direct parent (e.g. the enclosing
         <tr> of a submarket label span).
+
+        With `exact_tail`, `text` is a line ('-1', '+2.5') that must be the end of
+        the element's text (`OddsPortalSelectors.line_label_matches`), and the
+        call fails when two different ancestors hold a match.
         """
         end_time = time.time() + timeout
 
         while time.time() < end_time:
             elements = await page.query_selector_all(selector)
 
-            for element in elements:
-                if text:
-                    element_text = await element.text_content()
-                    if element_text and text in element_text:
+            if exact_tail:
+                clicked = await self._click_row_of_line(elements, text, click_ancestor)
+                if clicked is not None:
+                    return clicked
+            else:
+                for element in elements:
+                    if text:
+                        element_text = await element.text_content()
+                        if element_text and text in element_text:
+                            bounding_box = await element.bounding_box()
+                            if bounding_box:
+                                self.logger.info(f"Element with text '{text}' is visible. Clicking its parent.")
+                                parent_element = await element.evaluate_handle(_CLICK_TARGET_JS, click_ancestor)
+                                await parent_element.click()
+                                return True
+                    else:
                         bounding_box = await element.bounding_box()
                         if bounding_box:
-                            self.logger.info(f"Element with text '{text}' is visible. Clicking its parent.")
-                            parent_element = await element.evaluate_handle(
-                                "(element, ancestor) => ancestor ? element.closest(ancestor) : element.parentElement",
-                                click_ancestor,
-                            )
+                            self.logger.info("Element is visible. Clicking its parent.")
+                            parent_element = await element.evaluate_handle(_CLICK_TARGET_JS, click_ancestor)
                             await parent_element.click()
                             return True
-                else:
-                    bounding_box = await element.bounding_box()
-                    if bounding_box:
-                        self.logger.info("Element is visible. Clicking its parent.")
-                        parent_element = await element.evaluate_handle(
-                            "(element, ancestor) => ancestor ? element.closest(ancestor) : element.parentElement",
-                            click_ancestor,
-                        )
-                        await parent_element.click()
-                        return True
 
             await page.evaluate("window.scrollBy(0, 500);")
             await page.wait_for_timeout(scroll_pause_time * 1000)
@@ -141,3 +155,32 @@ class PageScroller:
             f"within timeout."
         )
         return False
+
+    async def _click_row_of_line(
+        self, elements: list[ElementHandle], line: str, click_ancestor: str | None
+    ) -> bool | None:
+        """Click the one row whose visible label ends with `line`.
+
+        Returns True once clicked, False when several rows match (the line cannot
+        be told apart), None when no row matches yet.
+        """
+        rows: dict[int, ElementHandle] = {}
+        for element in elements:
+            label = await element.text_content()
+            if not label or not OddsPortalSelectors.line_label_matches(label, line):
+                continue
+            if not await element.bounding_box():
+                continue
+            rows.setdefault(await element.evaluate(_CLICK_TARGET_RANK_JS, click_ancestor), element)
+
+        if len(rows) > 1:
+            self.logger.warning(f"Line '{line}' matches {len(rows)} different rows; refusing to pick one.")
+            return False
+        if not rows:
+            return None
+
+        element = next(iter(rows.values()))
+        self.logger.info(f"Line '{line}' is visible. Clicking its row.")
+        target = await element.evaluate_handle(_CLICK_TARGET_JS, click_ancestor)
+        await target.click()
+        return True

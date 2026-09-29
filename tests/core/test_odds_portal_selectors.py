@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+import pytest
 from tests.dom_builders import bookmaker_row, date_header, line_row, listing_row, match_header, odds_table, page
 
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
@@ -51,6 +52,29 @@ def test_submarket_match_text_falls_back_to_full_label():
     # No prefix given, or prefix not present -> use the label as-is.
     assert OddsPortalSelectors.submarket_match_text("Over/Under +20.5 Games") == "Over/Under +20.5 Games"
     assert OddsPortalSelectors.submarket_match_text("2:1", "Correct Score") == "2:1"
+
+
+@pytest.mark.parametrize(
+    ("label", "line", "expected"),
+    [
+        ("Asian Handicap -1", "-1", True),
+        ("Hándicap asiático -1", "-1", True),
+        ("Asian Handicap -1AH -1", "-1", True),
+        ("Asian Handicap -1.75", "-1", False),
+        ("Asian Handicap -1.75AH -1.75", "-1", False),
+        ("Over/Under +20.5", "+20.5", True),
+        ("Over/Under +120.5", "+20.5", False),
+        ("Over/Under +2.25", "+2", False),
+        ("Asian Handicap 0", "0", True),
+        ("0", "0", False),
+        ("2:0", "2:0", True),
+        ("-", "-1", False),
+        ("", "-1", False),
+        ("Asian Handicap -1", "", False),
+    ],
+)
+def test_line_label_matches_the_exact_line_at_the_end(label, line, expected):
+    assert OddsPortalSelectors.line_label_matches(label, line) is expected
 
 
 def test_period_scope_from_url_extracts_scope():
