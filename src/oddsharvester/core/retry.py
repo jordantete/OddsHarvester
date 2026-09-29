@@ -10,6 +10,7 @@ from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 import logging
 import random
+import re
 from typing import Any
 
 from oddsharvester.core.exceptions import RateLimitError, ScraperError
@@ -36,6 +37,9 @@ TRANSIENT_ERROR_KEYWORDS = (
     "TimeoutError",
     "Target closed",
 )
+
+# Word-anchored: a bare "rate", "limit" or "429" also sits in "separate", "limit of 3 retries" or "14290".
+_RATE_LIMIT_PATTERN = re.compile(r"\brate[\s-]?limit(?:s|ed|ing)?\b|\b429\b|\btoo many requests\b")
 
 
 @dataclass
@@ -104,7 +108,7 @@ def classify_error(error_message: str | None) -> ErrorType:
         return ErrorType.PARSING
     elif any(kw in error_lower for kw in ["market", "odds extraction"]):
         return ErrorType.MARKET_EXTRACTION
-    elif any(kw in error_lower for kw in ["rate", "limit", "429", "too many"]):
+    elif _RATE_LIMIT_PATTERN.search(error_lower):
         return ErrorType.RATE_LIMITED
     elif any(kw in error_lower for kw in ["404", "not found", "page unavailable"]):
         return ErrorType.PAGE_NOT_FOUND

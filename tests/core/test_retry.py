@@ -100,10 +100,43 @@ class TestClassifyError:
         assert classify_error("Market extraction failed") == ErrorType.MARKET_EXTRACTION
         assert classify_error("Failed to extract odds from market") == ErrorType.MARKET_EXTRACTION
 
-    def test_rate_limit_errors(self):
+    @pytest.mark.parametrize(
+        "message",
+        [
+            "429 Too Many Requests",
+            "Rate limit exceeded",
+            "rate-limit reached for this IP",
+            "ratelimit hit",
+            "You are being rate limited",
+            "rate limiting in effect",
+            "HTTP 429",
+            "status=429",
+            "Too many requests, slow down",
+            "rate limited by OddsPortal: HTTP 429 on listing https://www.oddsportal.com/football/england/premier-league/",
+        ],
+    )
+    def test_rate_limit_errors(self, message):
         """Test classification of rate limit errors."""
-        assert classify_error("429 Too Many Requests") == ErrorType.RATE_LIMITED
-        assert classify_error("Rate limit exceeded") == ErrorType.RATE_LIMITED
+        assert classify_error(message) == ErrorType.RATE_LIMITED
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            "Could not separate the score chunks",
+            "Failed to generate the record",
+            "limit of 3 retries exceeded",
+            "moderate delay applied",
+            "event 14290 has no odds",
+            "4290 rows collected",
+        ],
+    )
+    def test_words_that_only_contain_rate_or_limit_are_not_rate_limits(self, message):
+        """B9: a bare 'rate', 'limit' or '429' inside another word or number is no rate limit."""
+        assert classify_error(message) == ErrorType.UNKNOWN
+
+    def test_navigation_words_still_win_over_a_rate_limit(self):
+        """The groups keep their order: a proxy failure that mentions 429 stays a navigation error."""
+        assert classify_error("proxy answered 429 Too Many Requests") == ErrorType.NAVIGATION
 
     def test_page_not_found_errors(self):
         """Test classification of page not found errors."""
