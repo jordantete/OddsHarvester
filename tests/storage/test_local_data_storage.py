@@ -3,7 +3,7 @@ import errno
 import json
 import os
 import stat
-from unittest.mock import mock_open, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -97,24 +97,133 @@ def test_save_as_csv_overwrites_by_default(local_data_storage, sample_data, tmp_
         assert list(csv.DictReader(handle)) == [{"team": "Team A", "odds": "2.5"}, {"team": "Team B", "odds": "1.8"}]
 
 
-def test_save_as_csv_append_new_file(local_data_storage, sample_data):
-    """Append mode on an empty file still writes the header."""
-    mock_file = mock_open()
-
-    with patch("builtins.open", mock_file), patch("os.path.getsize", return_value=0):
-        local_data_storage._save_as_csv(sample_data, "test_data.csv", append=True)
-
-    mock_file.assert_called_once_with("test_data.csv", mode="a", newline="", encoding="utf-8")
+def _read_csv(path, encoding="utf-8"):
+    with open(path, newline="", encoding=encoding) as handle:
+        reader = csv.DictReader(handle)
+        return reader.fieldnames, list(reader)
 
 
-def test_save_as_csv_append_existing_file(local_data_storage, sample_data):
-    """Append mode on a non-empty file skips the header to keep the CSV valid."""
-    mock_file = mock_open()
+@pytest.mark.parametrize("content", [None, ""])
+def test_save_as_csv_append_to_an_absent_or_empty_file_writes_the_header(
+    local_data_storage, sample_data, tmp_path, content
+):
+    target = tmp_path / "out.csv"
+    if content is not None:
+        target.write_text(content, encoding="utf-8")
 
-    with patch("builtins.open", mock_file), patch("os.path.getsize", return_value=100):
-        local_data_storage._save_as_csv(sample_data, "test_data.csv", append=True)
+    local_data_storage._save_as_csv(sample_data, str(target), append=True)
 
-    mock_file.assert_called_once_with("test_data.csv", mode="a", newline="", encoding="utf-8")
+    assert _read_csv(target) == (
+        ["team", "odds"],
+        [{"team": "Team A", "odds": "2.5"}, {"team": "Team B", "odds": "1.8"}],
+    )
+
+
+def test_save_as_csv_append_keeps_reordered_columns_aligned(local_data_storage, tmp_path):
+    target = tmp_path / "out.csv"
+    target.write_text("match_link,home_team\r\nhttps://x/1,A\r\n", encoding="utf-8")
+
+    local_data_storage._save_as_csv([{"home_team": "B", "match_link": "https://x/2"}], str(target), append=True)
+
+    assert _read_csv(target) == (
+        ["match_link", "home_team"],
+        [{"match_link": "https://x/1", "home_team": "A"}, {"match_link": "https://x/2", "home_team": "B"}],
+    )
+
+
+def test_save_as_csv_append_leaves_the_columns_a_subset_lacks_empty(local_data_storage, tmp_path):
+    target = tmp_path / "out.csv"
+    target.write_text("match_link,home_team,away_team\r\nhttps://x/1,A,B\r\n", encoding="utf-8")
+
+    local_data_storage._save_as_csv([{"match_link": "https://x/2", "away_team": "C"}], str(target), append=True)
+
+    assert _read_csv(target)[1][1] == {"match_link": "https://x/2", "home_team": "", "away_team": "C"}
+
+
+def test_save_as_csv_append_widens_the_header_for_new_columns(local_data_storage, tmp_path):
+    target = tmp_path / "out.csv"
+    target.write_text("match_link,home_team\r\nhttps://x/1,A\r\n", encoding="utf-8")
+    batch = [{"match_link": "https://x/2", "btts_market": "yes", "home_team": "B"}]
+
+    local_data_storage._save_as_csv(batch, str(target), append=True)
+
+    assert _read_csv(target) == (
+        ["match_link", "home_team", "btts_market"],
+        [
+            {"match_link": "https://x/1", "home_team": "A", "btts_market": ""},
+            {"match_link": "https://x/2", "home_team": "B", "btts_market": "yes"},
+        ],
+    )
+    assert [p.name for p in tmp_path.iterdir()] == ["out.csv"]
+
+
+def test_save_as_csv_append_failure_while_widening_leaves_the_file_unchanged(local_data_storage, tmp_path):
+    target = tmp_path / "out.csv"
+    target.write_text("match_link,home_team\r\nhttps://x/1,A\r\n", encoding="utf-8")
+    before = target.read_bytes()
+    batch = [{"match_link": f"https://x/{i}", "home_team": "B", "btts_market": "yes"} for i in (2, 3)]
+    real_writerows = csv.DictWriter.writerows
+
+    def write_one_row_then_fail(writer, rows):
+        real_writerows(writer, list(rows)[:1])
+        raise OSError("disk full")
+
+    with (
+        patch("oddsharvester.storage.local_data_storage.csv.DictWriter.writerows", write_one_row_then_fail),
+        pytest.raises(OSError, match="disk full"),
+    ):
+        local_data_storage._save_as_csv(batch, str(target), append=True)
+
+    assert target.read_bytes() == before
+    assert [p.name for p in tmp_path.iterdir()] == ["out.csv"]
+
+
+def test_save_as_csv_append_reads_a_header_behind_a_bom(local_data_storage, tmp_path):
+    target = tmp_path / "out.csv"
+    target.write_text("\ufeffmatch_link,home_team\r\nhttps://x/1,A\r\n", encoding="utf-8")
+
+    local_data_storage._save_as_csv([{"home_team": "B", "match_link": "https://x/2"}], str(target), append=True)
+
+    assert target.read_bytes().startswith("\ufeff".encode())
+    assert _read_csv(target, encoding="utf-8-sig") == (
+        ["match_link", "home_team"],
+        [{"match_link": "https://x/1", "home_team": "A"}, {"match_link": "https://x/2", "home_team": "B"}],
+    )
+
+
+def test_save_as_csv_append_keeps_the_bom_when_widening(local_data_storage, tmp_path):
+    target = tmp_path / "out.csv"
+    target.write_text("\ufeffmatch_link,home_team\r\nhttps://x/1,A\r\n", encoding="utf-8")
+
+    local_data_storage._save_as_csv([{"match_link": "https://x/2", "away_team": "C"}], str(target), append=True)
+
+    assert target.read_bytes().startswith("\ufeff".encode())
+    header, rows = _read_csv(target, encoding="utf-8-sig")
+    assert header == ["match_link", "home_team", "away_team"]
+    assert rows[1] == {"match_link": "https://x/2", "home_team": "", "away_team": "C"}
+
+
+def test_save_as_csv_append_matches_quoted_column_names(local_data_storage, tmp_path):
+    target = tmp_path / "out.csv"
+    target.write_text('"odds, decimal",match_link\r\n2.5,https://x/1\r\n', encoding="utf-8")
+
+    local_data_storage._save_as_csv([{"match_link": "https://x/2", "odds, decimal": "3.1"}], str(target), append=True)
+
+    assert _read_csv(target) == (
+        ["odds, decimal", "match_link"],
+        [{"odds, decimal": "2.5", "match_link": "https://x/1"}, {"odds, decimal": "3.1", "match_link": "https://x/2"}],
+    )
+
+
+def test_save_as_csv_append_refuses_a_header_with_repeated_columns(local_data_storage, tmp_path):
+    target = tmp_path / "out.csv"
+    target.write_text("match_link,odds,odds\r\nhttps://x/1,1.5,2.5\r\n", encoding="utf-8")
+    before = target.read_bytes()
+
+    with pytest.raises(ValueError, match=r"repeats \['odds'\]"):
+        local_data_storage._save_as_csv([{"match_link": "https://x/2", "odds": "3.0"}], str(target), append=True)
+
+    assert target.read_bytes() == before
 
 
 def test_save_as_json_overwrites_by_default(local_data_storage, sample_data, tmp_path):

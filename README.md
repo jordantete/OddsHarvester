@@ -294,7 +294,7 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 | `--storage` |       | `local` or `remote` (S3, see [Uploading to S3](#uploading-to-s3))            | `local`        |
 | `--format`  | `-f`  | `json` or `csv`                                                            | `json`         |
 | `--output`  | `-o`  | Output file path                                                           | `scraped_data` |
-| `--append`  |       | Append to the output file instead of overwriting it (`--no-append` to opt out explicitly) | `--no-append`  |
+| `--append`  |       | Append to the output file instead of overwriting it (`--no-append` to opt out explicitly). CSV rows follow the file's own header; a batch with new columns widens it and earlier rows get empty cells | `--no-append`  |
 | `--links-only` |       | Collect match links only, without scraping odds (`--no-links-only` to opt out explicitly) | `--no-links-only` |
 | `--local-kickoff` |       | Add venue-local kickoff time to each record (`--no-local-kickoff` to opt out explicitly). Distinct from `--timezone` | `--no-local-kickoff` |
 | `--stream-ndjson` |       | Emit each match as an NDJSON line on stdout as soon as it is scraped (`--no-stream-ndjson` to opt out explicitly) | `--no-stream-ndjson` |
@@ -466,7 +466,7 @@ Resolution is best-effort from the record's venue country/town. Single-timezone 
 
 Not compatible with `--links-only` (no match pages are visited, so there's no venue to resolve). Distinct from `--timezone`, which sets the browser's context timezone and only affects the `--odds-history` timestamps.
 
-If you `--append` onto an existing CSV file, the header is frozen on the first write, so start a fresh file when you turn the flag on.
+Appending to an existing CSV file adds the two columns to its header; rows written before carry them empty.
 
 ### Streaming results while the run is in progress
 

@@ -1,3 +1,4 @@
+import codecs
 from collections.abc import Callable
 import csv
 import json
@@ -90,13 +91,7 @@ class LocalDataStorage:
             fieldnames = list(dict.fromkeys(key for row in data for key in row))
 
             if append:
-                # Appending in place: an atomic append would rewrite the whole file.
-                with open(file_path, mode="a", newline="", encoding="utf-8") as file:
-                    writer = csv.DictWriter(file, fieldnames=fieldnames)
-                    # Only write a header if the file is newly created (empty).
-                    if os.path.getsize(file_path) == 0:
-                        writer.writeheader()
-                    writer.writerows(data)
+                self._append_csv(data, file_path, fieldnames)
             else:
 
                 def write(file: TextIO) -> None:
@@ -111,6 +106,50 @@ class LocalDataStorage:
         except Exception as e:
             self.logger.error(f"Error saving data to {file_path}: {e!s}")
             raise
+
+    def _append_csv(self, data: list[dict], file_path: str, fieldnames: list[str]) -> None:
+        """Append rows under the file's own header, widening it when the batch brings new columns."""
+        header = self._read_csv_header(file_path)
+        if header is None:
+            with open(file_path, mode="a", newline="", encoding="utf-8") as file:
+                writer = csv.DictWriter(file, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(data)
+            return
+
+        new_columns = [column for column in fieldnames if column not in header]
+        if not new_columns:
+            # Appending in place: an atomic append would rewrite the whole file.
+            with open(file_path, mode="a", newline="", encoding="utf-8") as file:
+                csv.DictWriter(file, fieldnames=header).writerows(data)
+            return
+
+        with open(file_path, "rb") as raw:
+            has_bom = raw.read(len(codecs.BOM_UTF8)) == codecs.BOM_UTF8
+        with open(file_path, newline="", encoding="utf-8-sig") as file:
+            existing_rows = [row for row in list(csv.reader(file))[1:] if row]
+        widened = header + new_columns
+
+        def write(file: TextIO) -> None:
+            if has_bom:
+                file.write("\ufeff")
+            csv.writer(file).writerows([widened, *(row + [""] * len(new_columns) for row in existing_rows)])
+            csv.DictWriter(file, fieldnames=widened).writerows(data)
+
+        self._write_atomically(file_path, write, newline="")
+
+    @staticmethod
+    def _read_csv_header(file_path: str) -> list[str] | None:
+        """Columns of an existing CSV output, None when it is absent or empty; refuses a header rows cannot follow."""
+        if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+            return None
+        with open(file_path, newline="", encoding="utf-8-sig") as file:
+            header = next(csv.reader(file), [])
+        repeated = sorted({column for column in header if header.count(column) > 1})
+        if not header or repeated:
+            reason = f"its header repeats {repeated}" if repeated else "its first line is empty"
+            raise ValueError(f"Cannot append to {file_path}: {reason}; it was left unchanged.")
+        return header
 
     def _save_as_json(self, data: list[dict], file_path: str, append: bool = False):
         """Save data in JSON format. Overwrites by default; appends when append=True."""
