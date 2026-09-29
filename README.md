@@ -12,7 +12,6 @@ Extract upcoming & historical odds, plus community predictions, tipster profiles
 [![PyPI version](https://img.shields.io/pypi/v/oddsharvester.svg?style=flat-square)](https://pypi.org/project/oddsharvester/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/jordantete/OddsHarvester/run_unit_tests.yml?style=flat-square&label=tests)](https://github.com/jordantete/OddsHarvester/actions)
-[![Scraper Health](https://img.shields.io/github/actions/workflow/status/jordantete/OddsHarvester/scraper_health_check.yml?style=flat-square&label=scraper%20health)](https://github.com/jordantete/OddsHarvester/actions/workflows/scraper_health_check.yml)
 [![codecov](https://img.shields.io/codecov/c/github/jordantete/OddsHarvester?style=flat-square&token=DOZRQAXAK7)](https://codecov.io/github/jordantete/OddsHarvester)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 

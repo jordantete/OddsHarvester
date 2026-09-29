@@ -1174,7 +1174,7 @@ that arrived during capture. On replay, timing selects one of them, so
 HAR (a match captured at `Half-time` replayed later as `49'`). Since an in-play
 page does not replay at all (next subsection), the live context is checked by
 the self-discovering live test instead (`test_live_snapshot_self_discovering`,
-run with `--live` and by the weekly health check). It asserts the *shape* of
+run with `--live` and by the health check). It asserts the *shape* of
 each record (a UTC scrape timestamp, the `live_period` and `live_score_raw`
 keys, no finished match) and never a captured period or score value.
 
