@@ -14,7 +14,8 @@ def test_storage_type_local():
     assert hasattr(storage_instance, "save_data")
 
 
-def test_storage_type_remote():
+def test_storage_type_remote(monkeypatch):
+    monkeypatch.setenv("OH_S3_BUCKET", "test-bucket")
     storage_type = StorageType.REMOTE
     assert storage_type.value == "remote"
 

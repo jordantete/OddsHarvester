@@ -1,6 +1,10 @@
 """Tests for the Click-based CLI."""
 
 import logging
+import os
+from pathlib import Path
+import subprocess
+import sys
 from typing import ClassVar
 from unittest.mock import AsyncMock, patch
 
@@ -64,6 +68,19 @@ class TestCLIBasics:
         assert "--date" in result.output
         assert "--league" in result.output
         assert "--request-delay" in result.output
+
+    def test_cli_import_leaves_boto3_unloaded(self):
+        """boto3 comes with the s3 extra, so the CLI must start without it."""
+        src = Path(__file__).resolve().parents[2] / "src"
+        code = "import sys, oddsharvester.cli.cli; print(sorted({'boto3', 'botocore'} & set(sys.modules)))"
+        completed = subprocess.run(  # noqa: S603
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            check=True,
+            env={**os.environ, "PYTHONPATH": str(src)},
+        )
+        assert completed.stdout.strip() == "[]"
 
     def test_historic_help(self, runner):
         """Test historic command help."""

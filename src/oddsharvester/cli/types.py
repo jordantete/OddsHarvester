@@ -1,7 +1,10 @@
 """Custom Click parameter types for OddsHarvester CLI."""
 
+import importlib.util
+
 import click
 
+from oddsharvester.storage.remote_data_storage import s3_bucket
 from oddsharvester.storage.storage_format import StorageFormat
 from oddsharvester.storage.storage_type import StorageType
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
@@ -25,7 +28,7 @@ class SportType(click.ParamType):
 
 
 class StorageTypeType(click.ParamType):
-    """Custom Click type for StorageType enum."""
+    """Custom Click type for StorageType enum; checks what remote storage needs before any scraping."""
 
     name = "storage_type"
 
@@ -33,10 +36,19 @@ class StorageTypeType(click.ParamType):
         if value is None:
             return None
         try:
-            return StorageType(value.lower())
+            storage = StorageType(value.lower())
         except ValueError:
             valid = ", ".join(s.value for s in StorageType)
             self.fail(f"Invalid storage type '{value}'. Valid options: {valid}", param, ctx)
+
+        if storage is StorageType.REMOTE:
+            if not s3_bucket():
+                self.fail(
+                    "OH_S3_BUCKET is not set. Name the bucket to upload to: export OH_S3_BUCKET=<bucket>", param, ctx
+                )
+            if importlib.util.find_spec("boto3") is None:
+                self.fail("boto3 is not installed. Install the S3 extra: pip install 'oddsharvester[s3]'", param, ctx)
+        return storage
 
 
 class StorageFormatType(click.ParamType):

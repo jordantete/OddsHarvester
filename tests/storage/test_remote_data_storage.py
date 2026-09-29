@@ -8,7 +8,9 @@ from oddsharvester.storage.remote_data_storage import RemoteDataStorage
 
 
 @pytest.fixture
-def remote_data_storage():
+def remote_data_storage(monkeypatch):
+    monkeypatch.setenv("OH_S3_BUCKET", "test-bucket")
+    monkeypatch.delenv("OH_AWS_REGION", raising=False)
     return RemoteDataStorage()
 
 
@@ -20,35 +22,28 @@ def sample_data():
 def test_initialization(remote_data_storage):
     assert remote_data_storage.s3_client is not None
     assert remote_data_storage.logger is not None
-    assert remote_data_storage.S3_BUCKET_NAME == "odds-portal-scrapped-odds-cad8822c179f12cg"
-    assert remote_data_storage.AWS_REGION == "eu-west-3"
+    assert remote_data_storage.bucket == "test-bucket"
+    assert remote_data_storage.region == "eu-west-3"
 
 
-def test_env_var_override_bucket():
-    with patch.dict("os.environ", {"OH_S3_BUCKET": "my-custom-bucket"}):
-        # Re-import to pick up the new env var at class-definition time
-        import importlib
+def test_bucket_and_region_are_read_when_the_storage_is_created(monkeypatch):
+    monkeypatch.setenv("OH_S3_BUCKET", "my-custom-bucket")
+    monkeypatch.setenv("OH_AWS_REGION", "us-east-1")
 
-        import oddsharvester.storage.remote_data_storage as mod
+    storage = RemoteDataStorage()
 
-        importlib.reload(mod)
-        assert mod.RemoteDataStorage.S3_BUCKET_NAME == "my-custom-bucket"
-
-        # Restore defaults
-        importlib.reload(mod)
+    assert (storage.bucket, storage.region) == ("my-custom-bucket", "us-east-1")
 
 
-def test_env_var_override_region():
-    with patch.dict("os.environ", {"OH_AWS_REGION": "us-east-1"}):
-        import importlib
+@pytest.mark.parametrize("bucket", [None, "", "   "])
+def test_no_bucket_is_refused(bucket, monkeypatch):
+    if bucket is None:
+        monkeypatch.delenv("OH_S3_BUCKET", raising=False)
+    else:
+        monkeypatch.setenv("OH_S3_BUCKET", bucket)
 
-        import oddsharvester.storage.remote_data_storage as mod
-
-        importlib.reload(mod)
-        assert mod.RemoteDataStorage.AWS_REGION == "us-east-1"
-
-        # Restore defaults
-        importlib.reload(mod)
+    with pytest.raises(ValueError, match="export OH_S3_BUCKET=<bucket>"):
+        RemoteDataStorage()
 
 
 def test_save_to_json(remote_data_storage, sample_data):
@@ -81,14 +76,14 @@ def test_upload_to_s3_success(remote_data_storage):
     with patch.object(remote_data_storage.s3_client, "upload_file") as mock_upload:
         remote_data_storage._upload_to_s3("test_data.json", "s3_object.json")
 
-    mock_upload.assert_called_once_with("test_data.json", remote_data_storage.S3_BUCKET_NAME, "s3_object.json")
+    mock_upload.assert_called_once_with("test_data.json", "test-bucket", "s3_object.json")
 
 
 def test_upload_to_s3_default_object_name(remote_data_storage):
     with patch.object(remote_data_storage.s3_client, "upload_file") as mock_upload:
         remote_data_storage._upload_to_s3("test_data.json")
 
-    mock_upload.assert_called_once_with("test_data.json", remote_data_storage.S3_BUCKET_NAME, "test_data.json")
+    mock_upload.assert_called_once_with("test_data.json", "test-bucket", "test_data.json")
 
 
 def test_upload_to_s3_error(remote_data_storage):

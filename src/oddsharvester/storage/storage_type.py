@@ -1,7 +1,6 @@
 from enum import Enum
 
 from oddsharvester.storage.local_data_storage import LocalDataStorage
-from oddsharvester.storage.remote_data_storage import RemoteDataStorage
 
 
 class StorageType(Enum):
@@ -12,6 +11,8 @@ class StorageType(Enum):
         if self == StorageType.LOCAL:
             return LocalDataStorage()
         elif self == StorageType.REMOTE:
+            from oddsharvester.storage.remote_data_storage import RemoteDataStorage
+
             return RemoteDataStorage()
         else:
             raise ValueError(f"Unsupported storage type: {self.value}")

@@ -3,25 +3,32 @@ import logging
 import os
 from typing import Any
 
-import boto3
-
-_DEFAULT_S3_BUCKET = "odds-portal-scrapped-odds-cad8822c179f12cg"
 _DEFAULT_AWS_REGION = "eu-west-3"
 
 
-class RemoteDataStorage:
-    S3_BUCKET_NAME = os.environ.get("OH_S3_BUCKET", _DEFAULT_S3_BUCKET)
-    AWS_REGION = os.environ.get("OH_AWS_REGION", _DEFAULT_AWS_REGION)
+def s3_bucket() -> str:
+    """The bucket named by OH_S3_BUCKET, empty when it is unset or blank."""
+    return os.environ.get("OH_S3_BUCKET", "").strip()
 
+
+class RemoteDataStorage:
     def __init__(self):
         """
         Initializes the RemoteDataStorage class with an S3 client and logger.
+
+        Raises:
+            ValueError: If OH_S3_BUCKET is unset or blank.
         """
+        # Imported here so the package runs without the s3 extra.
+        import boto3
+
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.s3_client = boto3.client("s3", region_name=self.AWS_REGION)
-        self.logger.info(
-            f"RemoteDataStorage initialized for region: {self.AWS_REGION} and bucket: {self.S3_BUCKET_NAME}"
-        )
+        self.bucket = s3_bucket()
+        if not self.bucket:
+            raise ValueError("Remote storage needs a bucket: export OH_S3_BUCKET=<bucket>")
+        self.region = os.environ.get("OH_AWS_REGION", "").strip() or _DEFAULT_AWS_REGION
+        self.s3_client = boto3.client("s3", region_name=self.region)
+        self.logger.info(f"RemoteDataStorage initialized for region: {self.region} and bucket: {self.bucket}")
 
     def _save_to_json(self, data: list[dict[str, Any]], file_name: str) -> None:
         """
@@ -53,9 +60,9 @@ class RemoteDataStorage:
             object_name = file_name
 
         try:
-            self.logger.info(f"Uploading {file_name} to bucket {self.S3_BUCKET_NAME} as {object_name}")
-            self.s3_client.upload_file(file_name, self.S3_BUCKET_NAME, object_name)
-            self.logger.info(f"File uploaded successfully to {self.S3_BUCKET_NAME}/{object_name}")
+            self.logger.info(f"Uploading {file_name} to bucket {self.bucket} as {object_name}")
+            self.s3_client.upload_file(file_name, self.bucket, object_name)
+            self.logger.info(f"File uploaded successfully to {self.bucket}/{object_name}")
 
         except Exception as e:
             self.logger.error(f"Failed to upload {file_name} to S3: {e}")

@@ -325,15 +325,20 @@ version = "0.15.0"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
-    { name = "boto3" },
     { name = "click" },
     { name = "lxml" },
     { name = "playwright" },
     { name = "tzdata" },
 ]
 
+[package.optional-dependencies]
+s3 = [
+    { name = "boto3" },
+]
+
 [package.dev-dependencies]
 dev = [
+    { name = "boto3" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -344,7 +349,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.14.3" },
-    { name = "boto3", specifier = ">=1.42.21" },
+    { name = "boto3", marker = "extra == 's3'", specifier = ">=1.42.21" },
     { name = "click", specifier = ">=8.1.0" },
     { name = "lxml", specifier = ">=6.0.2" },
     { name = "playwright", specifier = ">=1.57.0" },
@@ -353,6 +358,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "boto3", specifier = ">=1.42.21" },
     { name = "pre-commit", specifier = ">=4.5.1" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },

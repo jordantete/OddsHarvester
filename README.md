@@ -324,6 +324,11 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 > output file rather than appending across the upgrade. `historic` and `live`
 > links-only rows are unchanged.
 
+> **Breaking change:** `boto3` moved to the `s3` extra, so `pip install oddsharvester` no longer
+> installs it, and there is no default S3 bucket any more. `--storage remote` (or
+> `OH_STORAGE=remote`) needs `pip install 'oddsharvester[s3]'` and a bucket in `OH_S3_BUCKET`;
+> without either, the command exits 2 before the browser starts and names the missing piece.
+
 #### Browser & Scraping Options
 
 | Option            | Short | Description                               | Default |
@@ -538,6 +543,8 @@ All CLI options can be set via environment variables — useful for Docker or CI
 | `OH_LOCALE`        | `--locale`        | Browser locale               |
 | `OH_TIMEZONE`      | `--timezone`      | Browser timezone ID          |
 | `OH_BASE_URL`      | `--base-url`      | Regional OddsPortal mirror base URL |
+| `OH_S3_BUCKET`     | none              | S3 bucket that `--storage remote` uploads to (required for remote storage) |
+| `OH_AWS_REGION`    | none              | AWS region of that bucket (default `eu-west-3`) |
 
 </details>
 
@@ -557,6 +564,9 @@ oddsharvester upcoming -d 20250301 -m 1x2
 
 ```bash
 pip install oddsharvester
+
+# With S3 upload (--storage remote)
+pip install 'oddsharvester[s3]'
 ```
 
 ### From source (with uv)

@@ -1,5 +1,6 @@
 """A failed write must be visible and must not lose the scraped batch."""
 
+import importlib.util
 import json
 import re
 from unittest.mock import AsyncMock, patch
@@ -87,6 +88,7 @@ def test_failed_write_keeps_the_ndjson_stream_clean(tmp_path, monkeypatch):
 @pytest.mark.parametrize("extra", [["-f", "csv", "-o", "out.csv"], ["--storage", "remote", "-o", "out.json"]])
 def test_fallback_is_json_next_to_the_requested_output(extra, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("OH_S3_BUCKET", "test-bucket")
 
     result = _invoke("historic", extra)
 
@@ -115,3 +117,59 @@ def test_append_to_an_unreadable_json_keeps_it_and_saves_the_batch_aside(tmp_pat
 )
 def test_fallback_path_sits_next_to_the_output(file_path, prefix):
     assert re.fullmatch(rf"{re.escape(prefix)}\.unsaved-\d{{8}}T\d{{12}}Z\.json", _fallback_path(file_path))
+
+
+def _invoke_with_runner_mock(command, extra):
+    """Run a command with only its scraper mocked, so the real storage path runs."""
+    args, target, value = CASES[command]
+    with patch(f"oddsharvester.cli.commands.{target}", new_callable=AsyncMock, return_value=value()) as run_mock:
+        result = CliRunner().invoke(cli, [*args, *extra])
+    return result, run_mock
+
+
+@pytest.mark.parametrize("command", list(CASES))
+@pytest.mark.parametrize("bucket", [None, "", "   "])
+def test_remote_without_a_bucket_exits_2_before_scraping(command, bucket, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    if bucket is None:
+        monkeypatch.delenv("OH_S3_BUCKET", raising=False)
+    else:
+        monkeypatch.setenv("OH_S3_BUCKET", bucket)
+
+    result, run_mock = _invoke_with_runner_mock(command, ["--storage", "remote"])
+
+    assert result.exit_code == 2, result.output
+    assert "export OH_S3_BUCKET=<bucket>" in result.output
+    run_mock.assert_not_awaited()
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize("command", list(CASES))
+def test_oh_storage_remote_without_a_bucket_exits_2_before_scraping(command, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("OH_S3_BUCKET", raising=False)
+    monkeypatch.setenv("OH_STORAGE", "remote")
+
+    result, run_mock = _invoke_with_runner_mock(command, [])
+
+    assert result.exit_code == 2, result.output
+    assert "export OH_S3_BUCKET=<bucket>" in result.output
+    run_mock.assert_not_awaited()
+
+
+@pytest.mark.parametrize("command", list(CASES))
+def test_remote_without_boto3_exits_2_with_the_install_command(command, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("OH_S3_BUCKET", "test-bucket")
+    real_find_spec = importlib.util.find_spec
+
+    def find_spec_without_boto3(name, *args, **kwargs):
+        return None if name == "boto3" else real_find_spec(name, *args, **kwargs)
+
+    monkeypatch.setattr(importlib.util, "find_spec", find_spec_without_boto3)
+
+    result, run_mock = _invoke_with_runner_mock(command, ["--storage", "remote"])
+
+    assert result.exit_code == 2, result.output
+    assert "pip install 'oddsharvester[s3]'" in result.output
+    run_mock.assert_not_awaited()

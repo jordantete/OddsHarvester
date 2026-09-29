@@ -16,8 +16,8 @@ WORKDIR /app
 COPY src /app/src
 COPY pyproject.toml uv.lock README.md LICENSE.txt /app/
 
-# Install runtime dependencies (the `dev` group is not installed)
-RUN uv sync --frozen --no-dev
+# Install runtime dependencies and the s3 extra (the `dev` group is not installed)
+RUN uv sync --frozen --no-dev --extra s3
 
 # Activate the virtual environment
 ENV PATH="/app/.venv/bin:$PATH"
