@@ -328,6 +328,9 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 > installs it, and there is no default S3 bucket any more. `--storage remote` (or
 > `OH_STORAGE=remote`) needs `pip install 'oddsharvester[s3]'` and a bucket in `OH_S3_BUCKET`;
 > without either, the command exits 2 before the browser starts and names the missing piece.
+> Remote storage now honours `--format` and `--append` the same way local storage does (it used
+> to always write JSON and always overwrite), and the object key carries the file's extension
+> when `-o` has none, e.g. `-o out` now uploads `out.json`.
 
 #### Browser & Scraping Options
 

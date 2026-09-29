@@ -812,6 +812,10 @@ so each proxy is only warmed once per run. Any future per-context setup
 same warm-once-per-context path — don't assume a page inherits state from
 another context on the same proxy pool.
 
+A strict warm-up that times out removes that proxy from the whole run even
+though the context is usually already on decimal odds by then; retrying
+once before blacklisting is left for later.
+
 ### References
 
 - `core/base_scraper.py` — `_warm_proxy_contexts`, `_warmed_proxy_keys`.
@@ -1255,8 +1259,13 @@ Three behaviours compose into a silent truncation:
 
 - OddsPortal answers **200 with an empty result set** when it throttles. There is
   no error status to react to (same lesson as §4 and §15).
-- `extract_match_links` wraps its whole body in `try/except` and returns `[]` on
-  any failure, which is deliberate fail-safe behaviour against DOM drift.
+- `extract_match_rows` (and `extract_live_match_links`) used to wrap its whole
+  body in `try/except` and return `[]` on any failure. Since lot 5a a crash
+  while reading the rows surfaces instead: a failed listing page (historic), an
+  errored combo (upcoming), or a failed live run, so only a page that actually
+  renders no rows still reaches the zero-link verdict described below. One
+  trade-off from that change: a crashed historic page is written off outright,
+  without the single re-fetch a truncated page gets below.
 - The collection loop then counted the page as collected regardless of what came
   back, so `[]` incremented `successful_pages`.
 
