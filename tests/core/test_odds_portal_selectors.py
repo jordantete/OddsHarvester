@@ -3,6 +3,8 @@ import pytest
 from tests.dom_builders import bookmaker_row, date_header, line_row, listing_row, match_header, odds_table, page
 
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
+from oddsharvester.core.sport_period_registry import SportPeriodRegistry
+from oddsharvester.utils.sport_market_constants import Sport
 
 
 def test_market_code_from_url_extracts_code():
@@ -94,31 +96,40 @@ def test_period_scope_from_url_non_string():
     assert OddsPortalSelectors.period_scope_from_url(12345) is None
 
 
-def test_period_scope_code_universal_full_time():
-    # FullTime is scope 2 on every sport (verified football/tennis/baseball).
-    assert OddsPortalSelectors.period_scope_code("tennis", "FullTime") == 2
-    assert OddsPortalSelectors.period_scope_code("football", "FullTime") == 2
-    assert OddsPortalSelectors.period_scope_code("ice-hockey", "FullTime") == 2
+def test_period_scope_codes_are_the_site_period_ids():
+    """Read from every period tab of one match per sport on 2026-09-29; baseball 1st Half is 3 too."""
+    assert OddsPortalSelectors.PERIOD_SCOPE_CODES_UNIVERSAL == {
+        "FullIncludingOT": 1,
+        "FullTime": 2,
+        "FirstHalf": 3,
+        "SecondHalf": 4,
+        "FirstPeriod": 5,
+        "SecondPeriod": 6,
+        "ThirdPeriod": 7,
+        "FirstQuarter": 8,
+        "SecondQuarter": 9,
+        "ThirdQuarter": 10,
+        "FourthQuarter": 11,
+        "FirstSet": 12,
+        "SecondSet": 13,
+        "ThirdSet": 14,
+        "FourthSet": 15,
+        "FifthSet": 16,
+    }
 
 
-def test_period_scope_code_per_sport():
-    assert OddsPortalSelectors.period_scope_code("football", "FirstHalf") == 3
-    assert OddsPortalSelectors.period_scope_code("football", "SecondHalf") == 4
-    assert OddsPortalSelectors.period_scope_code("tennis", "FirstSet") == 12
-    assert OddsPortalSelectors.period_scope_code("baseball", "FullIncludingOT") == 1
+def test_every_period_of_every_sport_has_a_scope_code():
+    pairs = []
+    for sport in Sport:
+        period_enum = SportPeriodRegistry.get_period_enum(sport.value)
+        pairs += [(sport.value, period_enum.get_internal_value(period)) for period in period_enum]
+
+    assert len(pairs) == 41
+    assert [pair for pair in pairs if OddsPortalSelectors.period_scope_code(pair[1]) is None] == []
 
 
-def test_period_scope_code_unknown_returns_none():
-    # Unverified periods fall back to label matching; scope lookup must not guess.
-    assert OddsPortalSelectors.period_scope_code("basketball", "FirstQuarter") is None
-    assert OddsPortalSelectors.period_scope_code("tennis", "SecondSet") is None
-    # 'FirstHalf' is per-sport: verified for football, NOT generalized (baseball
-    # 'FirstHalf' is actually '1st Inning' = scope 17, a different concept).
-    assert OddsPortalSelectors.period_scope_code("baseball", "FirstHalf") is None
-
-
-def test_period_scope_code_cricket_full_including_ot():
-    assert OddsPortalSelectors.period_scope_code("cricket", "FullIncludingOT") == 1
+def test_period_scope_code_of_an_unknown_period_is_none():
+    assert OddsPortalSelectors.period_scope_code("NotAPeriod") is None
 
 
 def test_odds_movement_header_is_language_independent():

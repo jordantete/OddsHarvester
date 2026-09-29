@@ -102,24 +102,85 @@ class TestPeriodSelector:
         assert await selector.select_by_scope(page, "football", "NotAPeriod") is None
         page.evaluate.assert_not_awaited()
 
-    async def test_already_active_skips_hash_switch(self, selector):
-        page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;3")
-        assert await selector.select_by_scope(page, "football", "FirstHalf") is True
-        page.evaluate.assert_not_awaited()
+    def _bar_page(self, url, active, tabs=3):
+        """A page whose hash switch lands in the URL, with a period bar of `tabs` tabs.
 
-    async def test_switches_scope_via_hash(self, selector):
-        page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:over-under;2")
+        `active` is the index of the bold tab: -1 for none, None for a page without a period bar.
+        """
+        page = self._page(url)
 
         async def evaluate(_js, args):
-            page.url = f"https://www.oddsportal.com/x/h2h/a/b/#{args['fragment']}:{args['code']};{args['scope']}"
+            if "fragment" in args:
+                page.url = f"https://www.oddsportal.com/x/h2h/a/b/#{args['fragment']}:{args['code']};{args['scope']}"
+                return None
+            return None if active is None else {"tabs": tabs, "active": active}
 
         page.evaluate = AsyncMock(side_effect=evaluate)
+        return page
+
+    async def test_already_active_skips_hash_switch(self, selector):
+        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;3", active=1)
 
         assert await selector.select_by_scope(page, "football", "FirstHalf") is True
 
-        args, kwargs = page.evaluate.await_args
-        payload = args[1] if len(args) >= 2 else kwargs.get("arg")
-        assert payload == {"fragment": "id1", "code": "over-under", "scope": 3}
+        page.evaluate.assert_awaited_once()
+        assert "fragment" not in page.evaluate.await_args.args[1]
+
+    async def test_switches_scope_via_hash(self, selector):
+        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:over-under;2", active=1)
+
+        assert await selector.select_by_scope(page, "football", "FirstHalf") is True
+
+        assert page.evaluate.await_args_list[0].args[1] == {"fragment": "id1", "code": "over-under", "scope": 3}
+
+    async def test_a_period_the_match_lacks_is_refused(self, selector, caplog):
+        """NFL 2nd Half forced into the URL: the page keeps its first tab, FT including OT, active."""
+        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:home-away;1", active=0, tabs=6)
+
+        with caplog.at_level("WARNING"):
+            assert await selector.select_by_scope(page, "american-football", "SecondHalf") is False
+
+        assert page.url.endswith(";4")
+        assert "the page still shows its first period tab, so the match has no such period" in caplog.text
+
+    async def test_a_period_the_match_has_is_selected(self, selector):
+        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:home-away;1", active=2, tabs=6)
+
+        assert await selector.select_by_scope(page, "american-football", "FirstQuarter") is True
+
+    async def test_a_scope_already_in_the_url_is_checked_on_screen_too(self, selector):
+        """Baseball Full Time left in the URL by an earlier market: the page still shows FT including OT."""
+        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:over-under;2", active=0)
+
+        assert await selector.select_by_scope(page, "baseball", "FullTime") is False
+
+        page.evaluate.assert_awaited_once()
+
+    @pytest.mark.parametrize(
+        ("active", "tabs"),
+        [(0, 1), (-1, 3), (None, 0)],
+        ids=["single-tab-bar", "no-bold-tab", "no-period-bar"],
+    )
+    async def test_a_period_that_cannot_be_seen_on_screen_is_refused(self, selector, active, tabs):
+        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;2", active=active, tabs=tabs)
+
+        assert await selector.select_by_scope(page, "football", "SecondHalf") is False
+
+    async def test_the_default_period_needs_only_the_url(self, selector):
+        """Basketball FT including OT is the page's first tab: no period bar read."""
+        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:home-away;2", active=0)
+
+        assert await selector.select_by_scope(page, "basketball", "FullIncludingOT") is True
+
+        page.evaluate.assert_awaited_once()
+        assert page.evaluate.await_args.args[1]["scope"] == 1
+
+    async def test_the_collector_path_reads_nothing_on_the_page(self, selector):
+        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;2", active=None)
+
+        assert await selector.select_by_scope(page, "football", "FullTime") is True
+
+        page.evaluate.assert_not_awaited()
 
     async def test_returns_false_when_scope_never_applies(self, selector):
         page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;2")

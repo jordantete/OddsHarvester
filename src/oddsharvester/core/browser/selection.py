@@ -7,10 +7,29 @@ from playwright.async_api import ElementHandle, Page
 
 from oddsharvester.core.browser.market_navigation import HASH_SWITCH_JS
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
+from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 from oddsharvester.utils.constants import (
     FALLBACK_VERIFY_WAIT_MS,
     MARKET_SWITCH_WAIT_TIME_MS,
 )
+
+# The period bar is the second sub-nav group, after the bookies filter. Returns
+# its tab count and the index of its bold tab (-1 when none), or null.
+_PERIOD_BAR_JS = """
+(args) => {
+    const groups = new Map();
+    for (const button of document.querySelectorAll(args.buttons)) {
+        const group = button.parentElement;
+        if (!group || !group.matches(args.group)) continue;
+        if (!groups.has(group)) groups.set(group, []);
+        groups.get(group).push(button);
+    }
+    const tabs = Array.from(groups.values())[1];
+    if (!tabs) return null;
+    const active = tabs.findIndex((tab) => (tab.getAttribute("style") || "").replaceAll(" ", "").includes(args.marker));
+    return { tabs: tabs.length, active };
+}
+"""
 
 
 @dataclass(frozen=True)
@@ -92,6 +111,11 @@ class SelectionManager:
         return None
 
 
+def _is_default_period(sport: str | None, internal_period: str) -> bool:
+    default = SportPeriodRegistry.get_default_period(sport or "")
+    return default is not None and type(default).get_internal_value(default) == internal_period
+
+
 class PeriodSelector:
     """Select a match period by its language-independent URL-fragment scope code.
 
@@ -99,47 +123,76 @@ class PeriodSelector:
     `…:over-under;2`). Scope ids are global and identical across localized
     mirrors (gotchas §7). The redesigned SPA routes the whole match view off
     the hash, so the scope is selected by rewriting the fragment directly.
-    Returns None when no scope code is verified for `(sport, period)`,
-    signalling the caller to fall back to label-based selection.
+    Returns None when no scope code is known for the period, signalling the
+    caller to fall back to label-based selection.
     """
 
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def select_by_scope(self, page: Page, sport: str | None, internal_period: str) -> bool | None:
-        """Return True if the target scope is active, False if unreachable, None if no scope is known.
+        """Return True if the target period is active, False if unreachable, None if no scope is known.
 
-        Only ever returns True when the active fragment scope equals the target, so
-        a wrong period is never silently selected.
+        The sport's default period needs the target scope in the URL. Any other
+        period must also be on screen: a match without that period keeps its
+        first tab, the default, active whatever the URL says. No label is read,
+        so the check holds on localized mirrors.
         """
-        target = OddsPortalSelectors.period_scope_code(sport, internal_period)
+        target = OddsPortalSelectors.period_scope_code(internal_period)
         if target is None:
             return None
 
         if OddsPortalSelectors.period_scope_from_url(page.url) == target:
-            self.logger.info(f"Period scope {target} already active for '{internal_period}'.")
-            return True
+            self.logger.info(f"Period scope {target} already in the URL for '{internal_period}'.")
+        else:
+            fragment = OddsPortalSelectors.event_id_from_url(page.url)
+            code = OddsPortalSelectors.market_code_from_url(page.url)
+            if not fragment or not code:
+                self.logger.warning(
+                    f"Cannot select period scope {target} for '{internal_period}': no market fragment in URL."
+                )
+                return False
 
-        fragment = OddsPortalSelectors.event_id_from_url(page.url)
-        code = OddsPortalSelectors.market_code_from_url(page.url)
-        if not fragment or not code:
-            self.logger.warning(
-                f"Cannot select period scope {target} for '{internal_period}': no market fragment in URL."
-            )
-            return False
+            try:
+                await page.evaluate(HASH_SWITCH_JS, {"fragment": fragment, "code": code, "scope": target})
+                await page.wait_for_timeout(MARKET_SWITCH_WAIT_TIME_MS)
+            except Exception as e:
+                self.logger.warning(f"Hash switch to period scope {target} failed: {e}")
+                return False
 
-        try:
-            await page.evaluate(HASH_SWITCH_JS, {"fragment": fragment, "code": code, "scope": target})
-            await page.wait_for_timeout(MARKET_SWITCH_WAIT_TIME_MS)
-        except Exception as e:
-            self.logger.warning(f"Hash switch to period scope {target} failed: {e}")
-            return False
-
-        if OddsPortalSelectors.period_scope_from_url(page.url) == target:
+            if OddsPortalSelectors.period_scope_from_url(page.url) != target:
+                self.logger.warning(f"Could not reach period scope {target} for '{internal_period}' via the URL hash.")
+                return False
             self.logger.info(f"Selected period scope {target} for '{internal_period}' via the URL hash.")
+
+        if _is_default_period(sport, internal_period):
+            return True
+        return await self._later_tab_is_active(page, target, internal_period)
+
+    async def _later_tab_is_active(self, page: Page, target: int, internal_period: str) -> bool:
+        """True when the period bar shows a tab other than its first one as active."""
+        bar = await page.evaluate(
+            _PERIOD_BAR_JS,
+            {
+                "buttons": OddsPortalSelectors.SUB_NAV_TAB_ANY,
+                "group": OddsPortalSelectors.SUB_NAV_GROUP_CSS,
+                "marker": OddsPortalSelectors.SUB_NAV_ACTIVE_STYLE_MARKER.replace(" ", ""),
+            },
+        )
+        if bar and bar["active"] > 0:
+            self.logger.info(
+                f"Period scope {target} for '{internal_period}' is on screen "
+                f"(tab {bar['active'] + 1} of {bar['tabs']})."
+            )
             return True
 
-        self.logger.warning(f"Could not reach period scope {target} for '{internal_period}' via the URL hash.")
+        if not bar:
+            reason = "the page shows no period bar"
+        elif bar["active"] == 0:
+            reason = "the page still shows its first period tab, so the match has no such period"
+        else:
+            reason = "no period tab is active"
+        self.logger.warning(f"Period scope {target} for '{internal_period}' is not on screen: {reason}.")
         return False
 
 

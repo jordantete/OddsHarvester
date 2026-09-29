@@ -1349,7 +1349,7 @@ class BaseScraper:
         fragment = _extract_fragment_match_id(match_link)
         inplay = "/inplay-odds/" in match_link
         code = self._DEFAULT_MARKET_CODE_BY_SPORT.get((sport or "").lower(), "1X2")
-        scope = OddsPortalSelectors.period_scope_code(sport, "FullTime") or 2
+        scope = OddsPortalSelectors.period_scope_code("FullTime") or 2
 
         for attempt in range(1, MATCH_HYDRATION_ATTEMPTS + 1):
             try:

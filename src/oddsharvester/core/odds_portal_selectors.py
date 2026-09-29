@@ -41,6 +41,10 @@ class OddsPortalSelectors:
     SUB_NAV_TAB_ANY = "main button[type='button']"
     SUB_NAV_ACTIVE_STYLE_MARKER = "font-weight: 700"
 
+    # Each sub-nav control is one group of those buttons: the bookies filter, then
+    # the period bar (same on www.oddsportal.com and cuotasahora.com, 2026-09-29).
+    SUB_NAV_GROUP_CSS = "div.no-scrollbar"
+
     # Odds table: one leaf <tr> per bookmaker, identified by its bookmaker links;
     # collapsed submarket line rows carry the expand arrow instead. Odds cells are
     # the odds-column <td>s that hold a value block (the submarket line label sits
@@ -121,21 +125,27 @@ class OddsPortalSelectors:
     SUB_MARKET_SELECTOR = "tr.cursor-pointer span"
     SUB_MARKET_CLICK_ANCESTOR = "tr"
 
-    # Language-independent period scope codes — the ';<scope>' segment of the URL
-    # fragment ('#<id>:<market>;<scope>'). Scope ids are global OddsPortal period
-    # ids, identical across localized mirrors (gotchas §7). Only values verified
-    # live are listed; unverified (sport, period) pairs return None and fall back
-    # to localized-label matching. Verified: FT=2 (football/tennis/baseball).
+    # Language-independent period scope codes: the ';<scope>' segment of the URL
+    # fragment ('#<id>:<market>;<scope>'), keyed by internal period value. Scope ids
+    # are global OddsPortal period ids, the same on every sport and every localized
+    # mirror (gotchas §7); each was read from its tab on 2026-09-29.
     PERIOD_SCOPE_CODES_UNIVERSAL: ClassVar[dict[str, int]] = {
+        "FullIncludingOT": 1,
         "FullTime": 2,
-    }
-    # Per-sport because the same enum name can map to a different scope: baseball
-    # 'FirstHalf' renders as '1st Inning' (scope 17), not the football half (3).
-    PERIOD_SCOPE_CODES_BY_SPORT: ClassVar[dict[str, dict[str, int]]] = {
-        "football": {"FirstHalf": 3, "SecondHalf": 4},
-        "tennis": {"FirstSet": 12},
-        "baseball": {"FullIncludingOT": 1},
-        "cricket": {"FullIncludingOT": 1},
+        "FirstHalf": 3,
+        "SecondHalf": 4,
+        "FirstPeriod": 5,
+        "SecondPeriod": 6,
+        "ThirdPeriod": 7,
+        "FirstQuarter": 8,
+        "SecondQuarter": 9,
+        "ThirdQuarter": 10,
+        "FourthQuarter": 11,
+        "FirstSet": 12,
+        "SecondSet": 13,
+        "ThirdSet": 14,
+        "FourthSet": 15,
+        "FifthSet": 16,
     }
 
     # Participants: the two team/player labels of a listing row or match header,
@@ -193,15 +203,12 @@ class OddsPortalSelectors:
         return int(match.group()) if match else None
 
     @staticmethod
-    def period_scope_code(sport: str | None, internal_period: str) -> int | None:
-        """Return the verified language-independent scope code for (sport, period), else None.
+    def period_scope_code(internal_period: str) -> int | None:
+        """Return the language-independent scope code of a period, else None.
 
-        Per-sport overrides win over the universal map. None means "not verified" —
-        the caller should fall back to localized-label matching (gotchas §7).
+        None means no code is known; the caller then falls back to localized-label
+        matching (gotchas §7).
         """
-        by_sport = OddsPortalSelectors.PERIOD_SCOPE_CODES_BY_SPORT.get((sport or "").lower(), {})
-        if internal_period in by_sport:
-            return by_sport[internal_period]
         return OddsPortalSelectors.PERIOD_SCOPE_CODES_UNIVERSAL.get(internal_period)
 
     @staticmethod
