@@ -2,8 +2,8 @@
 
 import pytest
 
-from tests.integration.helpers.comparison import compare_match_data
-from tests.integration.helpers.replay import load_golden, replay_and_compare, run_replay
+from tests.integration.helpers.comparison import compare_golden
+from tests.integration.helpers.replay import is_live, load_golden, replay_and_compare, run_replay
 
 # Match configurations
 LEICESTER_BRENTFORD = {
@@ -73,7 +73,8 @@ class TestFootballBasicMarkets:
 
         # The umbrella also yields lines this fixture was not captured for; compare only the captured ones.
         captured = {k: v for k, v in actual[0].items() if not k.endswith("_market") or k in expected[0]}
-        result = compare_match_data(captured, expected[0])
+        live = is_live(har_for_match, LEICESTER_BRENTFORD, fixture_name)
+        result = compare_golden(captured, expected[0], live=live)
         assert result.passed, str(result)
 
         record = actual[0]
@@ -84,7 +85,8 @@ class TestFootballBasicMarkets:
         for line_key in ("over_under_1_5_market", "over_under_2_5_market"):
             assert line_key in record, f"Expected umbrella to produce '{line_key}'"
             assert record[line_key], f"'{line_key}' should be non-empty"
-            assert record[line_key] == expected[0][line_key]
+            if not live:
+                assert record[line_key] == expected[0][line_key]
 
     def test_fb_008_local_kickoff(self, har_for_match, tmp_path):
         """FB-008: Test --local-kickoff adds venue_timezone and match_date_venue_local, UTC untouched."""

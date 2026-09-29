@@ -5,6 +5,8 @@ from typing import Any
 
 MARKET_SUFFIX = "_market"
 IGNORED_FIELDS = frozenset({"scraped_date"})
+# Filled only when the page's JSON-LD describes this match (gotchas §19), so a live run may lose them.
+NULLABLE_FIELDS = frozenset({"venue", "venue_town", "venue_country"})
 VALUE_WIDTH = 120
 _MISSING = "<missing>"
 
@@ -57,6 +59,38 @@ def compare_match_data(actual: dict[str, Any], expected: dict[str, Any]) -> Comp
         elif actual[key] != expected[key]:
             result.add_error(f"Field '{key}' mismatch: actual={actual[key]!r} vs expected={expected[key]!r}")
     return result
+
+
+def compare_match_structure(actual: dict[str, Any], expected: dict[str, Any]) -> ComparisonResult:
+    """
+    Compare a live scrape with a golden on structure only, since odds and the bookmaker panel move.
+
+    Every golden field must exist, and one that holds a value must not come back None (the venue
+    fields excepted). A market the golden fills must come back non-empty, each entry carrying every
+    key the golden's entries share.
+    """
+    result = ComparisonResult()
+    for key in sorted(expected.keys() - IGNORED_FIELDS):
+        golden = expected[key]
+        if key not in actual:
+            result.add_error(f"'{key}' missing from actual")
+        elif key.endswith(MARKET_SUFFIX) and isinstance(golden, list) and golden:
+            if not isinstance(actual[key], list) or not actual[key]:
+                result.add_error(f"{key}: empty in actual, the golden has {len(golden)} entries")
+                continue
+            shared = set.intersection(*(set(entry) for entry in golden))
+            for entry in actual[key]:
+                missing = sorted(shared - entry.keys())
+                if missing:
+                    result.add_error(f"{key}: entry {_entry_key(entry)} lacks {missing}")
+        elif golden is not None and actual[key] is None and key not in NULLABLE_FIELDS:
+            result.add_error(f"'{key}' is None in actual, the golden has {golden!r}")
+    return result
+
+
+def compare_golden(actual: dict[str, Any], expected: dict[str, Any], *, live: bool) -> ComparisonResult:
+    """Exact on a HAR replay; structure only under --live, where the site's values move."""
+    return compare_match_structure(actual, expected) if live else compare_match_data(actual, expected)
 
 
 def compare_market(market: str, actual: list[dict[str, Any]], expected: list[dict[str, Any]]) -> ComparisonResult:

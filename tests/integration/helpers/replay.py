@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from tests.integration.helpers.cli_runner import run_historic
-from tests.integration.helpers.comparison import compare_match_data
+from tests.integration.helpers.comparison import compare_golden
 from tests.integration.helpers.fixture_files import FIXTURES_DIR, require_file
 
 
@@ -37,11 +37,20 @@ def run_replay(
     return json.loads(out.read_text())
 
 
+def is_live(har_for_match, match: dict[str, str], fixture_name: str) -> bool:
+    """True under --live, where har_for_match gives no HAR and the run hits the site."""
+    return har_for_match(match["sport"], match["league"], match["match_id"], fixture_name) is None
+
+
 def replay_and_compare(
     har_for_match, tmp_path: Path, match: dict[str, str], fixture_name: str, **scraper_args: Any
 ) -> list[dict[str, Any]]:
-    """run_replay, then compare the first match with the golden; returns the parsed output for further checks."""
+    """run_replay, then compare the first match with the golden (exact on replay, structure under --live).
+
+    Returns the parsed output for further checks.
+    """
     actual = run_replay(har_for_match, tmp_path, match, fixture_name, **scraper_args)
-    result = compare_match_data(actual[0], load_golden(match, fixture_name)[0])
+    live = is_live(har_for_match, match, fixture_name)
+    result = compare_golden(actual[0], load_golden(match, fixture_name)[0], live=live)
     assert result.passed, str(result)
     return actual

@@ -5,8 +5,8 @@ Covers issue #60 — H2H fragment match_date correctness on MLB historic scrapes
 
 import pytest
 
-from tests.integration.helpers.comparison import compare_match_data
-from tests.integration.helpers.replay import load_golden, run_replay
+from tests.integration.helpers.comparison import compare_golden
+from tests.integration.helpers.replay import is_live, load_golden, run_replay
 
 ROYALS_MARINERS = {
     "sport": "baseball",
@@ -34,11 +34,11 @@ class TestBaseballH2HFragment:
         )
 
         # Hard guard against the issue regressing: the buggy upcoming-match date
-        # must never appear, regardless of fixture freshness. Runs before the golden
-        # compare since this test is live_only, where golden drift is expected.
+        # must never appear, regardless of fixture freshness.
         assert "2026-05-22 23:40:00" not in (actual[0].get("match_date") or ""), (
             f"Issue #60 regressed: match_date is the upcoming-match date: {actual[0]['match_date']}"
         )
 
-        result = compare_match_data(actual[0], load_golden(ROYALS_MARINERS, fixture_name)[0])
+        live = is_live(har_for_match, ROYALS_MARINERS, fixture_name)
+        result = compare_golden(actual[0], load_golden(ROYALS_MARINERS, fixture_name)[0], live=live)
         assert result.passed, str(result)

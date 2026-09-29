@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.integration.helpers.comparison import compare_match_data
+from tests.integration.helpers.comparison import compare_golden, compare_match_data, compare_match_structure
 
 pytestmark = pytest.mark.integration
 
@@ -177,3 +177,73 @@ def test_identical_none_market_passes(match):
     expected = copy.deepcopy(match)
     expected["1x2_market"] = None
     assert compare_match_data(copy.deepcopy(expected), expected).passed
+
+
+def test_structure_ignores_values_and_the_bookmaker_panel(match):
+    actual = copy.deepcopy(match)
+    _entry(actual, "Betclic.fr")["1"] = "9.99"
+    _entry(actual, "Winamax")["bookmaker_name"] = "NewBook"
+    actual["1x2_market"] = actual["1x2_market"][1:]
+    actual["match_date"] = "2030-01-01 00:00:00 UTC"
+    actual["venue"] = None
+    assert compare_match_structure(actual, match).passed
+
+
+def test_structure_allows_extra_fields(match):
+    actual = copy.deepcopy(match)
+    actual["new_field"] = "x"
+    actual["btts_market"] = []
+    assert compare_match_structure(actual, match).passed
+
+
+def test_structure_missing_market_fails(match):
+    actual = copy.deepcopy(match)
+    del actual["1x2_market"]
+    result = compare_match_structure(actual, match)
+    assert not result.passed
+    assert "1x2_market" in str(result)
+
+
+def test_structure_empty_market_fails(match):
+    actual = copy.deepcopy(match)
+    actual["1x2_market"] = []
+    result = compare_match_structure(actual, match)
+    assert not result.passed
+    assert "1x2_market" in str(result)
+
+
+def test_structure_missing_entry_key_fails(match):
+    actual = copy.deepcopy(match)
+    del _entry(actual, "Betclic.fr")["X"]
+    result = compare_match_structure(actual, match)
+    assert result.errors == ["1x2_market: entry ('Betclic.fr', 'FullTime', '1X2') lacks ['X']"]
+
+
+def test_structure_field_emptied_to_none_fails(match):
+    actual = copy.deepcopy(match)
+    actual["home_team"] = None
+    result = compare_match_structure(actual, match)
+    assert not result.passed
+    assert "home_team" in str(result)
+
+
+def test_structure_accepts_a_market_the_golden_holds_empty(match):
+    expected = copy.deepcopy(match)
+    expected["1x2_market"] = []
+    actual = copy.deepcopy(match)
+    assert compare_match_structure(actual, expected).passed
+
+
+def test_golden_compare_is_exact_on_replay(match):
+    actual = copy.deepcopy(match)
+    _entry(actual, "Betclic.fr")["1"] = "3.51"
+    assert not compare_golden(actual, match, live=False).passed
+
+
+def test_golden_compare_checks_structure_under_live(match):
+    moved = copy.deepcopy(match)
+    _entry(moved, "Betclic.fr")["1"] = "3.51"
+    emptied = copy.deepcopy(match)
+    emptied["1x2_market"] = []
+    assert compare_golden(moved, match, live=True).passed
+    assert not compare_golden(emptied, match, live=True).passed

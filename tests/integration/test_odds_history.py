@@ -21,7 +21,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from tests.integration.helpers.cli_runner import run_historic
-from tests.integration.helpers.comparison import compare_match_data
+from tests.integration.helpers.comparison import compare_golden
 from tests.integration.helpers.fixture_files import FIXTURES_DIR, har_path_for, require_file
 
 pytestmark = pytest.mark.integration
@@ -68,7 +68,8 @@ def run(request, tmp_path_factory):
     )
     output_file = output_path.with_suffix(".json")
     actual = json.loads(output_file.read_text()) if output_file.exists() else None
-    return {"exit_code": exit_code, "stderr": stderr, "actual": actual, "expected": expected}
+    live = request.config.getoption("--live")
+    return {"exit_code": exit_code, "stderr": stderr, "actual": actual, "expected": expected, "live": live}
 
 
 def _match(run):
@@ -110,7 +111,7 @@ def test_run_succeeds(run):
 
 
 def test_matches_golden(run):
-    result = compare_match_data(_match(run), run["expected"][0])
+    result = compare_golden(_match(run), run["expected"][0], live=run["live"])
     assert result.passed, str(result)
 
 
