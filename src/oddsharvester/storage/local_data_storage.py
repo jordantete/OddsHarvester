@@ -120,7 +120,12 @@ class LocalDataStorage:
         new_columns = [column for column in fieldnames if column not in header]
         if not new_columns:
             # Appending in place: an atomic append would rewrite the whole file.
+            with open(file_path, "rb") as raw:
+                raw.seek(-1, os.SEEK_END)
+                ends_with_newline = raw.read(1) == b"\n"
             with open(file_path, mode="a", newline="", encoding="utf-8") as file:
+                if not ends_with_newline:
+                    file.write("\r\n")
                 csv.DictWriter(file, fieldnames=header).writerows(data)
             return
 
@@ -128,6 +133,12 @@ class LocalDataStorage:
             has_bom = raw.read(len(codecs.BOM_UTF8)) == codecs.BOM_UTF8
         with open(file_path, newline="", encoding="utf-8-sig") as file:
             existing_rows = [row for row in list(csv.reader(file))[1:] if row]
+        oversized_row = next((n for n, row in enumerate(existing_rows, start=1) if len(row) > len(header)), None)
+        if oversized_row is not None:
+            raise ValueError(
+                f"Cannot append to {file_path}: row {oversized_row} has more cells than its header; "
+                "it was left unchanged."
+            )
         widened = header + new_columns
 
         def write(file: TextIO) -> None:
@@ -146,7 +157,8 @@ class LocalDataStorage:
         with open(file_path, newline="", encoding="utf-8-sig") as file:
             header = next(csv.reader(file), [])
         repeated = sorted({column for column in header if header.count(column) > 1})
-        if not header or repeated:
+        all_blank = bool(header) and all(not (column or "").strip() for column in header)
+        if not header or all_blank or repeated:
             reason = f"its header repeats {repeated}" if repeated else "its first line is empty"
             raise ValueError(f"Cannot append to {file_path}: {reason}; it was left unchanged.")
         return header

@@ -226,6 +226,46 @@ def test_save_as_csv_append_refuses_a_header_with_repeated_columns(local_data_st
     assert target.read_bytes() == before
 
 
+def test_save_as_csv_append_refuses_a_whitespace_only_first_line(local_data_storage, tmp_path):
+    target = tmp_path / "out.csv"
+    target.write_text(" \r\nx1,A\r\n", encoding="utf-8")
+    before = target.read_bytes()
+
+    with pytest.raises(ValueError, match="its first line is empty"):
+        local_data_storage._save_as_csv([{"match_link": "https://x/2", "home_team": "B"}], str(target), append=True)
+
+    assert target.read_bytes() == before
+
+
+def test_save_as_csv_append_in_place_onto_a_file_without_a_final_newline(local_data_storage, tmp_path):
+    """A hand edit or a crash mid-append can leave the last byte not '\\n'; the next
+    append must not glue its first row onto the file's last line."""
+    target = tmp_path / "out.csv"
+    target.write_bytes(b"match_link,home_team\r\nx1,A")
+
+    local_data_storage._save_as_csv([{"match_link": "x2", "home_team": "B"}], str(target), append=True)
+
+    assert _read_csv(target) == (
+        ["match_link", "home_team"],
+        [{"match_link": "x1", "home_team": "A"}, {"match_link": "x2", "home_team": "B"}],
+    )
+
+
+def test_save_as_csv_append_refuses_widening_when_an_existing_row_is_longer_than_the_header(
+    local_data_storage, tmp_path
+):
+    target = tmp_path / "out.csv"
+    target.write_text("match_link,home_team\r\nx1,A\r\nx2,B,yes\r\n", encoding="utf-8")
+    before = target.read_bytes()
+
+    with pytest.raises(ValueError, match=r"row 2 has more cells than its header"):
+        local_data_storage._save_as_csv(
+            [{"match_link": "x3", "home_team": "C", "btts_market": "no"}], str(target), append=True
+        )
+
+    assert target.read_bytes() == before
+
+
 def test_save_as_json_overwrites_by_default(local_data_storage, sample_data, tmp_path):
     target = tmp_path / "test_data.json"
     target.write_text(json.dumps([{"team": "Old Team", "odds": 3.0}]), encoding="utf-8")
