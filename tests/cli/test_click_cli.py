@@ -116,7 +116,7 @@ class TestUpcomingCommand:
         """Test past date validation."""
         result = runner.invoke(cli, ["upcoming", "-s", "football", "-d", "20200101"])
         assert result.exit_code != 0
-        assert "must be today or in the future" in result.output
+        assert "already past in every timezone" in result.output
 
 
 class TestHistoricCommand:

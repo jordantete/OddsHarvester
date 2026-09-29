@@ -1,6 +1,6 @@
 """Click callback validators for OddsHarvester CLI."""
 
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 import re
 from urllib.parse import urlsplit
 
@@ -15,7 +15,7 @@ from oddsharvester.utils.utils import get_supported_markets
 
 
 def validate_date(ctx, param, value):
-    """Validate date format (YYYYMMDD) and ensure it's today or future."""
+    """Validate date format (YYYYMMDD) and reject a date that is already past in every timezone."""
     if value is None:
         return None
 
@@ -24,8 +24,10 @@ def validate_date(ctx, param, value):
     except ValueError:
         raise click.BadParameter(f"Invalid date format '{value}'. Expected YYYYMMDD (e.g., 20250227).") from None
 
-    if parsed_date.date() < datetime.now().date():
-        raise click.BadParameter(f"Date '{value}' must be today or in the future.")
+    # UTC-12 is the last timezone still on a given date, so its date is the earliest one current anywhere.
+    earliest_current_date = (datetime.now(UTC) - timedelta(hours=12)).date()
+    if parsed_date.date() < earliest_current_date:
+        raise click.BadParameter(f"Date '{value}' is already past in every timezone.")
 
     return value
 

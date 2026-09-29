@@ -263,7 +263,7 @@ returns builds its heading from the URL and otherwise looks valid.
 | Option         | Short | Description                                                                | Default    |
 | -------------- | ----- | -------------------------------------------------------------------------- | ---------- |
 | `--sport`      | `-s`  | Sport to scrape (`football`, `tennis`, `basketball`, etc.)                 | _required_ |
-| `--date`       | `-d`  | Target date in `YYYYMMDD` format                                           | —          |
+| `--date`       | `-d`  | Target date in `YYYYMMDD` format. Refused only once that date is over in every timezone (UTC-12 included), so the machine's timezone does not matter | —          |
 | `--league`     | `-l`  | Comma-separated league slugs (e.g. `england-premier-league`), or league paths for leagues outside the built-in list (e.g. `football/bhutan/premier-league`, or the full oddsportal.com URL) | —          |
 | `--market`     | `-m`  | Comma-separated markets (e.g. `1x2,btts`)                                  | —          |
 | `--match-link` |       | Specific match URLs, comma-separated and/or repeated. Skips listing pages; `--date`/`--league`/`--season` are then ignored | —          |
