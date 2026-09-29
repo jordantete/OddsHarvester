@@ -45,7 +45,7 @@ jobs:
         run: uv run pytest --cov=src/oddsharvester --cov-report=xml:coverage.xml --cov-report=term
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           fail_ci_if_error: true
           files: ./coverage.xml
