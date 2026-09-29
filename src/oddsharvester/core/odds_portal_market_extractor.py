@@ -84,6 +84,7 @@ class OddsPortalMarketExtractor:
         """
         market_data = {}
         market_methods = SportMarketRegistry.get_market_mapping(sport)
+        ambiguous_markets = SportMarketRegistry.ambiguous_markets(sport)
 
         # Expand umbrella tokens (e.g. "over_under") into the concrete per-line tokens
         # actually rendered on the page (e.g. "over_under_2_5", "over_under_3_5") before
@@ -124,6 +125,14 @@ class OddsPortalMarketExtractor:
 
         for market in markets:
             try:
+                if market in ambiguous_markets:
+                    self.logger.warning(
+                        f"Market '{market}' refused: its line reads the same as "
+                        f"{', '.join(ambiguous_markets[market])}, and the page does not tell them apart."
+                    )
+                    market_data[f"{market}_market"] = []
+                    continue
+
                 if market in market_methods:
                     # For preview mode, group markets by their main market type
                     if preview_submarkets_only:

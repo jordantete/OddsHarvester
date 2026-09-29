@@ -6,7 +6,7 @@ from tests.dom_builders import bookmaker_row, odds_table
 
 from oddsharvester.core.browser.selection import PERIOD_STRATEGY
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
-from oddsharvester.core.sport_market_registry import SportMarketRegistry
+from oddsharvester.core.sport_market_registry import SportMarketRegistrar, SportMarketRegistry
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 
 # Sample odds table: one leaf <tr> per bookmaker
@@ -352,6 +352,51 @@ class TestOddsPortalMarketExtractor:
         assert "btts_market" in result
         assert "nonexistent_market_market" not in result
         assert mock_market_func.call_count == 2
+
+    @staticmethod
+    def _tennis_over_under_markets():
+        def line(label):
+            return SportMarketRegistrar.create_market_lambda("Over/Under", label, ["odds_over", "odds_under"])
+
+        return {
+            "over_under_sets_6_5": line("Over/Under +6.5"),
+            "over_under_games_6_5": line("Over/Under +6.5"),
+            "over_under_games_39_5": line("Over/Under +39.5"),
+        }
+
+    async def test_scrape_markets_refuses_a_line_another_market_shares(self, extractor, page_mock, caplog):
+        """Tennis sets and games lines both read 'Over/Under +6.5': the market comes back empty, never guessed."""
+        extractor.extract_market_odds = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+
+        with (
+            patch.object(SportMarketRegistry, "get_market_mapping", return_value=self._tennis_over_under_markets()),
+            caplog.at_level("WARNING"),
+        ):
+            result = await extractor.scrape_markets(
+                page=page_mock, sport="tennis", markets=["over_under_sets_6_5", "over_under_games_39_5"]
+            )
+
+        assert result == {
+            "over_under_sets_6_5_market": [],
+            "over_under_games_39_5_market": [{"bookmaker_name": "Bookmaker1"}],
+        }
+        extractor.extract_market_odds.assert_awaited_once()
+        assert extractor.extract_market_odds.await_args.kwargs["specific_market"] == "Over/Under +39.5"
+        assert (
+            "Market 'over_under_sets_6_5' refused: its line reads the same as over_under_games_6_5, "
+            "and the page does not tell them apart." in caplog.text
+        )
+
+    async def test_scrape_markets_refuses_a_shared_line_in_preview_mode(self, extractor, page_mock):
+        extractor.extract_market_odds = AsyncMock(return_value=[{"submarket_name": "Over/Under +6.5"}])
+
+        with patch.object(SportMarketRegistry, "get_market_mapping", return_value=self._tennis_over_under_markets()):
+            result = await extractor.scrape_markets(
+                page=page_mock, sport="tennis", markets=["over_under_games_6_5"], preview_submarkets_only=True
+            )
+
+        assert result == {"over_under_games_6_5_market": []}
+        extractor.extract_market_odds.assert_not_awaited()
 
     async def test_scrape_markets_expands_over_under_umbrella(self, extractor, page_mock):
         """Test that an umbrella token expands into one `{token}_market` entry per discovered line."""
