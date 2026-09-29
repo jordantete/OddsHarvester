@@ -915,6 +915,98 @@ async def test_warm_failure_blacklists_proxy(setup_base_scraper_mocks):
     pm.blacklist_proxy.assert_called_once_with("http://b.example.com:2")
 
 
+def _odds_dropdown(page_mock, current: str, options: list[str]) -> None:
+    """The odds-format button shows `current`; its dropdown lists `options`."""
+    button = AsyncMock()
+    button.inner_text = AsyncMock(return_value=current)
+    page_mock.query_selector.return_value = button
+    items = []
+    for text in options:
+        item = AsyncMock()
+        item.inner_text = AsyncMock(return_value=text)
+        items.append(item)
+    page_mock.query_selector_all.return_value = items
+
+
+async def test_set_odds_format_strict_raises_when_the_format_is_missing(setup_base_scraper_mocks):
+    mocks = setup_base_scraper_mocks
+    _odds_dropdown(mocks["page_mock"], "Fractional Odds", ["Fractional Odds", "Money Line Odds"])
+
+    with pytest.raises(ValueError, match="'Decimal Odds' not found"):
+        await mocks["scraper"].set_odds_format(page=mocks["page_mock"], strict=True)
+
+
+async def test_set_odds_format_strict_raises_on_timeout(setup_base_scraper_mocks):
+    mocks = setup_base_scraper_mocks
+    mocks["page_mock"].wait_for_selector.side_effect = TimeoutError("Timeout 8000ms exceeded")
+
+    with pytest.raises(TimeoutError):
+        await mocks["scraper"].set_odds_format(page=mocks["page_mock"], strict=True)
+
+
+async def test_set_odds_format_default_logs_a_missing_format_without_raising(setup_base_scraper_mocks, caplog):
+    """Listings and match pages keep the non-strict call: a missing format is logged, not raised."""
+    mocks = setup_base_scraper_mocks
+    _odds_dropdown(mocks["page_mock"], "Fractional Odds", ["Fractional Odds", "Money Line Odds"])
+
+    with caplog.at_level(logging.WARNING):
+        await mocks["scraper"].set_odds_format(page=mocks["page_mock"])
+
+    assert "'Decimal Odds' not found" in caplog.text
+
+
+@pytest.mark.parametrize("failure", ["format_missing", "timeout"])
+async def test_warm_up_blacklists_a_proxy_whose_odds_format_cannot_be_set(setup_base_scraper_mocks, failure):
+    """B7: a context left on non-decimal odds would corrupt every match it scrapes (gotchas §11)."""
+    mocks = setup_base_scraper_mocks
+    pm = mocks["playwright_manager_mock"]
+    pm.non_default_context_keys = MagicMock(return_value=["http://b.example.com:2"])
+    if failure == "format_missing":
+        _odds_dropdown(mocks["page_mock"], "Fractional Odds", ["Fractional Odds", "Money Line Odds"])
+    else:
+        mocks["page_mock"].wait_for_selector.side_effect = TimeoutError("Timeout 8000ms exceeded")
+
+    await mocks["scraper"]._warm_proxy_contexts()
+
+    pm.blacklist_proxy.assert_called_once_with("http://b.example.com:2")
+    mocks["page_mock"].close.assert_awaited_once()
+
+
+async def test_warm_up_keeps_a_proxy_set_to_decimal_odds(setup_base_scraper_mocks):
+    mocks = setup_base_scraper_mocks
+    pm = mocks["playwright_manager_mock"]
+    pm.non_default_context_keys = MagicMock(return_value=["http://b.example.com:2"])
+    _odds_dropdown(mocks["page_mock"], "Decimal Odds", [])
+
+    await mocks["scraper"]._warm_proxy_contexts()
+
+    pm.blacklist_proxy.assert_not_called()
+    assert "http://b.example.com:2" in mocks["scraper"]._warmed_proxy_keys
+
+
+async def test_warm_up_opens_the_base_url_mirror_and_keeps_its_proxy(setup_base_scraper_mocks):
+    """A mirror localizes the odds-format labels (gotchas §7), so its warm-up only logs a format it cannot set."""
+    mocks = setup_base_scraper_mocks
+    pm = mocks["playwright_manager_mock"]
+    pm.non_default_context_keys = MagicMock(return_value=["http://b.example.com:2"])
+    _odds_dropdown(mocks["page_mock"], "Quote decimali", ["Quote decimali", "Quote frazionarie"])
+    scraper = BaseScraper(
+        playwright_manager=pm,
+        market_extractor=mocks["market_extractor_mock"],
+        scroller=AsyncMock(),
+        cookie_dismisser=AsyncMock(),
+        selection_manager=mocks["selection_manager_mock"],
+        base_url="https://www.centroquote.it",
+    )
+
+    await scraper._warm_proxy_contexts()
+
+    mocks["page_mock"].goto.assert_awaited_once_with(
+        "https://www.centroquote.it", timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded"
+    )
+    pm.blacklist_proxy.assert_not_called()
+
+
 async def test_extract_match_odds_uses_rotated_page(setup_base_scraper_mocks):
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]

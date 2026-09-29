@@ -392,13 +392,17 @@ class BaseScraper:
         self._warmed_proxy_keys: set[str] = set()
         self.pagination_walker = PaginationWalker()
 
-    async def set_odds_format(self, page: Page, odds_format: OddsFormat = OddsFormat.DECIMAL_ODDS):
+    async def set_odds_format(
+        self, page: Page, odds_format: OddsFormat = OddsFormat.DECIMAL_ODDS, strict: bool = False
+    ) -> None:
         """
         Sets the odds format on the page.
 
         Args:
             page (Page): The Playwright page instance.
             odds_format (OddsFormat): The desired odds format.
+            strict (bool): Raise instead of logging when the format cannot be set: a timeout, any other
+                error, or the format missing from the dropdown. Only the proxy warm-up sets it.
         """
         try:
             self.logger.info(f"Setting odds format: {odds_format.value}")
@@ -435,12 +439,18 @@ class BaseScraper:
                     self.logger.info(f"Odds format changed to '{odds_format.value}'.")
                     return
 
+            if strict:
+                raise ValueError(f"Desired odds format '{odds_format.value}' not found in dropdown options.")
             self.logger.warning(f"Desired odds format '{odds_format.value}' not found in dropdown options.")
 
         except TimeoutError:
+            if strict:
+                raise
             self.logger.error("Timeout while setting odds format. Dropdown may not have loaded.")
 
         except Exception as e:
+            if strict:
+                raise
             self.logger.error(f"Error while setting odds format: {e}", exc_info=True)
 
     async def extract_match_rows(
@@ -708,7 +718,8 @@ class BaseScraper:
 
         Odds format and cookie consent are per-context state. Without this, match
         pages loaded on a fresh proxy context would render with the wrong odds
-        format, silently corrupting odds values.
+        format, silently corrupting odds values, so a context whose odds format
+        cannot be set leaves the rotation.
         """
         for key in self.playwright_manager.non_default_context_keys():
             if key in self._warmed_proxy_keys:
@@ -717,9 +728,12 @@ class BaseScraper:
             page = None
             try:
                 page = await self.playwright_manager.new_page_on_key(key)
-                await page.goto(ODDSPORTAL_BASE_URL, timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded")
+                await page.goto(
+                    self.base_url or ODDSPORTAL_BASE_URL, timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded"
+                )
                 await self.cookie_dismisser.dismiss(page=page)
-                await self.set_odds_format(page=page)
+                # A mirror localizes the dropdown labels, which the English match cannot find (gotchas §7).
+                await self.set_odds_format(page=page, strict=self.base_url is None)
                 self.logger.info(f"Warmed proxy context: {key}")
             except Exception as e:
                 self.logger.warning(f"Failed to warm proxy context {key}: {e}. Removing proxy from rotation.")
