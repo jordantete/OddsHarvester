@@ -2,7 +2,7 @@
 
 Two complementary tests:
 
-- A deterministic HAR replay of the live-now listing captured on 2026-07-20. Runs
+- A deterministic HAR replay of the live-now listing captured on 2026-09-29. Runs
   by default, no network. An in-play match page does not replay (agentic-gotchas
   §16), so the match snapshot itself has no replay test. Recapture the listing
   while matches are in play: uv run python scripts/capture_all_hars.py --only live
@@ -22,8 +22,7 @@ import pytest
 
 pytestmark = [pytest.mark.integration]
 
-# Captured live on 2026-07-20 at half-time. "Club Friendly" is what OddsPortal
-# reports as the league, and the only in-play book was a crypto one.
+# Folder named after the in-play match of the first capture (2026-07-20); the listing HAR is from 2026-09-29.
 REPLAY_MATCH = {
     "league": "club-friendly",
     "match_id": "samgurali-spaeri-0nx5GXqB",
