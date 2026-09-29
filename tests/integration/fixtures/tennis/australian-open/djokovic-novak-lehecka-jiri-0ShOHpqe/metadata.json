@@ -11,10 +11,10 @@
     },
     "match_date": "2025-01-19 08:15:00 UTC",
     "notes": "",
-    "captured_at": "2026-09-02T13:04:48.081663+00:00",
-    "oddsharvester_version": "0.11.0",
+    "captured_at": "2026-09-29T15:09:43.671618+00:00",
+    "oddsharvester_version": "0.15.0",
     "available_fixtures": [
         "match_winner_full_time_all.json",
-        "over_under_games_22_5_full_time_all.json"
+        "over_under_games_33_5_full_time_all.json"
     ]
 }

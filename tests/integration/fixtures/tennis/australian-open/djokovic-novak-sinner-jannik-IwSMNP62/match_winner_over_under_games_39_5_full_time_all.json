@@ -1,7 +1,7 @@
 [
     {
-        "scraped_date": "2026-09-02 13:05:19 UTC",
-        "match_date": "2024-01-26 03:45:00 UTC",
+        "scraped_date": "2026-09-29 15:09:48 UTC",
+        "match_date": "2024-01-26 04:45:00 UTC",
         "season": null,
         "match_link": "https://www.oddsportal.com/tennis/h2h/djokovic-novak-AZg49Et9/sinner-jannik-6HdC3z4H/#IwSMNP62",
         "home_team": "Djokovic N.",
@@ -37,6 +37,14 @@
                 "submarket_name": "Home/Away"
             }
         ],
-        "over_under_sets_2_5_market": []
+        "over_under_games_39_5_market": [
+            {
+                "odds_over": "1.53",
+                "odds_under": "2.00",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +39.5"
+            }
+        ]
     }
 ]

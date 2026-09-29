@@ -42,13 +42,13 @@ class TestTennisBasicMarkets:
         )
 
     def test_tn_002_multiple_markets(self, har_for_match, tmp_path):
-        """TN-002: Test match_winner + over_under_sets markets."""
+        """TN-002: Test match_winner + over_under_games markets."""
         replay_and_compare(
             har_for_match,
             tmp_path,
             DJOKOVIC_SINNER,
-            "match_winner_over_under_sets_2_5_full_time_all.json",
-            markets=["match_winner", "over_under_sets_2_5"],
+            "match_winner_over_under_games_39_5_full_time_all.json",
+            markets=["match_winner", "over_under_games_39_5"],
         )
 
     def test_tn_003_djokovic_lehecka(self, har_for_match, tmp_path):
@@ -86,8 +86,8 @@ class TestTennisBasicMarkets:
             har_for_match,
             tmp_path,
             DJOKOVIC_LEHECKA,
-            "over_under_games_22_5_full_time_all.json",
-            markets=["over_under_games_22_5"],
+            "over_under_games_33_5_full_time_all.json",
+            markets=["over_under_games_33_5"],
         )
 
     def test_tn_005_humbert_zverev(self, har_for_match, tmp_path):
