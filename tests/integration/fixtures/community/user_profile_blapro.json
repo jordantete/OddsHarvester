@@ -39,12 +39,12 @@
                 "market": "CS",
                 "home_team": "Sabalenka A.",
                 "away_team": "Pegula J.",
-                "score": null,
+                "score": "1-2",
                 "pick_odds": 2.08,
                 "outcomes": [
                     {
                         "odds": 2.08,
-                        "community_pct": 50,
+                        "community_pct": 100,
                         "picked": true
                     }
                 ],
@@ -56,7 +56,7 @@
                 "market": "AH -1.5 Sets",
                 "home_team": "Sabalenka A.",
                 "away_team": "Pegula J.",
-                "score": null,
+                "score": "1-2",
                 "pick_odds": 2.3,
                 "outcomes": [
                     {
@@ -78,7 +78,7 @@
                 "market": "AH -0.5",
                 "home_team": "Turkey",
                 "away_team": "Paraguay",
-                "score": null,
+                "score": "0-1",
                 "pick_odds": 2.02,
                 "outcomes": [
                     {
@@ -100,17 +100,17 @@
                 "market": "1X2",
                 "home_team": "Turkey",
                 "away_team": "Paraguay",
-                "score": null,
+                "score": "0-1",
                 "pick_odds": 2.05,
                 "outcomes": [
                     {
                         "odds": 2.05,
-                        "community_pct": 87,
+                        "community_pct": 88,
                         "picked": true
                     },
                     {
                         "odds": 3.5,
-                        "community_pct": 9,
+                        "community_pct": 8,
                         "picked": false
                     },
                     {
@@ -127,12 +127,12 @@
                 "market": "BTTS",
                 "home_team": "Scotland",
                 "away_team": "Morocco",
-                "score": null,
+                "score": "0-1",
                 "pick_odds": 2.22,
                 "outcomes": [
                     {
                         "odds": 2.22,
-                        "community_pct": 88,
+                        "community_pct": 87,
                         "picked": true
                     },
                     {
@@ -149,7 +149,7 @@
                 "market": "BTTS",
                 "home_team": "USA",
                 "away_team": "Australia",
-                "score": null,
+                "score": "2-0",
                 "pick_odds": 1.94,
                 "outcomes": [
                     {
@@ -171,17 +171,17 @@
                 "market": "AH +1.25",
                 "home_team": "Uzbekistan",
                 "away_team": "Colombia",
-                "score": null,
+                "score": "1-3",
                 "pick_odds": 1.86,
                 "outcomes": [
                     {
                         "odds": 1.95,
-                        "community_pct": 33,
+                        "community_pct": 27,
                         "picked": false
                     },
                     {
                         "odds": 1.86,
-                        "community_pct": 67,
+                        "community_pct": 73,
                         "picked": true
                     }
                 ],
@@ -193,7 +193,7 @@
                 "market": "AH -3.25",
                 "home_team": "Germany",
                 "away_team": "Curacao",
-                "score": null,
+                "score": "7-1",
                 "pick_odds": 1.76,
                 "outcomes": [
                     {
@@ -215,17 +215,17 @@
                 "market": "BTTS",
                 "home_team": "Brazil",
                 "away_team": "Morocco",
-                "score": null,
+                "score": "1-1",
                 "pick_odds": 2.11,
                 "outcomes": [
                     {
                         "odds": 2.11,
-                        "community_pct": 92,
+                        "community_pct": 91,
                         "picked": true
                     },
                     {
                         "odds": 1.76,
-                        "community_pct": 8,
+                        "community_pct": 9,
                         "picked": false
                     }
                 ],
@@ -237,17 +237,17 @@
                 "market": "AH -0.5",
                 "home_team": "USA",
                 "away_team": "Paraguay",
-                "score": null,
+                "score": "4-1",
                 "pick_odds": 2.05,
                 "outcomes": [
                     {
                         "odds": 2.05,
-                        "community_pct": 42,
+                        "community_pct": 45,
                         "picked": true
                     },
                     {
                         "odds": 1.79,
-                        "community_pct": 58,
+                        "community_pct": 55,
                         "picked": false
                     }
                 ],
@@ -259,7 +259,7 @@
                 "market": "AH -1",
                 "home_team": "Mexico",
                 "away_team": "South Africa",
-                "score": null,
+                "score": "2-0",
                 "pick_odds": 1.72,
                 "outcomes": [
                     {
@@ -281,7 +281,7 @@
                 "market": "AH -0.75",
                 "home_team": "Switzerland",
                 "away_team": "Australia",
-                "score": null,
+                "score": "1-1",
                 "pick_odds": 1.75,
                 "outcomes": [
                     {
@@ -303,7 +303,7 @@
                 "market": "AH +1.5 Sets",
                 "home_team": "Chwalinska M.",
                 "away_team": "Andreeva M.",
-                "score": null,
+                "score": "0-2",
                 "pick_odds": 2.47,
                 "outcomes": [
                     {
@@ -325,7 +325,7 @@
                 "market": "AH +1.5",
                 "home_team": "Dunkerque",
                 "away_team": "Limoges",
-                "score": null,
+                "score": "33-35",
                 "pick_odds": 1.78,
                 "outcomes": [
                     {
@@ -347,17 +347,17 @@
                 "market": "H/A",
                 "home_team": "Chwalinska M.",
                 "away_team": "Parry D.",
-                "score": null,
+                "score": "2-0",
                 "pick_odds": 2.68,
                 "outcomes": [
                     {
                         "odds": 1.56,
-                        "community_pct": 35,
+                        "community_pct": 33,
                         "picked": false
                     },
                     {
                         "odds": 2.68,
-                        "community_pct": 65,
+                        "community_pct": 67,
                         "picked": true
                     }
                 ],
@@ -369,17 +369,17 @@
                 "market": "H/A",
                 "home_team": "Ruud C.",
                 "away_team": "Fonseca J.",
-                "score": null,
+                "score": "1-3",
                 "pick_odds": 2.55,
                 "outcomes": [
                     {
                         "odds": 1.57,
-                        "community_pct": 76,
+                        "community_pct": 77,
                         "picked": false
                     },
                     {
                         "odds": 2.55,
-                        "community_pct": 24,
+                        "community_pct": 23,
                         "picked": true
                     }
                 ],
@@ -391,7 +391,7 @@
                 "market": "AH 0",
                 "home_team": "PSG",
                 "away_team": "Arsenal",
-                "score": null,
+                "score": "2-1",
                 "pick_odds": 1.76,
                 "outcomes": [
                     {
@@ -413,17 +413,17 @@
                 "market": "AH -0.5",
                 "home_team": "Nice",
                 "away_team": "St Etienne",
-                "score": null,
+                "score": "4-1",
                 "pick_odds": 1.98,
                 "outcomes": [
                     {
                         "odds": 1.98,
-                        "community_pct": 33,
+                        "community_pct": 38,
                         "picked": true
                     },
                     {
                         "odds": 1.88,
-                        "community_pct": 67,
+                        "community_pct": 63,
                         "picked": false
                     }
                 ],
@@ -435,7 +435,7 @@
                 "market": "AH -0.5",
                 "home_team": "Crystal Palace",
                 "away_team": "Rayo Vallecano",
-                "score": null,
+                "score": "1-0",
                 "pick_odds": 2.16,
                 "outcomes": [
                     {
@@ -457,7 +457,7 @@
                 "market": "AH +0.5",
                 "home_team": "Gent",
                 "away_team": "Genk",
-                "score": null,
+                "score": "2-1",
                 "pick_odds": 1.68,
                 "outcomes": [
                     {
@@ -474,6 +474,6 @@
                 "match_url": "https://www.oddsportal.com/football/h2h/genk-r3jWUIiN/gent-MgkzUx7T/#Cf3QMydJ:ah;2;0.50;0"
             }
         ],
-        "scraped_at": "2026-08-24T14:22:58.426909+00:00"
+        "scraped_at": "2026-09-29T07:08:58.113241+00:00"
     }
 ]
