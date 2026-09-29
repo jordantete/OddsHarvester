@@ -190,6 +190,69 @@ async def test_extract_match_links_reraises_a_parsing_error(bs4_mock, setup_base
         await mocks["scraper"].extract_match_links(page=mocks["page_mock"])
 
 
+# -- sport guard ---------------------------------------------------------------
+
+_HOCKEY_ROW = "/hockey/h2h/carolina-hurricanes-Sx0gl0tm/florida-panthers-fc1eq8Pp/#087ku8PE"
+_FOOTBALL_ROW = "/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/#xtmHKGT0"
+_AMERICAN_FOOTBALL_ROW = "/american-football/h2h/chicago-bears-2clovUM8/philadelphia-eagles-dGgVhRLK/#YaYpGyaC"
+
+
+async def test_extract_match_rows_keeps_only_the_requested_sport(setup_base_scraper_mocks, caplog):
+    """A listing mixing sports keeps the rows under the sport's site path and counts the others."""
+    mocks = setup_base_scraper_mocks
+    mocks["page_mock"].content = AsyncMock(
+        return_value=page(listing_row(_HOCKEY_ROW) + listing_row(_FOOTBALL_ROW) + listing_row(_HOCKEY_ROW[:-1] + "Z"))
+    )
+
+    with caplog.at_level(logging.INFO):
+        rows = await mocks["scraper"].extract_match_rows(page=mocks["page_mock"], sport="ice-hockey")
+
+    assert [row["match_link"] for row in rows] == [
+        f"{ODDSPORTAL_BASE_URL}{_HOCKEY_ROW}",
+        f"{ODDSPORTAL_BASE_URL}{_HOCKEY_ROW[:-1]}Z",
+    ]
+    assert "1 rows of another sport dropped" in caplog.text
+    assert "lists no" not in caplog.text
+
+
+async def test_extract_match_rows_warns_when_every_row_is_another_sport(setup_base_scraper_mocks, caplog):
+    """The ice-hockey date listing bug: the site served its football page, every row football."""
+    mocks = setup_base_scraper_mocks
+    mocks["page_mock"].content = AsyncMock(
+        return_value=page(listing_row(_FOOTBALL_ROW) + listing_row(_FOOTBALL_ROW[:-1] + "Z"))
+    )
+
+    with caplog.at_level(logging.WARNING):
+        rows = await mocks["scraper"].extract_match_rows(page=mocks["page_mock"], sport="ice-hockey")
+
+    assert rows == []
+    assert "None of the 2 rows of this listing links under /hockey/: it lists no 'ice-hockey' match." in caplog.text
+
+
+async def test_extract_match_rows_tells_football_from_american_football(setup_base_scraper_mocks):
+    """/american-football/ rows are not football rows, nor the reverse: the prefix carries both slashes."""
+    mocks = setup_base_scraper_mocks
+    mocks["page_mock"].content = AsyncMock(
+        return_value=page(listing_row(_AMERICAN_FOOTBALL_ROW) + listing_row(_FOOTBALL_ROW))
+    )
+
+    football = await mocks["scraper"].extract_match_rows(page=mocks["page_mock"], sport="football")
+    american = await mocks["scraper"].extract_match_rows(page=mocks["page_mock"], sport="american-football")
+
+    assert [row["match_link"] for row in football] == [f"{ODDSPORTAL_BASE_URL}{_FOOTBALL_ROW}"]
+    assert [row["match_link"] for row in american] == [f"{ODDSPORTAL_BASE_URL}{_AMERICAN_FOOTBALL_ROW}"]
+
+
+async def test_extract_match_rows_without_a_sport_keeps_every_row(setup_base_scraper_mocks):
+    """No sport, no guard: scripts/validate_league.py reads listings this way."""
+    mocks = setup_base_scraper_mocks
+    mocks["page_mock"].content = AsyncMock(return_value=page(listing_row(_HOCKEY_ROW) + listing_row(_FOOTBALL_ROW)))
+
+    rows = await mocks["scraper"].extract_match_rows(page=mocks["page_mock"])
+
+    assert len(rows) == 2
+
+
 # -- skip_started filter (GitHub issue #58) ---------------------------------
 
 # Minimal listing HTML mirroring the live DOM:
@@ -1846,6 +1909,33 @@ async def test_extract_live_match_links_reraises_a_page_error(setup_base_scraper
 
     with pytest.raises(RuntimeError, match="Target page crashed"):
         await mocks["scraper"].extract_live_match_links(page=mocks["page_mock"])
+
+
+async def test_extract_live_match_links_keeps_only_the_requested_sport(setup_base_scraper_mocks, caplog):
+    """The live-now listing keeps the rows under the sport's site path and counts the others."""
+    mocks = setup_base_scraper_mocks
+    mocks["page_mock"].content = AsyncMock(return_value=LIVE_NOW_LISTING_HTML)
+
+    with caplog.at_level(logging.INFO):
+        rows = await mocks["scraper"].extract_live_match_links(page=mocks["page_mock"], sport="football")
+
+    assert [r["match_link"] for r in rows] == [
+        "https://www.oddsportal.com/football/h2h/arsenal-chelsea-xYz12345/inplay-odds/#aB3dE6fG",
+    ]
+    assert "1 rows of another sport dropped" in caplog.text
+
+
+async def test_extract_live_match_links_warns_when_every_row_is_another_sport(setup_base_scraper_mocks, caplog):
+    mocks = setup_base_scraper_mocks
+    mocks["page_mock"].content = AsyncMock(return_value=LIVE_NOW_LISTING_HTML)
+
+    with caplog.at_level(logging.WARNING):
+        rows = await mocks["scraper"].extract_live_match_links(page=mocks["page_mock"], sport="ice-hockey")
+
+    assert rows == []
+    assert (
+        "None of the 2 rows of this live listing links under /hockey/: it lists no 'ice-hockey' match." in caplog.text
+    )
 
 
 async def test_extract_live_match_links_ignores_non_inplay_anchors(setup_base_scraper_mocks):

@@ -130,6 +130,7 @@ class OddsPortalScraper(BaseScraper):
             pages_to_scrape=pages_to_scrape,
             page_limit=self._effective_page_limit(max_pages),
             max_pages=max_pages,
+            sport=sport,
         )
 
         if link_result.failed_pages:
@@ -206,6 +207,7 @@ class OddsPortalScraper(BaseScraper):
                 skip_started=not include_started,
                 kickoff_within_hours=kickoff_within_hours,
                 collect_kickoff=collect_kickoff,
+                sport=sport,
             )
         finally:
             await tab.close()
@@ -487,6 +489,7 @@ class OddsPortalScraper(BaseScraper):
         pages_to_scrape: list[int],
         page_limit: int = MAX_PAGINATION_PAGES,
         max_pages: int | None = None,
+        sport: str | None = None,
     ) -> LinkCollectionResult:
         """
         Walks listing pages, collecting match links.
@@ -501,6 +504,7 @@ class OddsPortalScraper(BaseScraper):
             page_limit (int): Hard bound on how many pages the walk may visit.
             max_pages (Optional[int]): The user-supplied --max-pages, if any; distinguishes
                 an intentional limit from the default safety cap in the truncation warning.
+            sport (Optional[str]): The requested sport; rows of another sport are dropped.
 
         Returns:
             LinkCollectionResult: Contains links found and tracking of successful/failed pages.
@@ -538,7 +542,7 @@ class OddsPortalScraper(BaseScraper):
                 if not scroll_success:
                     self.logger.warning(f"Scrolling may not have completed for page {page_number}")
 
-                links = await self.extract_match_links(page=tab)
+                links = await self.extract_match_links(page=tab, sport=sport)
 
                 # Read on every page, not just empty ones: the tab is already loaded, so
                 # this costs no request, and a widget missing from page 1 is often present

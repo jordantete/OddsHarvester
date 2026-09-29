@@ -41,6 +41,15 @@ def rebase_url(url: str, base_url: str | None) -> str:
     return urlunsplit((base.scheme, base.netloc, parts.path, parts.query, parts.fragment))
 
 
+# OddsPortal site path slugs that differ from the Sport enum values.
+SPORT_SITE_SLUGS = {"ice-hockey": "hockey"}
+
+
+def site_slug(sport: str) -> str:
+    """The sport's path segment on OddsPortal: 'ice-hockey' -> 'hockey', any other sport unchanged."""
+    return SPORT_SITE_SLUGS.get(sport, sport)
+
+
 def normalize_inplay_match_url(url: str) -> str:
     """
     Ensure a match URL points at its in-play view.
@@ -136,7 +145,7 @@ class URLBuilder:
         """
         if league:
             return URLBuilder.get_league_url(sport, league, base_url=base_url)
-        return rebase_url(f"{ODDSPORTAL_BASE_URL}/matches/{sport}/{date}/", base_url)
+        return rebase_url(f"{ODDSPORTAL_BASE_URL}/matches/{site_slug(sport)}/{date}/", base_url)
 
     @staticmethod
     def get_league_url(sport: str, league: str, base_url: str | None = None) -> str:
@@ -191,4 +200,4 @@ class URLBuilder:
             ValueError: If the sport is not a known Sport enum value.
         """
         sport_value = Sport(sport).value
-        return rebase_url(f"{ODDSPORTAL_BASE_URL}/inplay-odds/live-now/{sport_value}/", base_url)
+        return rebase_url(f"{ODDSPORTAL_BASE_URL}/inplay-odds/live-now/{site_slug(sport_value)}/", base_url)

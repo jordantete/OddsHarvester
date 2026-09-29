@@ -155,6 +155,7 @@ async def test_collect_historic_links_reads_the_season_listing(url_builder_mock,
         pages_to_scrape=[1, 2],
         page_limit=2,
         max_pages=2,
+        sport="football",
     )
 
     # Verify the result is a ListingResult carrying the collected links
@@ -581,6 +582,33 @@ async def test_collect_match_links_keeps_an_empty_first_page_a_success(setup_scr
     result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1])
 
     assert (result.failed_pages, result.successful_pages, result.links) == ([], 1, [])
+
+
+async def test_collect_match_links_passes_the_sport_to_the_listing_guard(setup_scraper_mocks):
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock(spec=Page)
+    mocks["context_mock"].new_page = AsyncMock(return_value=tab)
+    scraper.extract_match_links = AsyncMock(return_value=[])
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[])
+
+    await scraper._collect_match_links(
+        base_url="https://www.oddsportal.com/hockey/usa/nhl/results/", pages_to_scrape=[1], sport="ice-hockey"
+    )
+
+    scraper.extract_match_links.assert_awaited_once_with(page=tab, sport="ice-hockey")
+
+
+@patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
+async def test_collect_upcoming_links_passes_the_sport_to_the_listing_guard(url_builder_mock, setup_scraper_mocks):
+    scraper = setup_scraper_mocks["scraper"]
+    url_builder_mock.get_upcoming_matches_url.return_value = "https://www.oddsportal.com/matches/hockey/20261001/"
+    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.extract_match_rows = AsyncMock(return_value=[])
+
+    await scraper.collect_upcoming_links(sport="ice-hockey", date="20261001")
+
+    assert scraper.extract_match_rows.await_args.kwargs["sport"] == "ice-hockey"
 
 
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
@@ -1102,7 +1130,7 @@ async def test_collect_historic_links_runs_on_its_own_tab_and_reports_failed_pag
     tab.close.assert_awaited_once()
     mocks["page_mock"].goto.assert_not_called()
     scraper._collect_match_links.assert_awaited_once_with(
-        base_url=base, pages_to_scrape=[1, 2, 3], page_limit=MAX_PAGINATION_PAGES, max_pages=None
+        base_url=base, pages_to_scrape=[1, 2, 3], page_limit=MAX_PAGINATION_PAGES, max_pages=None, sport="football"
     )
     assert listing.rows == [{"match_link": "https://oddsportal.com/m1"}]
     assert listing.failed_page_urls == [f"{base}#page/3"]

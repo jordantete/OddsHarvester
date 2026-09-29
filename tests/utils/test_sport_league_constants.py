@@ -1,7 +1,9 @@
 import importlib
+from urllib.parse import urlsplit
 
 import pytest
 
+from oddsharvester.core.url_builder import site_slug
 import oddsharvester.utils.sport_league_constants as _slc_module
 from oddsharvester.utils.sport_market_constants import Sport
 
@@ -119,3 +121,11 @@ class TestCricketLeagueConstants:
             fresh_mapping[Sport.CRICKET]["big-bash-league"]
             == "https://www.oddsportal.com/cricket/australia/big-bash-league/"
         )
+
+
+def test_every_league_url_sits_under_its_sport_site_path(fresh_mapping):
+    """Listings keep only the rows under /<site_slug>/, so every league must live there."""
+    for sport, leagues in fresh_mapping.items():
+        prefix = f"/{site_slug(sport.value)}/"
+        for league, url in leagues.items():
+            assert urlsplit(url).path.startswith(prefix), (sport.value, league, url)

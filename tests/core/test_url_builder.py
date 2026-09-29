@@ -2,7 +2,13 @@ from datetime import UTC, datetime
 
 import pytest
 
-from oddsharvester.core.url_builder import URLBuilder, is_league_path, normalize_inplay_match_url, rebase_url
+from oddsharvester.core.url_builder import (
+    URLBuilder,
+    is_league_path,
+    normalize_inplay_match_url,
+    rebase_url,
+    site_slug,
+)
 from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
 from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from oddsharvester.utils.sport_market_constants import Sport
@@ -562,3 +568,20 @@ def test_historic_url_of_a_league_path(season, expected):
 def test_is_league_path():
     assert is_league_path("football/bhutan/premier-league")
     assert not is_league_path("england-premier-league")
+
+
+def test_site_slug_is_the_sport_path_on_the_site():
+    assert site_slug("ice-hockey") == "hockey"
+    assert site_slug("football") == "football"
+    assert site_slug("american-football") == "american-football"
+
+
+def test_date_listing_of_ice_hockey_uses_the_site_path():
+    """/matches/ice-hockey/<date>/ does not exist: the site answered with its football page."""
+    assert URLBuilder.get_upcoming_matches_url("ice-hockey", "20261001") == (
+        f"{ODDSPORTAL_BASE_URL}/matches/hockey/20261001/"
+    )
+
+
+def test_live_listing_of_ice_hockey_uses_the_site_path():
+    assert URLBuilder.get_live_matches_url("ice-hockey") == f"{ODDSPORTAL_BASE_URL}/inplay-odds/live-now/hockey/"

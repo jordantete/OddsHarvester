@@ -8,7 +8,7 @@ from oddsharvester.core.community.top_predictions_parser import parse_top_predic
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.retry import RetryConfig, retry_with_backoff
-from oddsharvester.core.url_builder import rebase_url
+from oddsharvester.core.url_builder import rebase_url, site_slug
 from oddsharvester.utils.constants import (
     ODDSPORTAL_BASE_URL,
     OPERATION_RETRY_BASE_DELAY,
@@ -22,9 +22,6 @@ logger = logging.getLogger(__name__)
 
 PAGE_GOTO_TIMEOUT_MS = 30000
 
-# OddsPortal site path slugs that differ from the repo's Sport enum values.
-SPORT_SITE_SLUGS = {"ice-hockey": "hockey"}
-
 
 class TopPredictionsScraper:
     """Navigates to /community/predictions/#sport/<sport>/ and parses the rendered picks."""
@@ -35,8 +32,8 @@ class TopPredictionsScraper:
 
     async def scrape(self, sport: str, base_url: str | None = None) -> list[dict]:
         page = self.playwright_manager.page
-        site_slug = SPORT_SITE_SLUGS.get(sport, sport)
-        url = rebase_url(f"{ODDSPORTAL_BASE_URL}/community/predictions/#sport/{site_slug}/", base_url)
+        slug = site_slug(sport)
+        url = rebase_url(f"{ODDSPORTAL_BASE_URL}/community/predictions/#sport/{slug}/", base_url)
         logger.info(f"Navigating to top predictions page: {url}")
         await page.goto(url, timeout=PAGE_GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
         await self.cookie_dismisser.dismiss(page)
@@ -61,7 +58,7 @@ class TopPredictionsScraper:
         # Fragment routing is not guaranteed to switch the SPA to the requested sport
         # (gotchas §1; see §13) — validate each row's match_url path and drop mismatches rather
         # than emit picks mislabeled with the requested sport.
-        expected_prefix = f"/{site_slug}/"
+        expected_prefix = f"/{slug}/"
         matching = [
             r for r in records if r["match_url"].replace(ODDSPORTAL_BASE_URL, "", 1).startswith(expected_prefix)
         ]

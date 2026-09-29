@@ -33,7 +33,7 @@ from oddsharvester.core.retry import (
     retry_with_backoff,
 )
 from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult, ScrapeStats
-from oddsharvester.core.url_builder import URLBuilder
+from oddsharvester.core.url_builder import URLBuilder, site_slug
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import (
     DEFAULT_REQUEST_DELAY_S,
@@ -460,6 +460,7 @@ class BaseScraper:
         skip_started: bool = False,
         kickoff_within_hours: float | None = None,
         collect_kickoff: bool = False,
+        sport: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         Extract and parse match rows from the current page.
@@ -486,6 +487,10 @@ class BaseScraper:
             collect_kickoff (bool): If True, resolve each row's kickoff and emit
                 it as `kickoff_utc`. Off by default because it forces date-header
                 tracking, which the historic pagination path does not need.
+            sport (Optional[str]): The requested sport. When given, rows whose href
+                is not under the sport's site path (`/<site_slug>/`) are dropped and
+                counted, so a listing that serves another sport never passes its
+                matches off as this one's.
 
         Returns:
             List[dict]: One entry per unique match link, each carrying
@@ -519,6 +524,7 @@ class BaseScraper:
             if kickoff_within_hours is not None:
                 window_cutoff = datetime.now(ref_tz) + timedelta(hours=kickoff_within_hours)
 
+            sport_prefix = f"/{site_slug(sport)}/" if sport else None
             seen: set[str] = set()
             rows_out: list[dict[str, Any]] = []
             current_row_date: date | None = None
@@ -526,6 +532,7 @@ class BaseScraper:
             filtered_out_count = 0
             unparseable_header_count = 0
             offscreen_skipped_count = 0
+            foreign_count = 0
             started_filtered_out_count = 0
             window_filtered_out_count = 0
 
@@ -547,6 +554,10 @@ class BaseScraper:
                 row = el
                 if _is_offscreen_row(row):
                     offscreen_skipped_count += 1
+                    continue
+
+                if sport_prefix and not row["href"].startswith(sport_prefix):
+                    foreign_count += 1
                     continue
 
                 if date_filter is not None and current_row_date is not None and current_row_date != date_filter:
@@ -573,6 +584,7 @@ class BaseScraper:
                     seen.add(full_url)
                     rows_out.append({"match_link": full_url, "kickoff_utc": kickoff_utc})
 
+            foreign_suffix = f", {foreign_count} rows of another sport dropped" if sport_prefix else ""
             started_suffix = f", {started_filtered_out_count} started/finished rows skipped" if skip_started else ""
             window_suffix = (
                 f", {window_filtered_out_count} rows outside the {kickoff_within_hours}h kickoff window"
@@ -585,7 +597,7 @@ class BaseScraper:
                     f"(filter={date_filter.isoformat()}, filtered out {filtered_out_count} rows, "
                     f"{unparseable_header_count} unparseable headers, "
                     f"{offscreen_skipped_count} offscreen rows skipped"
-                    f"{started_suffix}{window_suffix})."
+                    f"{foreign_suffix}{started_suffix}{window_suffix})."
                 )
                 if not rows_out and filtered_out_count:
                     headers_label = ", ".join(d.isoformat() for d in sorted(seen_header_dates)) or "none"
@@ -600,7 +612,14 @@ class BaseScraper:
                 self.logger.info(
                     f"Extracted {len(rows_out)} unique match links "
                     f"({offscreen_skipped_count} offscreen rows skipped"
-                    f"{started_suffix}{window_suffix})."
+                    f"{foreign_suffix}{started_suffix}{window_suffix})."
+                )
+
+            visible_rows = row_count - offscreen_skipped_count
+            if sport_prefix and visible_rows and foreign_count == visible_rows:
+                self.logger.warning(
+                    f"None of the {visible_rows} rows of this listing links under {sport_prefix}: "
+                    f"it lists no '{sport}' match."
                 )
 
             return rows_out
@@ -615,6 +634,7 @@ class BaseScraper:
         date_filter: date | None = None,
         skip_started: bool = False,
         kickoff_within_hours: float | None = None,
+        sport: str | None = None,
     ) -> list[str]:
         """Collect match links from a listing page.
 
@@ -625,6 +645,7 @@ class BaseScraper:
             date_filter=date_filter,
             skip_started=skip_started,
             kickoff_within_hours=kickoff_within_hours,
+            sport=sport,
         )
         return [row["match_link"] for row in rows]
 
@@ -643,7 +664,9 @@ class BaseScraper:
 
         Args:
             page (Page): A Playwright Page instance for this task.
-            sport (Optional[str]): Sport slug, required when `league` is given.
+            sport (Optional[str]): The requested sport, required when `league` is given.
+                When given, rows whose href is not under the sport's site path
+                (`/<site_slug>/`) are dropped and counted.
             league (Optional[str]): League slug; keeps only rows whose href sits
                 under the league URL path from SPORTS_LEAGUES_URLS_MAPPING.
 
@@ -672,9 +695,11 @@ class BaseScraper:
                 if (OddsPortalSelectors.is_match_link(el) and "/inplay-odds/" in el["href"]) or _is_league_link(el)
             ]
 
+            sport_prefix = f"/{site_slug(sport)}/" if sport else None
             seen: set[str] = set()
             results: list[dict[str, Any]] = []
             offscreen_skipped = 0
+            foreign_count = 0
             league_filtered_out = 0
             current_league: str | None = None
 
@@ -692,6 +717,10 @@ class BaseScraper:
                     continue
                 seen.add(href)
 
+                if sport_prefix and not href.startswith(sport_prefix):
+                    foreign_count += 1
+                    continue
+
                 if league_path_prefix and (current_league or "").rstrip("/") != league_path_prefix:
                     league_filtered_out += 1
                     continue
@@ -702,11 +731,17 @@ class BaseScraper:
                     }
                 )
 
+            foreign_suffix = f", {foreign_count} rows of another sport dropped" if sport_prefix else ""
             league_suffix = f", {league_filtered_out} rows outside league '{league}'" if league_path_prefix else ""
             self.logger.info(
                 f"Extracted {len(results)} live match links "
-                f"({offscreen_skipped} offscreen rows skipped{league_suffix})."
+                f"({offscreen_skipped} offscreen rows skipped{foreign_suffix}{league_suffix})."
             )
+            if sport_prefix and seen and foreign_count == len(seen):
+                self.logger.warning(
+                    f"None of the {len(seen)} rows of this live listing links under {sport_prefix}: "
+                    f"it lists no '{sport}' match."
+                )
             return results
 
         except Exception as e:
