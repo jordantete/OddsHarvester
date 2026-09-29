@@ -732,8 +732,11 @@ class BaseScraper:
                     self.base_url or ODDSPORTAL_BASE_URL, timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded"
                 )
                 await self.cookie_dismisser.dismiss(page=page)
-                # A mirror localizes the dropdown labels, which the English match cannot find (gotchas §7).
-                await self.set_odds_format(page=page, strict=self.base_url is None)
+                # A geo-redirected proxy can land on a localized mirror even when the canonical
+                # domain was requested, so strict mode follows the page's actual host, not the
+                # requested one (gotchas §7).
+                strict = urlsplit(page.url).hostname == urlsplit(ODDSPORTAL_BASE_URL).hostname
+                await self.set_odds_format(page=page, strict=strict)
                 self.logger.info(f"Warmed proxy context: {key}")
             except Exception as e:
                 self.logger.warning(f"Failed to warm proxy context {key}: {e}. Removing proxy from rotation.")

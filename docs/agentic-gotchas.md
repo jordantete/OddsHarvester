@@ -794,13 +794,17 @@ exception raised.
 context to the run's base URL (`--base-url`, else `ODDSPORTAL_BASE_URL`),
 dismisses the cookie banner (`CookieDismisser.dismiss`), then calls
 `set_odds_format`, once per context, before that context scrapes any
-match. On `www.oddsportal.com` the call is strict: a timeout, any other
-error, or the wanted format missing from the dropdown raises, and the
-warm-up removes that proxy from the rotation (`blacklist_proxy`), since a
-context left on another odds format would corrupt every match it scrapes.
-On a regional mirror the call only logs, because the dropdown labels are
-localized (§7) and the English match cannot find them. Listing and match
-pages keep the non-strict call, which only logs. It's called from
+match. Strictness is decided from the domain the page actually landed on
+after `goto`, not the one requested: whatever was asked for, a page that
+lands on `www.oddsportal.com` gets the strict call, where a timeout, any
+other error, or the wanted format missing from the dropdown raises, and
+the warm-up removes that proxy from the rotation (`blacklist_proxy`),
+since a context left on another odds format would corrupt every match it
+scrapes. A proxy can be geo-redirected to a regional mirror even when the
+canonical domain was requested, and a page that lands anywhere else only
+gets the non-strict call, which logs, because the dropdown labels are
+localized (§7) and the English match cannot find them there. Listing and
+match pages keep the non-strict call, which only logs. It's called from
 `extract_match_odds` before match links are dispatched round-robin across
 the proxy pool, and tracks already-warmed contexts in `_warmed_proxy_keys`
 so each proxy is only warmed once per run. Any future per-context setup

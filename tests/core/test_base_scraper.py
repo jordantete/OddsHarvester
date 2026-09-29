@@ -961,6 +961,7 @@ async def test_warm_up_blacklists_a_proxy_whose_odds_format_cannot_be_set(setup_
     mocks = setup_base_scraper_mocks
     pm = mocks["playwright_manager_mock"]
     pm.non_default_context_keys = MagicMock(return_value=["http://b.example.com:2"])
+    mocks["page_mock"].url = "https://www.oddsportal.com/"
     if failure == "format_missing":
         _odds_dropdown(mocks["page_mock"], "Fractional Odds", ["Fractional Odds", "Money Line Odds"])
     else:
@@ -976,6 +977,7 @@ async def test_warm_up_keeps_a_proxy_set_to_decimal_odds(setup_base_scraper_mock
     mocks = setup_base_scraper_mocks
     pm = mocks["playwright_manager_mock"]
     pm.non_default_context_keys = MagicMock(return_value=["http://b.example.com:2"])
+    mocks["page_mock"].url = "https://www.oddsportal.com/"
     _odds_dropdown(mocks["page_mock"], "Decimal Odds", [])
 
     await mocks["scraper"]._warm_proxy_contexts()
@@ -989,6 +991,7 @@ async def test_warm_up_opens_the_base_url_mirror_and_keeps_its_proxy(setup_base_
     mocks = setup_base_scraper_mocks
     pm = mocks["playwright_manager_mock"]
     pm.non_default_context_keys = MagicMock(return_value=["http://b.example.com:2"])
+    mocks["page_mock"].url = "https://www.centroquote.it/"
     _odds_dropdown(mocks["page_mock"], "Quote decimali", ["Quote decimali", "Quote frazionarie"])
     scraper = BaseScraper(
         playwright_manager=pm,
@@ -1003,6 +1006,23 @@ async def test_warm_up_opens_the_base_url_mirror_and_keeps_its_proxy(setup_base_
 
     mocks["page_mock"].goto.assert_awaited_once_with(
         "https://www.centroquote.it", timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded"
+    )
+    pm.blacklist_proxy.assert_not_called()
+
+
+async def test_warm_up_keeps_a_proxy_geo_redirected_to_a_mirror(setup_base_scraper_mocks):
+    """A proxy can be geo-redirected to a localized mirror even though the canonical domain was
+    requested (gotchas §7); strict mode must follow where the page actually landed, not the request."""
+    mocks = setup_base_scraper_mocks
+    pm = mocks["playwright_manager_mock"]
+    pm.non_default_context_keys = MagicMock(return_value=["http://b.example.com:2"])
+    mocks["page_mock"].url = "https://www.cuotasahora.com/"
+    _odds_dropdown(mocks["page_mock"], "Cuotas decimales", ["Cuotas decimales", "Cuotas fraccionarias"])
+
+    await mocks["scraper"]._warm_proxy_contexts()
+
+    mocks["page_mock"].goto.assert_awaited_once_with(
+        "https://www.oddsportal.com", timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded"
     )
     pm.blacklist_proxy.assert_not_called()
 
