@@ -1,9 +1,7 @@
 """Integration test for the community command (HAR replay).
 
 Re-capture fixtures with:
-    ODDSHARVESTER_HAR_RECORD=tests/integration/fixtures/community/top_predictions_football.har \\
-        uv run oddsharvester community -s football --headless \\
-        -o tests/integration/fixtures/community/top_predictions_football.json
+    uv run python scripts/capture_all_hars.py --only community
 """
 
 import json

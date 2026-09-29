@@ -3,8 +3,9 @@
 Two complementary tests:
 
 - A deterministic HAR replay of the live-now listing captured on 2026-07-20. Runs
-  by default, no network. The in-play match page captured with it does not replay
-  (agentic-gotchas §16), so the match snapshot itself has no replay test.
+  by default, no network. An in-play match page does not replay (agentic-gotchas
+  §16), so the match snapshot itself has no replay test. Recapture the listing
+  while matches are in play: uv run python scripts/capture_all_hars.py --only live
 - A self-discovering live-network test that scrapes whatever is in play right now
   and skips when nothing is. Marked live_only, run with --live.
 

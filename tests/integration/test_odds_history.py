@@ -4,13 +4,8 @@ Integration test for --odds-history, run with the odds_evolution_collector's fla
 The collector pairs odds_history_data with the outcome keys of each bookmaker entry by
 position, so the contract tests pin that shape on top of the golden comparison.
 
-Recapture (live):
-    uv run python -m tests.integration.helpers.capture --sport football --league premier-league \\
-        --match-url "https://www.oddsportal.com/football/h2h/chelsea-4fGZN2oK/manchester-city-Wtn9Stg0/#lMp9YMye" \\
-        --match-dir manchester-city-chelsea-lMp9YMye --markets "1x2,over_under_2_5" --period full_time \\
-        --bookies-filter all --season 2025-2026 --odds-history --timezone Europe/London \\
-        --locale en-GB --request-delay 2 --concurrency 3 --capture-har
-scripts/capture_all_hars.py skips this fixture: it does not know the odds-history flags.
+Recapture (live); scripts/capture_all_hars.py holds the command with the collector's flags:
+    uv run python scripts/capture_all_hars.py --only matches --match-id manchester-city-chelsea-lMp9YMye
 """
 
 from datetime import UTC, datetime, timedelta

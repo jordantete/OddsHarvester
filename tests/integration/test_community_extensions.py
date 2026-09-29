@@ -1,13 +1,7 @@
 """Integration tests for the community --user and --match-url modes (HAR replay).
 
 Re-capture fixtures with:
-    ODDSHARVESTER_HAR_RECORD=tests/integration/fixtures/community/user_profile_blapro.har \\
-        uv run oddsharvester community --user BLAPRO --headless \\
-        -o tests/integration/fixtures/community/user_profile_blapro.json
-
-    ODDSHARVESTER_HAR_RECORD=tests/integration/fixtures/community/match_community_fulham_chelsea.har \\
-        uv run oddsharvester community --match-url "<pre-match h2h url>" --headless \\
-        -o tests/integration/fixtures/community/match_community_fulham_chelsea.json
+    uv run python scripts/capture_all_hars.py --only community
 """
 
 import json

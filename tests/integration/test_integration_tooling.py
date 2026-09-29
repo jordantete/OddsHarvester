@@ -1,13 +1,20 @@
 """Tests for the integration CLI runner and capture helpers."""
 
+import json
+from pathlib import Path
+import re
 import subprocess
 
 import pytest
+from scripts import capture_all_hars
 
+from oddsharvester.cli.options import _get_all_periods
 from tests.integration.helpers import cli_runner
 from tests.integration.helpers.capture import build_fixture_filename
 
 pytestmark = pytest.mark.integration
+
+DRY_RUN_HAR = re.compile(r"^(?:matches|community|team|live) +(\S+\.har)$", re.MULTILINE)
 
 
 def test_fixture_filename_without_odds_history():
@@ -43,3 +50,66 @@ def test_run_historic_forwards_extra_args_and_replay_env(monkeypatch, tmp_path):
     assert calls["cmd"][-3:] == ["--odds-history", "--timezone", "Europe/London"]
     assert "1x2,over_under_2_5" in calls["cmd"]
     assert calls["env"]["ODDSHARVESTER_HAR_REPLAY"] == str(tmp_path / "match.har")
+
+
+def _committed_hars(folder: Path) -> list[str]:
+    return sorted(str(p.relative_to(capture_all_hars.PROJECT_ROOT)) for p in folder.rglob("*.har"))
+
+
+def test_dry_run_lists_every_committed_har(capsys):
+    assert capture_all_hars.main(["--dry-run"]) == 0
+    listed = DRY_RUN_HAR.findall(capsys.readouterr().out)
+    assert sorted(listed) == _committed_hars(capture_all_hars.FIXTURES_DIR)
+
+
+def test_dry_run_only_community_lists_the_community_hars(capsys):
+    assert capture_all_hars.main(["--dry-run", "--only", "community"]) == 0
+    listed = DRY_RUN_HAR.findall(capsys.readouterr().out)
+    assert sorted(listed) == _committed_hars(capture_all_hars.FIXTURES_DIR / "community")
+
+
+def test_capture_periods_are_the_cli_periods():
+    assert sorted(capture_all_hars._KNOWN_PERIODS) == _get_all_periods()
+
+
+def _community_special(tmp_path, monkeypatch):
+    monkeypatch.setattr(capture_all_hars, "FIXTURES_DIR", tmp_path)
+    (tmp_path / "community").mkdir()
+    (tmp_path / "community" / "x.har").write_text("old har")
+    (tmp_path / "community" / "x.json").write_text("old golden")
+    return capture_all_hars.SpecialFixture(
+        kind="community", har="community/x.har", argv=("community", "-s", "football")
+    )
+
+
+def _fake_cli(monkeypatch, returncode, golden):
+    def fake_run(cmd, **kwargs):
+        Path(kwargs["env"]["ODDSHARVESTER_HAR_RECORD"]).write_text("new har")
+        if golden is not None:
+            Path(cmd[cmd.index("-o") + 1]).write_text(golden)
+        return subprocess.CompletedProcess(cmd, returncode)
+
+    monkeypatch.setattr(capture_all_hars.subprocess, "run", fake_run)
+
+
+@pytest.mark.parametrize(
+    ("returncode", "golden"),
+    [(1, None), (0, None), (0, "[]")],
+    ids=["command-failed", "no-output", "no-records"],
+)
+def test_a_failed_special_capture_leaves_the_committed_files(tmp_path, monkeypatch, returncode, golden):
+    special = _community_special(tmp_path, monkeypatch)
+    _fake_cli(monkeypatch, returncode, golden)
+
+    assert capture_all_hars.capture_special(special) is False
+    assert (tmp_path / "community" / "x.har").read_text() == "old har"
+    assert (tmp_path / "community" / "x.json").read_text() == "old golden"
+
+
+def test_a_successful_special_capture_replaces_both_files(tmp_path, monkeypatch):
+    special = _community_special(tmp_path, monkeypatch)
+    _fake_cli(monkeypatch, 0, '[{"username": "BLAPRO"}]')
+
+    assert capture_all_hars.capture_special(special) is True
+    assert (tmp_path / "community" / "x.har").read_text() == "new har"
+    assert json.loads((tmp_path / "community" / "x.json").read_text()) == [{"username": "BLAPRO"}]

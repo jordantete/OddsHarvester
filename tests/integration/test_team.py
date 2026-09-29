@@ -1,12 +1,10 @@
 """Integration tests for the team command.
 
 Re-capture the fixture with:
-    ODDSHARVESTER_HAR_RECORD=tests/integration/fixtures/team/teams.har \\
-        uv run oddsharvester team --team lId4TMwf,zzzzzzzz,WGt8En5I --headless \\
-        -o tests/integration/fixtures/team/teams.json
+    uv run python scripts/capture_all_hars.py --only team
 
-The wrong id in the middle is deliberate: it keeps the failure path in the
-replay, and it is what a typo in a spreadsheet column looks like.
+The capture asks for a wrong id between the two teams on purpose: it keeps the
+failure path in the replay, and it is what a typo in a spreadsheet column looks like.
 """
 
 import json
