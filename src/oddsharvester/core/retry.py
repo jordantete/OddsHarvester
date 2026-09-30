@@ -41,6 +41,9 @@ TRANSIENT_ERROR_KEYWORDS = (
 # Word-anchored: a bare "rate", "limit" or "429" also sits in "separate", "limit of 3 retries" or "14290".
 _RATE_LIMIT_PATTERN = re.compile(r"\brate[\s-]?limit(?:s|ed|ing)?\b|\b429\b|\btoo many requests\b")
 
+# A URL or a bare path quoted in a message ("/proxy/match-event/...") says nothing about the error itself.
+_URL_PATTERN = re.compile(r"[a-z][a-z0-9+.-]*://\S+|(?<![\w/])/[^\s'\"]+")
+
 
 @dataclass
 class RetryConfig:
@@ -87,7 +90,7 @@ def is_retryable_error(error_message: str) -> bool:
 
 def classify_error(error_message: str | None) -> ErrorType:
     """
-    Classify an error based on its message.
+    Classify an error based on its message, URLs and paths left out.
 
     Args:
         error_message: The error message to classify.
@@ -98,7 +101,7 @@ def classify_error(error_message: str | None) -> ErrorType:
     if not error_message:
         return ErrorType.UNKNOWN
 
-    error_lower = error_message.lower()
+    error_lower = _URL_PATTERN.sub(" ", error_message.lower())
 
     if any(kw in error_lower for kw in ["timeout", "navigation", "connection", "network", "proxy"]):
         return ErrorType.NAVIGATION

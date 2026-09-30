@@ -134,6 +134,26 @@ class TestClassifyError:
         """B9: a bare 'rate', 'limit' or '429' inside another word or number is no rate limit."""
         assert classify_error(message) == ErrorType.UNKNOWN
 
+    @pytest.mark.parametrize(
+        ("message", "expected"),
+        [
+            ("HTTP 500 on https://www.oddsportal.com/proxy/match-event/1-1-AbCdEf-1-2-yj1f2.dat", ErrorType.UNKNOWN),
+            ("could not read /proxy/match-event/1-1-AbCdEf-1-2-yj1f2.dat", ErrorType.UNKNOWN),
+            (
+                "rate limited by OddsPortal: HTTP 429 on 1 request(s), first https://www.oddsportal.com/proxy/x.dat",
+                ErrorType.RATE_LIMITED,
+            ),
+            ("net::ERR_PROXY_CONNECTION_FAILED at https://www.oddsportal.com/", ErrorType.NAVIGATION),
+            (
+                'Timeout 30000ms exceeded navigating to "https://www.oddsportal.com/football/h2h/a/b/"',
+                ErrorType.NAVIGATION,
+            ),
+        ],
+    )
+    def test_keywords_inside_a_url_or_path_do_not_count(self, message, expected):
+        """A '/proxy/' path quoted in a message is no proxy failure and must not count against the proxy."""
+        assert classify_error(message) == expected
+
     def test_navigation_words_still_win_over_a_rate_limit(self):
         """The groups keep their order: a proxy failure that mentions 429 stays a navigation error."""
         assert classify_error("proxy answered 429 Too Many Requests") == ErrorType.NAVIGATION
