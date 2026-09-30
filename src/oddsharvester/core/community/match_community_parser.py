@@ -7,21 +7,29 @@ market (labels from the odds table's outcome columns). Absolute counts and
 all-markets-at-once coverage are gone with the pageVar (gotchas §19).
 """
 
+from datetime import datetime
 import logging
 import re
 
 from bs4 import BeautifulSoup
 
+from oddsharvester.core.base_scraper import _parse_date_header
 from oddsharvester.core.community.row_helpers import to_pct
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
+from oddsharvester.utils.page_time import shown_to_local
 
 logger = logging.getLogger(__name__)
 
 _KNOWN_SCOPES = ("Full Time", "1st Half", "2nd Half")
 _PCT_RE = re.compile(r"^\d+\s*%$")
+# "Sunday, 04 Jan 2026, 17:30", or "Today, 04 Jan 2026, 17:30" on the day itself.
+_KICKOFF_RE = re.compile(r"^[^,]+, (\d{1,2} \S+ \d{4}), ((?:[01]?\d|2[0-3]):[0-5]\d)$")
+_KICKOFF_FORMAT = "%A, %d %b %Y, %H:%M"
 
 
-def parse_match_community_dom(html: str, match_url: str, event_id: str | None = None) -> dict:
+def parse_match_community_dom(
+    html: str, match_url: str, event_id: str | None = None, tz_name: str | None = None
+) -> dict:
     soup = BeautifulSoup(html, "lxml")
     root = OddsPortalSelectors.content_root(soup)
 
@@ -42,7 +50,7 @@ def parse_match_community_dom(html: str, match_url: str, event_id: str | None = 
         "event_id": event_id,
         "home_team": home_team,
         "away_team": away_team,
-        "kickoff": _kickoff_text(soup),
+        "kickoff": _kickoff(soup, tz_name),
         "is_prematch": not _has_started(soup),
         "markets": markets,
     }
@@ -94,6 +102,23 @@ def _kickoff_text(soup) -> str | None:
     if cell is None:
         return None
     return " ".join(p.get_text(strip=True) for p in cell.find_all("p")) or None
+
+
+def _kickoff(soup, tz_name: str | None) -> str | None:
+    """The header's kickoff, shown at the browser's current UTC offset, as the zone's local time (gotchas §10).
+
+    Written back in the header's shape with the weekday first: the header says Today, Tomorrow or
+    Yesterday instead around the day it is read.
+    """
+    text = _kickoff_text(soup)
+    match = _KICKOFF_RE.match(text or "")
+    shown_date = _parse_date_header(match.group(1)) if match else None
+    if shown_date is None:
+        if text:
+            logger.debug("Kickoff %r is not 'Weekday, DD Mon YYYY, HH:MM'; kept as shown.", text)
+        return text
+    shown = datetime.strptime(f"{shown_date.isoformat()} {match.group(2)}", "%Y-%m-%d %H:%M")
+    return shown_to_local(shown, tz_name).strftime(_KICKOFF_FORMAT)
 
 
 def _has_started(soup) -> bool:

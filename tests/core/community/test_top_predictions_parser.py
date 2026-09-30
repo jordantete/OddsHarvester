@@ -1,8 +1,11 @@
 """Unit tests for the Community Top Predictions parser."""
 
+from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
+from tests.clock import frozen_clock
 from tests.dom_builders import community_column, community_row, community_section
 
 from oddsharvester.core.community.top_predictions_parser import parse_top_predictions
@@ -74,6 +77,21 @@ def test_non_today_date_row_parses_kickoff():
     assert len(rows) == 1
     assert rows[0]["kickoff"].endswith("T21:00")
     assert "-07-19" in rows[0]["kickoff"]
+
+
+def test_kickoff_is_the_local_time_of_the_browser_zone():
+    """Scraped in BST under Europe/London, a 17:30 GMT kickoff shows 18:30 (gotchas §10)."""
+    columns = community_column("1", "1.69", "89%") + community_column("2", "4.70", "11%")
+    html = community_section(community_row("/football/h2h/a/b/#fff", columns, date="10/Jan", time="18:30"))
+    clock = frozen_clock(datetime(2026, 9, 30, 12, 0, tzinfo=UTC))
+
+    with (
+        patch("oddsharvester.core.base_scraper.datetime", clock),
+        patch("oddsharvester.utils.page_time.datetime", clock),
+    ):
+        rows = parse_top_predictions(html, tz_name="Europe/London")
+
+    assert rows[0]["kickoff"] == "2027-01-10T17:30"
 
 
 def test_malformed_row_is_skipped():

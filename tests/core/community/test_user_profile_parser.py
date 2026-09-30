@@ -1,3 +1,7 @@
+from datetime import UTC, datetime
+from unittest.mock import patch
+
+from tests.clock import frozen_clock
 from tests.dom_builders import community_column, community_row, profile_page, statistics_row
 
 from oddsharvester.core.community.user_profile_parser import parse_user_profile
@@ -103,3 +107,21 @@ def test_feed_predictions_parsed():
     assert pred["outcomes"] == [{"odds": 2.08, "community_pct": 50, "picked": True}]
     assert pred["pick_odds"] == 2.08
     assert pred["match_url"].endswith("#abc123")
+
+
+def test_feed_kickoff_is_the_local_time_of_the_browser_zone():
+    """Scraped in GMT under Europe/London, an 18:00 UTC kickoff on 4 October shows 18:00: 19:00 BST (gotchas §10)."""
+    from oddsharvester.core.community.user_profile_parser import parse_profile_feed_predictions
+
+    html = profile_page(
+        rows=community_row("/football/h2h/a/b/#abc124", _PREDICTION_COLUMNS, date="04/Oct", time="18:00")
+    )
+    clock = frozen_clock(datetime(2026, 11, 15, 12, 0, tzinfo=UTC))
+
+    with (
+        patch("oddsharvester.core.base_scraper.datetime", clock),
+        patch("oddsharvester.utils.page_time.datetime", clock),
+    ):
+        preds = parse_profile_feed_predictions(html, tz_name="Europe/London")
+
+    assert preds[0]["kickoff"] == "2026-10-04T19:00"

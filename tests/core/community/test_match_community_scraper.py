@@ -1,7 +1,9 @@
 """Unit tests for MatchCommunityScraper (mocked Playwright page)."""
 
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from tests.clock import frozen_clock
 from tests.dom_builders import match_view
 
 from oddsharvester.core.community.match_community_scraper import MatchCommunityScraper, run_match_community
@@ -35,6 +37,17 @@ async def test_scrape_returns_record_with_markets():
     args, kwargs = manager.page.evaluate.await_args
     payload = args[1] if len(args) >= 2 else kwargs.get("arg")
     assert payload["fragment"] == "C2Nfvg77"
+
+
+async def test_scrape_reads_the_kickoff_in_the_browser_zone():
+    manager = _manager_with_page(match_view(weekday="Sunday,", date="04 Jan 2026,", time="18:30", votes=["5%", "95%"]))
+    manager.timezone_id = "Europe/London"
+    scraper = MatchCommunityScraper(manager, MagicMock(dismiss=AsyncMock()))
+
+    with patch("oddsharvester.utils.page_time.datetime", frozen_clock(datetime(2026, 9, 30, 12, 0, tzinfo=UTC))):
+        rec = await scraper.scrape(_MATCH_URL)
+
+    assert rec["kickoff"] == "Sunday, 04 Jan 2026, 17:30"
 
 
 async def test_scrape_non_hydrated_page_returns_empty_markets():

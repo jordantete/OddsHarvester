@@ -49,7 +49,9 @@ class MatchCommunityScraper:
         await self._hydrate(page, url, fragment)
 
         html = await page.content()
-        record = parse_match_community_dom(html, match_url, event_id=fragment)
+        record = parse_match_community_dom(
+            html, match_url, event_id=fragment, tz_name=self.playwright_manager.timezone_id
+        )
         record["scraped_at"] = datetime.now(UTC).isoformat()
         if not record["markets"]:
             logger.warning(

@@ -6,13 +6,17 @@ Playwright. Selectors live on OddsPortalSelectors; date normalization mirrors
 the slash+comma community date shape (gotchas §13).
 """
 
+from datetime import datetime
 import re
 
 from oddsharvester.core.base_scraper import _parse_date_header
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
+from oddsharvester.utils.page_time import shown_to_local
 
 _PCT_RE = re.compile(r"(\d+)\s*%")
 _TIME_RE = re.compile(r"^\d{1,2}:\d{2}$")
+# Community rows abbreviate the relative days that _parse_date_header reads in full.
+_RELATIVE_DAYS = {"yest.": "Yesterday", "tomorr.": "Tomorrow"}
 
 
 def to_float(text: str) -> float | None:
@@ -92,9 +96,15 @@ def extract_datetime_and_market(row, tz_name: str | None) -> tuple[str, str | No
     # date-looking token is used. Normalize locally to "19 Jul" (gotchas §13).
     date_token = next((t for t in texts if t != market and t != time_token), None)
     date_header = (date_token or "").replace("/", " ").rstrip(",").strip()
+    date_header = _RELATIVE_DAYS.get(date_header.lower(), date_header)
     parsed_date = _parse_date_header(date_header, tz_name) if date_header else None
     if parsed_date and time_token:
-        kickoff = f"{parsed_date.isoformat()}T{time_token.zfill(5)}"
+        try:
+            shown = datetime.strptime(f"{parsed_date.isoformat()} {time_token}", "%Y-%m-%d %H:%M")
+        except ValueError:
+            return kickoff_text, None, market
+        # The row shows the time at the browser's current UTC offset (gotchas §10).
+        kickoff = shown_to_local(shown, tz_name).strftime("%Y-%m-%dT%H:%M")
     return kickoff_text, kickoff, market
 
 
