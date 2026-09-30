@@ -326,7 +326,7 @@ def _extract_fragment_match_id(match_link: str) -> str | None:
 
 
 def _history_reference(match_date: str | None, tz_name: str | None) -> datetime | None:
-    """Kickoff as a naive datetime in the browser timezone, the frame odds-history timestamps are shown in."""
+    """True local kickoff, naive, in the browser timezone; `_history_timestamp` moves it to the page's offset."""
     if not match_date:
         return None
     try:
@@ -829,7 +829,7 @@ class BaseScraper:
                 max_delay=MATCH_RETRY_MAX_DELAY,
             )
 
-        async def scrape_single_match(page: Page, link: str) -> dict[str, Any]:
+        async def scrape_single_match(page: Page, link: str) -> dict[str, Any] | None:
             """Inner function to scrape a single match (used for retry)."""
             return await self._scrape_match_data(
                 page=page,

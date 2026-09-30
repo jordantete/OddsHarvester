@@ -117,9 +117,9 @@ class OddsParser:
 
         Args:
             modal_html (str): Raw HTML from the modal.
-            reference (datetime, optional): Kickoff as a naive datetime in the browser timezone. The modal omits
-                the year: each timestamp takes the kickoff's year, or the year before when its month comes after
-                the kickoff month. Without it, the current UTC year is used.
+            reference (datetime, optional): True local kickoff, naive, in the browser timezone. The modal omits the
+                year: each timestamp takes the year of the kickoff as the page shows it, or the year before when its
+                month comes after that kickoff's month. Without it, the current UTC year is used.
             tz_name (str, optional): The browser timezone. The modal shows every time at its UTC offset of the
                 scrape moment; each timestamp comes out as the local time of that zone on its date.
 
