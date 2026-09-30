@@ -275,14 +275,22 @@ class PlaywrightManager:
             self._proxy_manager.blacklist_proxy(key)
 
     async def cleanup(self):
-        """Properly closes Playwright instances."""
+        """Close the page, each context, the browser and Playwright, one failure skipping none of the others.
+
+        A context writes its HAR recording when it closes, so it must be closed even when the page close failed.
+        """
         self.logger.info("Cleaning up Playwright resources...")
+        steps = []
         if self.page:
-            await self.page.close()
-        for context in self.contexts.values():
-            await context.close()
+            steps.append(("page", self.page.close))
+        steps += [(f"browser context {key}", context.close) for key, context in self.contexts.items()]
         if self.browser:
-            await self.browser.close()
+            steps.append(("browser", self.browser.close))
         if self.playwright:
-            await self.playwright.stop()
+            steps.append(("Playwright", self.playwright.stop))
+        for name, close in steps:
+            try:
+                await close()
+            except Exception as e:
+                self.logger.warning(f"Could not close the {name}: {e}")
         self.logger.info("Playwright resources cleanup complete.")

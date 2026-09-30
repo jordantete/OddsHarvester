@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -172,6 +173,24 @@ async def test_new_rotated_page_reports_key(mock_playwright):
     await pm.initialize(headless=True, proxy_manager=proxy_manager)
     _page, key = await pm.new_rotated_page()
     assert key in {"http://a.example.com:1", "http://b.example.com:2"}
+
+
+async def test_cleanup_closes_everything_when_one_close_fails(mock_playwright, caplog):
+    """G11: a context flushes its HAR when it closes, so a failed page close must not skip it or the browser."""
+    proxy_manager = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
+    pm = PlaywrightManager()
+    await pm.initialize(headless=True, proxy_manager=proxy_manager)
+    mock_playwright["page"].close = AsyncMock(side_effect=Exception("Target page, context or browser has been closed"))
+    mock_playwright["context"].close = AsyncMock(side_effect=[Exception("context a"), None])
+
+    with caplog.at_level(logging.WARNING):
+        await pm.cleanup()
+
+    assert mock_playwright["context"].close.await_count == 2
+    mock_playwright["browser"].close.assert_awaited_once()
+    mock_playwright["playwright"].stop.assert_awaited_once()
+    assert "Could not close the page: Target page, context or browser has been closed" in caplog.text
+    assert "Could not close the browser context http://a.example.com:1: context a" in caplog.text
 
 
 async def test_new_rotated_page_raises_when_exhausted(mock_playwright):

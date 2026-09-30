@@ -114,8 +114,8 @@ def _fake_cli(monkeypatch, returncode, golden):
 
 @pytest.mark.parametrize(
     ("returncode", "golden"),
-    [(1, None), (0, None), (0, "[]")],
-    ids=["command-failed", "no-output", "no-records"],
+    [(1, None), (0, None), (0, "[]"), (0, '[{"username": "BL')],
+    ids=["command-failed", "no-output", "no-records", "truncated-json"],
 )
 def test_a_failed_special_capture_leaves_the_committed_files(tmp_path, monkeypatch, returncode, golden):
     special = _community_special(tmp_path, monkeypatch)

@@ -281,7 +281,11 @@ def capture_special(special: SpecialFixture) -> bool:
 def _has_records(path: Path) -> bool:
     if not path.exists():
         return False
-    data = json.loads(path.read_text())
+    try:
+        data = json.loads(path.read_text())
+    except ValueError:
+        # A capture cut short can leave a truncated file: it has no records, and the batch goes on.
+        return False
     return isinstance(data, list) and bool(data)
 
 
