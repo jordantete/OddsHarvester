@@ -83,16 +83,6 @@ def test_emit_keeps_records_without_match_link():
     assert len(stream.getvalue().splitlines()) == 2
 
 
-def test_emit_skips_live_ended_sentinel():
-    """The ended-match sentinel is internal and is filtered out of the batch output too."""
-    stream = FlushCountingStream()
-    writer = NdjsonStreamWriter(stream=stream)
-
-    writer.emit({"_live_ended": True, "match_link": "https://x/a"})
-
-    assert stream.getvalue() == ""
-
-
 def test_emit_survives_a_closed_consumer_and_stops_streaming(caplog):
     writer = NdjsonStreamWriter(stream=BrokenStream())
 

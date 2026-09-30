@@ -2022,8 +2022,8 @@ async def test_scrape_match_data_live_mode_adds_live_fields(setup_base_scraper_m
     assert data["scraped_at_utc"].endswith("Z")
 
 
-async def test_scrape_match_data_live_mode_flags_ended_match(setup_base_scraper_mocks):
-    """A page without a live-info header means the match ended; flag it for the caller to drop."""
+async def test_scrape_match_data_live_mode_returns_none_for_an_ended_match(setup_base_scraper_mocks):
+    """A page without a live-info header means the match ended: there is no record to return."""
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
     page_mock = mocks["page_mock"]
@@ -2036,7 +2036,44 @@ async def test_scrape_match_data_live_mode_flags_ended_match(setup_base_scraper_
         page=page_mock, sport="football", match_link="https://x/inplay-odds/#a", live_mode=True
     )
 
-    assert data == {"_live_ended": True, "match_link": "https://x/inplay-odds/#a"}
+    assert data is None
+
+
+async def test_extract_match_odds_drops_an_ended_live_match(setup_base_scraper_mocks, caplog):
+    """B10: a match that ended between listing and visit reaches neither the stream, the output nor the totals."""
+    mocks = setup_base_scraper_mocks
+    emitted: list[dict] = []
+    scraper = BaseScraper(
+        playwright_manager=mocks["playwright_manager_mock"],
+        market_extractor=mocks["market_extractor_mock"],
+        scroller=AsyncMock(),
+        cookie_dismisser=AsyncMock(),
+        selection_manager=mocks["selection_manager_mock"],
+        on_match=emitted.append,
+    )
+    live = {"match_link": "https://x/a/inplay-odds/#a", "live_period": "1H"}
+    ended_link, failed_link = "https://x/b/inplay-odds/#b", "https://x/c/inplay-odds/#c"
+
+    def scrape(**kwargs):
+        if kwargs["match_link"] == failed_link:
+            raise ValueError("structure changed")
+        return live if kwargs["match_link"] == live["match_link"] else None
+
+    scraper._scrape_match_data = AsyncMock(side_effect=scrape)
+
+    with caplog.at_level(logging.INFO):
+        result = await scraper.extract_match_odds(
+            sport="football",
+            match_links=[live["match_link"], ended_link, failed_link],
+            request_delay=0,
+            live_mode=True,
+        )
+
+    assert result.success == [live]
+    assert emitted == [live]
+    assert [failure.url for failure in result.failed] == [failed_link]
+    assert (result.stats.total_urls, result.stats.successful, result.stats.failed) == (2, 1, 1)
+    assert "1 matches ended between listing and scrape; dropped from output." in caplog.text
 
 
 async def test_scrape_match_data_without_live_mode_adds_no_live_fields(setup_base_scraper_mocks):

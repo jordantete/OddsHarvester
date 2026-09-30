@@ -750,8 +750,8 @@ async def test_scrape_live_links_only(url_builder_mock, setup_scraper_mocks):
 
 
 @patch("oddsharvester.core.odds_portal_scraper.URLBuilder")
-async def test_scrape_live_drops_ended_matches(url_builder_mock, setup_scraper_mocks):
-    """A match that ended between listing and visit is dropped, not counted as scraped."""
+async def test_scrape_live_returns_the_odds_result_as_it_is(url_builder_mock, setup_scraper_mocks):
+    """Ended matches are dropped where they are detected (B10), so the live flow no longer edits the result."""
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
 
@@ -763,20 +763,16 @@ async def test_scrape_live_drops_ended_matches(url_builder_mock, setup_scraper_m
             {"match_link": "https://www.oddsportal.com/y/inplay-odds/#b"},
         ]
     )
-    live_match = {"home_team": "A", "away_team": "B", "live_period": "1H"}
-    ended_marker = {"_live_ended": True, "match_link": "https://www.oddsportal.com/y/inplay-odds/#b"}
-    scraper.extract_match_odds = AsyncMock(
-        return_value=ScrapeResult(
-            success=[live_match, ended_marker],
-            stats=ScrapeStats(total_urls=2, successful=2, failed=0),
-        )
+    odds_result = ScrapeResult(
+        success=[{"home_team": "A", "away_team": "B", "live_period": "1H"}],
+        stats=ScrapeStats(total_urls=1, successful=1, failed=0),
     )
+    scraper.extract_match_odds = AsyncMock(return_value=odds_result)
 
     result = await scraper.scrape_live(sport="football", markets=["1x2"])
 
-    assert result.success == [live_match]
-    assert result.stats.successful == 1
-    assert result.stats.total_urls == 1
+    assert result is odds_result
+    assert (result.stats.total_urls, result.stats.successful) == (1, 1)
 
 
 async def test_scrape_live_with_match_links_normalizes_urls(setup_scraper_mocks):

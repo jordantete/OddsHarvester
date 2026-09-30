@@ -286,7 +286,7 @@ class OddsPortalScraper(BaseScraper):
                 context={"sport": sport, "league": league},
             )
 
-        result = await self.extract_match_odds(
+        return await self.extract_match_odds(
             sport=sport,
             match_links=links,
             markets=markets,
@@ -299,15 +299,6 @@ class OddsPortalScraper(BaseScraper):
             request_delay=request_delay,
             live_mode=True,
         )
-
-        ended = [d for d in result.success if d.get("_live_ended")]
-        if ended:
-            self.logger.info(f"{len(ended)} matches ended between listing and scrape; dropped from output.")
-            result.success = [d for d in result.success if not d.get("_live_ended")]
-            result.stats.successful -= len(ended)
-            result.stats.total_urls -= len(ended)
-
-        return result
 
     async def scrape_matches(
         self,

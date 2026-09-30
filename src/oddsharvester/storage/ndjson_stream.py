@@ -18,8 +18,8 @@ class NdjsonStreamWriter:
         self._disabled = False
 
     def emit(self, record: dict[str, Any]) -> None:
-        """Write one record, skipping internal sentinels and matches already streamed."""
-        if self._disabled or record.get("_live_ended"):
+        """Write one record, skipping matches already streamed."""
+        if self._disabled:
             return
 
         match_link = record.get("match_link")

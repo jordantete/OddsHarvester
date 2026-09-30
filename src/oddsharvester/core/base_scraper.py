@@ -864,6 +864,11 @@ class BaseScraper:
                         config=retry_config,
                     )
 
+                    if live_mode and retry_result.success and retry_result.result is None:
+                        # The live match ended between listing and visit: neither scraped nor failed.
+                        self.playwright_manager.report_page_result(proxy_key, is_proxy_failure=False)
+                        return (link, None, None)
+
                     if retry_result.success and retry_result.result is not None:
                         self.logger.info(f"Successfully scraped match link: {link} (attempts: {retry_result.attempts})")
                         self.playwright_manager.report_page_result(proxy_key, is_proxy_failure=False)
@@ -917,6 +922,7 @@ class BaseScraper:
         results = await asyncio.gather(*tasks)
 
         # Process results
+        ended = 0
         for _link, data, failed_url in results:
             if data is not None:
                 result.success.append(data)
@@ -924,6 +930,12 @@ class BaseScraper:
             elif failed_url is not None:
                 result.failed.append(failed_url)
                 result.stats.failed += 1
+            else:
+                ended += 1
+
+        if ended:
+            result.stats.total_urls -= ended
+            self.logger.info(f"{ended} matches ended between listing and scrape; dropped from output.")
 
         # Log summary
         self.logger.info(
@@ -968,7 +980,7 @@ class BaseScraper:
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
         live_mode: bool = False,
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         """Scrape one match, raising RateLimitError when OddsPortal answered 429 during the visit."""
         # A 429 on a request of the page (feed, script, tab switch) leaves the view or a market empty
         # while the document itself loads; only the response stream shows it (gotchas §23).
@@ -1026,7 +1038,7 @@ class BaseScraper:
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
         period: Enum | None = None,
         live_mode: bool = False,
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         """
         Scrape data for a specific match based on the desired markets.
 
@@ -1043,7 +1055,8 @@ class BaseScraper:
             period: The period enum to scrape odds for (FootballPeriod, TennisPeriod, or BasketballPeriod).
 
         Returns:
-            Dict[str, Any]: A dictionary containing scraped data.
+            Dict[str, Any] | None: A dictionary containing scraped data, or None in live mode when the match
+            has ended.
 
         Raises:
             MatchContentError: The page loaded but its match details or content could not be read.
@@ -1089,7 +1102,7 @@ class BaseScraper:
                     # No live-info header: the match ended (or lost live coverage)
                     # between listing and visit. Not a scraping failure.
                     self.logger.info(f"No live-info header on {match_link}; match no longer live, skipping.")
-                    return {"_live_ended": True, "match_link": match_link}
+                    return None
                 match_details.update(live_info)
                 match_details["scraped_at_utc"] = datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
