@@ -19,6 +19,9 @@ PROFILE_SNAPSHOT = FIXTURES / "user_profile_blapro.json"
 MATCH_HAR = FIXTURES / "match_community_fulham_chelsea.har"
 MATCH_SNAPSHOT = FIXTURES / "match_community_fulham_chelsea.json"
 
+PREMATCH_HAR = FIXTURES / "match_community_prematch.har"
+PREMATCH_SNAPSHOT = FIXTURES / "match_community_prematch.json"
+
 
 @pytest.mark.integration
 def test_user_profile_command_har_replay(temp_output_dir):
@@ -113,5 +116,15 @@ def _without_scraped_at(record: dict) -> dict:
 def test_match_community_command_har_replay(temp_output_dir):
     record, expected = _replay_match_community(MATCH_HAR, MATCH_SNAPSHOT, temp_output_dir / "out.json")
 
+    assert record["markets"], "expected at least one community market on replay"
+    assert _without_scraped_at(record) == _without_scraped_at(expected)
+
+
+@pytest.mark.integration
+def test_prematch_community_command_har_replay(temp_output_dir):
+    """Before kickoff: the header reads Today or Tomorrow around the replay day, the stored kickoff must not."""
+    record, expected = _replay_match_community(PREMATCH_HAR, PREMATCH_SNAPSHOT, temp_output_dir / "out.json")
+
+    assert record["is_prematch"] is True
     assert record["markets"], "expected at least one community market on replay"
     assert _without_scraped_at(record) == _without_scraped_at(expected)

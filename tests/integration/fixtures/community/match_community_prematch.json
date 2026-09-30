@@ -1,0 +1,32 @@
+[
+    {
+        "mode": "match",
+        "match_url": "https://www.oddsportal.com/football/h2h/north-macedonia-GrTQ3oHB/scotland-fZRU25WH/#WSkBPP9e",
+        "event_id": "WSkBPP9e",
+        "home_team": "North Macedonia",
+        "away_team": "Scotland",
+        "kickoff": "Saturday, 03 Oct 2026, 18:45",
+        "is_prematch": true,
+        "markets": [
+            {
+                "market": "1X2",
+                "scope": "Full Time",
+                "outcomes": [
+                    {
+                        "outcome": "1",
+                        "votes_pct": 0
+                    },
+                    {
+                        "outcome": "X",
+                        "votes_pct": 0
+                    },
+                    {
+                        "outcome": "2",
+                        "votes_pct": 100
+                    }
+                ]
+            }
+        ],
+        "scraped_at": "2026-09-30T14:16:46.356119+00:00"
+    }
+]

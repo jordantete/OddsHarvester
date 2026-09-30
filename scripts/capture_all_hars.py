@@ -104,6 +104,17 @@ SPECIAL_FIXTURES = (
             "UTC",
         ),
     ),
+    SpecialFixture(
+        kind="community",
+        har="community/match_community_prematch.har",
+        argv=(
+            "community",
+            "--match-url",
+            "https://www.oddsportal.com/football/h2h/north-macedonia-GrTQ3oHB/scotland-fZRU25WH/#WSkBPP9e",
+            "--timezone",
+            "UTC",
+        ),
+    ),
     # The wrong id in the middle keeps the failure path in the replay.
     SpecialFixture(
         kind="team",
