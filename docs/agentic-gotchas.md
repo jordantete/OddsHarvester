@@ -801,6 +801,21 @@ the match is real and upcoming, just filed under the next calendar day.
 - There is no "competition-local date" the scraper can infer — the user
   expresses intent with `--timezone`. Don't try to guess it per league.
 
+### Times render at the browser's current UTC offset (seen 2026-09-29)
+
+The page now applies the browser's offset of today to every time it shows,
+not the offset in force on that date. Djokovic - Sinner (26 Jan 2024, kickoff
+03:45 UTC) scraped live on 2026-09-30 gave `match_date` 04:45 UTC under
+`Europe/Paris` and `Europe/London`, and 03:45 under `UTC`:
+`_parse_match_date_from_dom` converts the text with the zone's rules for
+January (+1 / +0) while the page used today's summer offset (+2 / +1). HARs
+captured on 2026-09-02 still replay the right time in every zone; HARs
+captured on 2026-09-29 do not, so the site changed in between. Any date on the
+other side of a DST switch from the scrape is off by one hour in a DST zone
+(the collector's `Europe/London` included). Until the parser uses the page's
+offset, integration replays and captures run the browser in `UTC`
+(`tests/integration/helpers/cli_runner.py`, `capture.py`), which has no DST.
+
 ### References
 
 - `core/playwright_manager.py` — effective-timezone resolution.

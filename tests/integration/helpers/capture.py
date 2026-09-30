@@ -317,7 +317,9 @@ Examples:
     parser.add_argument(
         "--odds-history", action="store_true", help="Scrape odds history (adds _odds_history to the name)"
     )
-    parser.add_argument("--timezone", default=None, help="Forwarded to the CLI (e.g. Europe/London)")
+    parser.add_argument(
+        "--timezone", default="UTC", help="Forwarded to the CLI (default: UTC, the zone replays run in)"
+    )
     parser.add_argument("--locale", default=None, help="Forwarded to the CLI (e.g. en-GB)")
     parser.add_argument("--request-delay", type=float, default=None, help="Forwarded to the CLI")
     parser.add_argument("--concurrency", type=int, default=None, help="Forwarded to the CLI")

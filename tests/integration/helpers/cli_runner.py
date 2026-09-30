@@ -48,6 +48,10 @@ def run_historic(
     if period:
         cmd.extend(["--period", period])
 
+    # The page renders times at the browser's current UTC offset: a DST host zone would shift match_date.
+    if "--timezone" not in (extra_args or []):
+        cmd.extend(["--timezone", "UTC"])
+
     cmd.extend(extra_args or [])
 
     env = os.environ.copy()

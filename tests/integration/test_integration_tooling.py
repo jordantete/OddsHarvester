@@ -48,8 +48,28 @@ def test_run_historic_forwards_extra_args_and_replay_env(monkeypatch, tmp_path):
     )
     assert result == (0, "out", "err")
     assert calls["cmd"][-3:] == ["--odds-history", "--timezone", "Europe/London"]
+    assert calls["cmd"].count("--timezone") == 1
     assert "1x2,over_under_2_5" in calls["cmd"]
     assert calls["env"]["ODDSHARVESTER_HAR_REPLAY"] == str(tmp_path / "match.har")
+
+
+def test_run_historic_pins_the_browser_to_utc_without_a_timezone(monkeypatch, tmp_path):
+    """The page renders times at the browser's current UTC offset, so a DST host zone shifts match_date."""
+    calls = {}
+
+    def fake_run(cmd, **kwargs):
+        calls["cmd"] = cmd
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(cli_runner.subprocess, "run", fake_run)
+    cli_runner.run_historic(
+        sport="tennis",
+        match_link="https://www.oddsportal.com/tennis/h2h/a-AAAAAAAA/b-BBBBBBBB/#CCCCCCCC",
+        markets=["match_winner"],
+        output_path=tmp_path / "output",
+    )
+    index = calls["cmd"].index("--timezone")
+    assert calls["cmd"][index + 1] == "UTC"
 
 
 def _committed_hars(folder: Path) -> list[str]:
