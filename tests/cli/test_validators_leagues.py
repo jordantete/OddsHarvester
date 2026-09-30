@@ -24,6 +24,11 @@ def test_accepts_a_full_oddsportal_league_url():
     assert validate_leagues(_Ctx("football"), None, [url]) == [url]
 
 
+@pytest.mark.parametrize("league", ["hockey/usa/nhl", "ice-hockey/usa/nhl"])
+def test_accepts_an_ice_hockey_league_path_under_either_name(league):
+    assert validate_leagues(_Ctx("ice-hockey"), None, [league]) == [league]
+
+
 def test_rejects_a_league_path_of_another_sport():
     with pytest.raises(click.BadParameter, match="tennis/atp/us-open"):
         validate_leagues(_Ctx("football"), None, ["tennis/atp/us-open"])

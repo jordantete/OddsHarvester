@@ -565,6 +565,29 @@ def test_historic_url_of_a_league_path(season, expected):
     assert url == f"{ODDSPORTAL_BASE_URL}{expected}"
 
 
+@pytest.mark.parametrize(
+    "league", ["hockey/usa/nhl", "ice-hockey/usa/nhl", "https://www.oddsportal.com/hockey/usa/nhl/"]
+)
+def test_get_league_url_builds_an_ice_hockey_league_path_on_the_site_path(league):
+    assert URLBuilder.get_league_url("ice-hockey", league) == f"{ODDSPORTAL_BASE_URL}/hockey/usa/nhl/"
+
+
+def test_historic_url_of_an_ice_hockey_league_path():
+    assert URLBuilder.get_historic_matches_url("ice-hockey", "hockey/usa/nhl", "2024-2025") == (
+        f"{ODDSPORTAL_BASE_URL}/hockey/usa/nhl-2024-2025/results/"
+    )
+
+
+def test_get_league_url_names_the_site_path_in_its_error():
+    with pytest.raises(ValueError, match="'hockey/<country>/<league>'"):
+        URLBuilder.get_league_url("ice-hockey", "hockey/usa")
+
+
+def test_get_league_url_rejects_a_hockey_path_for_another_sport():
+    with pytest.raises(ValueError, match="Invalid league 'hockey/usa/nhl' for sport 'football'"):
+        URLBuilder.get_league_url("football", "hockey/usa/nhl")
+
+
 def test_is_league_path():
     assert is_league_path("football/bhutan/premier-league")
     assert not is_league_path("england-premier-league")

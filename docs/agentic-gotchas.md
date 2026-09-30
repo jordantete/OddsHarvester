@@ -1977,6 +1977,9 @@ Rows of a listing whose href starts with another sport's path, or, in the log,
   fires; it keeps a future path change from mixing sports into the output.
 - League URLs in `sport_league_constants.py` already use the site path;
   `tests/utils/test_sport_league_constants.py` pins it for every league.
+- A league path given to `--league` may start with the site path or the CLI
+  name (`hockey/usa/nhl` or `ice-hockey/usa/nhl`); `get_league_url` builds the
+  URL on the site path.
 
 ---
 

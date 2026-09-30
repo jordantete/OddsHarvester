@@ -136,7 +136,7 @@ class URLBuilder:
 
         Args:
             sport (str): The sport for which the URL is required (e.g., "football", "tennis").
-            date (str): The date for which the matches are required in 'YYYY-MM-DD' format (e.g., "2025-01-15").
+            date (str): The date for which the matches are required in 'YYYYMMDD' format (e.g., "20250115").
             league (Optional[str]): The league for which matches are required (e.g., "premier-league").
             base_url (Optional[str]): When provided, rebases the returned URL onto this scheme+host.
 
@@ -156,6 +156,8 @@ class URLBuilder:
             sport (str): The sport name (e.g., "football", "tennis").
             league (str): A known league key (e.g., "england-premier-league"), or a league path
                 ("football/bhutan/premier-league") or oddsportal.com URL for leagues not in the mapping.
+                A path may start with the sport or its site path ("hockey/usa/nhl" for ice-hockey); the
+                URL is built on the site path.
             base_url (Optional[str]): When provided, rebases the returned URL onto this scheme+host.
 
         Returns:
@@ -177,12 +179,13 @@ class URLBuilder:
             return rebase_url(leagues[league], base_url)
 
         path = _league_path(league)
-        if path is None or path[0] != sport_enum.value:
+        slug = site_slug(sport_enum.value)
+        if path is None or path[0] not in (sport_enum.value, slug):
             raise ValueError(
                 f"Invalid league '{league}' for sport '{sport}'. Available: {', '.join(leagues.keys())}, "
-                f"or a league path such as '{sport_enum.value}/<country>/<league>'."
+                f"or a league path such as '{slug}/<country>/<league>'."
             )
-        return rebase_url(f"{ODDSPORTAL_BASE_URL}/{'/'.join(path)}/", base_url)
+        return rebase_url(f"{ODDSPORTAL_BASE_URL}/{slug}/{path[1]}/{path[2]}/", base_url)
 
     @staticmethod
     def get_live_matches_url(sport: str, base_url: str | None = None) -> str:
