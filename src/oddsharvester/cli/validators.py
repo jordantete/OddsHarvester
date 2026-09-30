@@ -221,17 +221,13 @@ def validate_max_pages(ctx, param, value):
 
 
 def validate_file_path(ctx, param, value):
-    """Validate output file path to prevent path traversal and other unsafe patterns."""
+    """Validate the output file path: it must not name an existing directory."""
     if value is None:
         return None
 
     from pathlib import Path
 
     path = Path(value)
-
-    # Reject '..' path segments (no traversal)
-    if ".." in path.parts:
-        raise click.BadParameter(f"Output path must not contain '..' segments: '{value}'")
 
     # Reject paths pointing to existing directories
     if path.exists() and path.is_dir():

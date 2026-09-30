@@ -146,6 +146,39 @@ def test_remote_without_a_bucket_exits_2_before_scraping(command, bucket, tmp_pa
     assert list(tmp_path.iterdir()) == []
 
 
+@pytest.mark.parametrize(("bucket", "state"), [(None, "is not set"), ("", "is empty"), ("   ", "is empty")])
+def test_remote_says_whether_the_bucket_is_unset_or_blank(bucket, state, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    if bucket is None:
+        monkeypatch.delenv("OH_S3_BUCKET", raising=False)
+    else:
+        monkeypatch.setenv("OH_S3_BUCKET", bucket)
+
+    result, run_mock = _invoke_with_runner_mock("upcoming", ["--storage", "remote"])
+
+    assert result.exit_code == 2, result.output
+    assert f"OH_S3_BUCKET {state}." in result.output
+    run_mock.assert_not_awaited()
+
+
+def test_remote_reports_a_missing_bucket_and_a_missing_boto3_together(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("OH_S3_BUCKET", raising=False)
+    real_find_spec = importlib.util.find_spec
+
+    def find_spec_without_boto3(name, *args, **kwargs):
+        return None if name == "boto3" else real_find_spec(name, *args, **kwargs)
+
+    monkeypatch.setattr(importlib.util, "find_spec", find_spec_without_boto3)
+
+    result, run_mock = _invoke_with_runner_mock("upcoming", ["--storage", "remote"])
+
+    assert result.exit_code == 2, result.output
+    assert "OH_S3_BUCKET is not set." in result.output
+    assert "pip install 'oddsharvester[s3]'" in result.output
+    run_mock.assert_not_awaited()
+
+
 @pytest.mark.parametrize("command", list(CASES))
 def test_oh_storage_remote_without_a_bucket_exits_2_before_scraping(command, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)

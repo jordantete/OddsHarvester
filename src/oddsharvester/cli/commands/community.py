@@ -76,13 +76,17 @@ def community(ctx, **kwargs):
 
     Exactly one mode: --sport (top predictions), --user (profile), --match-url (match votes).
     """
-    sport = kwargs.get("sport")
-    username = kwargs.get("username")
-    match_url = kwargs.get("match_url")
+    modes = {name: kwargs.get(name) for name in ("sport", "username", "match_url")}
+    exported = {name for name in modes if ctx.get_parameter_source(name) is ParameterSource.ENVIRONMENT}
+    typed = any(ctx.get_parameter_source(name) is ParameterSource.COMMANDLINE for name in modes)
 
-    # OH_SPORT exported for the other commands must not turn --user or --match-url into two modes.
-    if (username or match_url) and ctx.get_parameter_source("sport") is ParameterSource.ENVIRONMENT:
-        sport = None
+    # A mode typed on the command line wins over the other modes' variables, exported for other runs;
+    # OH_SPORT, shared with the other commands, also yields to OH_USER or OH_MATCH_URL.
+    if typed:
+        modes.update(dict.fromkeys(exported))
+    elif (modes["username"] or modes["match_url"]) and "sport" in exported:
+        modes["sport"] = None
+    sport, username, match_url = modes["sport"], modes["username"], modes["match_url"]
 
     storage = kwargs["storage"]
     storage_format = kwargs["storage_format"]

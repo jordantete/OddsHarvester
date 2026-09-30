@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, patch
 
 from click.testing import CliRunner
+import pytest
 
 from oddsharvester.cli.cli import cli
 
@@ -143,6 +144,47 @@ def test_oh_sport_and_oh_user_together_run_user_mode(mock_user, mock_top, mock_s
     assert result.exit_code == 0, result.output
     assert mock_user.call_args.kwargs["username"] == "z"
     mock_top.assert_not_called()
+
+
+MATCH_URL = "https://www.oddsportal.com/football/h2h/a/b/"
+USER_RECORD = {"mode": "user", "username": "z", "privacy": "public", "statistics": [], "predictions": []}
+
+
+@pytest.mark.parametrize("env", [{"OH_USER": "z"}, {"OH_MATCH_URL": MATCH_URL}], ids=["OH_USER", "OH_MATCH_URL"])
+@patch("oddsharvester.cli.commands._output.store_data", return_value=True)
+@patch("oddsharvester.cli.commands.community.run_top_predictions", new_callable=AsyncMock, return_value=FAKE_RECORDS)
+def test_typed_sport_wins_over_an_exported_user_or_match_url(mock_run, mock_store, env):
+    result = CliRunner().invoke(cli, ["community", "--sport", "football"], env=env)
+
+    assert result.exit_code == 0, result.output
+    assert mock_run.call_args.kwargs["sport"] == "football"
+
+
+@patch("oddsharvester.cli.commands._output.store_data", return_value=True)
+@patch("oddsharvester.cli.commands.community.run_user_profile", new_callable=AsyncMock, return_value=USER_RECORD)
+def test_typed_user_wins_over_an_exported_match_url(mock_run, mock_store):
+    result = CliRunner().invoke(cli, ["community", "--user", "z"], env={"OH_MATCH_URL": MATCH_URL})
+
+    assert result.exit_code == 0, result.output
+    assert mock_run.call_args.kwargs["username"] == "z"
+
+
+@patch("oddsharvester.cli.commands._output.store_data", return_value=True)
+@patch("oddsharvester.cli.commands.community.run_match_community", new_callable=AsyncMock)
+def test_typed_match_url_wins_over_an_exported_user(mock_run, mock_store):
+    mock_run.return_value = {"markets": [{"market": "1X2"}]}
+
+    result = CliRunner().invoke(cli, ["community", "--match-url", MATCH_URL], env={"OH_USER": "z"})
+
+    assert result.exit_code == 0, result.output
+    assert mock_run.call_args.kwargs["match_url"] == MATCH_URL
+
+
+def test_two_exported_modes_and_no_typed_one_are_still_refused():
+    result = CliRunner().invoke(cli, ["community"], env={"OH_USER": "z", "OH_MATCH_URL": MATCH_URL})
+
+    assert result.exit_code == 2
+    assert "exactly one" in result.output.lower()
 
 
 def test_explicit_sport_with_user_is_still_refused():

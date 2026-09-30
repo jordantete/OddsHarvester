@@ -1,6 +1,7 @@
 """Custom Click parameter types for OddsHarvester CLI."""
 
 import importlib.util
+import os
 
 import click
 
@@ -42,12 +43,14 @@ class StorageTypeType(click.ParamType):
             self.fail(f"Invalid storage type '{value}'. Valid options: {valid}", param, ctx)
 
         if storage is StorageType.REMOTE:
+            problems = []
             if not s3_bucket():
-                self.fail(
-                    "OH_S3_BUCKET is not set. Name the bucket to upload to: export OH_S3_BUCKET=<bucket>", param, ctx
-                )
+                state = "is not set" if os.environ.get("OH_S3_BUCKET") is None else "is empty"
+                problems.append(f"OH_S3_BUCKET {state}. Name the bucket to upload to: export OH_S3_BUCKET=<bucket>")
             if importlib.util.find_spec("boto3") is None:
-                self.fail("boto3 is not installed. Install the S3 extra: pip install 'oddsharvester[s3]'", param, ctx)
+                problems.append("boto3 is not installed. Install the S3 extra: pip install 'oddsharvester[s3]'")
+            if problems:
+                self.fail("\n".join(problems), param, ctx)
         return storage
 
 

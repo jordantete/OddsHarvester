@@ -327,17 +327,21 @@ class TestShortOptions:
 class TestOutputPathValidation:
     """Test --output path validation."""
 
-    def test_rejects_path_traversal(self, runner):
-        """Test that paths with '..' segments are rejected."""
-        result = runner.invoke(cli, ["historic", "-s", "football", "--season", "2024", "-o", "../../etc/passwd"])
-        assert result.exit_code != 0
-        assert "must not contain '..'" in result.output
+    @pytest.mark.parametrize("path", ["../out.json", "exports/../out.json"])
+    def test_accepts_parent_segments_like_any_other_path(self, runner, mock_run_scraper, tmp_path, monkeypatch, path):
+        """G8: an absolute path could always point anywhere, so a '..' segment is no reason to refuse -o."""
+        (tmp_path / "run").mkdir()
+        monkeypatch.chdir(tmp_path / "run")
+        result = runner.invoke(cli, ["historic", "-s", "football", "--season", "2024", "-o", path])
+        assert "must not contain" not in result.output
+        assert mock_run_scraper["historic"].called
 
-    def test_rejects_absolute_path_with_traversal(self, runner):
-        """Test that absolute paths with '..' segments are rejected."""
-        result = runner.invoke(cli, ["historic", "-s", "football", "--season", "2024", "-o", "/tmp/../etc/passwd"])
+    def test_rejects_the_parent_directory_itself(self, runner, tmp_path, monkeypatch):
+        (tmp_path / "run").mkdir()
+        monkeypatch.chdir(tmp_path / "run")
+        result = runner.invoke(cli, ["historic", "-s", "football", "--season", "2024", "-o", ".."])
         assert result.exit_code != 0
-        assert "must not contain '..'" in result.output
+        assert "must not be an existing directory" in result.output
 
     def test_accepts_valid_relative_path(self, runner, mock_run_scraper):
         """Test that a valid relative path is accepted."""
