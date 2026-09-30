@@ -61,7 +61,7 @@ class TestBasketballPeriods:
     """Tests for basketball period options."""
 
     def test_bb_004_1st_half(self, har_for_match, tmp_path):
-        """BB-004: the 1st-half tab cannot be verified on this page, so no odds are returned."""
+        """BB-004: home_away for the 1st half, read from the period tab's own odds."""
         replay_and_compare(
             har_for_match,
             tmp_path,
@@ -72,7 +72,7 @@ class TestBasketballPeriods:
         )
 
     def test_bb_005_1st_quarter(self, har_for_match, tmp_path):
-        """BB-005: the 1st-quarter tab cannot be verified on this page, so no odds are returned."""
+        """BB-005: home_away for the 1st quarter, read from the period tab's own odds."""
         replay_and_compare(
             har_for_match,
             tmp_path,
@@ -83,7 +83,7 @@ class TestBasketballPeriods:
         )
 
     def test_bb_006_lakers_warriors_1st_half(self, har_for_match, tmp_path):
-        """BB-006: the 1st-half tab cannot be verified on this page, so no odds are returned."""
+        """BB-006: home_away for the Lakers - Warriors 1st half, read from the period tab's own odds."""
         replay_and_compare(
             har_for_match,
             tmp_path,
