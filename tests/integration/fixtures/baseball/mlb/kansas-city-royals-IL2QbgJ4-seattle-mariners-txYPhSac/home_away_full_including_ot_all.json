@@ -1,6 +1,6 @@
 [
     {
-        "scraped_date": "2026-09-02 13:00:29 UTC",
+        "scraped_date": "2026-09-30 07:08:28 UTC",
         "match_date": "2026-05-02 01:45:00 UTC",
         "season": null,
         "match_link": "https://www.oddsportal.com/baseball/h2h/kansas-city-royals-IL2QbgJ4/seattle-mariners-txYPhSac/#WbDmMwm1",
@@ -19,21 +19,21 @@
                 "1": "1.56",
                 "2": "1.98",
                 "bookmaker_name": "bwin.fr",
-                "period": "FullTime",
+                "period": "FullIncludingOT",
                 "submarket_name": "Home/Away"
             },
             {
                 "1": "1.69",
                 "2": "2.20",
                 "bookmaker_name": "Unibet.fr",
-                "period": "FullTime",
+                "period": "FullIncludingOT",
                 "submarket_name": "Home/Away"
             },
             {
                 "1": "1.70",
                 "2": "2.10",
                 "bookmaker_name": "Winamax",
-                "period": "FullTime",
+                "period": "FullIncludingOT",
                 "submarket_name": "Home/Away"
             }
         ]

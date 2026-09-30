@@ -11,9 +11,9 @@
     },
     "match_date": "2026-05-02 01:45:00 UTC",
     "notes": "",
-    "captured_at": "2026-09-02T13:00:35.132207+00:00",
-    "oddsharvester_version": "0.11.0",
+    "captured_at": "2026-09-30T07:08:37.131584+00:00",
+    "oddsharvester_version": "0.15.0",
     "available_fixtures": [
-        "home_away_full_time_all.json"
+        "home_away_full_including_ot_all.json"
     ]
 }

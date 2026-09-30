@@ -23,14 +23,14 @@ class TestBaseballH2HFragment:
 
     def test_bb_mlb_001_royals_mariners_h2h_fragment(self, har_for_match, tmp_path):
         """Match_date in output must match the fragment-targeted historic match."""
-        fixture_name = "home_away_full_time_all.json"
+        fixture_name = "home_away_full_including_ot_all.json"
         actual = run_replay(
             har_for_match,
             tmp_path,
             ROYALS_MARINERS,
             fixture_name,
             markets=["home_away"],
-            period="full_time",
+            period="full_including_ot",
         )
 
         # Hard guard against the issue regressing: the buggy upcoming-match date
