@@ -181,12 +181,11 @@ class TestBookiesFilter:
         market_data = actual[0].get("1x2_market", [])
         assert market_data, "No odds data in output"
 
-    # No crypto fixture yet: this one still needs the live site.
-    @pytest.mark.live_only
     def test_opt_002_crypto_bookies(
         self,
         run_scraper,
         temp_output_dir,
+        har_for_match,
     ):
         """OPT-002: Test crypto bookies filter."""
         output_path = temp_output_dir / "output"
@@ -197,6 +196,7 @@ class TestBookiesFilter:
             markets=["1x2"],
             output_path=output_path,
             bookies_filter="crypto",
+            har_path=har_for_match(*FOOTBALL_FIXTURES, "1x2_full_time_crypto.json"),
         )
 
         # Note: May return empty if no crypto bookies for this match
