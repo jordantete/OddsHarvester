@@ -1350,9 +1350,9 @@ Three behaviours compose into a silent truncation:
   body in `try/except` and return `[]` on any failure. Since lot 5a a crash
   while reading the rows surfaces instead: a failed listing page (historic), an
   errored combo (upcoming), or a failed live run, so only a page that actually
-  renders no rows still reaches the zero-link verdict described below. One
-  trade-off from that change: a crashed historic page is written off outright,
-  without the single re-fetch a truncated page gets below.
+  renders no rows still reaches the zero-link verdict described below. A
+  crashed historic page gets the same single re-fetch as a truncated page
+  (below) before it counts as failed.
 - The collection loop then counted the page as collected regardless of what came
   back, so `[]` incremented `successful_pages`.
 

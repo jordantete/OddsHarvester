@@ -76,9 +76,9 @@ PROXY_WARM_UP_ATTEMPTS = 2
 # OddsPortal answers 429 without Retry-After; a retry within a few seconds hits the same window.
 RATE_LIMIT_RETRY_DELAY_S = 30.0
 
-# Listing-page re-fetch (for a page that came back truncated during link collection).
-# Not handled by retry_with_backoff: the page answers 200 and raises nothing, so
-# there is no exception to classify as transient.
+# Listing-page re-fetch (for a page that came back truncated or raised while it was read
+# during link collection). Not handled by retry_with_backoff: a truncated page answers 200
+# and raises nothing, so there is no exception to classify as transient.
 LISTING_PAGE_RETRY_ATTEMPTS = 1
 LISTING_PAGE_RETRY_DELAY_S = 5.0
 

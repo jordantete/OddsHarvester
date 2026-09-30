@@ -10,7 +10,12 @@ from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtr
 from oddsharvester.core.odds_portal_scraper import LinkCollectionResult, ListingResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
-from oddsharvester.utils.constants import GOTO_TIMEOUT_LONG_MS, MAX_PAGINATION_PAGES, RESULTS_PAGE_SIZE
+from oddsharvester.utils.constants import (
+    GOTO_TIMEOUT_LONG_MS,
+    LISTING_PAGE_RETRY_DELAY_S,
+    MAX_PAGINATION_PAGES,
+    RESULTS_PAGE_SIZE,
+)
 from oddsharvester.utils.proxy_manager import ProxyManager
 
 
@@ -516,10 +521,10 @@ async def test_collect_match_links_error_handling(setup_scraper_mocks):
     tab_mock.close = AsyncMock()
     context_mock.new_page.return_value = tab_mock
 
-    # Mock extract_match_links method with error on second page
+    # Mock extract_match_links method with error on second page, twice (it is fetched again once)
     page1 = full_page("page1")
     scraper.extract_match_links = AsyncMock()
-    scraper.extract_match_links.side_effect = [page1, Exception("Page error")]
+    scraper.extract_match_links.side_effect = [page1, Exception("Page error"), Exception("Page error")]
 
     # Call the method under test
     result = await scraper._collect_match_links(
@@ -531,7 +536,7 @@ async def test_collect_match_links_error_handling(setup_scraper_mocks):
     assert result.links == page1
     assert result.successful_pages == 1
     assert result.failed_pages == [2]
-    assert tab_mock.close.call_count == 2  # Should still close tabs even after error
+    assert tab_mock.close.call_count == 3  # Should still close tabs even after error
 
 
 async def test_collect_match_links_preserves_listing_order(setup_scraper_mocks):
@@ -567,7 +572,41 @@ async def test_collect_match_links_counts_an_extraction_crash_as_a_failed_page(s
     assert result.failed_pages == [1]
     assert result.successful_pages == 0
     assert result.links == []
-    tab.close.assert_awaited_once()
+    assert tab.close.await_count == 2, "the crashed page is fetched once more, each tab closed"
+
+
+async def test_collect_match_links_refetches_a_page_that_crashed(setup_scraper_mocks, instant_listing_retry):
+    """A page that raised while it was read gets the same single re-fetch as a truncated page."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock()
+    mocks["playwright_manager_mock"].context.new_page = AsyncMock(return_value=tab)
+    scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[])
+    scraper.extract_match_links = AsyncMock(side_effect=[RuntimeError("renderer crashed"), ["https://p1m1"]])
+
+    result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1])
+
+    assert (result.failed_pages, result.successful_pages, result.links) == ([], 1, ["https://p1m1"])
+    instant_listing_retry.assert_awaited_once_with(LISTING_PAGE_RETRY_DELAY_S)
+
+
+async def test_collect_match_links_does_not_refetch_a_crashed_page_that_comes_back_truncated(setup_scraper_mocks):
+    """The crash and the truncation share one re-fetch: the page is fetched twice, then reported."""
+    mocks = setup_scraper_mocks
+    scraper = mocks["scraper"]
+    tab = AsyncMock()
+    mocks["playwright_manager_mock"].context.new_page = AsyncMock(return_value=tab)
+    scraper.scroller.scroll_until_loaded = AsyncMock(return_value=True)
+    scraper.pagination_walker.read_widget = AsyncMock(return_value=[1, 2])
+    page1, page2 = full_page("page1"), full_page("page2")
+    scraper.extract_match_links = AsyncMock(side_effect=[RuntimeError("renderer crashed"), page1[:5], page2[:3]])
+
+    result = await scraper._collect_match_links(base_url="https://oddsportal.com/x/results/", pages_to_scrape=[1, 2])
+
+    assert result.failed_pages == [1]
+    assert result.links == [*page1[:5], *page2[:3]]
+    assert scraper.extract_match_links.call_count == 3, "page 1 fetched twice, page 2 once"
 
 
 async def test_collect_match_links_keeps_an_empty_first_page_a_success(setup_scraper_mocks):

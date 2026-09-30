@@ -601,8 +601,15 @@ class OddsPortalScraper(BaseScraper):
                     break
 
             except Exception as e:
+                # A crash is as transient as a truncation, so it gets the same single re-fetch.
+                if attempt <= LISTING_PAGE_RETRY_ATTEMPTS:
+                    self.logger.warning(f"Error processing page {page_number}: {e}; re-fetching it.")
+                    attempt += 1
+                    await asyncio.sleep(LISTING_PAGE_RETRY_DELAY_S)
+                    continue
+
                 result.failed_pages.append(page_number)
-                self.logger.error(f"Error processing page {page_number}: {e}")
+                self.logger.error(f"Error processing page {page_number} after {attempt} attempts: {e}")
                 # Deliberate: a timeout past the frontier stops the walk same as PAGE_FAILED,
                 # even though a timeout doesn't prove the page is absent. Loud failure, not silent.
                 if past_frontier:
