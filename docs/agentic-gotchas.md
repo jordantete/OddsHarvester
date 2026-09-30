@@ -884,9 +884,9 @@ match. Strictness is decided from the domain the page actually landed on
 after `goto`, not the one requested: whatever was asked for, a page that
 lands on `www.oddsportal.com` gets the strict call, where a timeout, any
 other error, or the wanted format missing from the dropdown raises, and
-the warm-up removes that proxy from the rotation (`blacklist_proxy`),
-since a context left on another odds format would corrupt every match it
-scrapes. A proxy can be geo-redirected to a regional mirror even when the
+a warm-up that fails twice removes that proxy from the rotation
+(`blacklist_proxy`), since a context left on another odds format would
+corrupt every match it scrapes. A proxy can be geo-redirected to a regional mirror even when the
 canonical domain was requested, and a page that lands anywhere else only
 gets the non-strict call, which logs, because the dropdown labels are
 localized (§7) and the English match cannot find them there. Listing and
@@ -898,9 +898,10 @@ so each proxy is only warmed once per run. Any future per-context setup
 same warm-once-per-context path — don't assume a page inherits state from
 another context on the same proxy pool.
 
-A strict warm-up that times out removes that proxy from the whole run even
-though the context is usually already on decimal odds by then; retrying
-once before blacklisting is left for later.
+A strict warm-up that times out often hits a context already on decimal
+odds, so a failed warm-up is tried once more on the same context
+(`PROXY_WARM_UP_ATTEMPTS = 2`, `utils/constants.py`) before the proxy
+leaves the run.
 
 ### References
 

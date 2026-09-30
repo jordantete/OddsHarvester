@@ -69,6 +69,10 @@ MATCH_RETRY_MAX_ATTEMPTS = 2
 MATCH_RETRY_BASE_DELAY = 2.0
 MATCH_RETRY_MAX_DELAY = 30.0
 
+# Proxy warm-up (gotchas §11): a strict warm-up that times out is often on a context already
+# set to decimal odds, so a proxy leaves the rotation only when every attempt failed.
+PROXY_WARM_UP_ATTEMPTS = 2
+
 # OddsPortal answers 429 without Retry-After; a retry within a few seconds hits the same window.
 RATE_LIMIT_RETRY_DELAY_S = 30.0
 

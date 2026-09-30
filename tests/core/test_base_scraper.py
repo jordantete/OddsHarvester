@@ -1094,7 +1094,26 @@ async def test_warm_up_blacklists_a_proxy_whose_odds_format_cannot_be_set(setup_
     await mocks["scraper"]._warm_proxy_contexts()
 
     pm.blacklist_proxy.assert_called_once_with("http://b.example.com:2")
-    mocks["page_mock"].close.assert_awaited_once()
+    assert pm.new_page_on_key.await_count == 2, "a failed warm-up is tried once more before the blacklist"
+    assert mocks["page_mock"].close.await_count == 2
+
+
+async def test_warm_up_keeps_a_proxy_that_warms_on_its_second_try(setup_base_scraper_mocks, caplog):
+    """A strict warm-up that times out is often on a context already set to decimal odds (gotchas §11)."""
+    mocks = setup_base_scraper_mocks
+    pm = mocks["playwright_manager_mock"]
+    pm.non_default_context_keys = MagicMock(return_value=["http://b.example.com:2"])
+    mocks["page_mock"].url = "https://www.oddsportal.com/"
+    mocks["page_mock"].goto = AsyncMock(side_effect=[TimeoutError("Timeout 30000ms exceeded"), None])
+    _odds_dropdown(mocks["page_mock"], "Decimal Odds", [])
+
+    with caplog.at_level(logging.WARNING):
+        await mocks["scraper"]._warm_proxy_contexts()
+
+    pm.blacklist_proxy.assert_not_called()
+    assert pm.new_page_on_key.await_count == 2
+    assert mocks["page_mock"].close.await_count == 2
+    assert "Failed to warm proxy context http://b.example.com:2: Timeout 30000ms exceeded. Retrying." in caplog.text
 
 
 async def test_warm_up_keeps_a_proxy_set_to_decimal_odds(setup_base_scraper_mocks):

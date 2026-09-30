@@ -47,6 +47,7 @@ from oddsharvester.utils.constants import (
     ODDS_FORMAT_SELECTOR_TIMEOUT_MS,
     ODDS_FORMAT_WAIT_MS,
     ODDSPORTAL_BASE_URL,
+    PROXY_WARM_UP_ATTEMPTS,
     RATE_LIMIT_RETRY_DELAY_S,
 )
 from oddsharvester.utils.datetime_format import format_utc
@@ -744,31 +745,41 @@ class BaseScraper:
         Odds format and cookie consent are per-context state. Without this, match
         pages loaded on a fresh proxy context would render with the wrong odds
         format, silently corrupting odds values, so a context whose odds format
-        cannot be set leaves the rotation.
+        cannot be set in PROXY_WARM_UP_ATTEMPTS tries leaves the rotation.
         """
         for key in self.playwright_manager.non_default_context_keys():
             if key in self._warmed_proxy_keys:
                 continue
             self._warmed_proxy_keys.add(key)
-            page = None
-            try:
-                page = await self.playwright_manager.new_page_on_key(key)
-                await page.goto(
-                    self.base_url or ODDSPORTAL_BASE_URL, timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded"
-                )
-                await self.cookie_dismisser.dismiss(page=page)
-                # A geo-redirected proxy can land on a localized mirror even when the canonical
-                # domain was requested, so strict mode follows the page's actual host, not the
-                # requested one (gotchas §7).
-                strict = urlsplit(page.url).hostname == urlsplit(ODDSPORTAL_BASE_URL).hostname
-                await self.set_odds_format(page=page, strict=strict)
-                self.logger.info(f"Warmed proxy context: {key}")
-            except Exception as e:
-                self.logger.warning(f"Failed to warm proxy context {key}: {e}. Removing proxy from rotation.")
-                self.playwright_manager.blacklist_proxy(key)
-            finally:
-                if page:
-                    await page.close()
+            for attempt in range(1, PROXY_WARM_UP_ATTEMPTS + 1):
+                page = None
+                try:
+                    page = await self.playwright_manager.new_page_on_key(key)
+                    await page.goto(
+                        self.base_url or ODDSPORTAL_BASE_URL,
+                        timeout=NAVIGATION_TIMEOUT_MS,
+                        wait_until="domcontentloaded",
+                    )
+                    await self.cookie_dismisser.dismiss(page=page)
+                    # A geo-redirected proxy can land on a localized mirror even when the canonical
+                    # domain was requested, so strict mode follows the page's actual host, not the
+                    # requested one (gotchas §7).
+                    strict = urlsplit(page.url).hostname == urlsplit(ODDSPORTAL_BASE_URL).hostname
+                    await self.set_odds_format(page=page, strict=strict)
+                    self.logger.info(f"Warmed proxy context: {key}")
+                    break
+                except Exception as e:
+                    if attempt < PROXY_WARM_UP_ATTEMPTS:
+                        self.logger.warning(f"Failed to warm proxy context {key}: {e}. Retrying.")
+                    else:
+                        self.logger.warning(
+                            f"Failed to warm proxy context {key} after {attempt} attempts: {e}. "
+                            "Removing proxy from rotation."
+                        )
+                        self.playwright_manager.blacklist_proxy(key)
+                finally:
+                    if page:
+                        await page.close()
 
     async def extract_match_odds(
         self,
