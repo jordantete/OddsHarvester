@@ -577,12 +577,17 @@ requested label. For any period other than the sport's default
 (`SportPeriodRegistry.get_default_period`), `select_by_scope` also reads the
 period bar: the sub-nav button group after the bookies filter (both are
 `div.no-scrollbar` groups of `main button[type='button']`, identical on `.com`
-and `cuotasahora.com`). It returns `True` only when the bold tab
-(`font-weight: 700`) is not the bar's first tab, and reads no label, so it holds
-on mirrors. The default period keeps the URL check alone (the collector's path).
-After a `False`, the extractor still tries the English tab label, which finds no
-tab for a period the match lacks and fails on mirrors, and then returns the
-market empty.
+and `cuotasahora.com`). It returns `True` when the bold tab (`font-weight: 700`)
+is not the bar's first tab, or, when the first tab is bold, after clicking tab 2
+and then tab 1 the URL carries the target scope again (a tab click writes that
+tab's own scope; probe of 2026-09-30 on baseball `1X2`, whose first tab is Full
+Time, and `Home/Away`, whose first tab is FT including OT, identical on
+`cuotasahora.com`). The clicks also replace the market code in the URL with the
+page's own label (`Home/Away`, `Local/Visitante`), which only the scope parse
+reads afterwards. It reads no label itself, so it holds on mirrors. The default
+period keeps the URL check alone (the collector's path). After a `False`, the
+extractor still tries the English tab label, which finds no tab for a period
+the match lacks and fails on mirrors, and then returns the market empty.
 
 One trap when extending this: **the scope is keyed by period concept and is the
 same on every sport.** Baseball shows `1st Half` (scope 3) and `1st Inning`

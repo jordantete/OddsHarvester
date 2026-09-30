@@ -31,6 +31,24 @@ _PERIOD_BAR_JS = """
 }
 """
 
+# Finds the period bar exactly like _PERIOD_BAR_JS, then clicks its tab at
+# args.index. Returns true when it clicked, false when the bar is not there.
+_CLICK_PERIOD_TAB_JS = """
+(args) => {
+    const groups = new Map();
+    for (const button of document.querySelectorAll(args.buttons)) {
+        const group = button.parentElement;
+        if (!group || !group.matches(args.group)) continue;
+        if (!groups.has(group)) groups.set(group, []);
+        groups.get(group).push(button);
+    }
+    const tabs = Array.from(groups.values())[1];
+    if (!tabs || !tabs[args.index]) return false;
+    tabs[args.index].click();
+    return true;
+}
+"""
+
 
 @dataclass(frozen=True)
 class SelectionStrategy:
@@ -134,9 +152,9 @@ class PeriodSelector:
         """Return True if the target period is active, False if unreachable, None if no scope is known.
 
         The sport's default period needs the target scope in the URL. Any other
-        period must also be on screen: a match without that period keeps its
-        first tab, the default, active whatever the URL says. No label is read,
-        so the check holds on localized mirrors.
+        period must also be on screen: a non-default period is kept when a later
+        tab is bold, or when the first tab, clicked back to, writes the target
+        scope. No label is read, so the check holds on localized mirrors.
         """
         target = OddsPortalSelectors.period_scope_code(internal_period)
         if target is None:
@@ -167,31 +185,76 @@ class PeriodSelector:
 
         if _is_default_period(sport, internal_period):
             return True
-        return await self._later_tab_is_active(page, target, internal_period)
+        return await self._period_is_on_screen(page, target, internal_period)
 
-    async def _later_tab_is_active(self, page: Page, target: int, internal_period: str) -> bool:
-        """True when the period bar shows a tab other than its first one as active."""
-        bar = await page.evaluate(
-            _PERIOD_BAR_JS,
+    async def _period_is_on_screen(self, page: Page, target: int, internal_period: str) -> bool:
+        """True when a later tab is bold, or the first tab, clicked back to, writes the target scope."""
+        try:
+            bar = await page.evaluate(
+                _PERIOD_BAR_JS,
+                {
+                    "buttons": OddsPortalSelectors.SUB_NAV_TAB_ANY,
+                    "group": OddsPortalSelectors.SUB_NAV_GROUP_CSS,
+                    "marker": OddsPortalSelectors.SUB_NAV_ACTIVE_STYLE_MARKER.replace(" ", ""),
+                },
+            )
+            if bar and bar["active"] > 0:
+                self.logger.info(
+                    f"Period scope {target} for '{internal_period}' is on screen "
+                    f"(tab {bar['active'] + 1} of {bar['tabs']})."
+                )
+                return True
+
+            if bar and bar["active"] == 0 and bar["tabs"] > 1:
+                first_click = await self._click_period_tab(page, 1)
+                if first_click is None:
+                    return self._refuse(target, internal_period, "the page shows no period bar")
+
+                back = await self._click_period_tab(page, 0)
+                if back is None:
+                    return self._refuse(target, internal_period, "the page shows no period bar")
+
+                if first_click == target:
+                    return self._refuse(target, internal_period, "clicking its period tabs did not change the URL")
+                if back == target:
+                    self.logger.info(
+                        f"Period scope {target} for '{internal_period}' is on screen (tab 1 of {bar['tabs']})."
+                    )
+                    return True
+                return self._refuse(
+                    target,
+                    internal_period,
+                    "the page still shows its first period tab, so the match has no such period",
+                )
+
+            if not bar:
+                reason = "the page shows no period bar"
+            elif bar["active"] == 0:
+                reason = "the page still shows its first period tab, so the match has no such period"
+            else:
+                reason = "no period tab is active"
+            return self._refuse(target, internal_period, reason)
+        except Exception as e:
+            reason = f"reading the period bar failed: {e}"
+            self.logger.warning(f"Period scope {target} for '{internal_period}' is not on screen: {reason}.")
+            return False
+
+    async def _click_period_tab(self, page: Page, index: int) -> int | None:
+        """Click the period bar's tab at `index` and return the scope now in the URL, or None if not clicked."""
+        clicked = await page.evaluate(
+            _CLICK_PERIOD_TAB_JS,
             {
                 "buttons": OddsPortalSelectors.SUB_NAV_TAB_ANY,
                 "group": OddsPortalSelectors.SUB_NAV_GROUP_CSS,
-                "marker": OddsPortalSelectors.SUB_NAV_ACTIVE_STYLE_MARKER.replace(" ", ""),
+                "index": index,
             },
         )
-        if bar and bar["active"] > 0:
-            self.logger.info(
-                f"Period scope {target} for '{internal_period}' is on screen "
-                f"(tab {bar['active'] + 1} of {bar['tabs']})."
-            )
-            return True
+        if not clicked:
+            return None
+        await page.wait_for_timeout(FALLBACK_VERIFY_WAIT_MS if index == 1 else MARKET_SWITCH_WAIT_TIME_MS)
+        return OddsPortalSelectors.period_scope_from_url(page.url)
 
-        if not bar:
-            reason = "the page shows no period bar"
-        elif bar["active"] == 0:
-            reason = "the page still shows its first period tab, so the match has no such period"
-        else:
-            reason = "no period tab is active"
+    def _refuse(self, target: int, internal_period: str, reason: str) -> bool:
         self.logger.warning(f"Period scope {target} for '{internal_period}' is not on screen: {reason}.")
         return False
 

@@ -102,14 +102,25 @@ class TestPeriodSelector:
         assert await selector.select_by_scope(page, "football", "NotAPeriod") is None
         page.evaluate.assert_not_awaited()
 
-    def _bar_page(self, url, active, tabs=3):
+    def _bar_page(self, url, active, tabs=3, tab_scopes=None, click_writes_hash=True):
         """A page whose hash switch lands in the URL, with a period bar of `tabs` tabs.
 
         `active` is the index of the bold tab: -1 for none, None for a page without a period bar.
+        `tab_scopes` gives the scope each tab's click writes into the URL (by tab index); the
+        market code is left as it is. `click_writes_hash=False` simulates a click that does not
+        change the URL at all.
         """
         page = self._page(url)
 
+        def rewrite_scope(scope):
+            base = page.url.rsplit(";", 1)[0]
+            return f"{base};{scope}"
+
         async def evaluate(_js, args):
+            if "index" in args:
+                if click_writes_hash:
+                    page.url = rewrite_scope(tab_scopes[args["index"]])
+                return True
             if "fragment" in args:
                 page.url = f"https://www.oddsportal.com/x/h2h/a/b/#{args['fragment']}:{args['code']};{args['scope']}"
                 return None
@@ -135,12 +146,13 @@ class TestPeriodSelector:
 
     async def test_a_period_the_match_lacks_is_refused(self, selector, caplog):
         """NFL 2nd Half forced into the URL: the page keeps its first tab, FT including OT, active."""
-        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:home-away;1", active=0, tabs=6)
+        page = self._bar_page(
+            "https://www.oddsportal.com/x/h2h/a/b/#id1:home-away;1", active=0, tabs=6, tab_scopes=[1, 3]
+        )
 
         with caplog.at_level("WARNING"):
             assert await selector.select_by_scope(page, "american-football", "SecondHalf") is False
 
-        assert page.url.endswith(";4")
         assert "the page still shows its first period tab, so the match has no such period" in caplog.text
 
     async def test_a_period_the_match_has_is_selected(self, selector):
@@ -150,11 +162,51 @@ class TestPeriodSelector:
 
     async def test_a_scope_already_in_the_url_is_checked_on_screen_too(self, selector):
         """Baseball Full Time left in the URL by an earlier market: the page still shows FT including OT."""
-        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:over-under;2", active=0)
+        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:over-under;2", active=0, tab_scopes=[1, 3, 17])
 
         assert await selector.select_by_scope(page, "baseball", "FullTime") is False
 
-        page.evaluate.assert_awaited_once()
+        assert page.evaluate.await_count == 3
+
+    async def test_a_first_tab_period_is_selected_by_the_scope_its_tab_writes(self, selector):
+        page = self._bar_page(
+            "https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;2", active=0, tabs=3, tab_scopes=[2, 3, 17]
+        )
+
+        assert await selector.select_by_scope(page, "baseball", "FullTime") is True
+
+        click_calls = [call.args[1] for call in page.evaluate.await_args_list if "index" in call.args[1]]
+        assert [call["index"] for call in click_calls] == [1, 0]
+
+    async def test_a_first_tab_of_another_period_is_refused(self, selector, caplog):
+        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:home-away;2", active=0, tab_scopes=[1, 3, 17])
+
+        with caplog.at_level("WARNING"):
+            assert await selector.select_by_scope(page, "baseball", "FullTime") is False
+
+        assert "the page still shows its first period tab" in caplog.text
+
+    async def test_a_first_tab_whose_clicks_do_not_change_the_url_is_refused(self, selector, caplog):
+        page = self._bar_page(
+            "https://www.oddsportal.com/x/h2h/a/b/#id1:home-away;2",
+            active=0,
+            tab_scopes=[2, 3, 17],
+            click_writes_hash=False,
+        )
+
+        with caplog.at_level("WARNING"):
+            assert await selector.select_by_scope(page, "baseball", "FullTime") is False
+
+        assert "clicking its period tabs did not change the URL" in caplog.text
+
+    async def test_a_period_bar_error_is_refused(self, selector, caplog):
+        page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;3")
+        page.evaluate = AsyncMock(side_effect=RuntimeError("boom"))
+
+        with caplog.at_level("WARNING"):
+            assert await selector.select_by_scope(page, "football", "FirstHalf") is False
+
+        assert "reading the period bar failed" in caplog.text
 
     @pytest.mark.parametrize(
         ("active", "tabs"),

@@ -395,10 +395,11 @@ Matches are dispatched round-robin across the proxies; a proxy that fails 3 time
 > non-default `--period` that cannot be verified on the page is now returned empty
 > instead of carrying another period's odds.
 > Every period is selected through its URL scope code, on `www.oddsportal.com` and
-> on regional mirrors alike, and a non-default period is kept only when its tab is
-> the one on screen: a period the match does not offer (for example NFL `2nd_half`
-> or baseball `full_time` on a match without that tab) comes back empty instead of
-> carrying the default period's odds.
+> on regional mirrors alike, and a non-default period is kept only when the page
+> shows that period's tab (a later tab is bold, or the first tab, once clicked,
+> writes that period's scope): a period the match does not offer (for example NFL
+> `2nd_half` or baseball `full_time` on a match without that tab) comes back empty
+> instead of carrying the default period's odds.
 
 <details>
 <summary><strong>Preview Mode vs Full Mode</strong></summary>
