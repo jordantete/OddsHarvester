@@ -287,13 +287,16 @@ class TestOddsPortalMarketExtractor:
             odds_labels=["1", "X", "2"],
             scrape_odds_history=True,
             history_reference=reference,
+            history_timezone="Europe/London",
         )
 
         extractor.odds_history_extractor.extract_odds_history_for_bookmaker.assert_awaited_once_with(
             page_mock, "Bookmaker1", 3
         )
         assert extractor.odds_parser.parse_odds_history_modal.call_count == 2
-        extractor.odds_parser.parse_odds_history_modal.assert_called_with(SAMPLE_HTML_ODDS_HISTORY, reference=reference)
+        extractor.odds_parser.parse_odds_history_modal.assert_called_with(
+            SAMPLE_HTML_ODDS_HISTORY, reference=reference, tz_name="Europe/London"
+        )
         assert result[0]["odds_history_data"] == [parsed, {"odds_history": [], "opening_odds": None}, parsed]
         assert list(result[0])[-1] == "odds_history_data"
 
@@ -318,10 +321,31 @@ class TestOddsPortalMarketExtractor:
         reference = datetime(2026, 1, 4, 18, 30)
         with patch.object(SportMarketRegistry, "get_market_mapping", return_value={"1x2": func}):
             await extractor.scrape_markets(
-                page=page_mock, sport="football", markets=["1x2"], history_reference=reference
+                page=page_mock,
+                sport="football",
+                markets=["1x2"],
+                history_reference=reference,
+                history_timezone="Europe/London",
             )
 
         assert func.await_args.kwargs["history_reference"] == reference
+        assert func.await_args.kwargs["history_timezone"] == "Europe/London"
+
+    async def test_scrape_markets_forwards_the_history_zone_in_preview_mode(self, extractor, page_mock):
+        func = SportMarketRegistrar.create_market_lambda("Over/Under", "Over/Under +2.5", ["odds_over", "odds_under"])
+        with (
+            patch.object(SportMarketRegistry, "get_market_mapping", return_value={"over_under_2_5": func}),
+            patch.object(extractor, "extract_market_odds", new_callable=AsyncMock, return_value=[]) as mock_extract,
+        ):
+            await extractor.scrape_markets(
+                page=page_mock,
+                sport="football",
+                markets=["over_under_2_5"],
+                preview_submarkets_only=True,
+                history_timezone="Europe/London",
+            )
+
+        assert mock_extract.await_args.kwargs["history_timezone"] == "Europe/London"
 
     async def test_extract_market_odds_exception(self, extractor, page_mock):
         """Test handling of exceptions during market extraction."""

@@ -803,23 +803,42 @@ the match is real and upcoming, just filed under the next calendar day.
 
 ### Times render at the browser's current UTC offset (seen 2026-09-29)
 
-The page now applies the browser's offset of today to every time it shows,
-not the offset in force on that date. Djokovic - Sinner (26 Jan 2024, kickoff
-03:45 UTC) scraped live on 2026-09-30 gave `match_date` 04:45 UTC under
-`Europe/Paris` and `Europe/London`, and 03:45 under `UTC`:
-`_parse_match_date_from_dom` converts the text with the zone's rules for
-January (+1 / +0) while the page used today's summer offset (+2 / +1). HARs
-captured on 2026-09-02 still replay the right time in every zone; HARs
-captured on 2026-09-29 do not, so the site changed in between. Any date on the
-other side of a DST switch from the scrape is off by one hour in a DST zone
-(the collector's `Europe/London` included). Until the parser uses the page's
-offset, integration replays and captures run the browser in `UTC`
-(`tests/integration/helpers/cli_runner.py`, `capture.py`), which has no DST.
+The page applies the browser's UTC offset of the scrape moment to every time
+it shows (match header, listing rows, odds-history modal), not the offset in
+force on the date shown. Djokovic - Sinner (26 Jan 2024, kickoff 03:45 UTC)
+scraped on 2026-09-30 showed 04:45 under `Europe/Paris` and `Europe/London`,
+and 03:45 under `UTC`. The site changed between 2026-09-02 and 2026-09-25:
+HARs captured on 2026-09-02 render each date at its own offset, HARs captured
+from 2026-09-25 on render at the replay machine's current offset.
+
+The rule the scraper applies (`utils/page_time.py`): a naive time `t` shown on
+the page is the UTC instant `t - page_utc_offset(zone)`, where the offset is
+the browser zone's offset at the scrape moment. `match_date`, a listing row's
+`kickoff_utc` and the `--kickoff-within-hours` window (its cutoff is computed
+in UTC) use it. An odds-history time takes its year from the kickoff as the
+page shows it, then goes to UTC and back to the zone's local time on its own
+date, still emitted naive. Reading a shown time with the zone's rules for its
+date (`replace(tzinfo=ZoneInfo(...))`) is one hour off for any date on the
+other side of a DST switch from the scrape. In the autumn fold two instants an
+hour apart come out as the same naive local time (01:30 twice on
+2026-10-25 in London); that is a limit of naive output, not a parsing error.
+
+Known limit: date headers are the page's own grouping, rendered at the same
+current offset. A match within an hour of midnight on the other side of a DST
+switch can sit under the neighbouring date header, so `-d` can keep or drop it
+one day off.
+
+Integration replays and captures still run the browser in `UTC`
+(`tests/integration/helpers/cli_runner.py`, `capture.py`): HARs captured
+before 2026-09-25 carry the old rendering, which the parser would read an hour
+off in a DST zone. The odds-history replay runs in `Europe/London`; its HAR
+dates from 2026-09-25, so its golden holds the true times in any season.
 
 ### References
 
 - `core/playwright_manager.py` — effective-timezone resolution.
-- `base_scraper._parse_date_header` / `_resolved_browser_timezone`.
+- `base_scraper._parse_date_header`; `utils/page_time.py` (`page_utc_offset`,
+  `shown_to_utc`, `shown_to_local`, `local_to_shown`).
 - `upcoming --links-only`: a null `kickoff_utc` under the default
   `--no-include-started` has two causes. Usual: the date header failed to
   parse, the same signal as the WARNING `extract_match_rows` already emits.

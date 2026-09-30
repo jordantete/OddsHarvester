@@ -103,6 +103,7 @@ class TestSportMarketRegistrar:
             preview_submarkets_only=False,
             sport=None,
             history_reference=None,
+            history_timezone=None,
         )
 
     def test_register_football_markets(self):
@@ -361,9 +362,22 @@ def test_market_lambda_forwards_history_reference():
     func = SportMarketRegistrar.create_market_lambda("1X2", odds_labels=["1", "X", "2"])
     reference = datetime(2026, 1, 4, 18, 30)
 
-    asyncio.run(func(extractor, "page", "FullTime", True, None, False, "football", history_reference=reference))
+    asyncio.run(
+        func(
+            extractor,
+            "page",
+            "FullTime",
+            True,
+            None,
+            False,
+            "football",
+            history_reference=reference,
+            history_timezone="Europe/London",
+        )
+    )
 
     assert extractor.extract_market_odds.await_args.kwargs["history_reference"] == reference
+    assert extractor.extract_market_odds.await_args.kwargs["history_timezone"] == "Europe/London"
 
 
 class TestLineLabels:

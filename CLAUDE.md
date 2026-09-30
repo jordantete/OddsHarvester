@@ -131,7 +131,7 @@ Integration tests run in **HAR replay mode by default** (deterministic, no netwo
 - Default (`pytest tests/integration/ -m integration`) — replay only, `live_only` tests skipped.
 - `--live`: bypass HAR and hit OddsPortal directly. Golden comparisons then check structure only (every golden field present, the markets the golden fills non-empty, the entry keys its entries share, a field the golden fills must not come back null, venue fields excepted), since odds and the bookmaker panel move; replay stays an exact compare (`compare_golden` in `tests/integration/helpers/comparison.py`).
 - Health check: `uv run pytest tests/integration -m live_only --live -q`, run locally. A red run means a scrape broke against the live site; a self-discovering test with nothing in play skips. `.github/workflows/scraper_health_check.yml` runs the same command on demand only (`workflow_dispatch`, no schedule), because OddsPortal answers HTTP 429 to GitHub runner IPs, static assets included, so a run there fails whatever the scraper does.
-- Timezone: replays (`cli_runner.run_historic`) and captures (`helpers/capture.py`) run the browser in `UTC` unless given `--timezone`. The site renders every time at the browser's current UTC offset, so a DST host zone shifts `match_date` by an hour for dates across a DST switch (gotchas §10).
+- Timezone: replays (`cli_runner.run_historic`) and captures (`helpers/capture.py`) run the browser in `UTC` unless given `--timezone`. The parser reads every time at the browser's current UTC offset, as the site renders it since 2026-09-25; a HAR captured before then renders each date at its own offset, so under a DST host zone it would replay an hour off for dates across a DST switch (gotchas §10).
 
 **Capture / refresh:**
 

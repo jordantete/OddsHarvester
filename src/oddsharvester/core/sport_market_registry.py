@@ -108,6 +108,7 @@ class SportMarketRegistrar:
             preview_submarkets_only=False,
             sport=None,
             history_reference=None,
+            history_timezone=None,
         ):
             return extractor.extract_market_odds(
                 page=page,
@@ -120,6 +121,7 @@ class SportMarketRegistrar:
                 preview_submarkets_only=preview_submarkets_only,
                 sport=sport,
                 history_reference=history_reference,
+                history_timezone=history_timezone,
             )
 
         extract.main_market = main_market

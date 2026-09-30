@@ -64,6 +64,7 @@ class OddsPortalMarketExtractor:
         target_bookmaker: str | None = None,
         preview_submarkets_only: bool = False,
         history_reference: datetime | None = None,
+        history_timezone: str | None = None,
     ) -> dict[str, Any]:
         """
         Extract market data for a given match.
@@ -78,6 +79,7 @@ class OddsPortalMarketExtractor:
             preview_submarkets_only (bool): If True, only scrape the collapsed submarket odds (best/highest shown
             per line, not per-bookmaker) from visible submarkets.
             history_reference (datetime, optional): Kickoff in the browser timezone, used to date odds history.
+            history_timezone (str, optional): The browser timezone the odds-history times are shown in.
 
         Returns:
             Dict[str, Any]: A dictionary containing market data.
@@ -155,6 +157,7 @@ class OddsPortalMarketExtractor:
                             preview_submarkets_only,
                             sport,
                             history_reference=history_reference,
+                            history_timezone=history_timezone,
                         )
                 else:
                     self.logger.warning(f"Market '{market}' is not supported for sport '{sport}'.")
@@ -189,6 +192,7 @@ class OddsPortalMarketExtractor:
                             preview_submarkets_only=preview_submarkets_only,
                             sport=sport,
                             history_reference=history_reference,
+                            history_timezone=history_timezone,
                         )
 
                         # Distribute the results to each specific market
@@ -238,6 +242,7 @@ class OddsPortalMarketExtractor:
         preview_submarkets_only: bool = False,
         sport: str | None = None,
         history_reference: datetime | None = None,
+        history_timezone: str | None = None,
     ) -> list:
         """
         Extracts odds for a given main market and optional specific sub-market.
@@ -254,6 +259,7 @@ class OddsPortalMarketExtractor:
             per line, not per-bookmaker) from visible submarkets.
             sport (str): The sport being scraped (used for period selection).
             history_reference (datetime, optional): Kickoff in the browser timezone, used to date odds history.
+            history_timezone (str, optional): The browser timezone the odds-history times are shown in.
 
         Returns:
             list[dict]: A list of dictionaries containing bookmaker odds.
@@ -347,7 +353,10 @@ class OddsPortalMarketExtractor:
                     modals = await self.odds_history_extractor.extract_odds_history_for_bookmaker(
                         page, bookmaker_name, outcome_count
                     )
-                    blocks = [self._history_block(modal, history_reference) for modal in modals[:outcome_count]]
+                    blocks = [
+                        self._history_block(modal, history_reference, history_timezone)
+                        for modal in modals[:outcome_count]
+                    ]
                     blocks += [empty_history_block() for _ in range(outcome_count - len(blocks))]
                     odds_entry["odds_history_data"] = blocks
 
@@ -361,11 +370,11 @@ class OddsPortalMarketExtractor:
             self.logger.error(f"Error extracting odds for {main_market} {specific_market}: {e}")
             return []
 
-    def _history_block(self, modal_html: str | None, reference: datetime | None) -> dict[str, Any]:
+    def _history_block(self, modal_html: str | None, reference: datetime | None, tz_name: str | None) -> dict[str, Any]:
         """Parsed history of one outcome cell, or the empty block when its modal could not be read."""
         if modal_html is None:
             return empty_history_block()
-        return self.odds_parser.parse_odds_history_modal(modal_html, reference=reference)
+        return self.odds_parser.parse_odds_history_modal(modal_html, reference=reference, tz_name=tz_name)
 
     async def _select_period(self, page: Page, sport: str, period: str, period_enum: Enum) -> bool:
         """Select the period; True when the odds on the page can be trusted to be that period's."""

@@ -1,9 +1,13 @@
 from datetime import UTC, datetime
+from unittest.mock import patch
 
 import pytest
 from tests.dom_builders import bookmaker_row, line_row, odds_cell, odds_table
 
 from oddsharvester.core.market_extraction.odds_parser import OddsParser, parse_odds_value
+
+SUMMER_NOW = datetime(2026, 9, 30, 12, 0, tzinfo=UTC)
+WINTER_NOW = datetime(2027, 1, 15, 12, 0, tzinfo=UTC)
 
 
 class TestOddsParser:
@@ -137,6 +141,70 @@ class TestOddsParser:
         result = odds_parser.parse_odds_history_modal(html)
 
         assert result["odds_history"][0]["timestamp"] == f"{datetime.now(UTC).year}-06-10T14:30:00"
+
+    def test_history_shown_in_summer_for_a_january_match_is_read_one_hour_earlier(self):
+        """Man City - Chelsea, 4 Jan 2026: scraped in BST, Betclic's last move shows 17:58 for 16:58 UTC."""
+        kickoff = datetime(2026, 1, 4, 17, 30)
+
+        assert OddsParser._history_timestamp("4 Jan, 17:58", kickoff, "Europe/London", SUMMER_NOW) == (
+            "2026-01-04T16:58:00"
+        )
+        assert OddsParser._history_timestamp("27 Dec, 18:08", kickoff, "Europe/London", SUMMER_NOW) == (
+            "2025-12-27T17:08:00"
+        )
+
+    def test_history_shown_in_winter_for_a_july_match_is_read_one_hour_later(self):
+        kickoff = datetime(2026, 7, 4, 20, 0)
+
+        assert OddsParser._history_timestamp("4 Jul, 18:00", kickoff, "Europe/London", WINTER_NOW) == (
+            "2026-07-04T19:00:00"
+        )
+
+    @pytest.mark.parametrize("now", [SUMMER_NOW, WINTER_NOW])
+    def test_history_in_utc_is_read_as_shown(self, now):
+        kickoff = datetime(2025, 6, 11, 20, 0)
+
+        assert OddsParser._history_timestamp("10 Jun, 14:30", kickoff, "UTC", now) == "2025-06-10T14:30:00"
+
+    def test_history_shown_past_midnight_on_new_year_keeps_the_year_it_is_shown_in(self):
+        """Kickoff 23:30 on 31 Dec 2025 in London, scraped in BST: the page shows it at 00:30 on 1 January."""
+        kickoff = datetime(2025, 12, 31, 23, 30)
+
+        assert OddsParser._history_timestamp("1 Jan, 00:10", kickoff, "Europe/London", SUMMER_NOW) == (
+            "2025-12-31T23:10:00"
+        )
+        assert OddsParser._history_timestamp("24 Dec, 10:00", kickoff, "Europe/London", SUMMER_NOW) == (
+            "2025-12-24T09:00:00"
+        )
+
+    def test_history_in_the_autumn_fold_reads_both_instants_as_one_local_clock(self):
+        """25 Oct 2026 in London: 00:30 and 01:30 UTC are both 01:30 local, and naive output keeps it that way."""
+        kickoff = datetime(2026, 10, 25, 15, 0)
+
+        assert OddsParser._history_timestamp("25 Oct, 00:30", kickoff, "Europe/London", WINTER_NOW) == (
+            "2026-10-25T01:30:00"
+        )
+        assert OddsParser._history_timestamp("25 Oct, 01:30", kickoff, "Europe/London", WINTER_NOW) == (
+            "2026-10-25T01:30:00"
+        )
+
+    def test_parse_odds_history_modal_reads_every_time_at_the_page_offset(self, odds_parser):
+        html = self._history_html([("4 Jan, 17:58", "1.46")], opening=("27 Dec, 18:08", "1.60"))
+
+        class _SummerClock(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return SUMMER_NOW if tz is None else SUMMER_NOW.astimezone(tz)
+
+        with patch("oddsharvester.utils.page_time.datetime", _SummerClock):
+            result = odds_parser.parse_odds_history_modal(
+                html, reference=datetime(2026, 1, 4, 17, 30), tz_name="Europe/London"
+            )
+
+        assert result == {
+            "odds_history": [{"timestamp": "2026-01-04T16:58:00", "odds": 1.46}],
+            "opening_odds": {"timestamp": "2025-12-27T17:08:00", "odds": 1.6},
+        }
 
     def test_history_is_kept_when_the_opening_block_is_missing(self, odds_parser):
         html = self._history_html([("10 Jun, 14:30", "1.95")])

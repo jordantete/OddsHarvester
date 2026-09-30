@@ -17,7 +17,6 @@ from oddsharvester.core.base_scraper import (
     _parse_live_info,
     _row_has_started,
     _row_kickoff_datetime,
-    _timezone_or_utc,
 )
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
@@ -550,6 +549,26 @@ class _FixedNow(datetime):
         return cls._frozen if tz is None else cls._frozen.astimezone(tz)
 
 
+SUMMER_NOW = datetime(2026, 9, 30, 12, 0, tzinfo=UTC)
+WINTER_NOW = datetime(2027, 1, 15, 12, 0, tzinfo=UTC)
+
+
+def _clock(moment: datetime) -> type[datetime]:
+    """A datetime class whose now() is `moment`."""
+
+    class _Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return moment if tz is None else moment.astimezone(tz)
+
+    return _Clock
+
+
+def _page_clock(moment: datetime):
+    """Freeze the clock the page's UTC offset is read from (gotchas §10)."""
+    return patch("oddsharvester.utils.page_time.datetime", _clock(moment))
+
+
 def _make_kickoff_window_html() -> str:
     """Listing with one date group ('18 Apr 2026') and three kickoff times.
 
@@ -660,27 +679,27 @@ class TestRowKickoffDatetime:
 
     def test_valid_time_and_date_returns_aware_datetime(self):
         row = self._row("21:00")
-        assert _row_kickoff_datetime(row, date(2026, 4, 18), UTC) == datetime(2026, 4, 18, 21, 0, tzinfo=UTC)
+        assert _row_kickoff_datetime(row, date(2026, 4, 18), "UTC") == datetime(2026, 4, 18, 21, 0, tzinfo=UTC)
 
     def test_single_digit_hour_parsed(self):
         row = self._row("9:05")
-        assert _row_kickoff_datetime(row, date(2026, 4, 18), UTC) == datetime(2026, 4, 18, 9, 5, tzinfo=UTC)
+        assert _row_kickoff_datetime(row, date(2026, 4, 18), "UTC") == datetime(2026, 4, 18, 9, 5, tzinfo=UTC)
 
     def test_none_row_date_returns_none(self):
         row = self._row("21:00")
-        assert _row_kickoff_datetime(row, None, UTC) is None
+        assert _row_kickoff_datetime(row, None, "UTC") is None
 
     def test_empty_status_column_returns_none(self):
         row = self._row("")
-        assert _row_kickoff_datetime(row, date(2026, 4, 18), UTC) is None
+        assert _row_kickoff_datetime(row, date(2026, 4, 18), "UTC") is None
 
     def test_live_marker_returns_none(self):
         row = self._row("1H")
-        assert _row_kickoff_datetime(row, date(2026, 4, 18), UTC) is None
+        assert _row_kickoff_datetime(row, date(2026, 4, 18), "UTC") is None
 
     def test_invalid_clock_returns_none(self):
         row = self._row("25:00")
-        assert _row_kickoff_datetime(row, date(2026, 4, 18), UTC) is None
+        assert _row_kickoff_datetime(row, date(2026, 4, 18), "UTC") is None
 
 
 # -- extract_match_rows kickoff column (GitHub issue #81) --------------------
@@ -703,10 +722,49 @@ async def test_extract_match_rows_converts_kickoff_from_browser_tz_to_utc(setup_
     mocks["playwright_manager_mock"].timezone_id = "Europe/Paris"
     page_mock.content = AsyncMock(return_value=_make_kickoff_column_html())
 
-    rows = await scraper.extract_match_rows(page=page_mock, collect_kickoff=True)
+    with _page_clock(datetime(2026, 4, 18, 12, 0, tzinfo=UTC)):
+        rows = await scraper.extract_match_rows(page=page_mock, collect_kickoff=True)
 
     normal = next(r for r in rows if "normal-match/aaaaaaa1" in r["match_link"])
     assert normal["kickoff_utc"] == "2026-04-18 18:30:00 UTC"
+
+
+async def test_extract_match_rows_reads_a_winter_kickoff_at_the_summer_page_offset(setup_base_scraper_mocks):
+    """Scraped in BST, a January row shows 15:00 for a 14:00 UTC kickoff (gotchas §10)."""
+    mocks = setup_base_scraper_mocks
+    mocks["playwright_manager_mock"].timezone_id = "Europe/London"
+    mocks["page_mock"].content = AsyncMock(
+        return_value=page(
+            date_header("10 Jan 2027") + listing_row("/football/h2h/winter-match/aaaaaaa7/#w1", status="15:00")
+        )
+    )
+
+    with _page_clock(SUMMER_NOW):
+        rows = await mocks["scraper"].extract_match_rows(page=mocks["page_mock"], collect_kickoff=True)
+
+    assert rows[0]["kickoff_utc"] == "2027-01-10 14:00:00 UTC"
+
+
+async def test_kickoff_window_reads_a_row_past_the_clock_change_at_the_page_offset(setup_base_scraper_mocks):
+    """Scraped at 00:30 BST on 25 Oct 2026, a 12:00 UTC kickoff that day shows 13:00: inside a 13-hour window."""
+    mocks = setup_base_scraper_mocks
+    mocks["playwright_manager_mock"].timezone_id = "Europe/London"
+    mocks["page_mock"].content = AsyncMock(
+        return_value=page(
+            date_header("25 Oct 2026")
+            + listing_row("/football/h2h/inside-window/aaaaaaa8/#i1", status="13:00")
+            + listing_row("/football/h2h/outside-window/aaaaaaa9/#o1", status="14:00")
+        )
+    )
+    clock = _clock(datetime(2026, 10, 24, 23, 30, tzinfo=UTC))
+
+    with (
+        patch("oddsharvester.core.base_scraper.datetime", clock),
+        patch("oddsharvester.utils.page_time.datetime", clock),
+    ):
+        links = await mocks["scraper"].extract_match_links(page=mocks["page_mock"], kickoff_within_hours=13)
+
+    assert links == [f"{ODDSPORTAL_BASE_URL}/football/h2h/inside-window/aaaaaaa8/#i1"]
 
 
 async def test_extract_match_rows_without_collect_kickoff_leaves_every_kickoff_null(setup_base_scraper_mocks):
@@ -1160,6 +1218,7 @@ async def test_scrape_match_data(setup_base_scraper_mocks):
         target_bookmaker="bet365",
         preview_submarkets_only=False,
         history_reference=datetime(2023, 5, 1, 20, 0),
+        history_timezone=None,
     )
 
     # Verify the bookies filter was applied via SelectionManager with the right strategy
@@ -1295,66 +1354,6 @@ async def test_extract_match_odds_no_delay_when_zero(mock_sleep, setup_base_scra
     assert len(result.success) == 2
 
 
-def test_resolved_browser_timezone_defaults_to_utc(setup_base_scraper_mocks):
-    mocks = setup_base_scraper_mocks
-    scraper = mocks["scraper"]
-    mocks["playwright_manager_mock"].timezone_id = None
-    assert scraper._resolved_browser_timezone() == ZoneInfo("UTC")
-
-
-def test_resolved_browser_timezone_uses_configured_tz(setup_base_scraper_mocks):
-    mocks = setup_base_scraper_mocks
-    scraper = mocks["scraper"]
-    mocks["playwright_manager_mock"].timezone_id = "Europe/Brussels"
-    assert scraper._resolved_browser_timezone() == ZoneInfo("Europe/Brussels")
-
-
-def test_resolved_browser_timezone_falls_back_on_unknown(setup_base_scraper_mocks, caplog):
-    mocks = setup_base_scraper_mocks
-    scraper = mocks["scraper"]
-    mocks["playwright_manager_mock"].timezone_id = "Not/A/Real/Zone"
-    with caplog.at_level(logging.WARNING):
-        result = scraper._resolved_browser_timezone()
-    # Fallback returns the stdlib UTC constant (datetime.timezone.utc), which is
-    # not equal to ZoneInfo("UTC"); assert on the offset instead so this stays
-    # robust to either tzinfo implementation.
-    assert result.utcoffset(datetime(2024, 1, 1)) == timedelta(0)
-    assert any("Not/A/Real/Zone" in rec.message for rec in caplog.records)
-
-
-def test_resolved_browser_timezone_falls_back_on_malformed_key(setup_base_scraper_mocks, caplog):
-    """ZoneInfo raises ValueError (not ZoneInfoNotFoundError) for malformed keys,
-    e.g. ones containing "..". Must fall back to UTC like the unknown-zone case.
-    """
-
-    mocks = setup_base_scraper_mocks
-    scraper = mocks["scraper"]
-    mocks["playwright_manager_mock"].timezone_id = "../Europe/Brussels"
-    with caplog.at_level(logging.WARNING):
-        result = scraper._resolved_browser_timezone()
-    assert result.utcoffset(datetime(2024, 1, 1)) == timedelta(0)
-    assert any("../Europe/Brussels" in rec.message for rec in caplog.records)
-
-
-def test_resolved_browser_timezone_survives_missing_tzdata(setup_base_scraper_mocks, caplog):
-    """Regression: when the tz database is unavailable, ZoneInfo("UTC") itself
-    raises ZoneInfoNotFoundError. The fallback must not construct a ZoneInfo at
-    all (it must return the stdlib UTC constant) or it will crash the same way.
-    """
-
-    mocks = setup_base_scraper_mocks
-    scraper = mocks["scraper"]
-    mocks["playwright_manager_mock"].timezone_id = "UTC"
-
-    def _no_tzdata(_name):
-        raise ZoneInfoNotFoundError(f"No time zone found with key {_name}")
-
-    with patch("oddsharvester.core.base_scraper.ZoneInfo", side_effect=_no_tzdata), caplog.at_level(logging.WARNING):
-        result = scraper._resolved_browser_timezone()
-    assert result is UTC
-    assert result.utcoffset(datetime(2024, 1, 1)) == timedelta(0)
-
-
 def test_parse_date_header_survives_missing_tzdata():
     """Regression: with tz_name="UTC" and no tz database installed, ZoneInfo
     raises for every name including "UTC". The fallback must return a date
@@ -1365,7 +1364,7 @@ def test_parse_date_header_survives_missing_tzdata():
         raise ZoneInfoNotFoundError(f"No time zone found with key {_name}")
 
     today_utc = datetime.now(UTC).date()
-    with patch("oddsharvester.core.base_scraper.ZoneInfo", side_effect=_no_tzdata):
+    with patch("oddsharvester.utils.page_time.ZoneInfo", side_effect=_no_tzdata):
         assert _parse_date_header("Today, 14 Apr", tz_name="UTC") == today_utc
 
 
@@ -1381,11 +1380,38 @@ def test_parse_match_date_from_dom_parses_utc_nominal(setup_base_scraper_mocks):
 
 
 def test_parse_match_date_from_dom_converts_local_tz_to_utc(setup_base_scraper_mocks):
-    # Brussels is UTC+2 in August (DST), so 13:30 Brussels = 11:30 UTC
+    # Scraped in summer, Brussels shows every time at UTC+2, so 13:30 Brussels = 11:30 UTC
     scraper = setup_base_scraper_mocks["scraper"]
     setup_base_scraper_mocks["playwright_manager_mock"].timezone_id = "Europe/Brussels"
     soup = BeautifulSoup(_make_date_html(time_str="13:30"), "html.parser")
-    assert scraper._parse_match_date_from_dom(soup) == "2022-08-06 11:30:00 UTC"
+    with _page_clock(SUMMER_NOW):
+        assert scraper._parse_match_date_from_dom(soup) == "2022-08-06 11:30:00 UTC"
+
+
+def test_parse_match_date_from_dom_reads_a_january_date_at_the_summer_page_offset(setup_base_scraper_mocks):
+    """Djokovic - Sinner, 26 Jan 2024 at 03:45 UTC, shows 04:45 when scraped in BST (gotchas §10)."""
+    scraper = setup_base_scraper_mocks["scraper"]
+    setup_base_scraper_mocks["playwright_manager_mock"].timezone_id = "Europe/London"
+    soup = BeautifulSoup(_make_date_html(date_str="26 Jan 2024,", time_str="04:45"), "html.parser")
+    with _page_clock(SUMMER_NOW):
+        assert scraper._parse_match_date_from_dom(soup) == "2024-01-26 03:45:00 UTC"
+
+
+def test_parse_match_date_from_dom_reads_a_july_date_at_the_winter_page_offset(setup_base_scraper_mocks):
+    scraper = setup_base_scraper_mocks["scraper"]
+    setup_base_scraper_mocks["playwright_manager_mock"].timezone_id = "Europe/London"
+    soup = BeautifulSoup(_make_date_html(date_str="04 Jul 2026,", time_str="19:00"), "html.parser")
+    with _page_clock(WINTER_NOW):
+        assert scraper._parse_match_date_from_dom(soup) == "2026-07-04 19:00:00 UTC"
+
+
+@pytest.mark.parametrize("now", [SUMMER_NOW, WINTER_NOW])
+def test_parse_match_date_from_dom_in_utc_does_not_depend_on_the_season(setup_base_scraper_mocks, now):
+    scraper = setup_base_scraper_mocks["scraper"]
+    setup_base_scraper_mocks["playwright_manager_mock"].timezone_id = "UTC"
+    soup = BeautifulSoup(_make_date_html(date_str="26 Jan 2024,", time_str="03:45"), "html.parser")
+    with _page_clock(now):
+        assert scraper._parse_match_date_from_dom(soup) == "2024-01-26 03:45:00 UTC"
 
 
 def test_parse_match_date_from_dom_returns_none_when_div_missing(setup_base_scraper_mocks):
@@ -2786,6 +2812,54 @@ async def test_scrape_match_data_keeps_the_match_when_a_market_fails(setup_base_
     assert result == {"home_team": "Arsenal", "match_date": "2023-05-01 20:00:00 UTC"}
 
 
+def _history_ready_scraper(mocks, details):
+    scraper = mocks["scraper"]
+    scraper._hydrate_match_view = AsyncMock()
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._extract_match_details = AsyncMock(return_value=details)
+    mocks["market_extractor_mock"].scrape_markets = AsyncMock(return_value={})
+    return scraper
+
+
+async def test_scrape_match_data_passes_the_browser_zone_to_odds_history(setup_base_scraper_mocks):
+    mocks = setup_base_scraper_mocks
+    mocks["playwright_manager_mock"].timezone_id = "Europe/London"
+    scraper = _history_ready_scraper(mocks, {"match_date": "2026-01-04 17:30:00 UTC"})
+
+    await scraper._scrape_match_data(
+        page=mocks["page_mock"],
+        sport="football",
+        match_link="https://www.oddsportal.com/football/h2h/a/b/#lMp9YMye",
+        markets=["1x2"],
+        scrape_odds_history=True,
+    )
+
+    kwargs = mocks["market_extractor_mock"].scrape_markets.await_args.kwargs
+    assert kwargs["history_reference"] == datetime(2026, 1, 4, 17, 30)
+    assert kwargs["history_timezone"] == "Europe/London"
+
+
+@pytest.mark.parametrize(("scrape_odds_history", "expected"), [(True, 1), (False, 0)])
+async def test_odds_history_without_a_kickoff_warns_once_per_match(
+    setup_base_scraper_mocks, caplog, scrape_odds_history, expected
+):
+    mocks = setup_base_scraper_mocks
+    scraper = _history_ready_scraper(mocks, {"home_team": "Arsenal"})
+    link = "https://www.oddsportal.com/football/h2h/a/b/#WbDmMwm1"
+
+    with caplog.at_level(logging.WARNING):
+        await scraper._scrape_match_data(
+            page=mocks["page_mock"],
+            sport="football",
+            match_link=link,
+            markets=["1x2", "over_under_2_5"],
+            scrape_odds_history=scrape_odds_history,
+        )
+
+    warnings = [r.message for r in caplog.records if "current year" in r.message]
+    assert warnings == [f"No kickoff read on {link}: its odds-history timestamps take the current year."] * expected
+
+
 def test_history_reference_converts_kickoff_to_the_browser_timezone():
     assert _history_reference("2026-06-04 18:30:00 UTC", "Europe/London") == datetime(2026, 6, 4, 19, 30)
 
@@ -2824,12 +2898,3 @@ async def test_extract_match_odds_keeps_results_when_closing_a_tab_fails(setup_b
     )
 
     assert (result.stats.successful, result.stats.failed) == (2, 0)
-
-
-@pytest.mark.parametrize("name", [None, "", "Not/AZone"])
-def test_timezone_or_utc_falls_back_to_utc(name):
-    assert _timezone_or_utc(name) is UTC
-
-
-def test_timezone_or_utc_returns_the_named_zone():
-    assert _timezone_or_utc("Europe/London") == ZoneInfo("Europe/London")

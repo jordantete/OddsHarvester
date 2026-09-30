@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup, Tag
 
 from oddsharvester.core.market_extraction.bookmaker_name import resolve_bookmaker_name
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
+from oddsharvester.utils.page_time import local_to_shown, shown_to_local
 
 _FRACTIONAL_RE = re.compile(r"^(\d+)/(\d+)$")
 # OddsPortal abbreviates September as "Sept", which %b does not accept.
@@ -108,7 +109,9 @@ class OddsParser:
         self.logger.info(f"Successfully parsed odds for {len(odds_data)} bookmakers.")
         return odds_data
 
-    def parse_odds_history_modal(self, modal_html: str, reference: datetime | None = None) -> dict[str, Any]:
+    def parse_odds_history_modal(
+        self, modal_html: str, reference: datetime | None = None, tz_name: str | None = None
+    ) -> dict[str, Any]:
         """
         Parses the HTML content of an odds history modal.
 
@@ -117,6 +120,8 @@ class OddsParser:
             reference (datetime, optional): Kickoff as a naive datetime in the browser timezone. The modal omits
                 the year: each timestamp takes the kickoff's year, or the year before when its month comes after
                 the kickoff month. Without it, the current UTC year is used.
+            tz_name (str, optional): The browser timezone. The modal shows every time at its UTC offset of the
+                scrape moment; each timestamp comes out as the local time of that zone on its date.
 
         Returns:
             dict: {"odds_history": [...], "opening_odds": {...} or None}; both empty when the modal is unreadable.
@@ -135,7 +140,7 @@ class OddsParser:
             for ts, odd in zip(timestamps, odds_values, strict=False):
                 time_text = ts.get_text(strip=True)
                 try:
-                    formatted_time = self._history_timestamp(time_text, reference)
+                    formatted_time = self._history_timestamp(time_text, reference, tz_name)
                 except ValueError:
                     self.logger.warning(f"Failed to parse datetime: {time_text}")
                     continue
@@ -149,7 +154,7 @@ class OddsParser:
             if opening_ts_div and opening_val_div:
                 try:
                     opening_odds = {
-                        "timestamp": self._history_timestamp(opening_ts_div.get_text(strip=True), reference),
+                        "timestamp": self._history_timestamp(opening_ts_div.get_text(strip=True), reference, tz_name),
                         "odds": parse_odds_value(opening_val_div.get_text(strip=True)),
                     }
                 except ValueError:
@@ -162,15 +167,20 @@ class OddsParser:
             return empty_history_block()
 
     @staticmethod
-    def _history_timestamp(text: str, reference: datetime | None) -> str:
-        """ISO timestamp of a modal time such as '27 Dec, 18:08'."""
+    def _history_timestamp(
+        text: str, reference: datetime | None, tz_name: str | None = None, now: datetime | None = None
+    ) -> str:
+        """Naive ISO local time, in the browser zone on that date, of a modal time such as '27 Dec, 18:08'."""
         # Parsed against a leap year so that 29 February is accepted before the real year is known.
         parsed = datetime.strptime(f"{_MONTH_ABBR_RE.sub('Sep', text)} 2000", "%d %b, %H:%M %Y")
         if reference is None:
-            year = datetime.now(UTC).year
+            year = (now or datetime.now(UTC)).year
         else:
-            year = reference.year - 1 if parsed.month > reference.month else reference.year
-        return datetime(year, parsed.month, parsed.day, parsed.hour, parsed.minute).isoformat()
+            # The year rule compares shown dates, so the kickoff is moved to the page's offset first.
+            shown_kickoff = local_to_shown(reference, tz_name, now)
+            year = shown_kickoff.year - 1 if parsed.month > shown_kickoff.month else shown_kickoff.year
+        shown = datetime(year, parsed.month, parsed.day, parsed.hour, parsed.minute)
+        return shown_to_local(shown, tz_name, now).isoformat()
 
     def _extract_bookmaker_name(self, block: Tag) -> str | None:
         """Extract the bookmaker name: the label next to the logo, else the logo link title."""

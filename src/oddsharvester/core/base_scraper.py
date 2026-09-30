@@ -1,6 +1,6 @@
 import asyncio
 from collections.abc import Callable
-from datetime import UTC, date, datetime, time, timedelta, tzinfo
+from datetime import UTC, date, datetime, time, timedelta
 from enum import Enum
 import json
 import logging
@@ -8,7 +8,6 @@ import re
 from typing import Any, ClassVar
 import unicodedata
 from urllib.parse import urldefrag, urlsplit
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError
@@ -53,6 +52,7 @@ from oddsharvester.utils.constants import (
 from oddsharvester.utils.datetime_format import format_utc
 from oddsharvester.utils.local_kickoff import compute_local_kickoff
 from oddsharvester.utils.odds_format_enum import OddsFormat
+from oddsharvester.utils.page_time import shown_to_utc, timezone_or_utc
 
 _MONTH_ABBREV_TO_NUM = {
     "jan": 1,
@@ -112,7 +112,7 @@ def _parse_date_header(header_text: str, tz_name: str | None = None) -> date | N
     if " - " in text:
         text = text.split(" - ", 1)[0].strip()
 
-    tz = _timezone_or_utc(tz_name)
+    tz = timezone_or_utc(tz_name)
 
     now_date = datetime.now(tz).date()
 
@@ -198,8 +198,8 @@ def _row_has_started(row) -> bool:
     return not _KICKOFF_TIME_RE.match(text)
 
 
-def _row_kickoff_datetime(row, row_date: date | None, tz) -> datetime | None:
-    """Best-effort kickoff datetime for a listing-page event row.
+def _row_kickoff_datetime(row, row_date: date | None, tz_name: str | None) -> datetime | None:
+    """Best-effort kickoff datetime, aware in UTC, for a listing-page event row.
 
     Combines the group's `row_date` (from the surrounding date-header) with the
     HH:MM shown in the row's first column. Returns None when the kickoff cannot
@@ -209,8 +209,8 @@ def _row_kickoff_datetime(row, row_date: date | None, tz) -> datetime | None:
     Args:
         row: A BeautifulSoup event-row node.
         row_date: The date of the row's group, or None if unknown.
-        tz: tzinfo used to build the aware datetime; must match the timezone the
-            listing times are rendered in (see `docs/agentic-gotchas.md` §10).
+        tz_name: The browser timezone; the row's time is read at its UTC offset
+            of the scrape moment (see `docs/agentic-gotchas.md` §10).
     """
     if row_date is None:
         return None
@@ -222,7 +222,7 @@ def _row_kickoff_datetime(row, row_date: date | None, tz) -> datetime | None:
         kickoff_time = time(int(hour_str), int(minute_str))
     except ValueError:
         return None
-    return datetime.combine(row_date, kickoff_time, tzinfo=tz)
+    return shown_to_utc(datetime.combine(row_date, kickoff_time), tz_name)
 
 
 def _is_league_link(el) -> bool:
@@ -324,16 +324,6 @@ def _extract_fragment_match_id(match_link: str) -> str | None:
     return OddsPortalSelectors.event_id_from_url(match_link)
 
 
-def _timezone_or_utc(tz_name: str | None) -> tzinfo:
-    """The named timezone, or UTC for an empty or unknown name."""
-    if not tz_name:
-        return UTC
-    try:
-        return ZoneInfo(tz_name)
-    except (ZoneInfoNotFoundError, ValueError):
-        return UTC
-
-
 def _history_reference(match_date: str | None, tz_name: str | None) -> datetime | None:
     """Kickoff as a naive datetime in the browser timezone, the frame odds-history timestamps are shown in."""
     if not match_date:
@@ -342,7 +332,7 @@ def _history_reference(match_date: str | None, tz_name: str | None) -> datetime 
         kickoff = datetime.strptime(match_date, "%Y-%m-%d %H:%M:%S UTC").replace(tzinfo=UTC)
     except ValueError:
         return None
-    tz = _timezone_or_utc(tz_name)
+    tz = timezone_or_utc(tz_name)
     return kickoff.astimezone(tz).replace(tzinfo=None)
 
 
@@ -482,8 +472,9 @@ class BaseScraper:
             kickoff_within_hours (Optional[float]): If provided, keep only rows
                 whose kickoff is at most this many hours ahead of now. Rows whose
                 kickoff cannot be computed are kept (fail-safe). Combines the
-                row's date-header with its HH:MM in the browser timezone (issue
-                #77); pair with skip_started to bound the window on both sides.
+                row's date-header with its HH:MM, read at the browser timezone's
+                UTC offset of the scrape moment (issue #77, gotchas §10); pair
+                with skip_started to bound the window on both sides.
             collect_kickoff (bool): If True, resolve each row's kickoff and emit
                 it as `kickoff_utc`. Off by default because it forces date-header
                 tracking, which the historic pagination path does not need.
@@ -518,11 +509,10 @@ class BaseScraper:
             need_kickoff = kickoff_within_hours is not None or collect_kickoff
             track_headers = date_filter is not None or need_kickoff
             tz_name = getattr(self.playwright_manager, "timezone_id", None) if track_headers else None
-            ref_tz = self._resolved_browser_timezone() if need_kickoff else None
 
             window_cutoff: datetime | None = None
             if kickoff_within_hours is not None:
-                window_cutoff = datetime.now(ref_tz) + timedelta(hours=kickoff_within_hours)
+                window_cutoff = datetime.now(UTC) + timedelta(hours=kickoff_within_hours)
 
             sport_prefix = f"/{site_slug(sport)}/" if sport else None
             seen: set[str] = set()
@@ -568,7 +558,7 @@ class BaseScraper:
                     started_filtered_out_count += 1
                     continue
 
-                kickoff_dt = _row_kickoff_datetime(row, current_row_date, ref_tz) if need_kickoff else None
+                kickoff_dt = _row_kickoff_datetime(row, current_row_date, tz_name) if need_kickoff else None
 
                 if window_cutoff is not None and kickoff_dt is not None and kickoff_dt > window_cutoff:
                     window_filtered_out_count += 1
@@ -1094,6 +1084,12 @@ class BaseScraper:
 
             if markets:
                 self.logger.info(f"Scraping markets: {markets}")
+                tz_name = getattr(self.playwright_manager, "timezone_id", None)
+                history_reference = _history_reference(match_details.get("match_date"), tz_name)
+                if scrape_odds_history and history_reference is None:
+                    self.logger.warning(
+                        f"No kickoff read on {match_link}: its odds-history timestamps take the current year."
+                    )
                 try:
                     # Convert period enum to internal value for market extractor
                     # If period is None, get_internal_value will return None and market extractor will use default
@@ -1106,9 +1102,8 @@ class BaseScraper:
                         scrape_odds_history=scrape_odds_history,
                         target_bookmaker=target_bookmaker,
                         preview_submarkets_only=preview_submarkets_only,
-                        history_reference=_history_reference(
-                            match_details.get("match_date"), getattr(self.playwright_manager, "timezone_id", None)
-                        ),
+                        history_reference=history_reference,
+                        history_timezone=tz_name,
                     )
                     if market_data:
                         match_details.update(market_data)
@@ -1124,20 +1119,6 @@ class BaseScraper:
             raise
         except Exception as e:
             raise MatchContentError(f"{type(e).__name__}: {e}", url=match_link) from e
-
-    def _resolved_browser_timezone(self) -> ZoneInfo:
-        """
-        Resolve the timezone the Playwright browser context is rendering in.
-
-        Falls back to UTC when no timezone is configured or when an unknown
-        timezone identifier is set. Emits a warning on fallback.
-        """
-        tz_id = getattr(self.playwright_manager, "timezone_id", None) or "UTC"
-        try:
-            return ZoneInfo(tz_id)
-        except (ZoneInfoNotFoundError, ValueError):
-            self.logger.warning(f"Unknown timezone '{tz_id}', falling back to UTC for DOM date parsing")
-            return UTC
 
     def _parse_match_date_from_dom(self, soup: BeautifulSoup) -> str | None:
         """
@@ -1203,8 +1184,7 @@ class BaseScraper:
                     "%d %m %Y %H:%M",
                 )
 
-            local_dt = local_dt.replace(tzinfo=self._resolved_browser_timezone())
-            return format_utc(local_dt)
+            return format_utc(shown_to_utc(local_dt, getattr(self.playwright_manager, "timezone_id", None)))
         except Exception as e:
             self.logger.warning(f"DOM parse failed for match_date: {e}")
             return None
