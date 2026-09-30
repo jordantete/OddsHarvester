@@ -52,33 +52,50 @@ class SportMarketRegistry:
 
     @classmethod
     def ambiguous_markets(cls, sport: str) -> dict[str, tuple[str, ...]]:
-        """Each market whose page label another market of the sport shares, mapped to those markets.
+        """Each market whose line value falls in another axis's range, mapped to those axes.
 
-        The page shows no axis word, so tennis 'over_under_sets_6_5' and 'over_under_games_6_5'
-        both read 'Over/Under +6.5' and no row can be told to belong to either.
+        The page prints no Sets/Games/Points word, and an axis's ladder can show a value its own
+        enum never lists (tennis 'asian_handicap_+0_5_sets' may be a games row), so a market is
+        ambiguous when its value lies within [min, max] of another axis of the same main market.
         """
-        markets_by_label: dict[tuple[str, str], list[str]] = {}
+        entries: list[tuple[str, str, str, float]] = []
         for market, method in cls.get_market_mapping(sport).items():
+            line_axis = getattr(method, "line_axis", None)
             specific_market = getattr(method, "specific_market", None)
-            if isinstance(specific_market, str):
-                markets_by_label.setdefault((method.main_market, specific_market), []).append(market)
-        return {
-            market: tuple(other for other in markets if other != market)
-            for markets in markets_by_label.values()
-            if len(markets) > 1
-            for market in markets
-        }
+            if line_axis is None or not isinstance(specific_market, str):
+                continue
+            value = float(specific_market.rsplit(" ", 1)[-1])
+            entries.append((market, method.main_market, line_axis, value))
+
+        ranges: dict[tuple[str, str], tuple[float, float]] = {}
+        for _, main_market, line_axis, value in entries:
+            key = (main_market, line_axis)
+            lo, hi = ranges.get(key, (value, value))
+            ranges[key] = (min(lo, value), max(hi, value))
+
+        result: dict[str, tuple[str, ...]] = {}
+        for market, main_market, line_axis, value in entries:
+            other_axes = tuple(
+                sorted(
+                    axis
+                    for (other_main_market, axis), (lo, hi) in ranges.items()
+                    if other_main_market == main_market and axis != line_axis and lo <= value <= hi
+                )
+            )
+            if other_axes:
+                result[market] = other_axes
+        return result
 
 
 class SportMarketRegistrar:
     """Handles the registration of betting markets for different sports."""
 
     @staticmethod
-    def create_market_lambda(main_market, specific_market=None, odds_labels=None):
+    def create_market_lambda(main_market, specific_market=None, odds_labels=None, line_axis=None):
         """
         Creates the extraction function of a market.
 
-        The function carries `main_market` and `specific_market`, which
+        The function carries `main_market`, `specific_market` and `line_axis`, which
         `SportMarketRegistry.ambiguous_markets` compares across markets.
         """
 
@@ -107,6 +124,7 @@ class SportMarketRegistrar:
 
         extract.main_market = main_market
         extract.specific_market = specific_market
+        extract.line_axis = line_axis
         return extract
 
     @classmethod
@@ -183,6 +201,7 @@ class SportMarketRegistrar:
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
                         odds_labels=["odds_over", "odds_under"],
+                        line_axis="sets",
                     )
                 },
             )
@@ -197,6 +216,7 @@ class SportMarketRegistrar:
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
                         odds_labels=["odds_over", "odds_under"],
+                        line_axis="games",
                     )
                 },
             )
@@ -212,6 +232,7 @@ class SportMarketRegistrar:
                         main_market="Asian Handicap",
                         specific_market=specific_market,
                         odds_labels=["games_handicap_player_1", "games_handicap_player_2"],
+                        line_axis="games",
                     )
                 },
             )
@@ -227,6 +248,7 @@ class SportMarketRegistrar:
                         main_market="Asian Handicap",
                         specific_market=specific_market,
                         odds_labels=["sets_handicap_player_1", "sets_handicap_player_2"],
+                        line_axis="sets",
                     )
                 },
             )
@@ -525,6 +547,7 @@ class SportMarketRegistrar:
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
                         odds_labels=["odds_over", "odds_under"],
+                        line_axis="sets",
                     )
                 },
             )
@@ -539,6 +562,7 @@ class SportMarketRegistrar:
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
                         odds_labels=["odds_over", "odds_under"],
+                        line_axis="points",
                     )
                 },
             )
@@ -553,6 +577,7 @@ class SportMarketRegistrar:
                         main_market="Asian Handicap",
                         specific_market=f"Asian Handicap {numeric_part}",
                         odds_labels=["sets_handicap_team_1", "sets_handicap_team_2"],
+                        line_axis="sets",
                     )
                 },
             )
@@ -567,6 +592,7 @@ class SportMarketRegistrar:
                         main_market="Asian Handicap",
                         specific_market=f"Asian Handicap {numeric_part}",
                         odds_labels=["points_handicap_team_1", "points_handicap_team_2"],
+                        line_axis="points",
                     )
                 },
             )

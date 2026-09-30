@@ -355,17 +355,19 @@ class TestOddsPortalMarketExtractor:
 
     @staticmethod
     def _tennis_over_under_markets():
-        def line(label):
-            return SportMarketRegistrar.create_market_lambda("Over/Under", label, ["odds_over", "odds_under"])
+        def line(label, line_axis):
+            return SportMarketRegistrar.create_market_lambda(
+                "Over/Under", label, ["odds_over", "odds_under"], line_axis=line_axis
+            )
 
         return {
-            "over_under_sets_6_5": line("Over/Under +6.5"),
-            "over_under_games_6_5": line("Over/Under +6.5"),
-            "over_under_games_39_5": line("Over/Under +39.5"),
+            "over_under_sets_6_5": line("Over/Under +6.5", "sets"),
+            "over_under_games_6_5": line("Over/Under +6.5", "games"),
+            "over_under_games_39_5": line("Over/Under +39.5", "games"),
         }
 
-    async def test_scrape_markets_refuses_a_line_another_market_shares(self, extractor, page_mock, caplog):
-        """Tennis sets and games lines both read 'Over/Under +6.5': the market comes back empty, never guessed."""
+    async def test_scrape_markets_refuses_a_line_another_axis_may_hold(self, extractor, page_mock, caplog):
+        """Tennis sets 6.5 falls in the games axis's range: the market comes back empty, never guessed."""
         extractor.extract_market_odds = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
 
         with (
@@ -383,7 +385,7 @@ class TestOddsPortalMarketExtractor:
         extractor.extract_market_odds.assert_awaited_once()
         assert extractor.extract_market_odds.await_args.kwargs["specific_market"] == "Over/Under +39.5"
         assert (
-            "Market 'over_under_sets_6_5' refused: its line reads the same as over_under_games_6_5, "
+            "Market 'over_under_sets_6_5' refused: its line may also be a games line, "
             "and the page does not tell them apart." in caplog.text
         )
 

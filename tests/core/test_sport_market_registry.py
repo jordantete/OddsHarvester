@@ -6,7 +6,7 @@ import pytest
 
 from oddsharvester.core.market_extraction.market_grouping import MarketGrouping
 from oddsharvester.core.sport_market_registry import SportMarketRegistrar, SportMarketRegistry, format_line_number
-from oddsharvester.utils.sport_market_constants import Sport
+from oddsharvester.utils.sport_market_constants import Sport, TennisAsianHandicapSetsMarket
 
 
 class TestSportMarketRegistry:
@@ -429,26 +429,52 @@ class TestLineLabels:
         method = SportMarketRegistrar.create_market_lambda("Over/Under", "Over/Under +2.5", ["odds_over", "odds_under"])
 
         assert (method.main_market, method.specific_market) == ("Over/Under", "Over/Under +2.5")
+        assert method.line_axis is None
         assert MarketGrouping().get_main_market_info(method) == {
             "main_market": "Over/Under",
             "odds_labels": ["odds_over", "odds_under"],
         }
 
-    def test_tennis_refuses_the_lines_its_sets_and_games_markets_share(self):
+    def test_create_market_lambda_carries_its_line_axis(self):
+        method = SportMarketRegistrar.create_market_lambda(
+            "Over/Under", "Over/Under +2.5", ["odds_over", "odds_under"], line_axis="sets"
+        )
+
+        assert method.line_axis == "sets"
+
+    def test_tennis_refuses_every_line_that_falls_in_the_other_axis_range(self):
         assert set(SportMarketRegistry.ambiguous_markets(Sport.TENNIS.value)) == {
-            *(f"over_under_{axis}_{n}_5" for axis in ("sets", "games") for n in range(6, 11)),
-            *(f"asian_handicap_{sign}2_5_{axis}" for sign in "+-" for axis in ("sets", "games")),
+            *(m.value for m in TennisAsianHandicapSetsMarket),
+            "asian_handicap_+2_5_games",
+            "asian_handicap_-2_5_games",
+            *(f"over_under_sets_{n}_5" for n in range(6, 11)),
+            "over_under_games_6_5",
+            "over_under_games_7_0",
+            "over_under_games_7_5",
+            "over_under_games_8_0",
+            "over_under_games_8_5",
+            "over_under_games_9_0",
+            "over_under_games_9_5",
+            "over_under_games_10_0",
+            "over_under_games_10_5",
         }
+
+    def test_every_tennis_sets_handicap_line_is_refused(self):
+        """The Gea - Machac games AH ladder (2026-09-29) reads -1.5 to +3.5, inside the sets range."""
+        assert {m.value for m in TennisAsianHandicapSetsMarket} <= set(
+            SportMarketRegistry.ambiguous_markets(Sport.TENNIS.value)
+        )
 
     def test_volleyball_refuses_the_handicap_lines_its_sets_and_points_markets_share(self):
         assert set(SportMarketRegistry.ambiguous_markets(Sport.VOLLEYBALL.value)) == {
             f"asian_handicap_{sign}{n}_5_{axis}" for sign in "+-" for n in (1, 2) for axis in ("sets", "points")
         }
 
-    def test_a_refused_market_names_the_market_sharing_its_line(self):
-        assert SportMarketRegistry.ambiguous_markets(Sport.TENNIS.value)["over_under_sets_6_5"] == (
-            "over_under_games_6_5",
-        )
+    def test_a_refused_market_names_the_other_axis(self):
+        ambiguous = SportMarketRegistry.ambiguous_markets(Sport.TENNIS.value)
+        assert ambiguous["over_under_sets_6_5"] == ("games",)
+        assert ambiguous["asian_handicap_+0_5_sets"] == ("games",)
+        assert ambiguous["over_under_games_7_0"] == ("sets",)
 
     @pytest.mark.parametrize("sport", [sport for sport in Sport if sport not in (Sport.TENNIS, Sport.VOLLEYBALL)])
     def test_other_sports_refuse_no_line(self, sport):

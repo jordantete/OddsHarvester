@@ -666,21 +666,26 @@ On 2026-09-29 the rows carry no such word: Perugia - Piacenza showed `+3.5`,
 the same (`Games` / `Sets` gone): ATP Beijing mixed the sets line `+2.5` with the
 games lines `+21` to `+24`, and showed `+1.5` twice in AH.
 
-So the registry builds labels without the axis word, and a line value both
-axes use cannot be told apart. `SportMarketRegistry.ambiguous_markets(sport)`
-computes those markets from the registry, and `scrape_markets` returns each one
-empty with `Market '<token>' refused: its line reads the same as <token>, and the
-page does not tell them apart.`:
+So the registry builds labels without the axis word, and an axis's ladder can
+show a value its own enum never lists, so a value inside another axis's range
+may be that axis's row. `SportMarketRegistry.ambiguous_markets(sport)` computes,
+per `(main_market, line_axis)`, each market whose value falls within `[min, max]`
+of another axis, and `scrape_markets` returns each one empty with `Market
+'<token>' refused: its line may also be a <axis> line, and the page does not
+tell them apart.`:
 
 | Sport | Refused markets |
 |---|---|
 | Volleyball | AH sets and points `-2.5`, `-1.5`, `+1.5`, `+2.5` |
-| Tennis | O/U sets and games `6.5` to `10.5`; AH sets and games `-2.5`, `+2.5` |
+| Tennis | AH sets all lines `-2.5` to `+2.5`; AH games `-2.5`, `+2.5`; O/U sets `6.5` to `10.5`; O/U games `6.5` to `10.5` including the whole lines `7` to `10` |
 
-Every other line is unambiguous by value (volleyball O/U sets stop at `4.5`,
-points start at `150.5`) and is matched on its exact value (§7). If the page
-brings the axis word back, restore it in `sport_market_registry.py`; the
-refusals then disappear on their own.
+The rule compares value ranges, not equal labels, because an axis's ladder
+shows values its enum does not list: the Gea - Machac games AH ladder of
+2026-09-29 read `-1.5` to `+3.5`, inside the sets range. Lines outside the
+other axis's range (volleyball O/U sets stop at `4.5`, points start at `150.5`)
+are matched on their exact value (§7). If the page brings the axis word back,
+restore it in `sport_market_registry.py`; the refusals then disappear on their
+own.
 
 Volleyball also has NO draw-based markets (no `1X2`, `DNB`, `Double Chance`) —
 only `Home/Away`. Periods are `Full Time` + `1st`–`5th Set`. `Correct Score`

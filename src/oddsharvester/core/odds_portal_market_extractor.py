@@ -127,8 +127,8 @@ class OddsPortalMarketExtractor:
             try:
                 if market in ambiguous_markets:
                     self.logger.warning(
-                        f"Market '{market}' refused: its line reads the same as "
-                        f"{', '.join(ambiguous_markets[market])}, and the page does not tell them apart."
+                        f"Market '{market}' refused: its line may also be a "
+                        f"{' or '.join(ambiguous_markets[market])} line, and the page does not tell them apart."
                     )
                     market_data[f"{market}_market"] = []
                     continue

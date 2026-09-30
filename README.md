@@ -79,7 +79,7 @@ oddsharvester community -s football --headless
 
 > **Umbrella tokens (football):** `over_under` and `asian_handicap` are umbrella market tokens — pass either as `--market` and it expands at scrape time to every line OddsPortal actually renders for that match (e.g. `over_under_1_5_market`, `over_under_2_5_market`, …), instead of listing each line by hand.
 
-> **Tennis and volleyball lines:** OddsPortal prints no `Sets`, `Games` or `Points` word on a line, so a tennis sets line and a games line of the same value (O/U `6.5` to `10.5`, AH `-2.5` and `+2.5`), and a volleyball sets handicap and points handicap (`-2.5`, `-1.5`, `+1.5`, `+2.5`), cannot be told apart on the page. Those markets are refused: they come back empty with a warning naming the market that shares the line.
+> **Tennis and volleyball lines:** OddsPortal prints no `Sets`, `Games` or `Points` word on a line, and each axis's ladder can show any value in its range, so a line whose value falls within the other axis's range cannot be told apart on the page. Refused: every tennis sets Asian Handicap line; tennis games AH `-2.5` and `+2.5`; tennis O/U sets and games from `6.5` to `10.5`, whole games lines `7` to `10` included; volleyball sets and points AH `-2.5`, `-1.5`, `+1.5`, `+2.5`. They come back empty with a warning naming the other axis.
 
 > **Cricket:** OddsPortal does not currently publish a per-bookmaker odds table for cricket, so cricket scraping returns match metadata (teams, league, score, result) with an empty odds list. The `home_away` market is wired and will populate if OddsPortal adds cricket odds.
 
