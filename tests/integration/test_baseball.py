@@ -17,7 +17,6 @@ ROYALS_MARINERS = {
 
 
 @pytest.mark.integration
-@pytest.mark.live_only
 class TestBaseballH2HFragment:
     """Issue #60: match_date must be the fragment-targeted match, not the next upcoming H2H."""
 

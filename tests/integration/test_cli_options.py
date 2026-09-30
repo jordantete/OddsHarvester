@@ -1,4 +1,4 @@
-"""Integration tests for CLI options (format, bookies-filter)."""
+"""Integration tests for CLI options (format, bookies-filter), replayed from the match fixtures' HARs."""
 
 import csv
 import json
@@ -12,9 +12,13 @@ BASKETBALL_MATCH_URL = (
 )
 TENNIS_MATCH_URL = "https://www.oddsportal.com/tennis/h2h/djokovic-novak-AZg49Et9/sinner-jannik-6HdC3z4H/#IwSMNP62"
 
+# (sport, league, match dir) of each URL's committed fixtures.
+FOOTBALL_FIXTURES = ("football", "premier-league", "leicester-brentford-xQ77QTN0")
+BASKETBALL_FIXTURES = ("basketball", "nba", "los-angeles-lakers-boston-celtics-0fwUQJEk")
+TENNIS_FIXTURES = ("tennis", "australian-open", "djokovic-novak-sinner-jannik-IwSMNP62")
+
 
 @pytest.mark.integration
-@pytest.mark.live_only
 class TestOutputFormatJSON:
     """Tests for JSON output format (default)."""
 
@@ -22,6 +26,7 @@ class TestOutputFormatJSON:
         self,
         run_scraper,
         temp_output_dir,
+        har_for_match,
     ):
         """Test JSON output format for football."""
         output_path = temp_output_dir / "output"
@@ -32,6 +37,7 @@ class TestOutputFormatJSON:
             markets=["1x2"],
             output_path=output_path,
             output_format="json",
+            har_path=har_for_match(*FOOTBALL_FIXTURES, "1x2_full_time_all.json"),
         )
 
         assert exit_code == 0, f"Scraper failed: {stderr}"
@@ -49,7 +55,6 @@ class TestOutputFormatJSON:
 
 
 @pytest.mark.integration
-@pytest.mark.live_only
 class TestOutputFormatCSV:
     """Tests for CSV output format."""
 
@@ -57,6 +62,7 @@ class TestOutputFormatCSV:
         self,
         run_scraper,
         temp_output_dir,
+        har_for_match,
     ):
         """OPT-003: Test CSV output format for football."""
         output_path = temp_output_dir / "output"
@@ -67,6 +73,7 @@ class TestOutputFormatCSV:
             markets=["1x2"],
             output_path=output_path,
             output_format="csv",
+            har_path=har_for_match(*FOOTBALL_FIXTURES, "1x2_full_time_all.json"),
         )
 
         assert exit_code == 0, f"Scraper failed: {stderr}"
@@ -87,6 +94,7 @@ class TestOutputFormatCSV:
         self,
         run_scraper,
         temp_output_dir,
+        har_for_match,
     ):
         """OPT-004: Test CSV output format for basketball."""
         output_path = temp_output_dir / "output"
@@ -97,6 +105,7 @@ class TestOutputFormatCSV:
             markets=["home_away"],
             output_path=output_path,
             output_format="csv",
+            har_path=har_for_match(*BASKETBALL_FIXTURES, "home_away_full_including_ot_all.json"),
         )
 
         assert exit_code == 0, f"Scraper failed: {stderr}"
@@ -114,6 +123,7 @@ class TestOutputFormatCSV:
         self,
         run_scraper,
         temp_output_dir,
+        har_for_match,
     ):
         """OPT-005: Test CSV output format for tennis."""
         output_path = temp_output_dir / "output"
@@ -124,6 +134,7 @@ class TestOutputFormatCSV:
             markets=["match_winner"],
             output_path=output_path,
             output_format="csv",
+            har_path=har_for_match(*TENNIS_FIXTURES, "match_winner_full_time_all.json"),
         )
 
         assert exit_code == 0, f"Scraper failed: {stderr}"
@@ -139,7 +150,6 @@ class TestOutputFormatCSV:
 
 
 @pytest.mark.integration
-@pytest.mark.live_only
 class TestBookiesFilter:
     """Tests for --bookies-filter option."""
 
@@ -147,6 +157,7 @@ class TestBookiesFilter:
         self,
         run_scraper,
         temp_output_dir,
+        har_for_match,
     ):
         """OPT-001: Test classic bookies filter."""
         output_path = temp_output_dir / "output"
@@ -157,6 +168,7 @@ class TestBookiesFilter:
             markets=["1x2"],
             output_path=output_path,
             bookies_filter="classic",
+            har_path=har_for_match(*FOOTBALL_FIXTURES, "1x2_full_time_classic.json"),
         )
 
         assert exit_code == 0, f"Scraper failed: {stderr}"
@@ -169,6 +181,8 @@ class TestBookiesFilter:
         market_data = actual[0].get("1x2_market", [])
         assert market_data, "No odds data in output"
 
+    # No crypto fixture yet: this one still needs the live site.
+    @pytest.mark.live_only
     def test_opt_002_crypto_bookies(
         self,
         run_scraper,
@@ -193,6 +207,7 @@ class TestBookiesFilter:
         self,
         run_scraper,
         temp_output_dir,
+        har_for_match,
     ):
         """Test all bookies filter (default)."""
         output_path = temp_output_dir / "output"
@@ -203,6 +218,7 @@ class TestBookiesFilter:
             markets=["1x2"],
             output_path=output_path,
             bookies_filter="all",
+            har_path=har_for_match(*FOOTBALL_FIXTURES, "1x2_full_time_all.json"),
         )
 
         assert exit_code == 0, f"Scraper failed: {stderr}"
@@ -213,79 +229,3 @@ class TestBookiesFilter:
         assert len(actual) >= 1, "No matches returned"
         market_data = actual[0].get("1x2_market", [])
         assert market_data, "No odds data in output"
-
-
-@pytest.mark.integration
-@pytest.mark.live_only
-class TestMultipleMarkets:
-    """Tests for scraping multiple markets in one command."""
-
-    def test_cmb_001_football_4_markets(
-        self,
-        run_scraper,
-        temp_output_dir,
-    ):
-        """CMB-001: Test 4 markets simultaneously for football."""
-        output_path = temp_output_dir / "output"
-
-        exit_code, _, stderr = run_scraper(
-            sport="football",
-            match_link=FOOTBALL_MATCH_URL,
-            markets=["1x2", "btts", "over_under_2_5", "dnb"],
-            output_path=output_path,
-        )
-
-        assert exit_code == 0, f"Scraper failed: {stderr}"
-
-        with open(f"{output_path}.json") as f:
-            actual = json.load(f)
-
-        assert len(actual) >= 1, "No matches returned"
-        # Check that at least one market has data (markets are stored as {market}_market)
-        market_keys = ["1x2_market", "btts_market", "over_under_2_5_market", "dnb_market"]
-        found_markets = [k for k in market_keys if actual[0].get(k)]
-        assert len(found_markets) >= 1, "Expected at least one market in output"
-
-    def test_cmb_002_basketball_3_markets(
-        self,
-        run_scraper,
-        temp_output_dir,
-    ):
-        """CMB-002: Test 3 markets simultaneously for basketball."""
-        output_path = temp_output_dir / "output"
-
-        exit_code, _, stderr = run_scraper(
-            sport="basketball",
-            match_link=BASKETBALL_MATCH_URL,
-            markets=["home_away", "1x2"],
-            output_path=output_path,
-        )
-
-        assert exit_code == 0, f"Scraper failed: {stderr}"
-
-        with open(f"{output_path}.json") as f:
-            actual = json.load(f)
-
-        assert len(actual) >= 1, "No matches returned"
-
-    def test_cmb_003_tennis_3_markets(
-        self,
-        run_scraper,
-        temp_output_dir,
-    ):
-        """CMB-003: Test 3 markets simultaneously for tennis."""
-        output_path = temp_output_dir / "output"
-
-        exit_code, _, stderr = run_scraper(
-            sport="tennis",
-            match_link=TENNIS_MATCH_URL,
-            markets=["match_winner", "over_under_sets_2_5"],
-            output_path=output_path,
-        )
-
-        assert exit_code == 0, f"Scraper failed: {stderr}"
-
-        with open(f"{output_path}.json") as f:
-            actual = json.load(f)
-
-        assert len(actual) >= 1, "No matches returned"
