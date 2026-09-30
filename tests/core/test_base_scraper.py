@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError
 import pytest
+from tests.clock import frozen_clock
 from tests.dom_builders import date_header, listing_row, live_block, match_header, page
 
 from oddsharvester.core.base_scraper import (
@@ -538,35 +539,14 @@ async def test_extract_match_links_uses_playwright_manager_timezone(setup_base_s
 # -- extract_match_links with kickoff_within_hours (GitHub issue #77) --------
 
 
-class _FixedNow(datetime):
-    """datetime subclass whose ``now()`` is frozen for deterministic window
-    tests. ``combine`` and the constructor are inherited unchanged."""
-
-    _frozen = datetime(2026, 4, 18, 12, 0, tzinfo=UTC)
-
-    @classmethod
-    def now(cls, tz=None):
-        return cls._frozen if tz is None else cls._frozen.astimezone(tz)
-
-
+APRIL_NOON = datetime(2026, 4, 18, 12, 0, tzinfo=UTC)
 SUMMER_NOW = datetime(2026, 9, 30, 12, 0, tzinfo=UTC)
 WINTER_NOW = datetime(2027, 1, 15, 12, 0, tzinfo=UTC)
 
 
-def _clock(moment: datetime) -> type[datetime]:
-    """A datetime class whose now() is `moment`."""
-
-    class _Clock(datetime):
-        @classmethod
-        def now(cls, tz=None):
-            return moment if tz is None else moment.astimezone(tz)
-
-    return _Clock
-
-
 def _page_clock(moment: datetime):
     """Freeze the clock the page's UTC offset is read from (gotchas §10)."""
-    return patch("oddsharvester.utils.page_time.datetime", _clock(moment))
+    return patch("oddsharvester.utils.page_time.datetime", frozen_clock(moment))
 
 
 def _make_kickoff_window_html() -> str:
@@ -590,7 +570,7 @@ async def test_extract_match_links_kickoff_window_keeps_only_matches_within_wind
     page_mock = mocks["page_mock"]
     page_mock.content = AsyncMock(return_value=_make_kickoff_window_html())
 
-    with patch("oddsharvester.core.base_scraper.datetime", _FixedNow):
+    with patch("oddsharvester.core.base_scraper.datetime", frozen_clock(APRIL_NOON)):
         result = await scraper.extract_match_links(page=page_mock, kickoff_within_hours=2)
 
     assert any("soon-match/aaaaaaa1" in url for url in result)
@@ -624,7 +604,7 @@ async def test_extract_match_links_kickoff_window_unparseable_time_fails_safe(se
         )
     )
 
-    with patch("oddsharvester.core.base_scraper.datetime", _FixedNow):
+    with patch("oddsharvester.core.base_scraper.datetime", frozen_clock(APRIL_NOON)):
         result = await scraper.extract_match_links(page=page_mock, kickoff_within_hours=1)
 
     assert any("live-match/bbbbbbb1" in url for url in result)
@@ -640,7 +620,7 @@ async def test_extract_match_links_kickoff_window_row_without_date_header_fails_
         return_value=page(listing_row("/football/h2h/orphan-match/ccccccc1/#or", status="16:00"))
     )
 
-    with patch("oddsharvester.core.base_scraper.datetime", _FixedNow):
+    with patch("oddsharvester.core.base_scraper.datetime", frozen_clock(APRIL_NOON)):
         result = await scraper.extract_match_links(page=page_mock, kickoff_within_hours=1)
 
     assert any("orphan-match/ccccccc1" in url for url in result)
@@ -662,7 +642,7 @@ async def test_extract_match_links_kickoff_window_composes_with_skip_started(set
         )
     )
 
-    with patch("oddsharvester.core.base_scraper.datetime", _FixedNow):
+    with patch("oddsharvester.core.base_scraper.datetime", frozen_clock(APRIL_NOON)):
         result = await scraper.extract_match_links(page=page_mock, kickoff_within_hours=2, skip_started=True)
 
     assert any("near-upcoming/ddddddd1" in url for url in result)
@@ -756,7 +736,7 @@ async def test_kickoff_window_reads_a_row_past_the_clock_change_at_the_page_offs
             + listing_row("/football/h2h/outside-window/aaaaaaa9/#o1", status="14:00")
         )
     )
-    clock = _clock(datetime(2026, 10, 24, 23, 30, tzinfo=UTC))
+    clock = frozen_clock(datetime(2026, 10, 24, 23, 30, tzinfo=UTC))
 
     with (
         patch("oddsharvester.core.base_scraper.datetime", clock),

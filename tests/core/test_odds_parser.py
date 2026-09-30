@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
+from tests.clock import frozen_clock
 from tests.dom_builders import bookmaker_row, line_row, odds_cell, odds_table
 
 from oddsharvester.core.market_extraction.odds_parser import OddsParser, parse_odds_value
@@ -191,12 +192,7 @@ class TestOddsParser:
     def test_parse_odds_history_modal_reads_every_time_at_the_page_offset(self, odds_parser):
         html = self._history_html([("4 Jan, 17:58", "1.46")], opening=("27 Dec, 18:08", "1.60"))
 
-        class _SummerClock(datetime):
-            @classmethod
-            def now(cls, tz=None):
-                return SUMMER_NOW if tz is None else SUMMER_NOW.astimezone(tz)
-
-        with patch("oddsharvester.utils.page_time.datetime", _SummerClock):
+        with patch("oddsharvester.utils.page_time.datetime", frozen_clock(SUMMER_NOW)):
             result = odds_parser.parse_odds_history_modal(
                 html, reference=datetime(2026, 1, 4, 17, 30), tz_name="Europe/London"
             )

@@ -3,6 +3,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import pytest
+from tests.clock import frozen_clock
 
 from oddsharvester.utils.page_time import (
     local_to_shown,
@@ -53,12 +54,7 @@ def test_page_utc_offset_is_the_zone_offset_at_the_scrape_moment(tz_name, now, h
 
 
 def test_page_utc_offset_reads_the_clock_by_default():
-    class _Clock(datetime):
-        @classmethod
-        def now(cls, tz=None):
-            return WINTER_NOW if tz is None else WINTER_NOW.astimezone(tz)
-
-    with patch("oddsharvester.utils.page_time.datetime", _Clock):
+    with patch("oddsharvester.utils.page_time.datetime", frozen_clock(WINTER_NOW)):
         assert page_utc_offset("Europe/London") == timedelta(0)
 
 
