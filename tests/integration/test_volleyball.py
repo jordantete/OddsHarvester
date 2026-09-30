@@ -50,10 +50,6 @@ class TestVolleyballBasicMarkets:
             bookies_filter="all",
         )
 
-        # Regression guard: volleyball must store odds, not just match metadata.
-        home_away = actual[0].get("home_away_market")
-        assert home_away, "Volleyball regression: home_away_market missing — scraper stored metadata only"
-
         # match_info is always None since the 2026-08 redesign: the react-event-header
         # JSON (eventData.staticInfo) no longer exists and the DOM carries no
         # equivalent note. Locked in as a known data regression (issue #85).

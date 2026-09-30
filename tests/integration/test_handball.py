@@ -44,7 +44,7 @@ class TestHandballBasicMarkets:
 
     def test_hb_001_1x2_full_time(self, har_for_match, tmp_path):
         """HB-001: Handball 1x2 market, full time, all bookies — odds must be present."""
-        actual = replay_and_compare(
+        replay_and_compare(
             har_for_match,
             tmp_path,
             BUNDESLIGA_MATCH,
@@ -53,7 +53,3 @@ class TestHandballBasicMarkets:
             period="full_time",
             bookies_filter="all",
         )
-
-        # Regression guard: handball must store odds, not just match metadata.
-        one_x_two = actual[0].get("1x2_market")
-        assert one_x_two, "Handball regression: 1x2_market missing — scraper stored metadata only"

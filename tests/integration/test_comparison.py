@@ -184,7 +184,6 @@ def test_structure_ignores_values_and_the_bookmaker_panel(match):
     _entry(actual, "Betclic.fr")["1"] = "9.99"
     _entry(actual, "Winamax")["bookmaker_name"] = "NewBook"
     actual["1x2_market"] = actual["1x2_market"][1:]
-    actual["match_date"] = "2030-01-01 00:00:00 UTC"
     actual["venue"] = None
     assert compare_match_structure(actual, match).passed
 
@@ -234,6 +233,60 @@ def test_structure_accepts_a_market_the_golden_holds_empty(match):
     assert compare_match_structure(actual, expected).passed
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("home_team", "Chelsea"),
+        ("away_team", "Arsenal"),
+        ("home_score", "1"),
+        ("away_score", "3"),
+        ("partial_results", "(0:2, 0:2)"),
+        ("match_date", "2025-02-22 20:00:00 UTC"),
+    ],
+)
+def test_structure_another_match_fails(match, field, value):
+    actual = copy.deepcopy(match)
+    actual[field] = value
+    result = compare_match_structure(actual, match)
+    assert result.errors == [f"Field '{field}' mismatch: actual={value!r} vs expected={match[field]!r}"]
+
+
+def test_structure_accepts_a_renamed_league(match):
+    """Sponsors rename leagues (gotchas §4), so a live league_name may differ from the golden's."""
+    actual = copy.deepcopy(match)
+    actual["league_name"] = "Barclays Premier League"
+    assert compare_match_structure(actual, match).passed
+
+
+def test_structure_skips_an_identity_field_the_golden_leaves_empty(match):
+    """A golden captured before kickoff holds no score; the live page of the played match shows one."""
+    expected = copy.deepcopy(match)
+    expected["home_score"] = expected["away_score"] = expected["partial_results"] = None
+    assert compare_match_structure(copy.deepcopy(match), expected).passed
+
+
+def test_structure_empty_odds_string_fails(match):
+    actual = copy.deepcopy(match)
+    _entry(actual, "Betclic.fr")["X"] = ""
+    result = compare_match_structure(actual, match)
+    assert result.errors == ["1x2_market: entry ('Betclic.fr', 'FullTime', '1X2') has no value in ['X']"]
+
+
+def test_structure_does_not_require_a_value_the_golden_leaves_empty_in_one_entry(match):
+    expected = copy.deepcopy(match)
+    _entry(expected, "Winamax")["X"] = ""
+    actual = copy.deepcopy(match)
+    _entry(actual, "Betclic.fr")["X"] = ""
+    assert compare_match_structure(actual, expected).passed
+
+
+def test_structure_accepts_an_empty_history_list(match):
+    expected = _with_history(match)
+    actual = copy.deepcopy(expected)
+    actual["1x2_market"][0]["odds_history_data"] = []
+    assert compare_match_structure(actual, expected).passed
+
+
 def test_golden_compare_is_exact_on_replay(match):
     actual = copy.deepcopy(match)
     _entry(actual, "Betclic.fr")["1"] = "3.51"
@@ -247,3 +300,9 @@ def test_golden_compare_checks_structure_under_live(match):
     emptied["1x2_market"] = []
     assert compare_golden(moved, match, live=True).passed
     assert not compare_golden(emptied, match, live=True).passed
+
+
+def test_golden_compare_on_replay_still_fails_on_a_renamed_league(match):
+    actual = copy.deepcopy(match)
+    actual["league_name"] = "Barclays Premier League"
+    assert not compare_golden(actual, match, live=False).passed

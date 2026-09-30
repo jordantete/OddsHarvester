@@ -41,8 +41,7 @@ class TestBaseballH2HFragment:
 
         golden = load_golden(ROYALS_MARINERS, fixture_name)[0]
 
-        # A finished match's kickoff does not move, so this still catches the JSON-LD trap
-        # under --live, where compare_golden ignores match_date as part of structure-only compare.
+        # A finished match's kickoff does not move; this names issue #60 when the JSON-LD trap returns.
         assert actual[0]["match_date"] == golden["match_date"], (
             f"Issue #60 regressed: match_date {actual[0]['match_date']} "
             f"is not the captured kickoff {golden['match_date']}"

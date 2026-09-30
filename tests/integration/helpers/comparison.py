@@ -7,6 +7,8 @@ MARKET_SUFFIX = "_market"
 IGNORED_FIELDS = frozenset({"scraped_date"})
 # Filled only when the page's JSON-LD describes this match (gotchas §19), so a live run may lose them.
 NULLABLE_FIELDS = frozenset({"venue", "venue_town", "venue_country"})
+# A finished match keeps these; league_name is left out, since sponsors rename leagues (gotchas §4).
+IDENTITY_FIELDS = ("home_team", "away_team", "home_score", "away_score", "partial_results", "match_date")
 VALUE_WIDTH = 120
 _MISSING = "<missing>"
 
@@ -66,8 +68,9 @@ def compare_match_structure(actual: dict[str, Any], expected: dict[str, Any]) ->
     Compare a live scrape with a golden on structure only, since odds and the bookmaker panel move.
 
     Every golden field must exist, and one that holds a value must not come back None (the venue
-    fields excepted). A market the golden fills must come back non-empty, each entry carrying every
-    key the golden's entries share.
+    fields excepted). The identity fields the golden holds must be equal. A market the golden fills
+    must come back non-empty, each entry carrying every key the golden's entries share, and a
+    non-empty string in every key that each golden entry fills with one.
     """
     result = ComparisonResult()
     for key in sorted(expected.keys() - IGNORED_FIELDS):
@@ -79,12 +82,18 @@ def compare_match_structure(actual: dict[str, Any], expected: dict[str, Any]) ->
                 result.add_error(f"{key}: empty in actual, the golden has {len(golden)} entries")
                 continue
             shared = set.intersection(*(set(entry) for entry in golden))
+            filled = {k for k in shared if all(isinstance(entry[k], str) and entry[k] for entry in golden)}
             for entry in actual[key]:
                 missing = sorted(shared - entry.keys())
                 if missing:
                     result.add_error(f"{key}: entry {_entry_key(entry)} lacks {missing}")
+                empty = sorted(k for k in filled & entry.keys() if not (isinstance(entry[k], str) and entry[k]))
+                if empty:
+                    result.add_error(f"{key}: entry {_entry_key(entry)} has no value in {empty}")
         elif golden is not None and actual[key] is None and key not in NULLABLE_FIELDS:
             result.add_error(f"'{key}' is None in actual, the golden has {golden!r}")
+        elif key in IDENTITY_FIELDS and golden is not None and actual[key] != golden:
+            result.add_error(f"Field '{key}' mismatch: actual={actual[key]!r} vs expected={golden!r}")
     return result
 
 
