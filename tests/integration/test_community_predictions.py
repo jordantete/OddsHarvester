@@ -15,8 +15,8 @@ FIXTURES = Path(__file__).parent / "fixtures" / "community"
 HAR = FIXTURES / "top_predictions_football.har"
 SNAPSHOT = FIXTURES / "top_predictions_football.json"
 
-# Kickoff fields depend on the date the test runs (relative "Today" labels resolve
-# against the current date, not the capture date), so they are excluded from comparison.
+# The page labels a date near the day the test runs "Yest.", "Today" or "Tomorr." and
+# the parser infers a row's year from that day, so both kickoff fields follow the run date.
 VOLATILE_FIELDS = {"kickoff", "kickoff_text", "scraped_at"}
 
 
@@ -27,7 +27,19 @@ def test_community_command_har_replay(temp_output_dir):
     env["ODDSHARVESTER_HAR_REPLAY"] = str(HAR)
 
     result = subprocess.run(  # noqa: S603
-        ["uv", "run", "oddsharvester", "community", "-s", "football", "--headless", "-o", str(output)],  # noqa: S607
+        [  # noqa: S607
+            "uv",
+            "run",
+            "oddsharvester",
+            "community",
+            "-s",
+            "football",
+            "--timezone",
+            "UTC",
+            "--headless",
+            "-o",
+            str(output),
+        ],
         capture_output=True,
         text=True,
         timeout=300,

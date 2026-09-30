@@ -86,12 +86,12 @@ SPECIAL_FIXTURES = (
     SpecialFixture(
         kind="community",
         har="community/top_predictions_football.har",
-        argv=("community", "-s", "football"),
+        argv=("community", "-s", "football", "--timezone", "UTC"),
     ),
     SpecialFixture(
         kind="community",
         har="community/user_profile_blapro.har",
-        argv=("community", "--user", "BLAPRO"),
+        argv=("community", "--user", "BLAPRO", "--timezone", "UTC"),
     ),
     SpecialFixture(
         kind="community",
@@ -100,6 +100,8 @@ SPECIAL_FIXTURES = (
             "community",
             "--match-url",
             "https://www.oddsportal.com/football/h2h/chelsea-4fGZN2oK/fulham-69ZiU2Om/#C2Nfvg77",
+            "--timezone",
+            "UTC",
         ),
     ),
     # The wrong id in the middle keeps the failure path in the replay.
