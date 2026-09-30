@@ -208,6 +208,13 @@ class TestPeriodSelector:
 
         assert "reading the period bar failed" in caplog.text
 
+    async def test_an_in_play_page_is_left_to_the_label_path(self, selector):
+        page = self._page("https://www.oddsportal.com/basketball/h2h/a/b/inplay-odds/#id1:home-away;2")
+
+        assert await selector.select_by_scope(page, "basketball", "FullIncludingOT") is None
+
+        page.evaluate.assert_not_awaited()
+
     @pytest.mark.parametrize(
         ("active", "tabs"),
         [(0, 1), (-1, 3), (None, 0)],

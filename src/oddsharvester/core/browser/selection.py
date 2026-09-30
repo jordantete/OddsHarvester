@@ -160,6 +160,9 @@ class PeriodSelector:
         if target is None:
             return None
 
+        if "/inplay-odds/" in page.url:
+            return None
+
         if OddsPortalSelectors.period_scope_from_url(page.url) == target:
             self.logger.info(f"Period scope {target} already in the URL for '{internal_period}'.")
         else:

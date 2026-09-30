@@ -588,6 +588,8 @@ reads afterwards. It reads no label itself, so it holds on mirrors. The default
 period keeps the URL check alone (the collector's path). After a `False`, the
 extractor still tries the English tab label, which finds no tab for a period
 the match lacks and fails on mirrors, and then returns the market empty.
+`select_by_scope` also returns `None` on `/inplay-odds/` pages, like the market
+navigator, so the period is chosen by its tab label there.
 
 One trap when extending this: **the scope is keyed by period concept and is the
 same on every sport.** Baseball shows `1st Half` (scope 3) and `1st Inning`
