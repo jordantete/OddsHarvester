@@ -104,6 +104,7 @@ SPECIAL_FIXTURES = (
             "UTC",
         ),
     ),
+    # Prematch fixture: before recapture, swap in a match kicking off >1 day ahead.
     SpecialFixture(
         kind="community",
         har="community/match_community_prematch.har",
