@@ -823,6 +823,16 @@ other side of a DST switch from the scrape. In the autumn fold two instants an
 hour apart come out as the same naive local time (01:30 twice on
 2026-10-25 in London); that is a limit of naive output, not a parsing error.
 
+Community pages follow the same rule. A top-predictions or profile row's
+`kickoff` (`2026-01-04T17:30`) and the `kickoff` of `community --match-url`
+(`Sunday, 04 Jan 2026, 17:30`) hold the kickoff's local time in the browser
+zone on its own date (`row_helpers.extract_datetime_and_market`,
+`match_community_parser._kickoff`); a row's `kickoff_text` stays the page's
+text. Before the fix, Man City - Chelsea (17:30 UK time) came out `18:30`
+under `Europe/London` (2026-09-30). The match header says `Today`, `Tomorrow`
+or `Yesterday` in place of the weekday around the day it is read, so the
+parser writes the weekday back.
+
 Known limit: date headers are the page's own grouping, rendered at the same
 current offset. A match within an hour of midnight on the other side of a DST
 switch can sit under the neighbouring date header, so `-d` can keep or drop it
@@ -833,6 +843,13 @@ Integration replays and captures still run the browser in `UTC`
 before 2026-09-25 carry the old rendering, which the parser would read an hour
 off in a DST zone. The odds-history replay runs in `Europe/London`; its HAR
 dates from 2026-09-25, so its golden holds the true times in any season.
+The community replays and their `SPECIAL_FIXTURES` captures pass
+`--timezone UTC` as well. A community row dated within a day of the day the
+page is read says `Yest.`, `Today` or `Tomorr.` (replayed under a fixed
+browser clock, 2026-09-30), and its year is inferred from that day, so the
+top-predictions replay leaves both kickoff fields out of its compare. The
+row parser reads `Yest.` and `Tomorr.` as `Yesterday` and `Tomorrow`, which
+`_parse_date_header` resolves against the browser zone's current date.
 
 ### References
 

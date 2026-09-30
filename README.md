@@ -197,7 +197,7 @@ oddsharvester community -s football --headless
 oddsharvester community -s football -f json -o top_predictions.json --headless
 ```
 
-Each record contains the match (`home_team`, `away_team`, `match_url`, `kickoff`, plus the raw `kickoff_text` label kept as fallback when the date token fails to parse), the league (`sport`, `country`, `league`), the voted `market`, best odds per outcome (`odds`), the community vote split (`community_votes_pct`), and `scraped_at`.
+Each record contains the match (`home_team`, `away_team`, `match_url`, `kickoff` as `YYYY-MM-DDTHH:MM` in the browser timezone (`--timezone`), plus the raw `kickoff_text` label kept as fallback when the date token fails to parse), the league (`sport`, `country`, `league`), the voted `market`, best odds per outcome (`odds`), the community vote split (`community_votes_pct`), and `scraped_at`.
 
 - OddsPortal surfaces ~10 picks per sport (no pagination) with rounded percentages.
 - Pre-match only: OddsPortal drops community data from finished-match pages, so build longitudinal datasets by scraping while matches are still upcoming.
@@ -224,6 +224,8 @@ oddsharvester community --match-url "https://www.oddsportal.com/football/h2h/...
 Emits one record with per-market community vote volume: `markets[]` of `{market, scope,
 handicap, betting_type_id, scope_id, total_votes, outcome_counts}`, most-voted first, plus
 `top_community_pick`. Pre-match only (OddsPortal drops community data from finished matches).
+Its `kickoff` reads like the match header, weekday first (`Sunday, 04 Jan 2026, 17:30`), in the
+browser timezone (`--timezone`).
 
 **Limitations:** `--match-url` outcome vote **counts are unlabeled**: OddsPortal obfuscates the
 per-outcome ids, so only per-market volume, the count distribution, and the single aggregate
