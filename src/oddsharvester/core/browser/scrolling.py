@@ -5,12 +5,13 @@ import time
 
 from playwright.async_api import ElementHandle, Page
 
+from oddsharvester.core.browser.waits import wait_for_signal
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import (
     MAX_SCROLL_ATTEMPTS,
     SCROLL_PAUSE_S,
+    SCROLL_PAUSE_TIME_MS,
     SCROLL_TIMEOUT_S,
-    SCROLL_UNTIL_CLICK_PAUSE_S,
     SCROLL_UNTIL_CLICK_TIMEOUT_S,
 )
 
@@ -22,6 +23,28 @@ _CLICK_TARGET_RANK_JS = """
 (element, ancestor) => {
     const target = ancestor ? element.closest(ancestor) : element.parentElement;
     return target ? Array.from(document.querySelectorAll(ancestor || "*")).indexOf(target) : -1;
+}
+"""
+
+# The rows (closest args.ancestor) of the args.selector elements whose label ends with the line's tokens, read as
+# OddsPortalSelectors.line_label_matches reads them. args.want: "present" for at least one row; "open" or "closed"
+# for one row whose next row holds, or does not hold, bookmaker rows.
+_LINE_ROW_JS = """
+(args) => {
+    const rows = [];
+    for (const element of document.querySelectorAll(args.selector)) {
+        const label = (element.textContent || "").split(/\\s+/).filter(Boolean);
+        if (!args.tokens.length || label.length < args.tokens.length) continue;
+        if (label.slice(label.length - args.tokens.length).join(" ") !== args.tokens.join(" ")) continue;
+        if (label.length === args.tokens.length && args.bareNumber) continue;
+        const row = element.closest(args.ancestor);
+        if (row && !rows.includes(row)) rows.push(row);
+    }
+    if (args.want === "present") return rows.length > 0;
+    if (rows.length !== 1) return false;
+    const next = rows[0].nextElementSibling;
+    const open = !!next && next.querySelector(args.bookmakerRow) !== null;
+    return args.want === "open" ? open : !open;
 }
 """
 
@@ -99,62 +122,54 @@ class PageScroller:
         self.logger.info("Reached scrolling timeout. Stopping scroll.")
         return False
 
-    async def scroll_until_visible_and_click_parent(
+    async def click_line_row(
         self,
         page: Page,
         selector: str,
-        text: str | None = None,
+        line: str,
+        click_ancestor: str,
         timeout: int = SCROLL_UNTIL_CLICK_TIMEOUT_S,
-        scroll_pause_time: int = SCROLL_UNTIL_CLICK_PAUSE_S,
-        click_ancestor: str | None = None,
-        exact_tail: bool = False,
     ) -> bool:
-        """Scroll until an element matching selector (and optional text) is visible, then click its parent.
+        """Click the one row whose label ends with `line`, once the table shows it, waiting at most `timeout` s.
 
-        When `click_ancestor` is given, the closest ancestor matching that
-        selector is clicked instead of the direct parent (e.g. the enclosing
-        <tr> of a submarket label span).
-
-        With `exact_tail`, `text` is a line ('-1', '+2.5') that must be the end of
-        the element's text (`OddsPortalSelectors.line_label_matches`), and the
-        call fails when two different ancestors hold a match.
+        The label is that of a `selector` element and the row its closest `click_ancestor`; `line` ('-1', '+2.5')
+        must be the end of the label (`OddsPortalSelectors.line_label_matches`), and the call fails when two
+        different rows hold it.
         """
-        end_time = time.time() + timeout
+        args = self._line_args(selector, line, click_ancestor, "present")
+        if not await wait_for_signal(page, _LINE_ROW_JS, timeout * 1000, f"row of line '{line}'", arg=args):
+            return False
+        clicked = await self._click_row_of_line(await page.query_selector_all(selector), line, click_ancestor)
+        if clicked is None:
+            self.logger.warning(f"Line '{line}' has no visible row to click.")
+            return False
+        return clicked
 
-        while time.time() < end_time:
-            elements = await page.query_selector_all(selector)
+    async def wait_for_line_bookmakers(
+        self,
+        page: Page,
+        selector: str,
+        line: str,
+        click_ancestor: str,
+        shown: bool,
+        cap_ms: int = SCROLL_PAUSE_TIME_MS,
+    ) -> bool:
+        """Wait, at most `cap_ms`, until the row of `line` shows its bookmaker rows (`shown`), or shows none."""
+        want = "open" if shown else "closed"
+        signal = f"bookmaker rows {'under' if shown else 'gone from'} line '{line}'"
+        args = self._line_args(selector, line, click_ancestor, want)
+        return await wait_for_signal(page, _LINE_ROW_JS, cap_ms, signal, arg=args) is not None
 
-            if exact_tail:
-                clicked = await self._click_row_of_line(elements, text, click_ancestor)
-                if clicked is not None:
-                    return clicked
-            else:
-                for element in elements:
-                    if text:
-                        element_text = await element.text_content()
-                        if element_text and text in element_text:
-                            bounding_box = await element.bounding_box()
-                            if bounding_box:
-                                self.logger.info(f"Element with text '{text}' is visible. Clicking its parent.")
-                                parent_element = await element.evaluate_handle(_CLICK_TARGET_JS, click_ancestor)
-                                await parent_element.click()
-                                return True
-                    else:
-                        bounding_box = await element.bounding_box()
-                        if bounding_box:
-                            self.logger.info("Element is visible. Clicking its parent.")
-                            parent_element = await element.evaluate_handle(_CLICK_TARGET_JS, click_ancestor)
-                            await parent_element.click()
-                            return True
-
-            await page.evaluate("window.scrollBy(0, 500);")
-            await page.wait_for_timeout(scroll_pause_time * 1000)
-
-        self.logger.warning(
-            f"Failed to find and click parent of element matching selector '{selector}' with text '{text}' "
-            f"within timeout."
-        )
-        return False
+    @staticmethod
+    def _line_args(selector: str, line: str, click_ancestor: str, want: str) -> dict:
+        return {
+            "selector": selector,
+            "tokens": line.split(),
+            "bareNumber": line.strip().isdigit(),
+            "ancestor": click_ancestor,
+            "bookmakerRow": OddsPortalSelectors.BOOKMAKER_ROW_WITH_NAME_CSS,
+            "want": want,
+        }
 
     async def _click_row_of_line(
         self, elements: list[ElementHandle], line: str, click_ancestor: str | None

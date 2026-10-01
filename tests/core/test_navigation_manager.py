@@ -61,119 +61,72 @@ class TestNavigationManager:
         # Assert
         assert result is False
 
-    async def test_select_specific_market_success(self, navigation_manager, page_mock, scroller_mock):
-        """Test successful selection of a specific market."""
-        # Arrange
-        scroller_mock.scroll_until_visible_and_click_parent = AsyncMock(return_value=True)
-        specific_market = "Over/Under 2.5"
+    @staticmethod
+    def _row(page, line):
+        return {
+            "page": page,
+            "selector": OddsPortalSelectors.SUB_MARKET_SELECTOR,
+            "line": line,
+            "click_ancestor": OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
+        }
 
-        # Act
-        result = await navigation_manager.select_specific_market(page_mock, specific_market)
+    @pytest.mark.parametrize(
+        ("specific_market", "main_market", "line"),
+        [("Over/Under 2.5", None, "Over/Under 2.5"), ("Over/Under +20.5 Games", "Over/Under", "+20.5 Games")],
+        ids=["full-label", "language-independent-tail"],
+    )
+    async def test_select_specific_market_opens_the_row_and_waits_for_its_bookmakers(
+        self, navigation_manager, page_mock, scroller_mock, specific_market, main_market, line
+    ):
+        """On localized mirrors only the untranslated tail is matched (issue #70 follow-up)."""
+        scroller_mock.click_line_row = AsyncMock(return_value=True)
+        scroller_mock.wait_for_line_bookmakers = AsyncMock(return_value=True)
 
-        # Assert
-        assert result is True
-        scroller_mock.scroll_until_visible_and_click_parent.assert_called_once_with(
-            page=page_mock,
-            selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
-            text=specific_market,
-            click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
-            exact_tail=True,
-        )
+        assert await navigation_manager.select_specific_market(page_mock, specific_market, main_market) is True
 
-    async def test_select_specific_market_matches_language_independent_tail(
+        scroller_mock.click_line_row.assert_awaited_once_with(**self._row(page_mock, line))
+        scroller_mock.wait_for_line_bookmakers.assert_awaited_once_with(**self._row(page_mock, line), shown=True)
+
+    async def test_select_specific_market_reads_on_when_the_bookmakers_never_show(
         self, navigation_manager, page_mock, scroller_mock
     ):
-        """On localized mirrors, match only the untranslated tail (issue #70 follow-up)."""
-        # Arrange
-        scroller_mock.scroll_until_visible_and_click_parent = AsyncMock(return_value=True)
+        scroller_mock.click_line_row = AsyncMock(return_value=True)
+        scroller_mock.wait_for_line_bookmakers = AsyncMock(return_value=False)
 
-        # Act
-        result = await navigation_manager.select_specific_market(
-            page_mock, specific_market="Over/Under +20.5 Games", main_market="Over/Under"
-        )
-
-        # Assert
-        assert result is True
-        scroller_mock.scroll_until_visible_and_click_parent.assert_called_once_with(
-            page=page_mock,
-            selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
-            text="+20.5 Games",
-            click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
-            exact_tail=True,
-        )
+        assert await navigation_manager.select_specific_market(page_mock, "Over/Under +2.25", "Over/Under") is True
 
     async def test_select_specific_market_failure(self, navigation_manager, page_mock, scroller_mock):
-        """Test failed selection of a specific market."""
-        # Arrange
-        scroller_mock.scroll_until_visible_and_click_parent = AsyncMock(return_value=False)
-        specific_market = "NonExistentMarket"
+        scroller_mock.click_line_row = AsyncMock(return_value=False)
+        scroller_mock.wait_for_line_bookmakers = AsyncMock()
 
-        # Act
-        result = await navigation_manager.select_specific_market(page_mock, specific_market)
+        assert await navigation_manager.select_specific_market(page_mock, "NonExistentMarket") is False
 
-        # Assert
-        assert result is False
+        scroller_mock.wait_for_line_bookmakers.assert_not_awaited()
 
-    async def test_close_specific_market_success(self, navigation_manager, page_mock, scroller_mock):
-        """Test successful closing of a specific market."""
-        # Arrange
-        scroller_mock.scroll_until_visible_and_click_parent = AsyncMock(return_value=True)
-        specific_market = "Over/Under 2.5"
-
-        # Act
-        result = await navigation_manager.close_specific_market(page_mock, specific_market)
-
-        # Assert
-        assert result is True
-        scroller_mock.scroll_until_visible_and_click_parent.assert_called_once_with(
-            page=page_mock,
-            selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
-            text=specific_market,
-            click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
-            exact_tail=True,
-        )
-
-    async def test_close_specific_market_matches_language_independent_tail(
-        self, navigation_manager, page_mock, scroller_mock
+    @pytest.mark.parametrize(
+        ("specific_market", "main_market", "line"),
+        [("Over/Under 2.5", None, "Over/Under 2.5"), ("Over/Under +20.5 Games", "Over/Under", "+20.5 Games")],
+        ids=["full-label", "language-independent-tail"],
+    )
+    async def test_close_specific_market_closes_the_row_and_waits_for_its_bookmakers_to_go(
+        self, navigation_manager, page_mock, scroller_mock, specific_market, main_market, line
     ):
-        """Closing a submarket must also use the untranslated tail on mirrors."""
-        # Arrange
-        scroller_mock.scroll_until_visible_and_click_parent = AsyncMock(return_value=True)
+        """The next line of an umbrella is read on the same view: this line's rows must be gone first."""
+        scroller_mock.click_line_row = AsyncMock(return_value=True)
+        scroller_mock.wait_for_line_bookmakers = AsyncMock(return_value=True)
 
-        # Act
-        result = await navigation_manager.close_specific_market(
-            page_mock, specific_market="Over/Under +20.5 Games", main_market="Over/Under"
-        )
+        assert await navigation_manager.close_specific_market(page_mock, specific_market, main_market) is True
 
-        # Assert
-        assert result is True
-        scroller_mock.scroll_until_visible_and_click_parent.assert_called_once_with(
-            page=page_mock,
-            selector=OddsPortalSelectors.SUB_MARKET_SELECTOR,
-            text="+20.5 Games",
-            click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
-            exact_tail=True,
-        )
+        scroller_mock.click_line_row.assert_awaited_once_with(**self._row(page_mock, line))
+        scroller_mock.wait_for_line_bookmakers.assert_awaited_once_with(**self._row(page_mock, line), shown=False)
 
     async def test_close_specific_market_failure(self, navigation_manager, page_mock, scroller_mock):
-        """Test failed closing of a specific market."""
-        # Arrange
-        scroller_mock.scroll_until_visible_and_click_parent = AsyncMock(return_value=False)
-        specific_market = "NonExistentMarket"
+        scroller_mock.click_line_row = AsyncMock(return_value=False)
+        scroller_mock.wait_for_line_bookmakers = AsyncMock()
 
-        # Act
-        result = await navigation_manager.close_specific_market(page_mock, specific_market)
+        assert await navigation_manager.close_specific_market(page_mock, "NonExistentMarket") is False
 
-        # Assert
-        assert result is False
-
-    async def test_wait_for_page_load(self, navigation_manager, page_mock):
-        """Test waiting for page load."""
-        # Act
-        await navigation_manager.wait_for_page_load(page_mock)
-
-        # Assert
-        page_mock.wait_for_timeout.assert_called_once_with(SCROLL_PAUSE_TIME_MS)
+        scroller_mock.wait_for_line_bookmakers.assert_not_awaited()
 
     def test_constants(self):
         """Test that centralized constants have expected values."""

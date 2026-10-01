@@ -5,7 +5,6 @@ from bs4 import BeautifulSoup
 from playwright.async_api import Page
 
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
-from oddsharvester.utils.constants import SCROLL_PAUSE_TIME_MS
 
 
 def _find_line_rows(soup: BeautifulSoup) -> list:
@@ -39,7 +38,6 @@ class SubmarketExtractor:
         self.logger.info(f"Extracting visible submarkets for {main_market} in passive mode")
 
         try:
-            await page.wait_for_timeout(SCROLL_PAUSE_TIME_MS)
             html_content = await page.content()
             if not isinstance(html_content, str):
                 html_content = ""

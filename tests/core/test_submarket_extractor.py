@@ -311,6 +311,7 @@ class TestExtractVisibleSubmarketsPassiveHTML:
         assert result[1]["odds_under"] == "1.95"
 
         assert result[2]["submarket_name"] == "Over/Under +3.5"
+        page_mock.wait_for_timeout.assert_not_awaited()
 
     async def test_extract_empty_page(self, extractor, page_mock):
         """Returns empty list for page with no submarkets."""

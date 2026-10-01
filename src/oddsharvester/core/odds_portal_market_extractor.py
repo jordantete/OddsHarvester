@@ -291,7 +291,6 @@ class OddsPortalMarketExtractor:
                         self.logger.error(f"Failed to find or select {specific_market} within {main_market}")
                         return []
 
-                    await self.navigation_manager.wait_for_page_load(page)
                     html_content = await page.content()
 
                     odds_data = self.odds_parser.parse_market_odds(
@@ -308,7 +307,6 @@ class OddsPortalMarketExtractor:
                     self.logger.error(f"Failed to find or select {specific_market} within {main_market}")
                     return []
 
-                await self.navigation_manager.wait_for_page_load(page)
                 html_content = await page.content()
 
                 odds_data = self.odds_parser.parse_market_odds(

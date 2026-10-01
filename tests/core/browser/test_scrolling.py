@@ -1,10 +1,13 @@
 import logging
 from unittest.mock import AsyncMock, MagicMock
 
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 import pytest
 
-from oddsharvester.core.browser.scrolling import PageScroller
+from oddsharvester.core.browser.scrolling import _LINE_ROW_JS, PageScroller
+from oddsharvester.core.browser.waits import SIGNAL_POLL_MS
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
+from oddsharvester.utils.constants import SCROLL_PAUSE_TIME_MS, SCROLL_UNTIL_CLICK_TIMEOUT_S
 
 # Asian Handicap line spans of Arsenal - Leeds on www.oddsportal.com (2026-09-29), in DOM order.
 # Each line row holds five spans: both labels, the full label, the short label (hidden on
@@ -66,6 +69,7 @@ def _line_page(rows):
     page.query_selector_all = AsyncMock(return_value=spans)
     page.evaluate = AsyncMock()
     page.wait_for_timeout = AsyncMock()
+    page.wait_for_function = AsyncMock(return_value=MagicMock())
     return page, trs
 
 
@@ -74,15 +78,24 @@ def _rank_of(rows, line):
 
 
 async def _click_line(page, line, timeout=1):
-    return await PageScroller().scroll_until_visible_and_click_parent(
+    return await PageScroller().click_line_row(
         page,
         OddsPortalSelectors.SUB_MARKET_SELECTOR,
         line,
+        OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
         timeout=timeout,
-        scroll_pause_time=0,
-        click_ancestor=OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
-        exact_tail=True,
     )
+
+
+def _line_args(line, want):
+    return {
+        "selector": OddsPortalSelectors.SUB_MARKET_SELECTOR,
+        "tokens": line.split(),
+        "bareNumber": line.strip().isdigit(),
+        "ancestor": OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
+        "bookmakerRow": OddsPortalSelectors.BOOKMAKER_ROW_WITH_NAME_CSS,
+        "want": want,
+    }
 
 
 class TestPageScroller:
@@ -143,82 +156,6 @@ class TestPageScroller:
         )
         assert result is True
 
-    async def test_scroll_until_visible_and_click_parent_success_with_text(self, scroller, mock_page):
-        """Test successful scroll and click with text matching."""
-        # Mock element with matching text and bounding box
-        mock_element = AsyncMock()
-        mock_element.text_content.return_value = "Target Text"
-        mock_element.bounding_box.return_value = {"x": 0, "y": 0, "width": 100, "height": 50}
-        mock_element.evaluate_handle.return_value = AsyncMock()
-
-        mock_page.query_selector_all.return_value = [mock_element]
-        mock_page.evaluate = AsyncMock()
-        mock_page.wait_for_timeout = AsyncMock()
-
-        result = await scroller.scroll_until_visible_and_click_parent(
-            mock_page, "test-selector", "Target Text", timeout=1, scroll_pause_time=0.1
-        )
-        assert result is True
-
-    async def test_scroll_until_visible_and_click_parent_success_without_text(self, scroller, mock_page):
-        """Test successful scroll and click without text matching."""
-        # Mock element with bounding box
-        mock_element = AsyncMock()
-        mock_element.bounding_box.return_value = {"x": 0, "y": 0, "width": 100, "height": 50}
-        mock_element.evaluate_handle.return_value = AsyncMock()
-
-        mock_page.query_selector_all.return_value = [mock_element]
-        mock_page.evaluate = AsyncMock()
-        mock_page.wait_for_timeout = AsyncMock()
-
-        result = await scroller.scroll_until_visible_and_click_parent(
-            mock_page, "test-selector", timeout=1, scroll_pause_time=0.1
-        )
-        assert result is True
-
-    async def test_scroll_until_visible_and_click_parent_no_bounding_box(self, scroller, mock_page):
-        """Test scroll and click when element has no bounding box."""
-        # Mock element without bounding box
-        mock_element = AsyncMock()
-        mock_element.text_content.return_value = "Target Text"
-        mock_element.bounding_box.return_value = None
-
-        mock_page.query_selector_all.return_value = [mock_element]
-        mock_page.evaluate = AsyncMock()
-        mock_page.wait_for_timeout = AsyncMock()
-
-        result = await scroller.scroll_until_visible_and_click_parent(
-            mock_page, "test-selector", "Target Text", timeout=1, scroll_pause_time=0.1
-        )
-        assert result is False
-
-    async def test_scroll_until_visible_and_click_parent_timeout(self, scroller, mock_page):
-        """Test scroll and click that times out."""
-        # Mock no elements found
-        mock_page.query_selector_all.return_value = []
-        mock_page.evaluate = AsyncMock()
-        mock_page.wait_for_timeout = AsyncMock()
-
-        result = await scroller.scroll_until_visible_and_click_parent(
-            mock_page, "test-selector", "Target Text", timeout=0.1, scroll_pause_time=0.1
-        )
-        assert result is False
-
-    async def test_scroll_until_visible_and_click_parent_text_not_found(self, scroller, mock_page):
-        """Test scroll and click when text is not found."""
-        # Mock element with different text
-        mock_element = AsyncMock()
-        mock_element.text_content.return_value = "Different Text"
-
-        mock_page.query_selector_all.return_value = [mock_element]
-        mock_page.evaluate = AsyncMock()
-        mock_page.wait_for_timeout = AsyncMock()
-
-        result = await scroller.scroll_until_visible_and_click_parent(
-            mock_page, "test-selector", "Target Text", timeout=0.1, scroll_pause_time=0.1
-        )
-        assert result is False
-
     async def test_scroll_until_loaded_zero_timeout(self, scroller, mock_page):
         """Test scrolling with zero timeout."""
         mock_page.evaluate.return_value = 1000
@@ -233,16 +170,6 @@ class TestPageScroller:
         mock_page.wait_for_timeout = AsyncMock()
 
         result = await scroller.scroll_until_loaded(mock_page, timeout=-1)
-        assert result is False
-
-    async def test_scroll_until_visible_and_click_parent_empty_selector(self, scroller, mock_page):
-        """Test scroll and click with empty selector."""
-        result = await scroller.scroll_until_visible_and_click_parent(mock_page, "", "test-text", timeout=0.1)
-        assert result is False
-
-    async def test_scroll_until_visible_and_click_parent_none_selector(self, scroller, mock_page):
-        """Test scroll and click with None selector."""
-        result = await scroller.scroll_until_visible_and_click_parent(mock_page, None, "test-text", timeout=0.1)
         assert result is False
 
     async def test_logging_during_scrolling(self, scroller, mock_page, caplog):
@@ -321,3 +248,73 @@ async def test_exact_tail_clicks_a_line_no_other_row_shares():
     assert await _click_line(page, "+1") is True
 
     assert [tr.click.await_count for tr in trs] == [0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+
+
+async def test_a_line_row_is_looked_for_once_the_table_shows_it_without_scrolling():
+    """R13: one wait for the row, at most SCROLL_UNTIL_CLICK_TIMEOUT_S, then one read; nothing scrolls."""
+    page, _ = _line_page(ARSENAL_LEEDS_AH_ROWS)
+
+    assert await PageScroller().click_line_row(
+        page, OddsPortalSelectors.SUB_MARKET_SELECTOR, "-1", OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR
+    )
+
+    page.wait_for_function.assert_awaited_once_with(
+        _LINE_ROW_JS,
+        arg=_line_args("-1", "present"),
+        timeout=SCROLL_UNTIL_CLICK_TIMEOUT_S * 1000,
+        polling=SIGNAL_POLL_MS,
+    )
+    page.query_selector_all.assert_awaited_once()
+    page.evaluate.assert_not_awaited()
+    page.wait_for_timeout.assert_not_awaited()
+
+
+async def test_a_line_the_table_never_shows_clicks_nothing_and_warns(caplog):
+    page, trs = _line_page(ARSENAL_LEEDS_AH_ROWS)
+    page.wait_for_function = AsyncMock(side_effect=PlaywrightTimeoutError("Timeout 1000ms exceeded."))
+
+    with caplog.at_level(logging.WARNING):
+        assert await _click_line(page, "+9.5") is False
+
+    assert "No row of line '+9.5' within 1000 ms; carrying on with the page as it is." in caplog.text
+    page.query_selector_all.assert_not_awaited()
+    assert not any(tr.click.await_count for tr in trs)
+
+
+@pytest.mark.parametrize(("shown", "want"), [(True, "open"), (False, "closed")])
+async def test_a_toggled_line_waits_for_its_bookmaker_rows(shown, want):
+    """R8 for a line market: its bookmaker rows under it once opened, gone once closed, at most 2 s."""
+    page = MagicMock(wait_for_function=AsyncMock(return_value=MagicMock()))
+
+    assert (
+        await PageScroller().wait_for_line_bookmakers(
+            page,
+            OddsPortalSelectors.SUB_MARKET_SELECTOR,
+            "+2.5",
+            OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
+            shown=shown,
+        )
+        is True
+    )
+
+    page.wait_for_function.assert_awaited_once_with(
+        _LINE_ROW_JS, arg=_line_args("+2.5", want), timeout=SCROLL_PAUSE_TIME_MS, polling=SIGNAL_POLL_MS
+    )
+
+
+async def test_a_line_with_no_bookmaker_rows_warns_at_the_cap(caplog):
+    page = MagicMock(wait_for_function=AsyncMock(side_effect=PlaywrightTimeoutError("Timeout 2000ms exceeded.")))
+
+    with caplog.at_level(logging.WARNING):
+        assert (
+            await PageScroller().wait_for_line_bookmakers(
+                page,
+                OddsPortalSelectors.SUB_MARKET_SELECTOR,
+                "+2.25",
+                OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
+                shown=True,
+            )
+            is False
+        )
+
+    assert "No bookmaker rows under line '+2.25' within 2000 ms" in caplog.text
