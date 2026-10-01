@@ -62,10 +62,11 @@ def build_fixture_filename(
     period: str,
     bookies_filter: str,
     odds_history: bool = False,
+    preview_only: bool = False,
 ) -> str:
     """Build fixture filename from parameters."""
     markets_str = "_".join(sorted(markets))
-    suffix = "_odds_history" if odds_history else ""
+    suffix = ("_odds_history" if odds_history else "") + ("_preview" if preview_only else "")
     return f"{markets_str}_{period}_{bookies_filter}{suffix}.json"
 
 
@@ -125,6 +126,7 @@ def capture_fixture(
     proxy_url: str | None = None,
     match_dir: str | None = None,
     odds_history: bool = False,
+    preview_only: bool = False,
     extra_args: list[str] | None = None,
 ) -> Path:
     """
@@ -145,7 +147,9 @@ def capture_fixture(
 
     # Build command
     markets_str = ",".join(markets)
-    fixture_filename = build_fixture_filename(markets, period, bookies_filter, odds_history=odds_history)
+    fixture_filename = build_fixture_filename(
+        markets, period, bookies_filter, odds_history=odds_history, preview_only=preview_only
+    )
     output_path = output_dir / fixture_filename
 
     cmd = [
@@ -318,6 +322,9 @@ Examples:
         "--odds-history", action="store_true", help="Scrape odds history (adds _odds_history to the name)"
     )
     parser.add_argument(
+        "--preview-only", action="store_true", help="Scrape in preview mode (adds _preview to the name)"
+    )
+    parser.add_argument(
         "--timezone", default="UTC", help="Forwarded to the CLI (default: UTC, the zone replays run in)"
     )
     parser.add_argument("--locale", default=None, help="Forwarded to the CLI (e.g. en-GB)")
@@ -329,6 +336,8 @@ Examples:
     markets = [m.strip() for m in args.markets.split(",")]
 
     extra_args = ["--odds-history"] if args.odds_history else []
+    if args.preview_only:
+        extra_args.append("--preview-only")
     for flag, value in (
         ("--timezone", args.timezone),
         ("--locale", args.locale),
@@ -353,6 +362,7 @@ Examples:
             proxy_url=args.proxy_url,
             match_dir=args.match_dir,
             odds_history=args.odds_history,
+            preview_only=args.preview_only,
             extra_args=extra_args,
         )
         print()

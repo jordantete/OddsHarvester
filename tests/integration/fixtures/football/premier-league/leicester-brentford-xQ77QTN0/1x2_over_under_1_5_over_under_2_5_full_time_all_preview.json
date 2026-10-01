@@ -1,0 +1,408 @@
+[
+    {
+        "scraped_date": "2026-10-01 08:03:58 UTC",
+        "match_date": "2025-02-21 20:00:00 UTC",
+        "season": null,
+        "match_link": "https://www.oddsportal.com/football/h2h/brentford-xYe7DwID/leicester-KrrdAMyI/#xQ77QTN0",
+        "home_team": "Leicester",
+        "away_team": "Brentford",
+        "league_name": "Premier League",
+        "home_score": "0",
+        "away_score": "4",
+        "partial_results": "(0:3, 0:1)",
+        "venue": "King Power Stadium",
+        "venue_town": "Leicester",
+        "venue_country": "England",
+        "match_info": null,
+        "1x2_market": [
+            {
+                "1": "3.50",
+                "X": "3.67",
+                "2": "1.96",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "1X2"
+            },
+            {
+                "1": "3.60",
+                "X": "3.70",
+                "2": "1.95",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullTime",
+                "submarket_name": "1X2"
+            },
+            {
+                "1": "3.60",
+                "X": "3.80",
+                "2": "1.96",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "1X2"
+            },
+            {
+                "1": "3.65",
+                "X": "3.80",
+                "2": "1.96",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "submarket_name": "1X2"
+            }
+        ],
+        "over_under_1_5_market": [
+            {
+                "submarket_name": "Over/Under +0.5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "1.03",
+                "odds_under": "16.00"
+            },
+            {
+                "submarket_name": "Over/Under +1",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "1.04",
+                "odds_under": "12.00"
+            },
+            {
+                "submarket_name": "Over/Under +1.25",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +1.5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "1.16",
+                "odds_under": "4.40"
+            },
+            {
+                "submarket_name": "Over/Under +1.75",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +2",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "1.22",
+                "odds_under": "3.60"
+            },
+            {
+                "submarket_name": "Over/Under +2.25",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +2.5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "1.55",
+                "odds_under": "2.25"
+            },
+            {
+                "submarket_name": "Over/Under +2.75",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +3",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "1.80",
+                "odds_under": "1.76"
+            },
+            {
+                "submarket_name": "Over/Under +3.25",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +3.5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "2.30",
+                "odds_under": "1.52"
+            },
+            {
+                "submarket_name": "Over/Under +3.75",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +4",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "3.35",
+                "odds_under": "1.26"
+            },
+            {
+                "submarket_name": "Over/Under +4.25",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +4.5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "3.90",
+                "odds_under": "1.20"
+            },
+            {
+                "submarket_name": "Over/Under +4.75",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "6.50",
+                "odds_under": "1.08"
+            },
+            {
+                "submarket_name": "Over/Under +5.25",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +5.5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "7.75",
+                "odds_under": "1.07"
+            },
+            {
+                "submarket_name": "Over/Under +5.75",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +6.5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "13.00",
+                "odds_under": "1.01"
+            }
+        ],
+        "over_under_2_5_market": [
+            {
+                "submarket_name": "Over/Under +0.5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "1.03",
+                "odds_under": "16.00"
+            },
+            {
+                "submarket_name": "Over/Under +1",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "1.04",
+                "odds_under": "12.00"
+            },
+            {
+                "submarket_name": "Over/Under +1.25",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +1.5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "1.16",
+                "odds_under": "4.40"
+            },
+            {
+                "submarket_name": "Over/Under +1.75",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +2",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "1.22",
+                "odds_under": "3.60"
+            },
+            {
+                "submarket_name": "Over/Under +2.25",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +2.5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "1.55",
+                "odds_under": "2.25"
+            },
+            {
+                "submarket_name": "Over/Under +2.75",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +3",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "1.80",
+                "odds_under": "1.76"
+            },
+            {
+                "submarket_name": "Over/Under +3.25",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +3.5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "2.30",
+                "odds_under": "1.52"
+            },
+            {
+                "submarket_name": "Over/Under +3.75",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +4",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "3.35",
+                "odds_under": "1.26"
+            },
+            {
+                "submarket_name": "Over/Under +4.25",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +4.5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "3.90",
+                "odds_under": "1.20"
+            },
+            {
+                "submarket_name": "Over/Under +4.75",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "6.50",
+                "odds_under": "1.08"
+            },
+            {
+                "submarket_name": "Over/Under +5.25",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +5.5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "7.75",
+                "odds_under": "1.07"
+            },
+            {
+                "submarket_name": "Over/Under +5.75",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "-",
+                "odds_under": "-"
+            },
+            {
+                "submarket_name": "Over/Under +6.5",
+                "period": "FullTime",
+                "market_type": "Over/Under",
+                "extraction_mode": "passive",
+                "odds_over": "13.00",
+                "odds_under": "1.01"
+            }
+        ]
+    }
+]

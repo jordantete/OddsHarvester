@@ -49,6 +49,7 @@ class SpecialFixture:
 
 
 ODDS_HISTORY_MATCH = "football/premier-league/manchester-city-chelsea-lMp9YMye"
+PREVIEW_MATCH = "football/premier-league/leicester-brentford-xQ77QTN0"
 
 SPECIAL_FIXTURES = (
     SpecialFixture(
@@ -80,6 +81,28 @@ SPECIAL_FIXTURES = (
             "2",
             "--concurrency",
             "3",
+            "--capture-har",
+        ),
+    ),
+    SpecialFixture(
+        kind="matches",
+        har=f"{PREVIEW_MATCH}/1x2_over_under_1_5_over_under_2_5_full_time_all_preview.har",
+        argv=(
+            "--sport",
+            "football",
+            "--league",
+            "premier-league",
+            "--match-url",
+            "https://www.oddsportal.com/football/h2h/brentford-xYe7DwID/leicester-KrrdAMyI/#xQ77QTN0",
+            "--match-dir",
+            "leicester-brentford-xQ77QTN0",
+            "--markets",
+            "1x2,over_under_1_5,over_under_2_5",
+            "--period",
+            "full_time",
+            "--bookies-filter",
+            "all",
+            "--preview-only",
             "--capture-har",
         ),
     ),

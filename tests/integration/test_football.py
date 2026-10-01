@@ -147,3 +147,27 @@ class TestFootballBookiesFilter:
             markets=["1x2"],
             bookies_filter="classic",
         )
+
+
+@pytest.mark.integration
+class TestFootballPreview:
+    """Tests for --preview-only, which reads each line's collapsed row instead of every bookmaker."""
+
+    def test_fb_009_preview_only(self, har_for_match, tmp_path):
+        """FB-009: Over/Under is scraped once for both lines, and each line token holds every visible line.
+
+        Its capture command is the SPECIAL_FIXTURES entry in scripts/capture_all_hars.py.
+        """
+        record = replay_and_compare(
+            har_for_match,
+            tmp_path,
+            LEICESTER_BRENTFORD,
+            "1x2_over_under_1_5_over_under_2_5_full_time_all_preview.json",
+            markets=["1x2", "over_under_1_5", "over_under_2_5"],
+            period="full_time",
+            extra_args=["--preview-only"],
+        )[0]
+
+        assert record["over_under_1_5_market"], "preview mode returned no Over/Under line"
+        assert record["over_under_1_5_market"] == record["over_under_2_5_market"]
+        assert {entry.get("extraction_mode") for entry in record["over_under_1_5_market"]} == {"passive"}

@@ -28,6 +28,11 @@ def test_fixture_filename_with_odds_history():
     assert name == "1x2_over_under_2_5_full_time_all_odds_history.json"
 
 
+def test_fixture_filename_with_preview_only():
+    name = build_fixture_filename(["over_under_2_5", "1x2"], "full_time", "all", preview_only=True)
+    assert name == "1x2_over_under_2_5_full_time_all_preview.json"
+
+
 def test_run_historic_forwards_extra_args_and_replay_env(monkeypatch, tmp_path):
     calls = {}
 
