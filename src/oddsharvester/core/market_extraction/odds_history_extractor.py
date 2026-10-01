@@ -1,17 +1,32 @@
 import logging
+import time
 
-from playwright.async_api import ElementHandle, Page
+from playwright.async_api import ElementHandle, Page, Response
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
+from oddsharvester.core.browser.waits import wait_for_signal
 from oddsharvester.core.market_extraction.bookmaker_name import bookmaker_match_key, resolve_bookmaker_name
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import (
     ODDS_HISTORY_HOVER_WAIT_MS,
-    ODDS_HISTORY_PRE_WAIT_MS,
     ODDS_MOVEMENT_SELECTOR_TIMEOUT_MS,
 )
 
 # An expanded submarket row wraps a nested bookmaker table: only leaf rows are bookmaker rows (same rule as OddsParser).
 LEAF_BOOKMAKER_ROW_CSS = f"{OddsPortalSelectors.BOOKMAKER_ROW_WITH_NAME_CSS}:not(:has(tr))"
+
+# The tooltip renders its header over a spinner first, then its history once the request answered.
+SETTLED_TOOLTIP_JS = """
+(header) => {
+    const tooltip = document.querySelector(header)?.parentElement;
+    return tooltip && !tooltip.querySelector(".animate-spin") ? tooltip.innerHTML : null;
+}
+"""
+
+
+def is_history_response(response: Response) -> bool:
+    """The odds-movement request a hover fires: /proxy/match-event-history/<event>-<bookmaker>/."""
+    return "/match-event-history/" in response.url
 
 
 class OddsHistoryExtractor:
@@ -36,8 +51,6 @@ class OddsHistoryExtractor:
         """
         self.logger.info(f"Extracting odds history for bookmaker: {bookmaker_name}")
         modals: list[str | None] = [None] * cell_count
-        await page.wait_for_timeout(ODDS_HISTORY_PRE_WAIT_MS)
-
         row = await self._find_row(page, bookmaker_name)
         if row is None:
             self.logger.warning(f"No odds row found for bookmaker {bookmaker_name}; its history stays empty.")
@@ -77,8 +90,9 @@ class OddsHistoryExtractor:
 
     async def _hover_modal(self, page: Page, cell: ElementHandle, bookmaker_name: str, index: int) -> str | None:
         try:
-            await cell.hover()
-            await page.wait_for_timeout(ODDS_HISTORY_HOVER_WAIT_MS)
+            settled = await self._hover_until_settled(page, cell)
+            if settled is not None:
+                return settled
             header = await page.wait_for_selector(
                 OddsPortalSelectors.ODDS_MOVEMENT_HEADER, timeout=ODDS_MOVEMENT_SELECTOR_TIMEOUT_MS
             )
@@ -91,6 +105,31 @@ class OddsHistoryExtractor:
         except Exception as e:
             self.logger.warning(f"Failed to read odds history for {bookmaker_name}, outcome {index}: {e}")
             return None
+
+    async def _hover_until_settled(self, page: Page, cell: ElementHandle) -> str | None:
+        """Hover the cell; the tooltip HTML once its history request answered and its spinner went, else None.
+
+        The response and the tooltip share one cap, ODDS_HISTORY_HOVER_WAIT_MS.
+        """
+        started = time.monotonic()
+        try:
+            async with page.expect_response(is_history_response, timeout=ODDS_HISTORY_HOVER_WAIT_MS):
+                await cell.hover()
+        except PlaywrightTimeoutError:
+            self.logger.warning(
+                f"No odds-history response within {ODDS_HISTORY_HOVER_WAIT_MS} ms of the hover; "
+                "carrying on with the page as it is."
+            )
+            return None
+        left_ms = ODDS_HISTORY_HOVER_WAIT_MS - int((time.monotonic() - started) * 1000)
+        handle = await wait_for_signal(
+            page,
+            SETTLED_TOOLTIP_JS,
+            max(left_ms, 1),
+            "settled odds-history tooltip",
+            arg=OddsPortalSelectors.ODDS_MOVEMENT_HEADER,
+        )
+        return None if handle is None else await handle.json_value()
 
     @staticmethod
     async def _row_bookmaker_name(row: ElementHandle) -> str | None:
