@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import ClassVar
 
 from oddsharvester.utils.sport_market_constants import (
@@ -33,20 +34,30 @@ def format_line_number(raw: str) -> str:
     return raw.replace("_", ".").removesuffix(".0")
 
 
+@dataclass(frozen=True)
+class MarketSpec:
+    """One market token: its tab, its line row, its outcome labels, and the axis (sets, games, points) of its line."""
+
+    main_market: str
+    specific_market: str | None = None
+    odds_labels: tuple[str, ...] | None = None
+    line_axis: str | None = None
+
+
 class SportMarketRegistry:
     """Registry to dynamically store market mappings for each sport."""
 
-    _registry: ClassVar[dict] = {}
+    _registry: ClassVar[dict[str, dict[str, MarketSpec]]] = {}
 
     @classmethod
-    def register(cls, sport: Sport, market_mapping: dict):
+    def register(cls, sport: Sport, market_mapping: dict[str, MarketSpec]):
         """Register a market mapping for a sport."""
         if sport.value not in cls._registry:
             cls._registry[sport.value] = {}
         cls._registry[sport.value].update(market_mapping)
 
     @classmethod
-    def get_market_mapping(cls, sport: str) -> dict:
+    def get_market_mapping(cls, sport: str) -> dict[str, MarketSpec]:
         """Retrieve market mappings for a given sport."""
         return cls._registry.get(sport, {})
 
@@ -59,13 +70,11 @@ class SportMarketRegistry:
         ambiguous when its value lies within [min, max] of another axis of the same main market.
         """
         entries: list[tuple[str, str, str, float]] = []
-        for market, method in cls.get_market_mapping(sport).items():
-            line_axis = getattr(method, "line_axis", None)
-            specific_market = getattr(method, "specific_market", None)
-            if line_axis is None or not isinstance(specific_market, str):
+        for market, spec in cls.get_market_mapping(sport).items():
+            if spec.line_axis is None or spec.specific_market is None:
                 continue
-            value = float(specific_market.rsplit(" ", 1)[-1])
-            entries.append((market, method.main_market, line_axis, value))
+            value = float(spec.specific_market.rsplit(" ", 1)[-1])
+            entries.append((market, spec.main_market, spec.line_axis, value))
 
         ranges: dict[tuple[str, str], tuple[float, float]] = {}
         for _, main_market, line_axis, value in entries:
@@ -90,55 +99,16 @@ class SportMarketRegistry:
 class SportMarketRegistrar:
     """Handles the registration of betting markets for different sports."""
 
-    @staticmethod
-    def create_market_lambda(main_market, specific_market=None, odds_labels=None, line_axis=None):
-        """
-        Creates the extraction function of a market.
-
-        The function carries `main_market`, `specific_market` and `line_axis`, which
-        `SportMarketRegistry.ambiguous_markets` compares across markets.
-        """
-
-        def extract(
-            extractor,
-            page,
-            period="FullTime",
-            scrape_odds_history=False,
-            target_bookmaker=None,
-            preview_submarkets_only=False,
-            sport=None,
-            history_reference=None,
-            history_timezone=None,
-        ):
-            return extractor.extract_market_odds(
-                page=page,
-                main_market=main_market,
-                specific_market=specific_market,
-                period=period,
-                odds_labels=odds_labels,
-                scrape_odds_history=scrape_odds_history,
-                target_bookmaker=target_bookmaker,
-                preview_submarkets_only=preview_submarkets_only,
-                sport=sport,
-                history_reference=history_reference,
-                history_timezone=history_timezone,
-            )
-
-        extract.main_market = main_market
-        extract.specific_market = specific_market
-        extract.line_axis = line_axis
-        return extract
-
     @classmethod
     def register_football_markets(cls):
         """Registers all football betting markets."""
         SportMarketRegistry.register(
             Sport.FOOTBALL,
             {
-                "1x2": cls.create_market_lambda("1X2", odds_labels=["1", "X", "2"]),
-                "btts": cls.create_market_lambda("Both Teams to Score", odds_labels=["btts_yes", "btts_no"]),
-                "double_chance": cls.create_market_lambda("Double Chance", odds_labels=["1X", "12", "X2"]),
-                "dnb": cls.create_market_lambda("Draw No Bet", odds_labels=["dnb_team1", "dnb_team2"]),
+                "1x2": MarketSpec("1X2", odds_labels=("1", "X", "2")),
+                "btts": MarketSpec("Both Teams to Score", odds_labels=("btts_yes", "btts_no")),
+                "double_chance": MarketSpec("Double Chance", odds_labels=("1X", "12", "X2")),
+                "dnb": MarketSpec("Draw No Bet", odds_labels=("dnb_team1", "dnb_team2")),
             },
         )
 
@@ -148,10 +118,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.FOOTBALL,
                 {
-                    over_under.value: cls.create_market_lambda(
+                    over_under.value: MarketSpec(
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
-                        odds_labels=["odds_over", "odds_under"],
+                        odds_labels=("odds_over", "odds_under"),
                     )
                 },
             )
@@ -161,10 +131,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.FOOTBALL,
                 {
-                    handicap.value: cls.create_market_lambda(
+                    handicap.value: MarketSpec(
                         main_market="European Handicap",
                         specific_market=f"European Handicap {format_line_number(handicap.value.split('_')[-1])}",
-                        odds_labels=["team1_handicap", "draw_handicap", "team2_handicap"],
+                        odds_labels=("team1_handicap", "draw_handicap", "team2_handicap"),
                     )
                 },
             )
@@ -175,10 +145,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.FOOTBALL,
                 {
-                    handicap.value: cls.create_market_lambda(
+                    handicap.value: MarketSpec(
                         main_market="Asian Handicap",
                         specific_market=f"Asian Handicap {formatted_handicap}",
-                        odds_labels=["team1_handicap", "team2_handicap"],
+                        odds_labels=("team1_handicap", "team2_handicap"),
                     )
                 },
             )
@@ -189,7 +159,7 @@ class SportMarketRegistrar:
         SportMarketRegistry.register(
             Sport.TENNIS,
             {
-                "match_winner": cls.create_market_lambda("Home/Away", odds_labels=["player_1", "player_2"]),
+                "match_winner": MarketSpec("Home/Away", odds_labels=("player_1", "player_2")),
             },
         )
 
@@ -199,10 +169,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.TENNIS,
                 {
-                    over_under.value: cls.create_market_lambda(
+                    over_under.value: MarketSpec(
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
-                        odds_labels=["odds_over", "odds_under"],
+                        odds_labels=("odds_over", "odds_under"),
                         line_axis="sets",
                     )
                 },
@@ -214,10 +184,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.TENNIS,
                 {
-                    over_under.value: cls.create_market_lambda(
+                    over_under.value: MarketSpec(
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
-                        odds_labels=["odds_over", "odds_under"],
+                        odds_labels=("odds_over", "odds_under"),
                         line_axis="games",
                     )
                 },
@@ -230,10 +200,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.TENNIS,
                 {
-                    handicap.value: cls.create_market_lambda(
+                    handicap.value: MarketSpec(
                         main_market="Asian Handicap",
                         specific_market=specific_market,
-                        odds_labels=["games_handicap_player_1", "games_handicap_player_2"],
+                        odds_labels=("games_handicap_player_1", "games_handicap_player_2"),
                         line_axis="games",
                     )
                 },
@@ -246,10 +216,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.TENNIS,
                 {
-                    handicap.value: cls.create_market_lambda(
+                    handicap.value: MarketSpec(
                         main_market="Asian Handicap",
                         specific_market=specific_market,
-                        odds_labels=["sets_handicap_player_1", "sets_handicap_player_2"],
+                        odds_labels=("sets_handicap_player_1", "sets_handicap_player_2"),
                         line_axis="sets",
                     )
                 },
@@ -262,8 +232,8 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.TENNIS,
                 {
-                    correct_score.value: cls.create_market_lambda(
-                        main_market="Correct Score", specific_market=specific_market, odds_labels=["correct_score"]
+                    correct_score.value: MarketSpec(
+                        main_market="Correct Score", specific_market=specific_market, odds_labels=("correct_score",)
                     )
                 },
             )
@@ -274,8 +244,8 @@ class SportMarketRegistrar:
         SportMarketRegistry.register(
             Sport.BASKETBALL,
             {
-                "1x2": cls.create_market_lambda("1X2", odds_labels=["1", "X", "2"]),
-                "home_away": cls.create_market_lambda("Home/Away", odds_labels=["1", "2"]),
+                "1x2": MarketSpec("1X2", odds_labels=("1", "X", "2")),
+                "home_away": MarketSpec("Home/Away", odds_labels=("1", "2")),
             },
         )
 
@@ -285,10 +255,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.BASKETBALL,
                 {
-                    over_under.value: cls.create_market_lambda(
+                    over_under.value: MarketSpec(
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
-                        odds_labels=["odds_over", "odds_under"],
+                        odds_labels=("odds_over", "odds_under"),
                     )
                 },
             )
@@ -300,10 +270,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.BASKETBALL,
                 {
-                    handicap.value: cls.create_market_lambda(
+                    handicap.value: MarketSpec(
                         main_market="Asian Handicap",
                         specific_market=specific_market,
-                        odds_labels=["handicap_team_1", "handicap_team_2"],
+                        odds_labels=("handicap_team_1", "handicap_team_2"),
                     )
                 },
             )
@@ -314,10 +284,10 @@ class SportMarketRegistrar:
         SportMarketRegistry.register(
             Sport.RUGBY_LEAGUE,
             {
-                "1x2": cls.create_market_lambda("1X2", odds_labels=["1", "X", "2"]),
-                "home_away": cls.create_market_lambda("Home/Away", odds_labels=["1", "2"]),
-                "dnb": cls.create_market_lambda("Draw No Bet", odds_labels=["dnb_team1", "dnb_team2"]),
-                "double_chance": cls.create_market_lambda("Double Chance", odds_labels=["1X", "12", "X2"]),
+                "1x2": MarketSpec("1X2", odds_labels=("1", "X", "2")),
+                "home_away": MarketSpec("Home/Away", odds_labels=("1", "2")),
+                "dnb": MarketSpec("Draw No Bet", odds_labels=("dnb_team1", "dnb_team2")),
+                "double_chance": MarketSpec("Double Chance", odds_labels=("1X", "12", "X2")),
             },
         )
 
@@ -327,10 +297,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.RUGBY_LEAGUE,
                 {
-                    over_under.value: cls.create_market_lambda(
+                    over_under.value: MarketSpec(
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
-                        odds_labels=["odds_over", "odds_under"],
+                        odds_labels=("odds_over", "odds_under"),
                     )
                 },
             )
@@ -341,10 +311,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.RUGBY_LEAGUE,
                 {
-                    handicap.value: cls.create_market_lambda(
+                    handicap.value: MarketSpec(
                         main_market="Handicap",
                         specific_market=f"Handicap {numeric_part}",
-                        odds_labels=["handicap_team_1", "handicap_team_2"],
+                        odds_labels=("handicap_team_1", "handicap_team_2"),
                     )
                 },
             )
@@ -355,10 +325,10 @@ class SportMarketRegistrar:
         SportMarketRegistry.register(
             Sport.RUGBY_UNION,
             {
-                "1x2": cls.create_market_lambda("1X2", odds_labels=["1", "X", "2"]),
-                "home_away": cls.create_market_lambda("Home/Away", odds_labels=["1", "2"]),
-                "dnb": cls.create_market_lambda("Draw No Bet", odds_labels=["dnb_team1", "dnb_team2"]),
-                "double_chance": cls.create_market_lambda("Double Chance", odds_labels=["1X", "12", "X2"]),
+                "1x2": MarketSpec("1X2", odds_labels=("1", "X", "2")),
+                "home_away": MarketSpec("Home/Away", odds_labels=("1", "2")),
+                "dnb": MarketSpec("Draw No Bet", odds_labels=("dnb_team1", "dnb_team2")),
+                "double_chance": MarketSpec("Double Chance", odds_labels=("1X", "12", "X2")),
             },
         )
 
@@ -368,10 +338,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.RUGBY_UNION,
                 {
-                    over_under.value: cls.create_market_lambda(
+                    over_under.value: MarketSpec(
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
-                        odds_labels=["odds_over", "odds_under"],
+                        odds_labels=("odds_over", "odds_under"),
                     )
                 },
             )
@@ -382,10 +352,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.RUGBY_UNION,
                 {
-                    handicap.value: cls.create_market_lambda(
+                    handicap.value: MarketSpec(
                         main_market="Handicap",
                         specific_market=f"Handicap {numeric_part}",
-                        odds_labels=["handicap_team_1", "handicap_team_2"],
+                        odds_labels=("handicap_team_1", "handicap_team_2"),
                     )
                 },
             )
@@ -396,11 +366,11 @@ class SportMarketRegistrar:
         SportMarketRegistry.register(
             Sport.ICE_HOCKEY,
             {
-                "1x2": cls.create_market_lambda("1X2", odds_labels=["1", "X", "2"]),
-                "home_away": cls.create_market_lambda("Home/Away", odds_labels=["1", "2"]),
-                "dnb": cls.create_market_lambda("Draw No Bet", odds_labels=["dnb_team1", "dnb_team2"]),
-                "btts": cls.create_market_lambda("Both Teams to Score", odds_labels=["btts_yes", "btts_no"]),
-                "double_chance": cls.create_market_lambda("Double Chance", odds_labels=["1X", "12", "X2"]),
+                "1x2": MarketSpec("1X2", odds_labels=("1", "X", "2")),
+                "home_away": MarketSpec("Home/Away", odds_labels=("1", "2")),
+                "dnb": MarketSpec("Draw No Bet", odds_labels=("dnb_team1", "dnb_team2")),
+                "btts": MarketSpec("Both Teams to Score", odds_labels=("btts_yes", "btts_no")),
+                "double_chance": MarketSpec("Double Chance", odds_labels=("1X", "12", "X2")),
             },
         )
 
@@ -410,10 +380,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.ICE_HOCKEY,
                 {
-                    over_under.value: cls.create_market_lambda(
+                    over_under.value: MarketSpec(
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
-                        odds_labels=["odds_over", "odds_under"],
+                        odds_labels=("odds_over", "odds_under"),
                     )
                 },
             )
@@ -424,8 +394,8 @@ class SportMarketRegistrar:
         SportMarketRegistry.register(
             Sport.BASEBALL,
             {
-                "1x2": cls.create_market_lambda("1X2", odds_labels=["1", "X", "2"]),
-                "home_away": cls.create_market_lambda("Home/Away", odds_labels=["1", "2"]),
+                "1x2": MarketSpec("1X2", odds_labels=("1", "X", "2")),
+                "home_away": MarketSpec("Home/Away", odds_labels=("1", "2")),
             },
         )
 
@@ -435,10 +405,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.BASEBALL,
                 {
-                    over_under.value: cls.create_market_lambda(
+                    over_under.value: MarketSpec(
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
-                        odds_labels=["odds_over", "odds_under"],
+                        odds_labels=("odds_over", "odds_under"),
                     )
                 },
             )
@@ -449,8 +419,8 @@ class SportMarketRegistrar:
         SportMarketRegistry.register(
             Sport.AMERICAN_FOOTBALL,
             {
-                "1x2": cls.create_market_lambda("1X2", odds_labels=["1", "X", "2"]),
-                "home_away": cls.create_market_lambda("Home/Away", odds_labels=["1", "2"]),
+                "1x2": MarketSpec("1X2", odds_labels=("1", "X", "2")),
+                "home_away": MarketSpec("Home/Away", odds_labels=("1", "2")),
             },
         )
 
@@ -460,10 +430,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.AMERICAN_FOOTBALL,
                 {
-                    over_under.value: cls.create_market_lambda(
+                    over_under.value: MarketSpec(
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
-                        odds_labels=["odds_over", "odds_under"],
+                        odds_labels=("odds_over", "odds_under"),
                     )
                 },
             )
@@ -474,10 +444,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.AMERICAN_FOOTBALL,
                 {
-                    handicap.value: cls.create_market_lambda(
+                    handicap.value: MarketSpec(
                         main_market="Asian Handicap",
                         specific_market=f"Asian Handicap {numeric_part}",
-                        odds_labels=["1", "2"],
+                        odds_labels=("1", "2"),
                     )
                 },
             )
@@ -488,10 +458,10 @@ class SportMarketRegistrar:
         SportMarketRegistry.register(
             Sport.HANDBALL,
             {
-                "1x2": cls.create_market_lambda("1X2", odds_labels=["1", "X", "2"]),
-                "home_away": cls.create_market_lambda("Home/Away", odds_labels=["1", "2"]),
-                "dnb": cls.create_market_lambda("Draw No Bet", odds_labels=["dnb_team1", "dnb_team2"]),
-                "double_chance": cls.create_market_lambda("Double Chance", odds_labels=["1X", "12", "X2"]),
+                "1x2": MarketSpec("1X2", odds_labels=("1", "X", "2")),
+                "home_away": MarketSpec("Home/Away", odds_labels=("1", "2")),
+                "dnb": MarketSpec("Draw No Bet", odds_labels=("dnb_team1", "dnb_team2")),
+                "double_chance": MarketSpec("Double Chance", odds_labels=("1X", "12", "X2")),
             },
         )
 
@@ -501,10 +471,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.HANDBALL,
                 {
-                    over_under.value: cls.create_market_lambda(
+                    over_under.value: MarketSpec(
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
-                        odds_labels=["odds_over", "odds_under"],
+                        odds_labels=("odds_over", "odds_under"),
                     )
                 },
             )
@@ -515,10 +485,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.HANDBALL,
                 {
-                    asian_handicap.value: cls.create_market_lambda(
+                    asian_handicap.value: MarketSpec(
                         main_market="Asian Handicap",
                         specific_market=f"Asian Handicap {numeric_part}",
-                        odds_labels=["handicap_team_1", "handicap_team_2"],
+                        odds_labels=("handicap_team_1", "handicap_team_2"),
                     )
                 },
             )
@@ -535,7 +505,7 @@ class SportMarketRegistrar:
         SportMarketRegistry.register(
             Sport.VOLLEYBALL,
             {
-                "home_away": cls.create_market_lambda("Home/Away", odds_labels=["1", "2"]),
+                "home_away": MarketSpec("Home/Away", odds_labels=("1", "2")),
             },
         )
 
@@ -545,10 +515,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.VOLLEYBALL,
                 {
-                    over_under.value: cls.create_market_lambda(
+                    over_under.value: MarketSpec(
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
-                        odds_labels=["odds_over", "odds_under"],
+                        odds_labels=("odds_over", "odds_under"),
                         line_axis="sets",
                     )
                 },
@@ -560,10 +530,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.VOLLEYBALL,
                 {
-                    over_under.value: cls.create_market_lambda(
+                    over_under.value: MarketSpec(
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
-                        odds_labels=["odds_over", "odds_under"],
+                        odds_labels=("odds_over", "odds_under"),
                         line_axis="points",
                     )
                 },
@@ -575,10 +545,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.VOLLEYBALL,
                 {
-                    handicap.value: cls.create_market_lambda(
+                    handicap.value: MarketSpec(
                         main_market="Asian Handicap",
                         specific_market=f"Asian Handicap {numeric_part}",
-                        odds_labels=["sets_handicap_team_1", "sets_handicap_team_2"],
+                        odds_labels=("sets_handicap_team_1", "sets_handicap_team_2"),
                         line_axis="sets",
                     )
                 },
@@ -590,10 +560,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.VOLLEYBALL,
                 {
-                    handicap.value: cls.create_market_lambda(
+                    handicap.value: MarketSpec(
                         main_market="Asian Handicap",
                         specific_market=f"Asian Handicap {numeric_part}",
-                        odds_labels=["points_handicap_team_1", "points_handicap_team_2"],
+                        odds_labels=("points_handicap_team_1", "points_handicap_team_2"),
                         line_axis="points",
                     )
                 },
@@ -605,10 +575,10 @@ class SportMarketRegistrar:
             SportMarketRegistry.register(
                 Sport.VOLLEYBALL,
                 {
-                    correct_score.value: cls.create_market_lambda(
+                    correct_score.value: MarketSpec(
                         main_market="Correct Score",
                         specific_market=f"{numeric_part}",
-                        odds_labels=["correct_score"],
+                        odds_labels=("correct_score",),
                     )
                 },
             )
@@ -619,7 +589,7 @@ class SportMarketRegistrar:
         SportMarketRegistry.register(
             Sport.CRICKET,
             {
-                "home_away": cls.create_market_lambda("Home/Away", odds_labels=["1", "2"]),
+                "home_away": MarketSpec("Home/Away", odds_labels=("1", "2")),
             },
         )
 

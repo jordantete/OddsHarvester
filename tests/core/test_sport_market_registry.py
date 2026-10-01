@@ -1,12 +1,17 @@
-import asyncio
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from oddsharvester.core.market_extraction.market_grouping import MarketGrouping
-from oddsharvester.core.sport_market_registry import SportMarketRegistrar, SportMarketRegistry, format_line_number
+from oddsharvester.core.sport_market_registry import (
+    MarketSpec,
+    SportMarketRegistrar,
+    SportMarketRegistry,
+    format_line_number,
+)
 from oddsharvester.utils.sport_market_constants import Sport, TennisAsianHandicapSetsMarket
+
+ONE_X_TWO = MarketSpec("1X2", odds_labels=("1", "X", "2"))
+BTTS = MarketSpec("Both Teams to Score", odds_labels=("btts_yes", "btts_no"))
 
 
 class TestSportMarketRegistry:
@@ -20,7 +25,7 @@ class TestSportMarketRegistry:
         """Test registering a new sport in the registry."""
         # Arrange
         sport = Sport.FOOTBALL
-        market_mapping = {"1x2": lambda x: x}
+        market_mapping = {"1x2": ONE_X_TWO}
 
         # Act
         SportMarketRegistry.register(sport, market_mapping)
@@ -34,8 +39,8 @@ class TestSportMarketRegistry:
         """Test adding a market to an already registered sport."""
         # Arrange
         sport = Sport.FOOTBALL
-        market_mapping1 = {"1x2": lambda x: x}
-        market_mapping2 = {"btts": lambda x: x * 2}
+        market_mapping1 = {"1x2": ONE_X_TWO}
+        market_mapping2 = {"btts": BTTS}
 
         # Act
         SportMarketRegistry.register(sport, market_mapping1)
@@ -52,7 +57,7 @@ class TestSportMarketRegistry:
         """Test retrieving the mapping for an existing sport."""
         # Arrange
         sport = Sport.FOOTBALL
-        market_mapping = {"1x2": lambda x: x}
+        market_mapping = {"1x2": ONE_X_TWO}
         SportMarketRegistry.register(sport, market_mapping)
 
         # Act
@@ -76,35 +81,6 @@ class TestSportMarketRegistrar:
     def setup_method(self):
         """Reset the registry before each test."""
         SportMarketRegistry._registry = {}
-
-    def test_create_market_lambda(self):
-        """Test the creation of a lambda function for market extraction."""
-        # Arrange
-        main_market = "1X2"
-        specific_market = None
-        odds_labels = ["1", "X", "2"]
-
-        extractor_mock = MagicMock()
-        page_mock = MagicMock()
-
-        # Act
-        lambda_func = SportMarketRegistrar.create_market_lambda(main_market, specific_market, odds_labels)
-        lambda_func(extractor_mock, page_mock)
-
-        # Assert
-        extractor_mock.extract_market_odds.assert_called_once_with(
-            page=page_mock,
-            main_market=main_market,
-            specific_market=specific_market,
-            period="FullTime",
-            odds_labels=odds_labels,
-            scrape_odds_history=False,
-            target_bookmaker=None,
-            preview_submarkets_only=False,
-            sport=None,
-            history_reference=None,
-            history_timezone=None,
-        )
 
     def test_register_football_markets(self):
         """Test registering markets for football."""
@@ -356,28 +332,55 @@ class TestSportMarketRegistrar:
         assert "home_away" in SportMarketRegistry.get_market_mapping(Sport.VOLLEYBALL.value)
 
 
-def test_market_lambda_forwards_history_reference():
-    extractor = MagicMock()
-    extractor.extract_market_odds = AsyncMock(return_value=[])
-    func = SportMarketRegistrar.create_market_lambda("1X2", odds_labels=["1", "X", "2"])
-    reference = datetime(2026, 1, 4, 18, 30)
+class TestMarketSpecs:
+    """The registry holds plain MarketSpec values, the ones the extractor scrapes with."""
 
-    asyncio.run(
-        func(
-            extractor,
-            "page",
-            "FullTime",
-            True,
-            None,
-            False,
-            "football",
-            history_reference=reference,
-            history_timezone="Europe/London",
-        )
+    def setup_method(self):
+        SportMarketRegistry._registry = {}
+        SportMarketRegistrar.register_all_markets()
+
+    def test_every_registered_market_is_a_market_spec(self):
+        values = [value for sport in Sport for value in SportMarketRegistry.get_market_mapping(sport.value).values()]
+
+        assert values
+        assert [value for value in values if not isinstance(value, MarketSpec)] == []
+
+    def test_every_market_spec_names_its_outcome_labels(self):
+        """A spec without labels would parse no odds in normal mode and guess Over/Under ones in preview mode."""
+        unlabelled = [
+            (sport.value, market)
+            for sport in Sport
+            for market, spec in SportMarketRegistry.get_market_mapping(sport.value).items()
+            if not (
+                isinstance(spec.odds_labels, tuple)
+                and spec.odds_labels
+                and all(isinstance(label, str) and label for label in spec.odds_labels)
+            )
+        ]
+
+        assert unlabelled == []
+
+    @pytest.mark.parametrize(
+        ("sport", "market", "spec"),
+        [
+            (Sport.FOOTBALL, "1x2", MarketSpec("1X2", odds_labels=("1", "X", "2"))),
+            (Sport.FOOTBALL, "btts", MarketSpec("Both Teams to Score", odds_labels=("btts_yes", "btts_no"))),
+            (Sport.FOOTBALL, "double_chance", MarketSpec("Double Chance", odds_labels=("1X", "12", "X2"))),
+            (
+                Sport.FOOTBALL,
+                "over_under_2_5",
+                MarketSpec("Over/Under", "Over/Under +2.5", ("odds_over", "odds_under")),
+            ),
+            (
+                Sport.TENNIS,
+                "over_under_sets_2_5",
+                MarketSpec("Over/Under", "Over/Under +2.5", ("odds_over", "odds_under"), line_axis="sets"),
+            ),
+            (Sport.TENNIS, "correct_score_2_0", MarketSpec("Correct Score", "2:0", ("correct_score",))),
+        ],
     )
-
-    assert extractor.extract_market_odds.await_args.kwargs["history_reference"] == reference
-    assert extractor.extract_market_odds.await_args.kwargs["history_timezone"] == "Europe/London"
+    def test_a_registered_market_is_its_spec(self, sport, market, spec):
+        assert SportMarketRegistry.get_market_mapping(sport.value)[market] == spec
 
 
 class TestLineLabels:
@@ -438,23 +441,6 @@ class TestLineLabels:
         assert [
             label for label in labels if label.endswith(".0") or label.split()[-1] in {"Sets", "Games", "Points"}
         ] == []
-
-    def test_create_market_lambda_carries_its_labels(self):
-        method = SportMarketRegistrar.create_market_lambda("Over/Under", "Over/Under +2.5", ["odds_over", "odds_under"])
-
-        assert (method.main_market, method.specific_market) == ("Over/Under", "Over/Under +2.5")
-        assert method.line_axis is None
-        assert MarketGrouping().get_main_market_info(method) == {
-            "main_market": "Over/Under",
-            "odds_labels": ["odds_over", "odds_under"],
-        }
-
-    def test_create_market_lambda_carries_its_line_axis(self):
-        method = SportMarketRegistrar.create_market_lambda(
-            "Over/Under", "Over/Under +2.5", ["odds_over", "odds_under"], line_axis="sets"
-        )
-
-        assert method.line_axis == "sets"
 
     def test_tennis_refuses_every_line_that_falls_in_the_other_axis_range(self):
         assert set(SportMarketRegistry.ambiguous_markets(Sport.TENNIS.value)) == {

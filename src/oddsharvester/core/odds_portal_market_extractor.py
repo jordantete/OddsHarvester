@@ -13,7 +13,6 @@ from oddsharvester.core.browser.selection import (
     SelectionManager,
 )
 from oddsharvester.core.market_extraction import (
-    MarketGrouping,
     NavigationManager,
     OddsHistoryExtractor,
     OddsParser,
@@ -52,7 +51,6 @@ class OddsPortalMarketExtractor:
         self.odds_parser = OddsParser()
         self.submarket_extractor = SubmarketExtractor()
         self.odds_history_extractor = OddsHistoryExtractor()
-        self.market_grouping = MarketGrouping()
 
     async def scrape_markets(
         self,
@@ -85,7 +83,7 @@ class OddsPortalMarketExtractor:
             Dict[str, Any]: A dictionary containing market data.
         """
         market_data = {}
-        market_methods = SportMarketRegistry.get_market_mapping(sport)
+        market_specs = SportMarketRegistry.get_market_mapping(sport)
         ambiguous_markets = SportMarketRegistry.ambiguous_markets(sport)
 
         # Expand umbrella tokens (e.g. "over_under") into the concrete per-line tokens
@@ -135,27 +133,24 @@ class OddsPortalMarketExtractor:
                     market_data[f"{market}_market"] = []
                     continue
 
-                if market in market_methods:
+                if market in market_specs:
+                    spec = market_specs[market]
                     # For preview mode, group markets by their main market type
                     if preview_submarkets_only:
-                        # Get the main market info from the existing market method
-                        main_market_info = self.market_grouping.get_main_market_info(market_methods[market])
-                        if main_market_info:
-                            main_market_name = main_market_info["main_market"]
-                            if main_market_name not in market_groups:
-                                market_groups[main_market_name] = []
-                            market_groups[main_market_name].append(market)
+                        market_groups.setdefault(spec.main_market, []).append(market)
                     else:
                         # Normal mode: scrape each market individually
                         self.logger.info(f"Scraping market: {market} (Period: {period})")
-                        market_data[f"{market}_market"] = await market_methods[market](
-                            self,
-                            page,
-                            period,
-                            scrape_odds_history,
-                            target_bookmaker,
-                            preview_submarkets_only,
-                            sport,
+                        market_data[f"{market}_market"] = await self.extract_market_odds(
+                            page=page,
+                            main_market=spec.main_market,
+                            specific_market=spec.specific_market,
+                            period=period,
+                            odds_labels=spec.odds_labels,
+                            scrape_odds_history=scrape_odds_history,
+                            target_bookmaker=target_bookmaker,
+                            preview_submarkets_only=preview_submarkets_only,
+                            sport=sport,
                             history_reference=history_reference,
                             history_timezone=history_timezone,
                         )
@@ -174,30 +169,24 @@ class OddsPortalMarketExtractor:
                         f"Scraping main market: {main_market_name} for submarkets: {grouped_markets} (Period: {period})"
                     )
 
-                    # Use the first market in the group to get the odds labels
-                    first_market = grouped_markets[0]
-                    if first_market in market_methods:
-                        main_market_info = self.market_grouping.get_main_market_info(market_methods[first_market])
-                        odds_labels = main_market_info["odds_labels"] if main_market_info else None
+                    # Scrape the main market once, with the odds labels of the group's first market
+                    main_market_data = await self.extract_market_odds(
+                        page=page,
+                        main_market=main_market_name,
+                        specific_market=None,  # No specific market, scrape all submarkets
+                        period=period,
+                        odds_labels=market_specs[grouped_markets[0]].odds_labels,
+                        scrape_odds_history=scrape_odds_history,
+                        target_bookmaker=target_bookmaker,
+                        preview_submarkets_only=preview_submarkets_only,
+                        sport=sport,
+                        history_reference=history_reference,
+                        history_timezone=history_timezone,
+                    )
 
-                        # Scrape the main market once
-                        main_market_data = await self.extract_market_odds(
-                            page=page,
-                            main_market=main_market_name,
-                            specific_market=None,  # No specific market, scrape all submarkets
-                            period=period,
-                            odds_labels=odds_labels,
-                            scrape_odds_history=scrape_odds_history,
-                            target_bookmaker=target_bookmaker,
-                            preview_submarkets_only=preview_submarkets_only,
-                            sport=sport,
-                            history_reference=history_reference,
-                            history_timezone=history_timezone,
-                        )
-
-                        # Distribute the results to each specific market
-                        for specific_market in grouped_markets:
-                            market_data[f"{specific_market}_market"] = main_market_data
+                    # Distribute the results to each specific market
+                    for specific_market in grouped_markets:
+                        market_data[f"{specific_market}_market"] = main_market_data
 
                 except Exception as e:
                     self.logger.error(f"Error scraping grouped markets for {main_market_name}: {e}")

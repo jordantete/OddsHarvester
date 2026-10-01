@@ -6,8 +6,16 @@ from tests.dom_builders import bookmaker_row, odds_table
 
 from oddsharvester.core.browser.selection import PERIOD_STRATEGY
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
-from oddsharvester.core.sport_market_registry import SportMarketRegistrar, SportMarketRegistry
+from oddsharvester.core.sport_market_registry import MarketSpec, SportMarketRegistry
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
+
+ONE_X_TWO = MarketSpec("1X2", odds_labels=("1", "X", "2"))
+BTTS = MarketSpec("Both Teams to Score", odds_labels=("btts_yes", "btts_no"))
+
+
+def over_under(line: str) -> MarketSpec:
+    return MarketSpec("Over/Under", f"Over/Under +{line}", ("odds_over", "odds_under"))
+
 
 # Sample odds table: one leaf <tr> per bookmaker
 SAMPLE_HTML_ODDS = odds_table(
@@ -316,25 +324,40 @@ class TestOddsPortalMarketExtractor:
 
         assert result[0]["odds_history_data"] == [{"odds_history": [], "opening_odds": None}] * 3
 
-    async def test_scrape_markets_forwards_history_reference(self, extractor, page_mock):
-        func = AsyncMock(return_value=[])
+    async def test_normal_mode_scrapes_each_market_with_its_spec_and_the_call_arguments(self, extractor, page_mock):
         reference = datetime(2026, 1, 4, 18, 30)
-        with patch.object(SportMarketRegistry, "get_market_mapping", return_value={"1x2": func}):
+        with (
+            patch.object(SportMarketRegistry, "get_market_mapping", return_value={"over_under_2_5": over_under("2.5")}),
+            patch.object(extractor, "extract_market_odds", new_callable=AsyncMock, return_value=[]) as mock_extract,
+        ):
             await extractor.scrape_markets(
                 page=page_mock,
                 sport="football",
-                markets=["1x2"],
+                markets=["over_under_2_5"],
+                period="FirstHalf",
+                scrape_odds_history=True,
+                target_bookmaker="bet365",
                 history_reference=reference,
                 history_timezone="Europe/London",
             )
 
-        assert func.await_args.kwargs["history_reference"] == reference
-        assert func.await_args.kwargs["history_timezone"] == "Europe/London"
+        mock_extract.assert_awaited_once_with(
+            page=page_mock,
+            main_market="Over/Under",
+            specific_market="Over/Under +2.5",
+            period="FirstHalf",
+            odds_labels=("odds_over", "odds_under"),
+            scrape_odds_history=True,
+            target_bookmaker="bet365",
+            preview_submarkets_only=False,
+            sport="football",
+            history_reference=reference,
+            history_timezone="Europe/London",
+        )
 
     async def test_scrape_markets_forwards_the_history_zone_in_preview_mode(self, extractor, page_mock):
-        func = SportMarketRegistrar.create_market_lambda("Over/Under", "Over/Under +2.5", ["odds_over", "odds_under"])
         with (
-            patch.object(SportMarketRegistry, "get_market_mapping", return_value={"over_under_2_5": func}),
+            patch.object(SportMarketRegistry, "get_market_mapping", return_value={"over_under_2_5": over_under("2.5")}),
             patch.object(extractor, "extract_market_odds", new_callable=AsyncMock, return_value=[]) as mock_extract,
         ):
             await extractor.scrape_markets(
@@ -361,10 +384,10 @@ class TestOddsPortalMarketExtractor:
     async def test_scrape_markets(self, extractor, page_mock):
         """Test scraping multiple markets for a match."""
         # Arrange
-        mock_market_func = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor.extract_market_odds = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
 
         with patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping:
-            mock_get_mapping.return_value = {"1x2": mock_market_func, "btts": mock_market_func}
+            mock_get_mapping.return_value = {"1x2": ONE_X_TWO, "btts": BTTS}
 
             # Act
             result = await extractor.scrape_markets(
@@ -375,14 +398,12 @@ class TestOddsPortalMarketExtractor:
         assert "1x2_market" in result
         assert "btts_market" in result
         assert "nonexistent_market_market" not in result
-        assert mock_market_func.call_count == 2
+        assert extractor.extract_market_odds.await_count == 2
 
     @staticmethod
     def _tennis_over_under_markets():
         def line(label, line_axis):
-            return SportMarketRegistrar.create_market_lambda(
-                "Over/Under", label, ["odds_over", "odds_under"], line_axis=line_axis
-            )
+            return MarketSpec("Over/Under", label, ("odds_over", "odds_under"), line_axis=line_axis)
 
         return {
             "over_under_sets_6_5": line("Over/Under +6.5", "sets"),
@@ -427,13 +448,13 @@ class TestOddsPortalMarketExtractor:
     async def test_scrape_markets_expands_over_under_umbrella(self, extractor, page_mock):
         """Test that an umbrella token expands into one `{token}_market` entry per discovered line."""
         # Arrange
-        mock_market_func = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor.extract_market_odds = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
         extractor._discover_line_names = AsyncMock(return_value=["Over/Under +2.5", "Over/Under +3.5"])
 
         with patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping:
             mock_get_mapping.return_value = {
-                "over_under_2_5": mock_market_func,
-                "over_under_3_5": mock_market_func,
+                "over_under_2_5": over_under("2.5"),
+                "over_under_3_5": over_under("3.5"),
             }
 
             # Act
@@ -443,18 +464,18 @@ class TestOddsPortalMarketExtractor:
         assert "over_under_2_5_market" in result
         assert "over_under_3_5_market" in result
         assert "over_under_market" not in result
-        assert mock_market_func.call_count == 2
+        assert extractor.extract_market_odds.await_count == 2
         extractor._discover_line_names.assert_called_once_with(
             page=page_mock, main_market="Over/Under", sport="football", period="FullTime"
         )
 
     async def test_scrape_markets_expands_the_umbrella_from_localized_line_names(self, extractor, page_mock):
         """--base-url https://www.cuotasahora.com renders 'Más/Menos de +2.5'; the tokens are the .com ones."""
-        mock_market_func = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor.extract_market_odds = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
         extractor._discover_line_names = AsyncMock(return_value=["Más/Menos de +2.5", "Más/Menos de +3.5"])
 
         with patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping:
-            mock_get_mapping.return_value = {"over_under_2_5": mock_market_func, "over_under_3_5": mock_market_func}
+            mock_get_mapping.return_value = {"over_under_2_5": over_under("2.5"), "over_under_3_5": over_under("3.5")}
 
             result = await extractor.scrape_markets(page=page_mock, sport="football", markets=["over_under"])
 
@@ -472,11 +493,11 @@ class TestOddsPortalMarketExtractor:
     async def test_scrape_markets_non_umbrella_markets_unchanged(self, extractor, page_mock):
         """Test that non-umbrella markets bypass line discovery entirely."""
         # Arrange
-        mock_market_func = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor.extract_market_odds = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
         extractor._discover_line_names = AsyncMock()
 
         with patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping:
-            mock_get_mapping.return_value = {"1x2": mock_market_func, "btts": mock_market_func}
+            mock_get_mapping.return_value = {"1x2": ONE_X_TWO, "btts": BTTS}
 
             # Act
             result = await extractor.scrape_markets(page=page_mock, sport="football", markets=["1x2", "btts"])
@@ -509,11 +530,11 @@ class TestOddsPortalMarketExtractor:
     async def test_scrape_markets_umbrella_discovery_exception_isolated(self, extractor, page_mock, caplog):
         """Test that an exception during umbrella line discovery is isolated to that umbrella only."""
         # Arrange
-        mock_market_func = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor.extract_market_odds = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
         extractor._discover_line_names = AsyncMock(side_effect=Exception("boom"))
 
         with patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping:
-            mock_get_mapping.return_value = {"1x2": mock_market_func}
+            mock_get_mapping.return_value = {"1x2": ONE_X_TWO}
 
             # Act
             with caplog.at_level("WARNING"):
@@ -535,19 +556,13 @@ class TestOddsPortalMarketExtractor:
         # Arrange
         extractor._discover_line_names = AsyncMock(return_value=["Over/Under +2.5", "Over/Under +3.5"])
 
-        def _make_closure(main_market, odds_labels):
-            return lambda self, page, period, hist, bk, preview, sport: (main_market, odds_labels)
-
-        func_2_5 = _make_closure("Over/Under", ["odds_over", "odds_under"])
-        func_3_5 = _make_closure("Over/Under", ["odds_over", "odds_under"])
-
         with (
             patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping,
             patch.object(extractor, "extract_market_odds", new_callable=AsyncMock) as mock_extract,
         ):
             mock_get_mapping.return_value = {
-                "over_under_2_5": func_2_5,
-                "over_under_3_5": func_3_5,
+                "over_under_2_5": over_under("2.5"),
+                "over_under_3_5": over_under("3.5"),
             }
             mock_extract.return_value = [{"submarket_name": "Over/Under +2.5", "odds_over": "1.90"}]
 
@@ -573,14 +588,13 @@ class TestOddsPortalMarketExtractor:
         The extraction function for over_under_2_5 must run only once, and both line keys must exist.
         """
         # Arrange
-        mock_market_func_2_5 = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
-        mock_market_func_3_5 = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor.extract_market_odds = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
         extractor._discover_line_names = AsyncMock(return_value=["Over/Under +2.5", "Over/Under +3.5"])
 
         with patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping:
             mock_get_mapping.return_value = {
-                "over_under_2_5": mock_market_func_2_5,
-                "over_under_3_5": mock_market_func_3_5,
+                "over_under_2_5": over_under("2.5"),
+                "over_under_3_5": over_under("3.5"),
             }
 
             # Act
@@ -591,8 +605,10 @@ class TestOddsPortalMarketExtractor:
         # Assert
         assert "over_under_2_5_market" in result
         assert "over_under_3_5_market" in result
-        assert mock_market_func_2_5.call_count == 1
-        assert mock_market_func_3_5.call_count == 1
+        assert [call.kwargs["specific_market"] for call in extractor.extract_market_odds.await_args_list] == [
+            "Over/Under +2.5",
+            "Over/Under +3.5",
+        ]
 
     async def test_scrape_markets_umbrella_zero_lines_discovered(self, extractor, page_mock, caplog):
         """Test that an umbrella token with no discovered lines logs a warning and contributes no keys."""
@@ -649,11 +665,12 @@ class TestOddsPortalMarketExtractor:
     async def test_scrape_markets_with_exception(self, extractor, page_mock):
         """Test scraping markets where one market throws an exception."""
         # Arrange
-        mock_success_func = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
-        mock_error_func = AsyncMock(side_effect=Exception("Test exception"))
+        extractor.extract_market_odds = AsyncMock(
+            side_effect=[[{"bookmaker_name": "Bookmaker1"}], Exception("Test exception")]
+        )
 
         with patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping:
-            mock_get_mapping.return_value = {"1x2": mock_success_func, "btts": mock_error_func}
+            mock_get_mapping.return_value = {"1x2": ONE_X_TWO, "btts": BTTS}
 
             # Act
             result = await extractor.scrape_markets(page=page_mock, sport="football", markets=["1x2", "btts"])
@@ -665,22 +682,12 @@ class TestOddsPortalMarketExtractor:
         assert result["btts_market"] is None
 
     async def test_scrape_markets_preview_mode_groups_markets(self, extractor, page_mock):
-        """Test that preview mode groups markets by main market and scrapes once."""
-        # Arrange — two markets sharing the same main market
-        main_market = "Over/Under"
-        odds_labels = ["odds_over", "odds_under"]
-
-        def _make_closure(main_market, odds_labels):
-            return lambda self, page, period, hist, bk, preview, sport: (main_market, odds_labels)
-
-        func_a = _make_closure(main_market, odds_labels)
-        func_b = _make_closure(main_market, odds_labels)
-
+        """Preview mode scrapes a main market once, with its spec's labels, and gives each token that result."""
         with (
             patch.object(SportMarketRegistry, "get_market_mapping") as mock_mapping,
             patch.object(extractor, "extract_market_odds", new_callable=AsyncMock) as mock_extract,
         ):
-            mock_mapping.return_value = {"over_under_1_5": func_a, "over_under_2_5": func_b}
+            mock_mapping.return_value = {"over_under_1_5": over_under("1.5"), "over_under_2_5": over_under("2.5")}
             mock_extract.return_value = [{"submarket_name": "Over/Under 1.5", "odds_over": "1.50"}]
 
             result = await extractor.scrape_markets(
@@ -690,26 +697,23 @@ class TestOddsPortalMarketExtractor:
                 preview_submarkets_only=True,
             )
 
-        # Both markets should get the same data, extract called once for the group
-        assert "over_under_1_5_market" in result
-        assert "over_under_2_5_market" in result
-        mock_extract.assert_called_once()
+        assert result == {
+            "over_under_1_5_market": mock_extract.return_value,
+            "over_under_2_5_market": mock_extract.return_value,
+        }
+        mock_extract.assert_awaited_once()
+        assert mock_extract.await_args.kwargs["main_market"] == "Over/Under"
+        assert mock_extract.await_args.kwargs["specific_market"] is None
+        assert mock_extract.await_args.kwargs["odds_labels"] == ("odds_over", "odds_under")
+        assert mock_extract.await_args.kwargs["preview_submarkets_only"] is True
 
     async def test_scrape_markets_preview_mode_exception_sets_none(self, extractor, page_mock):
         """Test that grouped market exception in preview mode sets all group entries to None."""
-        main_market = "Over/Under"
-        odds_labels = ["odds_over", "odds_under"]
-
-        def _make_closure(main_market, odds_labels):
-            return lambda self, page, period, hist, bk, preview, sport: (main_market, odds_labels)
-
-        func = _make_closure(main_market, odds_labels)
-
         with (
             patch.object(SportMarketRegistry, "get_market_mapping") as mock_mapping,
             patch.object(extractor, "extract_market_odds", new_callable=AsyncMock, side_effect=Exception("boom")),
         ):
-            mock_mapping.return_value = {"over_under_1_5": func, "over_under_2_5": func}
+            mock_mapping.return_value = {"over_under_1_5": over_under("1.5"), "over_under_2_5": over_under("2.5")}
 
             result = await extractor.scrape_markets(
                 page=page_mock,
@@ -720,6 +724,66 @@ class TestOddsPortalMarketExtractor:
 
         assert result["over_under_1_5_market"] is None
         assert result["over_under_2_5_market"] is None
+
+    async def test_preview_mode_keeps_the_order_of_its_groups(self, extractor, page_mock):
+        """Interleaved main markets: each is scraped once, the record lists a group's tokens together."""
+        with (
+            patch.object(
+                SportMarketRegistry,
+                "get_market_mapping",
+                return_value={
+                    "over_under_1_5": over_under("1.5"),
+                    "over_under_2_5": over_under("2.5"),
+                    "1x2": ONE_X_TWO,
+                },
+            ),
+            patch.object(extractor, "extract_market_odds", new_callable=AsyncMock, return_value=[]) as mock_extract,
+        ):
+            result = await extractor.scrape_markets(
+                page=page_mock,
+                sport="football",
+                markets=["over_under_2_5", "1x2", "over_under_1_5"],
+                preview_submarkets_only=True,
+            )
+
+        assert list(result) == ["over_under_2_5_market", "over_under_1_5_market", "1x2_market"]
+        assert [call.kwargs["main_market"] for call in mock_extract.await_args_list] == ["Over/Under", "1X2"]
+
+    async def test_preview_mode_leaves_refused_and_unsupported_tokens_out_of_the_group(self, extractor, page_mock):
+        """A refused line stays [], an unsupported token gets no key, the valid line of that main market is scraped."""
+        with (
+            patch.object(SportMarketRegistry, "get_market_mapping", return_value=self._tennis_over_under_markets()),
+            patch.object(
+                extractor, "extract_market_odds", new_callable=AsyncMock, return_value=[{"odds_over": "1.90"}]
+            ) as mock_extract,
+        ):
+            result = await extractor.scrape_markets(
+                page=page_mock,
+                sport="tennis",
+                markets=["over_under_sets_6_5", "over_under_99_5", "over_under_games_39_5"],
+                preview_submarkets_only=True,
+            )
+
+        assert result == {"over_under_sets_6_5_market": [], "over_under_games_39_5_market": [{"odds_over": "1.90"}]}
+        assert list(result) == ["over_under_sets_6_5_market", "over_under_games_39_5_market"]
+        mock_extract.assert_awaited_once()
+        assert mock_extract.await_args.kwargs["odds_labels"] == ("odds_over", "odds_under")
+
+    async def test_preview_mode_scrapes_a_group_with_its_first_market_labels(self, extractor, page_mock):
+        points = MarketSpec(
+            "Asian Handicap", "Asian Handicap +3.5", ("points_handicap_team_1", "points_handicap_team_2")
+        )
+        sets = MarketSpec("Asian Handicap", "Asian Handicap +0.5", ("sets_handicap_team_1", "sets_handicap_team_2"))
+        with (
+            patch.object(SportMarketRegistry, "get_market_mapping", return_value={"points": points, "sets": sets}),
+            patch.object(extractor, "extract_market_odds", new_callable=AsyncMock, return_value=[]) as mock_extract,
+        ):
+            await extractor.scrape_markets(
+                page=page_mock, sport="volleyball", markets=["points", "sets"], preview_submarkets_only=True
+            )
+
+        mock_extract.assert_awaited_once()
+        assert mock_extract.await_args.kwargs["odds_labels"] == ("points_handicap_team_1", "points_handicap_team_2")
 
     async def test_extract_market_odds_uses_scope_code_when_verified(
         self, extractor, page_mock, selection_manager_mock
