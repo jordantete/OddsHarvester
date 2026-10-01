@@ -61,59 +61,6 @@ class TestNavigationManager:
         # Assert
         assert result is False
 
-    async def test_wait_for_market_switch_success(self, navigation_manager, page_mock):
-        """Test successful market switch wait."""
-        # Arrange
-        market_name = "Over/Under"
-        mock_active_tab = AsyncMock()
-        mock_active_tab.text_content = AsyncMock(return_value="Over/Under")
-        page_mock.query_selector = AsyncMock(return_value=mock_active_tab)
-
-        # Act
-        result = await navigation_manager.wait_for_market_switch(page_mock, market_name)
-
-        # Assert
-        assert result is True
-        page_mock.wait_for_timeout.assert_called_with(MARKET_SWITCH_WAIT_TIME_MS)
-
-    async def test_wait_for_market_switch_wrong_market(self, navigation_manager, page_mock):
-        """Test market switch wait with wrong market name."""
-        # Arrange
-        market_name = "Over/Under"
-        mock_active_tab = AsyncMock()
-        mock_active_tab.text_content = AsyncMock(return_value="1X2")
-        page_mock.query_selector = AsyncMock(return_value=mock_active_tab)
-
-        # Act
-        result = await navigation_manager.wait_for_market_switch(page_mock, market_name)
-
-        # Assert
-        assert result is False
-
-    async def test_wait_for_market_switch_no_active_tab(self, navigation_manager, page_mock):
-        """Test market switch wait when no active tab is found."""
-        # Arrange
-        market_name = "Over/Under"
-        page_mock.query_selector = AsyncMock(return_value=None)
-
-        # Act
-        result = await navigation_manager.wait_for_market_switch(page_mock, market_name)
-
-        # Assert
-        assert result is False
-
-    async def test_wait_for_market_switch_exception_handling(self, navigation_manager, page_mock):
-        """Test market switch wait with exception handling."""
-        # Arrange
-        market_name = "Over/Under"
-        page_mock.query_selector = AsyncMock(side_effect=Exception("Test exception"))
-
-        # Act
-        result = await navigation_manager.wait_for_market_switch(page_mock, market_name)
-
-        # Assert
-        assert result is False
-
     async def test_select_specific_market_success(self, navigation_manager, page_mock, scroller_mock):
         """Test successful selection of a specific market."""
         # Arrange

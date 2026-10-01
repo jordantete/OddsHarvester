@@ -4,20 +4,60 @@ import logging
 
 from playwright.async_api import Page
 
+from oddsharvester.core.browser.waits import wait_for_signal
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import (
+    MARKET_SWITCH_WAIT_TIME_MS,
     MARKET_TAB_TIMEOUT_MS,
+    SCROLL_PAUSE_TIME_MS,
     TAB_SWITCH_WAIT_MS,
 )
 
+# What a market switch slept before its table was read: the tab switch, the market switch and the page load.
+MARKET_VIEW_CAP_MS = TAB_SWITCH_WAIT_MS + MARKET_SWITCH_WAIT_TIME_MS + SCROLL_PAUSE_TIME_MS
+
+STALE_TAB_ATTRIBUTE = "data-oh-stale"
+
 # In-page hash switch: the SPA routes the match view off location.hash
 # ('#<id>:<market>;<scope>') and re-renders on hashchange (2026-08 redesign).
+# The tabs are marked first: the view the switch renders brings unmarked ones.
 HASH_SWITCH_JS = """
 (args) => {
+    for (const tab of document.querySelectorAll(args.tabs)) tab.setAttribute(args.stale, '');
     window.location.hash = '#' + args.fragment + ':' + args.code + ';' + args.scope;
     window.dispatchEvent(new HashChangeEvent('hashchange', { newURL: window.location.href }));
 }
 """
+
+# The view of '#<id>:<code>;<scope>' rendered: unmarked tabs, and that code and scope in the hash.
+FRESH_VIEW_JS = """
+(args) => {
+    if (!document.querySelector(args.tabs + ':not([' + args.stale + '])')) return false;
+    const [code, scope] = (location.hash.split(':')[1] || '').split(';');
+    return code === args.code && parseInt(scope, 10) === args.scope;
+}
+"""
+
+# The active market tab names the market.
+ACTIVE_TAB_JS = """
+(args) => {
+    const tab = document.querySelector(args.selector);
+    return !!tab && (tab.textContent || '').toLowerCase().includes(args.name);
+}
+"""
+
+
+async def switch_view(page: Page, fragment: str, code: str, scope: int, cap_ms: int) -> bool:
+    """Write '#<fragment>:<code>;<scope>' and wait, at most `cap_ms`, for the view it renders; False at the cap."""
+    args = {
+        "fragment": fragment,
+        "code": code,
+        "scope": scope,
+        "tabs": OddsPortalSelectors.MATCH_CONTENT_READY_SELECTOR,
+        "stale": STALE_TAB_ATTRIBUTE,
+    }
+    await page.evaluate(HASH_SWITCH_JS, args)
+    return await wait_for_signal(page, FRESH_VIEW_JS, cap_ms, f"view of '{code};{scope}'", arg=args) is not None
 
 
 class MarketTabNavigator:
@@ -55,11 +95,15 @@ class MarketTabNavigator:
         fragment = OddsPortalSelectors.event_id_from_url(page.url)
         if not fragment:
             return False
+        current_scope = OddsPortalSelectors.period_scope_from_url(page.url)
+        # Writing the hash the URL already holds does not re-render the view, so there is nothing to switch.
+        if current_scope is not None and OddsPortalSelectors.market_code_from_url(page.url) == code:
+            self.logger.info(f"Market code '{code}' and scope {current_scope} are already in the URL.")
+            return True
         # Preserve the current period scope so a market switch keeps the period.
-        scope = OddsPortalSelectors.period_scope_from_url(page.url) or 2
+        scope = current_scope or 2
         try:
-            await page.evaluate(HASH_SWITCH_JS, {"fragment": fragment, "code": code, "scope": scope})
-            await page.wait_for_timeout(TAB_SWITCH_WAIT_MS)
+            await switch_view(page, fragment, code, scope, MARKET_VIEW_CAP_MS)
             if OddsPortalSelectors.market_code_from_url(page.url) != code:
                 return False
             await page.wait_for_selector(OddsPortalSelectors.MATCH_CONTENT_READY_SELECTOR, timeout=timeout)
@@ -75,7 +119,13 @@ class MarketTabNavigator:
                 text = (await element.text_content() or "").strip()
                 if text and market_tab_name.lower() in text.lower():
                     await element.click()
-                    await page.wait_for_timeout(TAB_SWITCH_WAIT_MS)
+                    await wait_for_signal(
+                        page,
+                        ACTIVE_TAB_JS,
+                        MARKET_VIEW_CAP_MS,
+                        f"active '{market_tab_name}' tab",
+                        arg={"selector": OddsPortalSelectors.MARKET_TAB_ACTIVE, "name": market_tab_name.lower()},
+                    )
                     return await self._verify_tab_is_active(page, market_tab_name)
             self.logger.info(f"No sports-nav tab matched '{market_tab_name}'.")
             return False

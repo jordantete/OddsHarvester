@@ -5,7 +5,7 @@ import logging
 
 from playwright.async_api import ElementHandle, Page
 
-from oddsharvester.core.browser.market_navigation import HASH_SWITCH_JS
+from oddsharvester.core.browser.market_navigation import switch_view
 from oddsharvester.core.browser.waits import wait_for_signal
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
@@ -50,6 +50,11 @@ _CLICK_PERIOD_TAB_JS = """
 }
 """
 
+
+# The period bar shows its tab at args.index bold.
+_PERIOD_TAB_ACTIVE_JS = (
+    "(args) => { const bar = (" + _PERIOD_BAR_JS.strip() + ")(args); return !!bar && bar.active === args.index; }"
+)
 
 # A sub-nav button whose text is args.label carries the selected style.
 _TAB_SHOWN_ACTIVE_JS = """
@@ -196,8 +201,7 @@ class PeriodSelector:
                 return False
 
             try:
-                await page.evaluate(HASH_SWITCH_JS, {"fragment": fragment, "code": code, "scope": target})
-                await page.wait_for_timeout(MARKET_SWITCH_WAIT_TIME_MS)
+                await switch_view(page, fragment, code, target, MARKET_SWITCH_WAIT_TIME_MS)
             except Exception as e:
                 self.logger.warning(f"Hash switch to period scope {target} failed: {e}")
                 return False
@@ -275,7 +279,18 @@ class PeriodSelector:
         )
         if not clicked:
             return None
-        await page.wait_for_timeout(FALLBACK_VERIFY_WAIT_MS if index == 1 else MARKET_SWITCH_WAIT_TIME_MS)
+        await wait_for_signal(
+            page,
+            _PERIOD_TAB_ACTIVE_JS,
+            FALLBACK_VERIFY_WAIT_MS if index == 1 else MARKET_SWITCH_WAIT_TIME_MS,
+            f"period tab {index + 1} shown active",
+            arg={
+                "buttons": OddsPortalSelectors.SUB_NAV_TAB_ANY,
+                "group": OddsPortalSelectors.SUB_NAV_GROUP_CSS,
+                "marker": OddsPortalSelectors.SUB_NAV_ACTIVE_STYLE_MARKER.replace(" ", ""),
+                "index": index,
+            },
+        )
         return OddsPortalSelectors.period_scope_from_url(page.url)
 
     def _refuse(self, target: int, internal_period: str, reason: str) -> bool:

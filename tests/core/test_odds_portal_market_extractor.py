@@ -74,7 +74,6 @@ class TestOddsPortalMarketExtractor:
         """Test complete extraction of odds for a given market."""
         # Arrange
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[{"bookmaker_name": "Bookmaker1", "1": "1.90", "X": "3.50", "2": "4.20", "period": "FullTime"}]
@@ -100,7 +99,6 @@ class TestOddsPortalMarketExtractor:
         """Test extracting odds with a specific sub-market."""
         # Arrange
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.navigation_manager.scroller.scroll_until_visible_and_click_parent = AsyncMock(return_value=True)
         extractor.navigation_manager.close_specific_market = AsyncMock(return_value=True)
@@ -131,7 +129,6 @@ class TestOddsPortalMarketExtractor:
         """Line markets: every odds dict carries the rendered line via submarket_name (issue #78)."""
         # Arrange
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.navigation_manager.scroller.scroll_until_visible_and_click_parent = AsyncMock(return_value=True)
         extractor.navigation_manager.close_specific_market = AsyncMock(return_value=True)
@@ -158,7 +155,6 @@ class TestOddsPortalMarketExtractor:
         """Main markets (no specific_market): dicts carry the market label itself."""
         # Arrange
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[{"bookmaker_name": "Bookmaker1", "1": "1.90", "X": "3.50", "2": "4.20", "period": "FullTime"}]
@@ -175,7 +171,6 @@ class TestOddsPortalMarketExtractor:
         """The stamp is appended, never inserted before the odds or the bookmaker."""
         # Arrange
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[{"btts_yes": "1.72", "btts_no": "2.12", "bookmaker_name": "Bookmaker1", "period": "FullTime"}]
@@ -194,7 +189,6 @@ class TestOddsPortalMarketExtractor:
         """A name already set upstream wins over the main market label."""
         # Arrange
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[{"bookmaker_name": "Bookmaker1", "1": "1.90", "submarket_name": "Already set"}]
@@ -211,7 +205,6 @@ class TestOddsPortalMarketExtractor:
         """Preview passive dicts already carry submarket_name; stamping must never overwrite it."""
         # Arrange
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.submarket_extractor.extract_visible_submarkets_passive = AsyncMock(
             return_value=[
                 {
@@ -274,7 +267,6 @@ class TestOddsPortalMarketExtractor:
     async def test_extract_market_odds_with_odds_history(self, extractor, page_mock):
         """Each outcome gets its block; a modal that could not be read becomes the empty block."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[{"1": "1.90", "X": "3.50", "2": "4.20", "bookmaker_name": "Bookmaker1", "period": "FullTime"}]
         )
@@ -311,7 +303,6 @@ class TestOddsPortalMarketExtractor:
     async def test_odds_history_pads_missing_modals_with_empty_blocks(self, extractor, page_mock):
         """Fewer modals than outcomes still gives one block per outcome."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[{"1": "1.90", "X": "3.50", "2": "4.20", "bookmaker_name": "Bookmaker1", "period": "FullTime"}]
         )
@@ -630,7 +621,6 @@ class TestOddsPortalMarketExtractor:
         """Test that _discover_line_names navigates the tab and returns rendered submarket names."""
         # Arrange
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.submarket_extractor.extract_visible_submarkets_passive = AsyncMock(
             return_value=[
                 {"submarket_name": "Over/Under +2.5"},
@@ -786,7 +776,6 @@ class TestOddsPortalMarketExtractor:
     ):
         """Verified periods (football FullTime=scope 2) select by scope, not localized label."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.odds_parser.parse_market_odds = MagicMock(return_value=[])
         extractor.period_selector.select_by_scope = AsyncMock(return_value=True)
@@ -809,7 +798,6 @@ class TestOddsPortalMarketExtractor:
     ):
         """Unverified periods fall back to localized-label selection (select_by_scope -> None)."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[{"1": "1.70", "2": "2.10", "bookmaker_name": "B1", "period": "SecondSet"}]
@@ -837,7 +825,6 @@ class TestOddsPortalMarketExtractor:
     async def test_extract_market_odds_period_not_found_skips(self, extractor, page_mock, selection_manager_mock):
         """Test that period selection is skipped when period enum is not found."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.odds_parser.parse_market_odds = MagicMock(return_value=[])
         extractor.period_selector.select_by_scope = AsyncMock(return_value=True)
@@ -856,7 +843,6 @@ class TestOddsPortalMarketExtractor:
     ):
         """Both an unknown scope (None) and a failed scope switch (False) try the label tab."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[{"1": "1.80", "2": "2.00", "bookmaker_name": "B1", "period": "FirstSet"}]
@@ -874,7 +860,6 @@ class TestOddsPortalMarketExtractor:
     async def test_unverified_non_default_period_returns_no_odds(self, extractor, page_mock, selection_manager_mock):
         """Tennis 1st set not reachable by scope nor label: no odds rather than full-time odds labelled FirstSet."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[{"1": "1.80", "2": "2.00", "bookmaker_name": "B1", "period": "FirstSet"}]
@@ -892,7 +877,6 @@ class TestOddsPortalMarketExtractor:
     async def test_unverified_default_period_keeps_the_odds(self, extractor, page_mock, selection_manager_mock):
         """Football full time is the page's default: an unverified selection keeps today's behaviour."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[{"1": "1.90", "X": "3.50", "2": "4.20", "bookmaker_name": "B1", "period": "FullTime"}]
@@ -911,7 +895,6 @@ class TestOddsPortalMarketExtractor:
     ):
         """A label switch that succeeds on the default period returns the odds, without the unverified warning."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[{"1": "1.90", "X": "3.50", "2": "4.20", "bookmaker_name": "B1", "period": "FullTime"}]
@@ -942,7 +925,6 @@ class TestOddsPortalMarketExtractor:
     async def test_extract_market_odds_preview_mode_passive(self, extractor, page_mock):
         """Test preview mode uses passive submarket extraction."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.submarket_extractor.extract_visible_submarkets_passive = AsyncMock(
             return_value=[{"submarket_name": "Over/Under 2.5", "odds_over": "1.80", "odds_under": "2.00"}]
         )
@@ -961,7 +943,6 @@ class TestOddsPortalMarketExtractor:
     async def test_extract_market_odds_preview_mode_fallback_to_active(self, extractor, page_mock):
         """Test preview mode falls back to normal scraping when passive returns no data."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.submarket_extractor.extract_visible_submarkets_passive = AsyncMock(return_value=[])
         extractor.odds_parser.parse_market_odds = MagicMock(
@@ -983,7 +964,6 @@ class TestOddsPortalMarketExtractor:
     async def test_extract_market_odds_preview_fallback_specific_market_not_found(self, extractor, page_mock):
         """Test preview fallback returns [] when specific market can't be selected."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.submarket_extractor.extract_visible_submarkets_passive = AsyncMock(return_value=[])
         extractor.navigation_manager.select_specific_market = AsyncMock(return_value=False)
 
@@ -1000,7 +980,6 @@ class TestOddsPortalMarketExtractor:
     async def test_extract_market_odds_history_skips_filtered_bk(self, extractor, page_mock):
         """Test that odds history is skipped for bookmakers not matching target."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
-        extractor.navigation_manager.wait_for_market_switch = AsyncMock(return_value=True)
         extractor.navigation_manager.wait_for_page_load = AsyncMock()
         extractor.odds_parser.parse_market_odds = MagicMock(
             return_value=[

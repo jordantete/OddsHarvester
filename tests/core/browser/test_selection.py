@@ -3,7 +3,9 @@ from unittest.mock import AsyncMock, MagicMock
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 import pytest
 
+from oddsharvester.core.browser.market_navigation import FRESH_VIEW_JS, STALE_TAB_ATTRIBUTE
 from oddsharvester.core.browser.selection import (
+    _PERIOD_TAB_ACTIVE_JS,
     _TAB_SHOWN_ACTIVE_JS,
     BOOKIES_FILTER_STRATEGY,
     PERIOD_STRATEGY,
@@ -12,7 +14,7 @@ from oddsharvester.core.browser.selection import (
 )
 from oddsharvester.core.browser.waits import SIGNAL_POLL_MS
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
-from oddsharvester.utils.constants import FALLBACK_VERIFY_WAIT_MS
+from oddsharvester.utils.constants import FALLBACK_VERIFY_WAIT_MS, MARKET_SWITCH_WAIT_TIME_MS
 
 STRATEGY_CASES = [
     pytest.param(BOOKIES_FILTER_STRATEGY, "classic", "Classic Bookies", id="bookies"),
@@ -125,6 +127,7 @@ class TestPeriodSelector:
         page = MagicMock()
         page.url = url
         page.wait_for_timeout = AsyncMock()
+        page.wait_for_function = AsyncMock(return_value=MagicMock())
         page.evaluate = AsyncMock()
         return page
 
@@ -173,7 +176,66 @@ class TestPeriodSelector:
 
         assert await selector.select_by_scope(page, "football", "FirstHalf") is True
 
-        assert page.evaluate.await_args_list[0].args[1] == {"fragment": "id1", "code": "over-under", "scope": 3}
+        assert page.evaluate.await_args_list[0].args[1] == {
+            "fragment": "id1",
+            "code": "over-under",
+            "scope": 3,
+            "tabs": OddsPortalSelectors.MATCH_CONTENT_READY_SELECTOR,
+            "stale": STALE_TAB_ATTRIBUTE,
+        }
+
+    async def test_a_period_switch_waits_for_the_view_it_renders(self, selector):
+        """R11: the scope is read once the view of the new scope rendered, at most MARKET_SWITCH_WAIT_TIME_MS."""
+        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:over-under;2", active=1)
+
+        assert await selector.select_by_scope(page, "football", "FirstHalf") is True
+
+        page.wait_for_function.assert_awaited_once_with(
+            FRESH_VIEW_JS,
+            arg=page.evaluate.await_args_list[0].args[1],
+            timeout=MARKET_SWITCH_WAIT_TIME_MS,
+            polling=SIGNAL_POLL_MS,
+        )
+        page.wait_for_timeout.assert_not_awaited()
+
+    async def test_a_period_view_never_rendered_warns_and_reads_the_url(self, selector, caplog):
+        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:over-under;2", active=1)
+        page.wait_for_function = AsyncMock(side_effect=PlaywrightTimeoutError("Timeout 3000ms exceeded."))
+
+        with caplog.at_level("WARNING"):
+            assert await selector.select_by_scope(page, "football", "FirstHalf") is True
+
+        assert "No view of 'over-under;3' within 3000 ms; carrying on with the page as it is." in caplog.text
+
+    async def test_each_period_tab_click_waits_for_that_tab_shown_active(self, selector):
+        """R12: tab 2 is read within FALLBACK_VERIFY_WAIT_MS, tab 1 within MARKET_SWITCH_WAIT_TIME_MS, as they slept."""
+        page = self._bar_page(
+            "https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;2", active=0, tabs=3, tab_scopes=[2, 3, 17]
+        )
+
+        assert await selector.select_by_scope(page, "baseball", "FullTime") is True
+
+        waits = [
+            (call.args[0], call.kwargs["arg"]["index"], call.kwargs["timeout"])
+            for call in page.wait_for_function.await_args_list
+        ]
+        assert waits == [
+            (_PERIOD_TAB_ACTIVE_JS, 1, FALLBACK_VERIFY_WAIT_MS),
+            (_PERIOD_TAB_ACTIVE_JS, 0, MARKET_SWITCH_WAIT_TIME_MS),
+        ]
+        page.wait_for_timeout.assert_not_awaited()
+
+    async def test_period_tabs_never_shown_active_warn_and_the_url_is_read_as_before(self, selector, caplog):
+        page = self._bar_page(
+            "https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;2", active=0, tabs=3, tab_scopes=[2, 3, 17]
+        )
+        page.wait_for_function = AsyncMock(side_effect=PlaywrightTimeoutError("Timeout exceeded."))
+
+        with caplog.at_level("WARNING"):
+            assert await selector.select_by_scope(page, "baseball", "FullTime") is True
+
+        assert "No period tab 2 shown active within 1000 ms" in caplog.text
+        assert "No period tab 1 shown active within 3000 ms" in caplog.text
 
     async def test_a_period_the_match_lacks_is_refused(self, selector, caplog):
         """NFL 2nd Half forced into the URL: the page keeps its first tab, FT including OT, active."""

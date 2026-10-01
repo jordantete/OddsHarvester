@@ -209,8 +209,6 @@ class OddsPortalMarketExtractor:
             self.logger.warning(f"Failed to find or click {main_market} tab while discovering lines")
             return []
 
-        await self.navigation_manager.wait_for_market_switch(page, main_market)
-
         submarkets = await self.submarket_extractor.extract_visible_submarkets_passive(
             page=page, main_market=main_market, period=period
         )
@@ -260,9 +258,6 @@ class OddsPortalMarketExtractor:
             if not await self.navigation_manager.navigate_to_market_tab(page=page, market_tab_name=main_market):
                 self.logger.error(f"Failed to find or click {main_market} tab")
                 return []
-
-            # Wait for market switch to complete
-            await self.navigation_manager.wait_for_market_switch(page, main_market)
 
             # Ensure correct period is selected after market switch. Prefer the
             # language-independent scope code (works on localized mirrors, §7);
