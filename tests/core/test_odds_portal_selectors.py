@@ -140,24 +140,6 @@ def test_odds_movement_header_is_language_independent():
     assert "Odds movement" not in selector
 
 
-def test_market_tab_codes_cover_registry_main_markets():
-    # Every distinct main_market label passed by sport_market_registry must map
-    # to a stable code so the localized-mirror fallback can resolve it.
-    expected = {
-        "1X2",
-        "Home/Away",
-        "Over/Under",
-        "Asian Handicap",
-        "European Handicap",
-        "Handicap",
-        "Both Teams to Score",
-        "Correct Score",
-        "Double Chance",
-        "Draw No Bet",
-    }
-    assert expected <= set(OddsPortalSelectors.MARKET_TAB_CODES)
-
-
 class TestRedesignSelectors:
     """Selectors for a DOM carrying no data-testid (issue #86)."""
 

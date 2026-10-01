@@ -28,3 +28,12 @@ def test_rejects_unknown_market_for_football():
 def test_rejects_umbrella_tokens_for_non_football_sport():
     with pytest.raises(click.BadParameter):
         validate_markets(_Ctx("tennis"), None, ["over_under"])
+
+
+@pytest.mark.parametrize("sport", ["rugby-league", "rugby-union", "ice-hockey"])
+def test_the_bad_market_message_lists_each_supported_token_once(sport):
+    with pytest.raises(click.BadParameter) as excinfo:
+        validate_markets(_Ctx(sport), None, ["definitely_not_a_market"])
+
+    listed = str(excinfo.value).split("Supported: ", 1)[1].split(", ")
+    assert sorted({token for token in listed if listed.count(token) > 1}) == []
