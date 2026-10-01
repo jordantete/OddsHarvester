@@ -29,10 +29,34 @@
                 "submarket_name": "1X2"
             },
             {
+                "1": "1.09",
+                "X": "15.00",
+                "2": "11.00",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "1X2"
+            },
+            {
                 "1": "1.07",
                 "X": "11.00",
                 "2": "6.50",
                 "bookmaker_name": "bwin.fr",
+                "period": "FullTime",
+                "submarket_name": "1X2"
+            },
+            {
+                "1": "1.11",
+                "X": "14.00",
+                "2": "8.50",
+                "bookmaker_name": "Roobet",
+                "period": "FullTime",
+                "submarket_name": "1X2"
+            },
+            {
+                "1": "1.08",
+                "X": "23.00",
+                "2": "11.00",
+                "bookmaker_name": "Stake.com",
                 "period": "FullTime",
                 "submarket_name": "1X2"
             },

@@ -4,10 +4,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from tests.dom_builders import bookmaker_row, odds_table
 
-from oddsharvester.core.browser.selection import PERIOD_STRATEGY
+from oddsharvester.core.browser.selection import PERIOD_STRATEGY, SelectionManager
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.sport_market_registry import MarketSpec, SportMarketRegistry
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
+from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 
 ONE_X_TWO = MarketSpec("1X2", odds_labels=("1", "X", "2"))
 BTTS = MarketSpec("Both Teams to Score", odds_labels=("btts_yes", "btts_no"))
@@ -336,6 +337,7 @@ class TestOddsPortalMarketExtractor:
                 target_bookmaker="bet365",
                 history_reference=reference,
                 history_timezone="Europe/London",
+                bookies_filter=BookiesFilter.CRYPTO,
             )
 
         mock_extract.assert_awaited_once_with(
@@ -350,6 +352,7 @@ class TestOddsPortalMarketExtractor:
             sport="football",
             history_reference=reference,
             history_timezone="Europe/London",
+            bookies_filter=BookiesFilter.CRYPTO,
         )
 
     async def test_scrape_markets_forwards_the_history_zone_in_preview_mode(self, extractor, page_mock):
@@ -363,9 +366,11 @@ class TestOddsPortalMarketExtractor:
                 markets=["over_under_2_5"],
                 preview_submarkets_only=True,
                 history_timezone="Europe/London",
+                bookies_filter=BookiesFilter.ALL,
             )
 
         assert mock_extract.await_args.kwargs["history_timezone"] == "Europe/London"
+        assert mock_extract.await_args.kwargs["bookies_filter"] == BookiesFilter.ALL
 
     async def test_extract_market_odds_exception(self, extractor, page_mock):
         """Test handling of exceptions during market extraction."""
@@ -455,7 +460,9 @@ class TestOddsPortalMarketExtractor:
             }
 
             # Act
-            result = await extractor.scrape_markets(page=page_mock, sport="football", markets=["over_under"])
+            result = await extractor.scrape_markets(
+                page=page_mock, sport="football", markets=["over_under"], bookies_filter=BookiesFilter.ALL
+            )
 
         # Assert
         assert "over_under_2_5_market" in result
@@ -463,7 +470,7 @@ class TestOddsPortalMarketExtractor:
         assert "over_under_market" not in result
         assert extractor.extract_market_odds.await_count == 2
         extractor._discover_line_names.assert_called_once_with(
-            page=page_mock, main_market="Over/Under", period="FullTime"
+            page=page_mock, main_market="Over/Under", period="FullTime", bookies_filter=BookiesFilter.ALL
         )
 
     async def test_scrape_markets_expands_the_umbrella_from_localized_line_names(self, extractor, page_mock):
@@ -999,3 +1006,108 @@ class TestOddsPortalMarketExtractor:
         extractor.odds_history_extractor.extract_odds_history_for_bookmaker.assert_called_once_with(
             page_mock, "Bookmaker1", 1
         )
+
+
+def _sub_nav_tab(label: str, active: bool, events: list):
+    """A bookies-filter button: a click makes it the selected one."""
+    tab = MagicMock()
+    state = {"active": active}
+    tab.text_content = AsyncMock(return_value=label)
+    tab.get_attribute = AsyncMock(side_effect=lambda _name: "font-weight: 700;" if state["active"] else None)
+
+    async def click():
+        events.append(f"click {label}")
+        state["active"] = True
+
+    tab.click = AsyncMock(side_effect=click)
+    return tab
+
+
+class TestBookiesFilterAfterEachSwitch:
+    """Every market or period switch renders the default Classic panel; the requested one is shown before the read."""
+
+    @staticmethod
+    def _setup(shown: str | None):
+        events: list = []
+        extractor = OddsPortalMarketExtractor(
+            scroller=AsyncMock(), tab_navigator=AsyncMock(), selection_manager=SelectionManager()
+        )
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(
+            side_effect=lambda **kwargs: events.append("switch") or True
+        )
+        labels = ("All Bookies", "Classic Bookies", "Crypto Bookies") if shown else ()
+        tabs = {label: _sub_nav_tab(label, label == shown, events) for label in labels}
+        page = AsyncMock()
+        page.query_selector_all = AsyncMock(return_value=list(tabs.values()))
+        page.wait_for_function = AsyncMock(return_value=MagicMock())
+
+        async def content():
+            events.append("read")
+            return SAMPLE_HTML_ODDS
+
+        page.content = AsyncMock(side_effect=content)
+        return extractor, page, tabs, events
+
+    async def test_the_requested_panel_is_clicked_after_the_switch_and_before_the_read(self):
+        extractor, page, _tabs, events = self._setup(shown="Classic Bookies")
+
+        result = await extractor.extract_market_odds(
+            page=page, main_market="1X2", odds_labels=["1", "X", "2"], bookies_filter=BookiesFilter.ALL
+        )
+
+        assert events == ["switch", "click All Bookies", "read"]
+        assert len(result) == 2
+
+    async def test_a_panel_already_shown_is_not_clicked(self):
+        extractor, page, tabs, events = self._setup(shown="Crypto Bookies")
+
+        await extractor.extract_market_odds(
+            page=page, main_market="1X2", odds_labels=["1", "X", "2"], bookies_filter=BookiesFilter.CRYPTO
+        )
+
+        assert events == ["switch", "read"]
+        assert not any(tab.click.await_count for tab in tabs.values())
+
+    async def test_a_panel_that_cannot_be_shown_warns_and_the_market_is_read_as_shown(self, caplog):
+        extractor, page, _tabs, events = self._setup(shown=None)
+
+        with caplog.at_level("WARNING"):
+            result = await extractor.extract_market_odds(
+                page=page, main_market="1X2", odds_labels=["1", "X", "2"], bookies_filter=BookiesFilter.ALL
+            )
+
+        assert "bookies-filter navigation not found on page" in caplog.text
+        assert events == ["switch", "read"]
+        assert len(result) == 2
+
+    async def test_the_panel_is_shown_after_the_period_switch(self):
+        extractor, page, _tabs, events = self._setup(shown="Classic Bookies")
+        extractor._select_period = AsyncMock(side_effect=lambda *args: events.append("period") or True)
+
+        await extractor.extract_market_odds(
+            page=page,
+            main_market="1X2",
+            period="FirstHalf",
+            odds_labels=["1", "X", "2"],
+            sport="football",
+            bookies_filter=BookiesFilter.ALL,
+        )
+
+        assert events == ["switch", "period", "click All Bookies", "read"]
+
+    async def test_no_requested_panel_leaves_the_shown_one(self):
+        extractor, page, _tabs, events = self._setup(shown="Classic Bookies")
+
+        await extractor.extract_market_odds(page=page, main_market="1X2", odds_labels=["1", "X", "2"])
+
+        assert events == ["switch", "read"]
+        page.query_selector_all.assert_not_awaited()
+
+    async def test_umbrella_lines_are_read_with_the_requested_panel(self):
+        extractor, page, _tabs, events = self._setup(shown="Classic Bookies")
+
+        await extractor._discover_line_names(
+            page=page, main_market="Over/Under", period="FullTime", bookies_filter=BookiesFilter.ALL
+        )
+
+        assert events == ["switch", "click All Bookies", "read"]

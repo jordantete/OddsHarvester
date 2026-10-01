@@ -8,6 +8,7 @@ from playwright.async_api import Page
 from oddsharvester.core.browser.market_navigation import MarketTabNavigator
 from oddsharvester.core.browser.scrolling import PageScroller
 from oddsharvester.core.browser.selection import (
+    BOOKIES_FILTER_STRATEGY,
     PERIOD_STRATEGY,
     PeriodSelector,
     SelectionManager,
@@ -22,6 +23,7 @@ from oddsharvester.core.market_extraction.line_tokens import line_name_to_token
 from oddsharvester.core.market_extraction.odds_parser import empty_history_block
 from oddsharvester.core.sport_market_registry import SportMarketRegistry
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
+from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.sport_market_constants import FOOTBALL_UMBRELLA_MARKETS, Sport
 
 
@@ -63,6 +65,7 @@ class OddsPortalMarketExtractor:
         preview_submarkets_only: bool = False,
         history_reference: datetime | None = None,
         history_timezone: str | None = None,
+        bookies_filter: BookiesFilter | None = None,
     ) -> dict[str, Any]:
         """
         Extract market data for a given match.
@@ -78,6 +81,8 @@ class OddsPortalMarketExtractor:
             per line, not per-bookmaker) from visible submarkets.
             history_reference (datetime, optional): Kickoff in the browser timezone, used to date odds history.
             history_timezone (str, optional): The browser timezone the odds-history times are shown in.
+            bookies_filter (BookiesFilter, optional): The bookmaker panel each table is read with; None reads the
+            panel shown.
 
         Returns:
             Dict[str, Any]: A dictionary containing market data.
@@ -98,7 +103,9 @@ class OddsPortalMarketExtractor:
                 continue
 
             try:
-                line_names = await self._discover_line_names(page=page, main_market=umbrella_main_market, period=period)
+                line_names = await self._discover_line_names(
+                    page=page, main_market=umbrella_main_market, period=period, bookies_filter=bookies_filter
+                )
                 line_tokens: list[str] = []
                 for line_name in line_names:
                     token = line_name_to_token(umbrella_main_market, line_name)
@@ -151,6 +158,7 @@ class OddsPortalMarketExtractor:
                             sport=sport,
                             history_reference=history_reference,
                             history_timezone=history_timezone,
+                            bookies_filter=bookies_filter,
                         )
                 else:
                     self.logger.warning(f"Market '{market}' is not supported for sport '{sport}'.")
@@ -180,6 +188,7 @@ class OddsPortalMarketExtractor:
                         sport=sport,
                         history_reference=history_reference,
                         history_timezone=history_timezone,
+                        bookies_filter=bookies_filter,
                     )
 
                     # Distribute the results to each specific market
@@ -193,7 +202,9 @@ class OddsPortalMarketExtractor:
 
         return market_data
 
-    async def _discover_line_names(self, page: Page, main_market: str, period: str) -> list[str]:
+    async def _discover_line_names(
+        self, page: Page, main_market: str, period: str, bookies_filter: BookiesFilter | None = None
+    ) -> list[str]:
         """
         Navigate to a main-market tab and enumerate the rendered line names (e.g. "Over/Under +2.5").
 
@@ -201,6 +212,7 @@ class OddsPortalMarketExtractor:
             page (Page): The Playwright page instance.
             main_market (str): The main market name (e.g., "Over/Under", "Asian Handicap").
             period (str): The match period (e.g., "FullTime").
+            bookies_filter (BookiesFilter, optional): The bookmaker panel the lines are read with.
 
         Returns:
             list[str]: The rendered submarket names currently visible on the page.
@@ -209,6 +221,7 @@ class OddsPortalMarketExtractor:
             self.logger.warning(f"Failed to find or click {main_market} tab while discovering lines")
             return []
 
+        await self._show_bookies(page, bookies_filter)
         submarkets = await self.submarket_extractor.extract_visible_submarkets_passive(
             page=page, main_market=main_market, period=period
         )
@@ -227,6 +240,7 @@ class OddsPortalMarketExtractor:
         sport: str | None = None,
         history_reference: datetime | None = None,
         history_timezone: str | None = None,
+        bookies_filter: BookiesFilter | None = None,
     ) -> list:
         """
         Extracts odds for a given main market and optional specific sub-market.
@@ -244,6 +258,8 @@ class OddsPortalMarketExtractor:
             sport (str): The sport being scraped (used for period selection).
             history_reference (datetime, optional): Kickoff in the browser timezone, used to date odds history.
             history_timezone (str, optional): The browser timezone the odds-history times are shown in.
+            bookies_filter (BookiesFilter, optional): The bookmaker panel the table is read with; None reads the
+            panel shown.
 
         Returns:
             list[dict]: A list of dictionaries containing bookmaker odds.
@@ -273,6 +289,8 @@ class OddsPortalMarketExtractor:
                         return []
                 else:
                     self.logger.debug(f"Period selection skipped for sport: {sport}")
+
+            await self._show_bookies(page, bookies_filter)
 
             # Handle different scraping modes
             if preview_submarkets_only:
@@ -348,6 +366,17 @@ class OddsPortalMarketExtractor:
         except Exception as e:
             self.logger.error(f"Error extracting odds for {main_market} {specific_market}: {e}")
             return []
+
+    async def _show_bookies(self, page: Page, bookies_filter: BookiesFilter | None) -> None:
+        """Show the requested bookmaker panel: every market or period switch renders the default one (gotchas §26)."""
+        if bookies_filter is None:
+            return
+        await self.selection_manager.ensure_selected(
+            page=page,
+            target_value=bookies_filter.value,
+            display_label=BookiesFilter.get_display_label(bookies_filter),
+            strategy=BOOKIES_FILTER_STRATEGY,
+        )
 
     def _history_block(self, modal_html: str | None, reference: datetime | None, tz_name: str | None) -> dict[str, Any]:
         """Parsed history of one outcome cell, or the empty block when its modal could not be read."""

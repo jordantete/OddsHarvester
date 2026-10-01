@@ -1151,6 +1151,7 @@ class BaseScraper:
                         preview_submarkets_only=preview_submarkets_only,
                         history_reference=history_reference,
                         history_timezone=tz_name,
+                        bookies_filter=bookies_filter,
                     )
                     if market_data:
                         match_details.update(market_data)

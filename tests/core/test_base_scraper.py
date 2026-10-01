@@ -24,6 +24,7 @@ from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtr
 from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
+from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import (
     DYNAMIC_CONTENT_WAIT_MS,
     LOGIN_MODAL_CLOSE_WAIT_MS,
@@ -1282,11 +1283,11 @@ async def test_scrape_match_data(setup_base_scraper_mocks):
         preview_submarkets_only=False,
         history_reference=datetime(2023, 5, 1, 20, 0),
         history_timezone=None,
+        bookies_filter=BookiesFilter.ALL,
     )
 
     # Verify the bookies filter was applied via SelectionManager with the right strategy
     from oddsharvester.core.browser.selection import BOOKIES_FILTER_STRATEGY
-    from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 
     mocks["selection_manager_mock"].ensure_selected.assert_called_once_with(
         page=page_mock,

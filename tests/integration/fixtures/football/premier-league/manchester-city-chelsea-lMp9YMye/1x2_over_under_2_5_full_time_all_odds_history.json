@@ -1,6 +1,6 @@
 [
     {
-        "scraped_date": "2026-09-25 10:32:04 UTC",
+        "scraped_date": "2026-10-01 13:34:22 UTC",
         "match_date": "2026-01-04 17:30:00 UTC",
         "season": null,
         "match_link": "https://www.oddsportal.com/football/h2h/chelsea-4fGZN2oK/manchester-city-Wtn9Stg0/#lMp9YMye",
@@ -62,6 +62,52 @@
                 ]
             },
             {
+                "1": "1.49",
+                "X": "5.00",
+                "2": "5.60",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "1X2",
+                "odds_history_data": [
+                    {
+                        "odds_history": [
+                            {
+                                "timestamp": "2026-01-04T17:10:00",
+                                "odds": 1.49
+                            }
+                        ],
+                        "opening_odds": {
+                            "timestamp": "2025-12-27T17:14:00",
+                            "odds": 1.68
+                        }
+                    },
+                    {
+                        "odds_history": [
+                            {
+                                "timestamp": "2026-01-04T17:07:00",
+                                "odds": 5.0
+                            }
+                        ],
+                        "opening_odds": {
+                            "timestamp": "2025-12-27T17:14:00",
+                            "odds": 3.9
+                        }
+                    },
+                    {
+                        "odds_history": [
+                            {
+                                "timestamp": "2026-01-04T17:10:00",
+                                "odds": 5.6
+                            }
+                        ],
+                        "opening_odds": {
+                            "timestamp": "2025-12-27T17:14:00",
+                            "odds": 4.6
+                        }
+                    }
+                ]
+            },
+            {
                 "1": "1.42",
                 "X": "4.40",
                 "2": "4.80",
@@ -103,6 +149,98 @@
                         "opening_odds": {
                             "timestamp": "2025-12-31T11:55:00",
                             "odds": 3.8
+                        }
+                    }
+                ]
+            },
+            {
+                "1": "1.44",
+                "X": "4.80",
+                "2": "6.20",
+                "bookmaker_name": "Roobet",
+                "period": "FullTime",
+                "submarket_name": "1X2",
+                "odds_history_data": [
+                    {
+                        "odds_history": [
+                            {
+                                "timestamp": "2026-01-04T17:12:00",
+                                "odds": 1.44
+                            }
+                        ],
+                        "opening_odds": {
+                            "timestamp": "2025-12-27T17:22:00",
+                            "odds": 1.62
+                        }
+                    },
+                    {
+                        "odds_history": [
+                            {
+                                "timestamp": "2026-01-04T17:16:00",
+                                "odds": 4.8
+                            }
+                        ],
+                        "opening_odds": {
+                            "timestamp": "2025-12-27T17:22:00",
+                            "odds": 4.1
+                        }
+                    },
+                    {
+                        "odds_history": [
+                            {
+                                "timestamp": "2026-01-04T17:16:00",
+                                "odds": 6.2
+                            }
+                        ],
+                        "opening_odds": {
+                            "timestamp": "2025-12-27T17:22:00",
+                            "odds": 4.9
+                        }
+                    }
+                ]
+            },
+            {
+                "1": "1.50",
+                "X": "5.20",
+                "2": "5.80",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "submarket_name": "1X2",
+                "odds_history_data": [
+                    {
+                        "odds_history": [
+                            {
+                                "timestamp": "2026-01-04T17:09:00",
+                                "odds": 1.5
+                            }
+                        ],
+                        "opening_odds": {
+                            "timestamp": "2025-12-27T17:08:00",
+                            "odds": 1.68
+                        }
+                    },
+                    {
+                        "odds_history": [
+                            {
+                                "timestamp": "2026-01-04T16:38:00",
+                                "odds": 5.2
+                            }
+                        ],
+                        "opening_odds": {
+                            "timestamp": "2025-12-27T17:08:00",
+                            "odds": 4.2
+                        }
+                    },
+                    {
+                        "odds_history": [
+                            {
+                                "timestamp": "2026-01-04T17:01:00",
+                                "odds": 5.8
+                            }
+                        ],
+                        "opening_odds": {
+                            "timestamp": "2025-12-27T17:08:00",
+                            "odds": 4.9
                         }
                     }
                 ]
@@ -235,6 +373,39 @@
                 ]
             },
             {
+                "odds_over": "1.37",
+                "odds_under": "3.25",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5",
+                "odds_history_data": [
+                    {
+                        "odds_history": [
+                            {
+                                "timestamp": "2026-01-04T17:10:00",
+                                "odds": 1.37
+                            }
+                        ],
+                        "opening_odds": {
+                            "timestamp": "2025-12-27T17:14:00",
+                            "odds": 1.53
+                        }
+                    },
+                    {
+                        "odds_history": [
+                            {
+                                "timestamp": "2026-01-04T17:26:00",
+                                "odds": 3.25
+                            }
+                        ],
+                        "opening_odds": {
+                            "timestamp": "2025-12-27T17:14:00",
+                            "odds": 2.34
+                        }
+                    }
+                ]
+            },
+            {
                 "odds_over": "1.33",
                 "odds_under": "2.85",
                 "bookmaker_name": "bwin.fr",
@@ -263,6 +434,39 @@
                         "opening_odds": {
                             "timestamp": "2025-12-31T11:55:00",
                             "odds": 2.37
+                        }
+                    }
+                ]
+            },
+            {
+                "odds_over": "1.36",
+                "odds_under": "3.10",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5",
+                "odds_history_data": [
+                    {
+                        "odds_history": [
+                            {
+                                "timestamp": "2026-01-04T17:25:00",
+                                "odds": 1.36
+                            }
+                        ],
+                        "opening_odds": {
+                            "timestamp": "2025-12-27T17:09:00",
+                            "odds": 1.57
+                        }
+                    },
+                    {
+                        "odds_history": [
+                            {
+                                "timestamp": "2026-01-04T17:29:00",
+                                "odds": 3.1
+                            }
+                        ],
+                        "opening_odds": {
+                            "timestamp": "2025-12-27T17:09:00",
+                            "odds": 2.36
                         }
                     }
                 ]

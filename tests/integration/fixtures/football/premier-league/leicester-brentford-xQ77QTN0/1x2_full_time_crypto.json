@@ -16,26 +16,10 @@
         "match_info": null,
         "1x2_market": [
             {
-                "1": "3.50",
-                "X": "3.67",
-                "2": "1.96",
-                "bookmaker_name": "Betclic.fr",
-                "period": "FullTime",
-                "submarket_name": "1X2"
-            },
-            {
                 "1": "3.60",
                 "X": "3.70",
-                "2": "1.95",
-                "bookmaker_name": "bwin.fr",
-                "period": "FullTime",
-                "submarket_name": "1X2"
-            },
-            {
-                "1": "3.65",
-                "X": "3.80",
-                "2": "1.96",
-                "bookmaker_name": "Winamax",
+                "2": "1.98",
+                "bookmaker_name": "Bets.io",
                 "period": "FullTime",
                 "submarket_name": "1X2"
             }
