@@ -19,6 +19,7 @@ from oddsharvester.core.browser.selection import (
     BOOKIES_FILTER_STRATEGY,
     SelectionManager,
 )
+from oddsharvester.core.browser.waits import wait_for_element, wait_for_signal
 from oddsharvester.core.exceptions import H2HFragmentResolutionError, MatchContentError, RateLimitError
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
@@ -38,6 +39,7 @@ from oddsharvester.utils.constants import (
     DEFAULT_REQUEST_DELAY_S,
     DYNAMIC_CONTENT_WAIT_MS,
     HASH_NUDGE_DELAY_MS,
+    LOGIN_MODAL_CLOSE_WAIT_MS,
     MATCH_HYDRATION_ATTEMPTS,
     MATCH_HYDRATION_TIMEOUT_MS,
     MATCH_RETRY_BASE_DELAY,
@@ -383,6 +385,14 @@ class BaseScraper:
         self._warmed_proxy_keys: set[str] = set()
         self.pagination_walker = PaginationWalker()
 
+    # The odds format button (the first button whose text holds 'Odds') reads the label.
+    _ODDS_FORMAT_SHOWN_JS = """
+    (label) => {
+        const button = Array.from(document.querySelectorAll("button")).find((b) => /odds/i.test(b.textContent || ""));
+        return !!button && button.innerText.trim() === label;
+    }
+    """
+
     async def set_odds_format(
         self, page: Page, odds_format: OddsFormat = OddsFormat.DECIMAL_ODDS, strict: bool = False
     ) -> None:
@@ -416,8 +426,8 @@ class BaseScraper:
                 return
 
             await dropdown_button.click()
-            await page.wait_for_timeout(ODDS_FORMAT_WAIT_MS)
             format_option_selector = "div.group > div.dropdown-content > ul > li > a"
+            await wait_for_element(page, format_option_selector, ODDS_FORMAT_WAIT_MS, "odds format options")
             format_options = await page.query_selector_all(format_option_selector)
 
             for option in format_options:
@@ -426,7 +436,13 @@ class BaseScraper:
                 if odds_format.value.lower() in option_text.lower():
                     self.logger.info(f"Selecting odds format: {option_text}")
                     await option.click()
-                    await page.wait_for_timeout(ODDS_FORMAT_WAIT_MS)
+                    await wait_for_signal(
+                        page,
+                        self._ODDS_FORMAT_SHOWN_JS,
+                        ODDS_FORMAT_WAIT_MS,
+                        f"'{odds_format.value}' on the odds format button",
+                        arg=odds_format.value,
+                    )
                     self.logger.info(f"Odds format changed to '{odds_format.value}'.")
                     return
 
@@ -1073,9 +1089,16 @@ class BaseScraper:
         await page.goto(match_link, timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded")
 
         try:
-            # Wait a bit for dynamic content to load
-            await page.wait_for_timeout(DYNAMIC_CONTENT_WAIT_MS)
-
+            await wait_for_signal(
+                page,
+                self._VIEW_OR_LOGIN_MODAL_JS,
+                DYNAMIC_CONTENT_WAIT_MS,
+                "match view or login modal",
+                arg={
+                    "tabs": OddsPortalSelectors.MATCH_CONTENT_READY_SELECTOR,
+                    "modal": OddsPortalSelectors.LOGIN_MODAL_CLOSE,
+                },
+            )
             await self._dismiss_login_modal(page)
             await self._hydrate_match_view(page, match_link, sport=sport)
 
@@ -1304,10 +1327,25 @@ class BaseScraper:
             el = await page.query_selector(OddsPortalSelectors.LOGIN_MODAL_CLOSE)
             if el and await el.is_visible():
                 await el.click()
-                await page.wait_for_timeout(500)
+                await wait_for_element(
+                    page,
+                    OddsPortalSelectors.LOGIN_MODAL_CLOSE,
+                    LOGIN_MODAL_CLOSE_WAIT_MS,
+                    "login modal closing",
+                    state="hidden",
+                )
                 self.logger.info("Dismissed the login modal.")
         except Exception as e:
             self.logger.debug(f"Login modal dismissal skipped: {e}")
+
+    # The tabs of the rendered match view, or the visible close button of the login modal.
+    _VIEW_OR_LOGIN_MODAL_JS = """
+    (args) => {
+        if (document.querySelector(args.tabs)) return true;
+        const close = document.querySelector(args.modal);
+        return !!close && close.getClientRects().length > 0;
+    }
+    """
 
     # The SPA renders the fragment match on load again since 2026-09, so the hash
     # nudge is only a retry. Setting the bare id first guarantees the second

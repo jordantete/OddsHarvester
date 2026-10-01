@@ -6,6 +6,7 @@ import logging
 from playwright.async_api import ElementHandle, Page
 
 from oddsharvester.core.browser.market_navigation import HASH_SWITCH_JS
+from oddsharvester.core.browser.waits import wait_for_signal
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 from oddsharvester.utils.constants import (
@@ -47,6 +48,16 @@ _CLICK_PERIOD_TAB_JS = """
     tabs[args.index].click();
     return true;
 }
+"""
+
+
+# A sub-nav button whose text is args.label carries the selected style.
+_TAB_SHOWN_ACTIVE_JS = """
+(args) => Array.from(document.querySelectorAll(args.selector)).some(
+    (tab) =>
+        (tab.textContent || "").trim().toLowerCase() === args.label &&
+        (tab.getAttribute("style") || "").replaceAll(" ", "").includes(args.marker)
+)
 """
 
 
@@ -105,7 +116,17 @@ class SelectionManager:
 
             self.logger.info(f"Clicking {strategy.name}: {display_label}")
             await target.click()
-            await page.wait_for_timeout(FALLBACK_VERIFY_WAIT_MS)
+            await wait_for_signal(
+                page,
+                _TAB_SHOWN_ACTIVE_JS,
+                FALLBACK_VERIFY_WAIT_MS,
+                f"selected {strategy.name} '{display_label}'",
+                arg={
+                    "selector": strategy.tab_selector,
+                    "label": label,
+                    "marker": strategy.active_style_marker.replace(" ", ""),
+                },
+            )
 
             # Re-locate: the SPA re-renders the tab on selection.
             target = await self._find_tab(page, strategy, label)

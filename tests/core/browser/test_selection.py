@@ -1,14 +1,18 @@
 from unittest.mock import AsyncMock, MagicMock
 
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 import pytest
 
 from oddsharvester.core.browser.selection import (
+    _TAB_SHOWN_ACTIVE_JS,
     BOOKIES_FILTER_STRATEGY,
     PERIOD_STRATEGY,
     PeriodSelector,
     SelectionManager,
 )
+from oddsharvester.core.browser.waits import SIGNAL_POLL_MS
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
+from oddsharvester.utils.constants import FALLBACK_VERIFY_WAIT_MS
 
 STRATEGY_CASES = [
     pytest.param(BOOKIES_FILTER_STRATEGY, "classic", "Classic Bookies", id="bookies"),
@@ -30,6 +34,7 @@ def _page(tab_sets):
     """Page whose query_selector_all returns each tab set in sequence (last one repeats)."""
     page = MagicMock()
     page.wait_for_timeout = AsyncMock()
+    page.wait_for_function = AsyncMock(return_value=MagicMock())
     sets = list(tab_sets)
 
     async def query(_selector):
@@ -76,6 +81,32 @@ class TestSelectionManager:
         assert await manager.ensure_selected(page, target_value, display_label, strategy) is False
 
         before.click.assert_awaited_once()
+
+    async def test_a_click_waits_for_the_selected_style(self, manager):
+        """R10: the click is checked once the button shows the selected style, at most FALLBACK_VERIFY_WAIT_MS."""
+        before = _tab("All Bookies", active=False)
+        page = _page([[before], [_tab("All Bookies", active=True)]])
+
+        assert await manager.ensure_selected(page, "all", "All Bookies", BOOKIES_FILTER_STRATEGY) is True
+
+        page.wait_for_function.assert_awaited_once_with(
+            _TAB_SHOWN_ACTIVE_JS,
+            arg={"selector": OddsPortalSelectors.SUB_NAV_TAB_ANY, "label": "all bookies", "marker": "font-weight:700"},
+            timeout=FALLBACK_VERIFY_WAIT_MS,
+            polling=SIGNAL_POLL_MS,
+        )
+        page.wait_for_timeout.assert_not_awaited()
+
+    async def test_a_click_never_shown_selected_warns_and_fails(self, manager, caplog):
+        before = _tab("Crypto Bookies", active=False)
+        page = _page([[before]])
+        page.wait_for_function = AsyncMock(side_effect=PlaywrightTimeoutError("Timeout 1000ms exceeded."))
+
+        with caplog.at_level("WARNING"):
+            assert await manager.ensure_selected(page, "crypto", "Crypto Bookies", BOOKIES_FILTER_STRATEGY) is False
+
+        assert "No selected bookies-filter 'Crypto Bookies' within 1000 ms" in caplog.text
+        assert "Failed to set bookies-filter to: Crypto Bookies" in caplog.text
 
     async def test_returns_false_when_no_tab_matches_label(self, manager):
         page = _page([[_tab("All Bookies"), _tab("Crypto Bookies")]])

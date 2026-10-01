@@ -19,10 +19,18 @@ from oddsharvester.core.base_scraper import (
     _row_has_started,
     _row_kickoff_datetime,
 )
+from oddsharvester.core.browser.waits import SIGNAL_POLL_MS
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
+from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
-from oddsharvester.utils.constants import NAVIGATION_TIMEOUT_MS, ODDSPORTAL_BASE_URL
+from oddsharvester.utils.constants import (
+    DYNAMIC_CONTENT_WAIT_MS,
+    LOGIN_MODAL_CLOSE_WAIT_MS,
+    NAVIGATION_TIMEOUT_MS,
+    ODDS_FORMAT_WAIT_MS,
+    ODDSPORTAL_BASE_URL,
+)
 from oddsharvester.utils.odds_format_enum import OddsFormat
 
 
@@ -156,6 +164,62 @@ async def test_set_odds_format_timeout(setup_base_scraper_mocks):
 
     page_mock.wait_for_selector.assert_called_once()
     page_mock.query_selector.assert_not_called()
+
+
+_FORMAT_OPTIONS = "div.group > div.dropdown-content > ul > li > a"
+
+
+def _format_page(page_mock, shown: str):
+    """The page shows `shown` on the odds format button and offers a Decimal Odds option."""
+    button = AsyncMock()
+    button.inner_text = AsyncMock(return_value=shown)
+    page_mock.query_selector.return_value = button
+    decimal = AsyncMock()
+    decimal.inner_text = AsyncMock(return_value="Decimal Odds")
+    page_mock.query_selector_all.return_value = [decimal]
+    return decimal
+
+
+async def test_set_odds_format_waits_for_its_options_then_for_the_chosen_label(setup_base_scraper_mocks):
+    """R3 and R4: each step waits for what it changes on the page, at most ODDS_FORMAT_WAIT_MS."""
+    mocks = setup_base_scraper_mocks
+    page_mock = mocks["page_mock"]
+    decimal = _format_page(page_mock, "Fractional Odds")
+
+    await mocks["scraper"].set_odds_format(page=page_mock, odds_format=OddsFormat.DECIMAL_ODDS)
+
+    page_mock.wait_for_selector.assert_awaited_with(_FORMAT_OPTIONS, state="visible", timeout=ODDS_FORMAT_WAIT_MS)
+    decimal.click.assert_awaited_once()
+    page_mock.wait_for_function.assert_awaited_once_with(
+        BaseScraper._ODDS_FORMAT_SHOWN_JS, arg="Decimal Odds", timeout=ODDS_FORMAT_WAIT_MS, polling=SIGNAL_POLL_MS
+    )
+    page_mock.wait_for_timeout.assert_not_awaited()
+
+
+async def test_set_odds_format_reads_the_options_shown_when_they_never_appear(setup_base_scraper_mocks, caplog):
+    mocks = setup_base_scraper_mocks
+    page_mock = mocks["page_mock"]
+    decimal = _format_page(page_mock, "Fractional Odds")
+    page_mock.wait_for_selector = AsyncMock(side_effect=[None, TimeoutError("Timeout 10000ms exceeded.")])
+
+    with caplog.at_level("WARNING"):
+        await mocks["scraper"].set_odds_format(page=page_mock, odds_format=OddsFormat.DECIMAL_ODDS)
+
+    assert "No odds format options within 10000 ms; carrying on with the page as it is." in caplog.text
+    decimal.click.assert_awaited_once()
+
+
+async def test_set_odds_format_carries_on_when_the_label_never_changes(setup_base_scraper_mocks, caplog):
+    mocks = setup_base_scraper_mocks
+    page_mock = mocks["page_mock"]
+    _format_page(page_mock, "Fractional Odds")
+    page_mock.wait_for_function = AsyncMock(side_effect=TimeoutError("Timeout 10000ms exceeded."))
+
+    with caplog.at_level("INFO"):
+        await mocks["scraper"].set_odds_format(page=page_mock, odds_format=OddsFormat.DECIMAL_ODDS)
+
+    assert "No 'Decimal Odds' on the odds format button within 10000 ms" in caplog.text
+    assert "Odds format changed to 'Decimal Odds'." in caplog.text
 
 
 async def test_extract_match_links(setup_base_scraper_mocks):
@@ -2317,6 +2381,86 @@ def test_extract_fragment_match_id_strips_market_suffix():
     assert _extract_fragment_match_id("https://www.oddsportal.com/x/h2h/a/b/#OOklm0j3:1X2;2") == "OOklm0j3"
 
 
+def _match_load_scraper(mocks, order):
+    scraper = mocks["scraper"]
+    scraper._dismiss_login_modal = AsyncMock(side_effect=lambda page: order.append("dismiss"))
+    scraper._hydrate_match_view = AsyncMock(side_effect=lambda *args, **kwargs: order.append("hydrate"))
+    scraper._extract_match_details = AsyncMock(return_value={"home_team": "Arsenal", "away_team": "Leeds"})
+    return scraper
+
+
+async def test_a_match_load_waits_for_the_view_or_the_login_modal_first(setup_base_scraper_mocks):
+    """R1: the scrape goes on as soon as the tabs or the login modal show, at most DYNAMIC_CONTENT_WAIT_MS."""
+    mocks = setup_base_scraper_mocks
+    page_mock = mocks["page_mock"]
+    order = []
+    page_mock.wait_for_function = AsyncMock(side_effect=lambda *args, **kwargs: order.append("signal"))
+    scraper = _match_load_scraper(mocks, order)
+
+    await scraper._scrape_match_data(
+        page=page_mock, sport="football", match_link="https://www.oddsportal.com/football/h2h/a/b/#xtmHKGT0"
+    )
+
+    assert order == ["signal", "dismiss", "hydrate"]
+    page_mock.wait_for_function.assert_awaited_once_with(
+        BaseScraper._VIEW_OR_LOGIN_MODAL_JS,
+        arg={"tabs": OddsPortalSelectors.MATCH_CONTENT_READY_SELECTOR, "modal": OddsPortalSelectors.LOGIN_MODAL_CLOSE},
+        timeout=DYNAMIC_CONTENT_WAIT_MS,
+        polling=SIGNAL_POLL_MS,
+    )
+    page_mock.wait_for_timeout.assert_not_awaited()
+
+
+async def test_a_match_load_carries_on_when_neither_view_nor_modal_shows(setup_base_scraper_mocks, caplog):
+    mocks = setup_base_scraper_mocks
+    page_mock = mocks["page_mock"]
+    page_mock.wait_for_function = AsyncMock(side_effect=TimeoutError("Timeout 2000ms exceeded."))
+    order = []
+    scraper = _match_load_scraper(mocks, order)
+
+    with caplog.at_level("WARNING"):
+        result = await scraper._scrape_match_data(
+            page=page_mock, sport="football", match_link="https://www.oddsportal.com/football/h2h/a/b/#xtmHKGT0"
+        )
+
+    assert "No match view or login modal within 2000 ms; carrying on with the page as it is." in caplog.text
+    assert order == ["dismiss", "hydrate"]
+    assert result["home_team"] == "Arsenal"
+
+
+async def test_dismissing_the_login_modal_waits_for_it_to_hide(setup_base_scraper_mocks, caplog):
+    """R2: after the click, the modal hidden, at most LOGIN_MODAL_CLOSE_WAIT_MS."""
+    mocks = setup_base_scraper_mocks
+    page_mock = mocks["page_mock"]
+    close = AsyncMock()
+    close.is_visible = AsyncMock(return_value=True)
+    page_mock.query_selector = AsyncMock(return_value=close)
+
+    with caplog.at_level("INFO"):
+        await mocks["scraper"]._dismiss_login_modal(page_mock)
+
+    close.click.assert_awaited_once()
+    page_mock.wait_for_selector.assert_awaited_once_with(
+        OddsPortalSelectors.LOGIN_MODAL_CLOSE, state="hidden", timeout=LOGIN_MODAL_CLOSE_WAIT_MS
+    )
+    page_mock.wait_for_timeout.assert_not_awaited()
+    assert "Dismissed the login modal." in caplog.text
+
+
+async def test_dismissing_the_login_modal_carries_on_when_it_stays(setup_base_scraper_mocks, caplog):
+    mocks = setup_base_scraper_mocks
+    page_mock = mocks["page_mock"]
+    close = AsyncMock()
+    close.is_visible = AsyncMock(return_value=True)
+    page_mock.query_selector = AsyncMock(return_value=close)
+    page_mock.wait_for_selector = AsyncMock(side_effect=TimeoutError("Timeout 500ms exceeded."))
+
+    with caplog.at_level("WARNING"):
+        await mocks["scraper"]._dismiss_login_modal(page_mock)
+
+    assert "No login modal closing within 500 ms; carrying on with the page as it is." in caplog.text
+
+
 async def test_hydrate_match_view_success_first_attempt(setup_base_scraper_mocks):
     """The view renders on load, so a first successful wait nudges nothing."""
     mocks = setup_base_scraper_mocks
@@ -2339,6 +2483,7 @@ async def test_hydrate_match_view_two_outcome_sport_uses_home_away(setup_base_sc
     scraper = mocks["scraper"]
     page_mock = mocks["page_mock"]
     page_mock.evaluate = AsyncMock()
+    page_mock.query_selector = AsyncMock(return_value=None)
     page_mock.wait_for_selector = AsyncMock(side_effect=[TimeoutError("no content"), None])
 
     await scraper._hydrate_match_view(

@@ -23,6 +23,7 @@ DYNAMIC_CONTENT_WAIT_MS = 2000
 ODDS_FORMAT_WAIT_MS = 10000
 TAB_SWITCH_WAIT_MS = 500
 FALLBACK_VERIFY_WAIT_MS = 1000
+LOGIN_MODAL_CLOSE_WAIT_MS = 500
 # Match-view hydration (2026-08 redesign): content renders only after an
 # in-page hashchange to '#<id>:<market>;<scope>'; the first nudge right after
 # domcontentloaded can fire before the SPA has booted, hence the retries.
