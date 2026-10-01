@@ -478,20 +478,23 @@ Since the 2026-08 redesign the fragment drives the tab bar itself (§19).
 tries two paths in order:
 
 1. **Hash.** `_navigate_by_hash` reads the event id and the current `;<scope>`
-   from the page URL and runs `HASH_SWITCH_JS`, which writes
-   `#<id>:<code>;<scope>` into `location.hash` and dispatches a
-   `HashChangeEvent`. The SPA re-renders the match view on that event, and the
-   period survives the market switch. The path succeeds only when the URL then
-   carries the requested code and the tab bar (`li.tab-item`) has rendered. It
-   is skipped on in-play pages (`/inplay-odds/`), which route their own codes
-   (`O/U`, not `over-under`), and for a market missing from `MARKET_TAB_CODES`.
+   from the page URL and runs `HASH_SWITCH_JS`, which marks the current tabs
+   (`data-oh-stale`), writes `#<id>:<code>;<scope>` into `location.hash` and
+   dispatches a `HashChangeEvent`. The SPA tears the match view down and
+   renders it again 0.1 to 0.4 s later, in one commit (tab bar, active tab,
+   odds table; probe of 2026-10-01), and the period survives the market
+   switch. `switch_view` waits for that view: unmarked tabs and the requested
+   code and scope in the hash, at most 5.5 s, the three sleeps it replaced; at
+   the cap it logs a warning and the path goes on with the URL check and the
+   tab bar. A switch to the code and scope the URL already holds is skipped:
+   writing the same hash renders nothing again (an umbrella's lines all sit on
+   the tab already shown). The path is skipped on in-play pages
+   (`/inplay-odds/`), which route their own codes (`O/U`, not `over-under`),
+   and for a market missing from `MARKET_TAB_CODES`.
 2. **Click.** `_click_tab_by_text` clicks the first `li.tab-item` whose text
-   contains the English market name, then checks that the bold (active) tab
-   carries that name. This path reads labels, so on a localized mirror only the
-   hash path can reach a market.
-
-`NavigationManager.wait_for_market_switch` confirms the active market through
-the URL code first, then through the active tab's text.
+   contains the English market name, waits for the bold (active) tab to carry
+   that name, at most 5.5 s, then checks it. This path reads labels, so on a
+   localized mirror only the hash path can reach a market.
 
 One trap when extending the code map: **`main_market="Handicap"` (rugby) has no
 matching tab.** OddsPortal only has `Asian Handicap`/`European Handicap`. The
@@ -513,10 +516,15 @@ full English label `"Over/Under +20.5 Games"` and the row reads
 main-market *prefix* is translated (`Over/Under` → `Más/Menos de`); the line
 (`+20.5`) is byte-identical across mirrors.
 `OddsPortalSelectors.submarket_match_text(specific_market, main_market)` strips
-the English `main_market` prefix, and `PageScroller.scroll_until_visible_and_click_parent`
-in exact mode (`exact_tail=True`, passed by `NavigationManager.select_specific_market`)
-keeps a row only when the last whitespace tokens of one of its label spans are
-the line (`OddsPortalSelectors.line_label_matches`). A substring match is not
+the English `main_market` prefix, and `PageScroller.click_line_row` (called by
+`NavigationManager.select_specific_market`) keeps a row only when the last
+whitespace tokens of one of its label spans are the line
+(`OddsPortalSelectors.line_label_matches`, mirrored in the page by
+`_LINE_ROW_JS`, which waits for the row at most 20 s; nothing scrolls, since a
+row below the fold is already in the DOM). A clicked row renders its bookmaker
+rows in a nested table of the `<tr>` that follows it, 0.2 to 0.3 s after the
+click; the read waits for them, and closing the row waits for them to go,
+each at most 2 s. A substring match is not
 enough: lines render in ascending order, so `-1` found `Asian Handicap -1.75`
 first (the same for `-2`, `-3`, `-4`), and a missing `+2` would have opened
 `+2.25` (probe of 2026-09-29). Two rules come with it:
@@ -602,7 +610,16 @@ reading `location.hash`; the `/results/` listings lazy-load their match links.
 ### The odds-history tooltip header has the same trap (issue #70 follow-up)
 
 `--odds-history` hovers each bookmaker odds cell to open the "Odds movement"
-tooltip, then reads `h3 → parentElement` to capture the modal. The old selector
+tooltip, then reads `h3 → parentElement` to capture the modal. The tooltip
+renders in two steps (probe of 2026-10-01, 9 hovers out of 9): about 0.2 s
+after the hover the header stands over a loading state (an `svg.animate-spin`,
+a "Loading" label and the opening odds), and only after the
+`/proxy/match-event-history/` response (0.25 to 0.5 s) does it hold the history
+columns. The hover sometimes fires that request twice and goes back to the
+spinner in between. A wait on the header alone reads the loading state, so
+`OddsHistoryExtractor` waits for the response, then for the header's parent
+without `.animate-spin` (a language-independent signal), and takes its HTML in
+the same evaluation, within one 2 s cap. The old selector
 `h3:text('Odds movement')` matched the **localized** header (`$t("odds_movement")`
 in the Vue bundle), so on `cuotasahora.com` the `wait_for_selector` timed out:
 no modal captured → **both odds history and opening odds silently empty**, while
@@ -1997,6 +2014,44 @@ Rows of a listing whose href starts with another sport's path, or, in the log,
 - A league path given to `--league` may start with the site path or the CLI
   name (`hockey/usa/nhl` or `ice-hockey/usa/nhl`); `get_league_url` builds the
   URL on the site path.
+
+---
+
+## §26: A market or period switch resets the bookies filter to Classic
+
+**Severity:** High (wrong data under the requested option, silently).
+
+The match view opens with the "Classic Bookies" panel. `--bookies-filter all`
+or `crypto` clicks its sub-nav button once the view hydrates, but every hash
+switch (market or period, §7, §19) renders the view again with the default
+panel. From v0.11.0 to the fix every scraped market was read with the Classic
+panel: live, "All Bookies" showed 7 rows on 1X2 and the scrape kept 4. The filter is applied in the page: its click
+fires no request, so a HAR holds every bookmaker and a replay resets the same
+way. Writing the hash the URL already holds renders nothing again and keeps the
+panel.
+
+### Detection signal
+
+- The `_all` and `_classic` goldens of one match are identical, or the
+  `_crypto` golden holds the classic bookmakers.
+- On the page, the bold bookies button reads "Classic Bookies" when the table is
+  read although the run asked for another panel.
+
+### Fix pattern
+
+`OddsPortalMarketExtractor` shows the requested panel after the last
+navigation step and before every read (`_show_bookies`, through
+`SelectionManager.ensure_selected`): after the market switch and the period
+selection in `extract_market_odds`, and after the switch of an umbrella's line
+discovery. It clicks nothing when the panel shown is the one requested, so
+`classic` costs no click. A panel that cannot be shown logs a warning and the
+market is read as shown.
+
+### References
+
+- `core/odds_portal_market_extractor.py`: `_show_bookies`, `extract_market_odds`, `_discover_line_names`.
+- `core/browser/selection.py`: `SelectionManager.ensure_selected`.
+- §7: the hash switch; §19: the hash-driven view.
 
 ---
 
