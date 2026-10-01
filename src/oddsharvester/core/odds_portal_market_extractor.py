@@ -98,9 +98,7 @@ class OddsPortalMarketExtractor:
                 continue
 
             try:
-                line_names = await self._discover_line_names(
-                    page=page, main_market=umbrella_main_market, sport=sport, period=period
-                )
+                line_names = await self._discover_line_names(page=page, main_market=umbrella_main_market, period=period)
                 line_tokens: list[str] = []
                 for line_name in line_names:
                     token = line_name_to_token(umbrella_main_market, line_name)
@@ -195,14 +193,13 @@ class OddsPortalMarketExtractor:
 
         return market_data
 
-    async def _discover_line_names(self, page: Page, main_market: str, sport: str, period: str) -> list[str]:
+    async def _discover_line_names(self, page: Page, main_market: str, period: str) -> list[str]:
         """
         Navigate to a main-market tab and enumerate the rendered line names (e.g. "Over/Under +2.5").
 
         Args:
             page (Page): The Playwright page instance.
             main_market (str): The main market name (e.g., "Over/Under", "Asian Handicap").
-            sport (str): The sport being scraped.
             period (str): The match period (e.g., "FullTime").
 
         Returns:

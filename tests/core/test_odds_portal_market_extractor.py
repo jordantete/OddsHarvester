@@ -466,7 +466,7 @@ class TestOddsPortalMarketExtractor:
         assert "over_under_market" not in result
         assert extractor.extract_market_odds.await_count == 2
         extractor._discover_line_names.assert_called_once_with(
-            page=page_mock, main_market="Over/Under", sport="football", period="FullTime"
+            page=page_mock, main_market="Over/Under", period="FullTime"
         )
 
     async def test_scrape_markets_expands_the_umbrella_from_localized_line_names(self, extractor, page_mock):
@@ -639,9 +639,7 @@ class TestOddsPortalMarketExtractor:
         )
 
         # Act
-        result = await extractor._discover_line_names(
-            page=page_mock, main_market="Over/Under", sport="football", period="FullTime"
-        )
+        result = await extractor._discover_line_names(page=page_mock, main_market="Over/Under", period="FullTime")
 
         # Assert
         assert result == ["Over/Under +2.5", "Over/Under +3.5"]
@@ -655,9 +653,7 @@ class TestOddsPortalMarketExtractor:
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=False)
 
         # Act
-        result = await extractor._discover_line_names(
-            page=page_mock, main_market="Over/Under", sport="football", period="FullTime"
-        )
+        result = await extractor._discover_line_names(page=page_mock, main_market="Over/Under", period="FullTime")
 
         # Assert
         assert result == []
