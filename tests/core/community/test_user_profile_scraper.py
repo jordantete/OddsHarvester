@@ -52,3 +52,21 @@ async def test_a_refused_profile_page_raises_rate_limit_error():
         await scraper.scrape("BLAPRO")
 
     assert excinfo.value.url == "https://www.oddsportal.com/profile/BLAPRO/"
+
+
+async def test_run_user_profile_raises_a_rate_limit_that_outlasts_the_retries(caplog):
+    with (
+        patch("oddsharvester.core.browser.session.PlaywrightManager") as mgr_cls,
+        patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock),
+    ):
+        manager = _manager_with_html(_PUBLIC_HTML)
+        manager.page.goto = AsyncMock(return_value=MagicMock(status=429))
+        manager.initialize = AsyncMock()
+        manager.cleanup = AsyncMock()
+        mgr_cls.return_value = manager
+
+        with caplog.at_level("ERROR"), pytest.raises(RateLimitError, match="rate limited by OddsPortal"):
+            await run_user_profile("BLAPRO", headless=True)
+
+    assert "User-profile scrape failed after 3 attempts: rate limited by OddsPortal" in caplog.text
+    manager.cleanup.assert_awaited_once()

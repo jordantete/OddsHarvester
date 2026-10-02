@@ -81,7 +81,10 @@ async def run_user_profile(
     browser_timezone_id: str | None = None,
     base_url: str | None = None,
 ) -> dict:
-    """Owns the Playwright lifecycle for one user-profile scrape run."""
+    """Owns the Playwright lifecycle for one user-profile scrape run.
+
+    Raises the last error when every attempt failed, so a refused or broken page is not stored as an empty profile.
+    """
     async with browser_session(
         headless=headless,
         proxy_url=proxy_url,
@@ -96,11 +99,4 @@ async def run_user_profile(
         if retry_result.success:
             return retry_result.result
         logger.error("User-profile scrape failed after %d attempts: %s", retry_result.attempts, retry_result.last_error)
-        return {
-            "mode": "user",
-            "username": username,
-            "privacy": None,
-            "statistics": [],
-            "predictions": [],
-            "scraped_at": datetime.now(UTC).isoformat(),
-        }
+        raise retry_result.exception

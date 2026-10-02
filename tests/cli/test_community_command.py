@@ -1,6 +1,6 @@
 """Tests for the community CLI command."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from click.testing import CliRunner
 import pytest
@@ -207,3 +207,20 @@ def test_explicit_sport_with_user_is_still_refused():
 
     assert result.exit_code == 2
     assert "exactly one" in result.output.lower()
+
+
+def test_community_user_mode_rate_limited_on_every_attempt_exits_1_and_writes_nothing(tmp_path, caplog):
+    page = MagicMock()
+    page.url = "about:blank"
+    page.goto = AsyncMock(return_value=MagicMock(status=429))
+    manager = MagicMock(page=page, timezone_id=None, initialize=AsyncMock(), cleanup=AsyncMock())
+    output = tmp_path / "profile"
+    with (
+        patch("oddsharvester.core.browser.session.PlaywrightManager", return_value=manager),
+        patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock),
+    ):
+        result = CliRunner().invoke(cli, ["community", "--user", "BLAPRO", "--headless", "--output", str(output)])
+
+    assert result.exit_code == 1
+    assert list(tmp_path.iterdir()) == []
+    assert "rate limited by OddsPortal" in caplog.text
