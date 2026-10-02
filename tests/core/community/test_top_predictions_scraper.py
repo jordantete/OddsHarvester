@@ -4,9 +4,11 @@ from datetime import datetime, timedelta
 import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 from tests.dom_builders import community_column, community_row, community_section
 
 from oddsharvester.core.community.top_predictions_scraper import TopPredictionsScraper, run_top_predictions
+from oddsharvester.core.exceptions import RateLimitError
 from oddsharvester.core.retry import RetryResult
 
 
@@ -36,10 +38,12 @@ TWO_FOOTBALL_ROWS_HTML = community_section(
 )
 
 _RUNNER = "oddsharvester.core.community.top_predictions_scraper"
+_SESSION = "oddsharvester.core.browser.session"
 
 
 def _make_scraper(page_html: str):
     page = AsyncMock()
+    page.url = "about:blank"
     page.content.return_value = page_html
     manager = MagicMock()
     manager.page = page
@@ -119,9 +123,9 @@ async def test_scrape_maps_ice_hockey_to_site_slug():
 
 
 @patch(f"{_RUNNER}.CookieDismisser")
-@patch(f"{_RUNNER}.ProxyManager")
+@patch(f"{_SESSION}.ProxyManager")
 @patch(f"{_RUNNER}.TopPredictionsScraper")
-@patch(f"{_RUNNER}.PlaywrightManager")
+@patch(f"{_SESSION}.PlaywrightManager")
 async def test_run_top_predictions_success(pm_cls, scraper_cls, proxy_cls, cookie_cls):
     pm = MagicMock()
     pm.initialize = AsyncMock()
@@ -163,9 +167,9 @@ async def test_run_top_predictions_success(pm_cls, scraper_cls, proxy_cls, cooki
 
 @patch(f"{_RUNNER}.retry_with_backoff")
 @patch(f"{_RUNNER}.CookieDismisser")
-@patch(f"{_RUNNER}.ProxyManager")
+@patch(f"{_SESSION}.ProxyManager")
 @patch(f"{_RUNNER}.TopPredictionsScraper")
-@patch(f"{_RUNNER}.PlaywrightManager")
+@patch(f"{_SESSION}.PlaywrightManager")
 async def test_run_top_predictions_retry_exhausted(pm_cls, scraper_cls, proxy_cls, cookie_cls, retry_mock, caplog):
     pm = MagicMock()
     pm.initialize = AsyncMock()
@@ -183,37 +187,37 @@ async def test_run_top_predictions_retry_exhausted(pm_cls, scraper_cls, proxy_cl
     assert any("Top predictions scrape failed" in r.message for r in caplog.records)
 
 
-@patch(f"{_RUNNER}.CookieDismisser")
-@patch(f"{_RUNNER}.TopPredictionsScraper")
-@patch(f"{_RUNNER}.PlaywrightManager")
-@patch(f"{_RUNNER}.ProxyManager")
-async def test_run_top_predictions_multi_proxy_branch(proxy_cls, pm_cls, scraper_cls, cookie_cls):
-    pm = MagicMock()
+async def test_a_refused_predictions_page_raises_rate_limit_error():
+    scraper, page, _ = _make_scraper(MINIMAL_PAGE_HTML)
+    page.goto.return_value = MagicMock(status=429)
+
+    with pytest.raises(RateLimitError, match="rate limited by OddsPortal: HTTP 429 on page"):
+        await scraper.scrape(sport="football")
+
+    page.wait_for_selector.assert_not_awaited()
+
+
+@patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock)
+@patch(f"{_SESSION}.PlaywrightManager")
+async def test_a_rate_limit_that_outlasts_the_retries_is_logged_as_one(pm_cls, sleep, caplog):
+    scraper, page, _ = _make_scraper(MINIMAL_PAGE_HTML)
+
+    def refuse(url, **kwargs):
+        page.url = url
+        return MagicMock(status=429)
+
+    page.goto.side_effect = refuse
+    pm = scraper.playwright_manager
     pm.initialize = AsyncMock()
     pm.cleanup = AsyncMock()
     pm_cls.return_value = pm
-    scraper = MagicMock()
-    scraper.scrape = AsyncMock(return_value=[])
-    scraper_cls.return_value = scraper
 
-    await run_top_predictions(sport="football", proxy_url=("http://a:1", "http://b:2"))
+    with caplog.at_level(logging.ERROR):
+        result = await run_top_predictions(sport="football")
 
-    proxy_cls.assert_called_once_with(proxy_urls=["http://a:1", "http://b:2"], proxy_user=None, proxy_pass=None)
-
-
-@patch(f"{_RUNNER}.CookieDismisser")
-@patch(f"{_RUNNER}.TopPredictionsScraper")
-@patch(f"{_RUNNER}.PlaywrightManager")
-@patch(f"{_RUNNER}.ProxyManager")
-async def test_run_top_predictions_single_proxy_branch(proxy_cls, pm_cls, scraper_cls, cookie_cls):
-    pm = MagicMock()
-    pm.initialize = AsyncMock()
-    pm.cleanup = AsyncMock()
-    pm_cls.return_value = pm
-    scraper = MagicMock()
-    scraper.scrape = AsyncMock(return_value=[])
-    scraper_cls.return_value = scraper
-
-    await run_top_predictions(sport="football", proxy_url="http://a:1")
-
-    proxy_cls.assert_called_once_with(proxy_url="http://a:1", proxy_user=None, proxy_pass=None)
+    assert result == []
+    # Each retry reloads: a goto that only changed the fragment would keep the refused page.
+    assert [c.args[0] for c in page.goto.await_args_list].count("about:blank") == 2
+    assert sleep.await_count == 2
+    assert "Top predictions scrape failed after 3 attempts: rate limited by OddsPortal: HTTP 429" in caplog.text
+    pm.cleanup.assert_awaited_once()

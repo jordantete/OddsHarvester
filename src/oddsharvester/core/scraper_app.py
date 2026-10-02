@@ -12,16 +12,13 @@ from oddsharvester.core.exceptions import ScraperError, SeasonNotFoundError
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import ListingResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
-from oddsharvester.core.retry import RequestPacer, RetryConfig, is_retryable_error, retry_with_backoff
+from oddsharvester.core.retry import OPERATION_RETRY_CONFIG, RequestPacer, is_retryable_error, retry_with_backoff
 from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult
 from oddsharvester.core.sport_market_registry import SportMarketRegistrar
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.command_enum import CommandEnum
 from oddsharvester.utils.constants import (
     DEFAULT_REQUEST_DELAY_S,
-    OPERATION_RETRY_BASE_DELAY,
-    OPERATION_RETRY_MAX_ATTEMPTS,
-    OPERATION_RETRY_MAX_DELAY,
 )
 from oddsharvester.utils.proxy_manager import ProxyManager
 from oddsharvester.utils.utils import validate_and_convert_period
@@ -434,13 +431,7 @@ async def retry_scrape(scrape_func, *args, **kwargs):
     Raises:
         The last exception the function raised, once it is not retryable or the attempts run out.
     """
-    config = RetryConfig(
-        max_attempts=OPERATION_RETRY_MAX_ATTEMPTS,
-        base_delay=OPERATION_RETRY_BASE_DELAY,
-        max_delay=OPERATION_RETRY_MAX_DELAY,
-    )
-
-    retry_result = await retry_with_backoff(scrape_func, *args, config=config, **kwargs)
+    retry_result = await retry_with_backoff(scrape_func, *args, config=OPERATION_RETRY_CONFIG, **kwargs)
 
     if retry_result.success:
         return retry_result.result

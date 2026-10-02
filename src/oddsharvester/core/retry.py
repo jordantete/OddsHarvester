@@ -15,7 +15,12 @@ from typing import Any
 
 from oddsharvester.core.exceptions import RateLimitError, ScraperError
 from oddsharvester.core.scrape_result import ErrorType
-from oddsharvester.utils.constants import REQUEST_DELAY_JITTER_FACTOR
+from oddsharvester.utils.constants import (
+    OPERATION_RETRY_BASE_DELAY,
+    OPERATION_RETRY_MAX_ATTEMPTS,
+    OPERATION_RETRY_MAX_DELAY,
+    REQUEST_DELAY_JITTER_FACTOR,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +63,13 @@ class RetryConfig:
     def __post_init__(self) -> None:
         if self.max_attempts < 1:
             raise ValueError(f"max_attempts must be at least 1, got {self.max_attempts}")
+
+
+OPERATION_RETRY_CONFIG = RetryConfig(
+    max_attempts=OPERATION_RETRY_MAX_ATTEMPTS,
+    base_delay=OPERATION_RETRY_BASE_DELAY,
+    max_delay=OPERATION_RETRY_MAX_DELAY,
+)
 
 
 @dataclass

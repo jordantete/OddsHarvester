@@ -8,6 +8,7 @@ ODDSPORTAL_BASE_URL = "https://www.oddsportal.com"
 NAVIGATION_TIMEOUT_MS = 15000
 GOTO_TIMEOUT_MS = 10000
 GOTO_TIMEOUT_LONG_MS = 20000
+PAGE_GOTO_TIMEOUT_MS = 30000
 SELECTOR_TIMEOUT_MS = 10000
 COOKIE_BANNER_TIMEOUT_MS = 10000
 MARKET_TAB_TIMEOUT_MS = 10000
@@ -58,7 +59,7 @@ RESULTS_PAGE_SIZE = 50
 # RETRY CONSTANTS
 # =============================================================================
 
-# Operation-level retries (listings, scrape_matches, scrape_live)
+# Operation-level retries (listings, scrape_matches, scrape_live, community, team)
 OPERATION_RETRY_MAX_ATTEMPTS = 3
 OPERATION_RETRY_BASE_DELAY = 20.0
 OPERATION_RETRY_MAX_DELAY = 60.0

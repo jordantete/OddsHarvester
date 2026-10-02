@@ -9,7 +9,8 @@ from playwright.async_api import Page
 
 from oddsharvester.core.base_scraper import BaseScraper
 from oddsharvester.core.browser.pagination import WalkVerdict
-from oddsharvester.core.exceptions import PageNotFoundError, RateLimitError, SeasonNotFoundError
+from oddsharvester.core.browser.session import raise_if_rate_limited
+from oddsharvester.core.exceptions import PageNotFoundError, SeasonNotFoundError
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.scrape_result import ScrapeResult
 from oddsharvester.core.url_builder import URLBuilder, is_league_path, normalize_inplay_match_url, rebase_url
@@ -24,7 +25,6 @@ from oddsharvester.utils.constants import (
     ODDSPORTAL_BASE_URL,
     PAGE_COLLECTION_DELAY_MAX_MS,
     PAGE_COLLECTION_DELAY_MIN_MS,
-    RATE_LIMIT_RETRY_DELAY_S,
     RESULTS_PAGE_SIZE,
 )
 
@@ -113,7 +113,7 @@ class OddsPortalScraper(BaseScraper):
         try:
             self.logger.info("Navigating to base URL...")
             response = await tab.goto(base_url)
-            self._raise_if_rate_limited(response, base_url)
+            raise_if_rate_limited(response, base_url, "listing")
             self._assert_season_page_reached(requested_url=base_url, landed_url=tab.url)
             if is_league_path(league):
                 await self._assert_league_page_exists(tab, base_url)
@@ -186,7 +186,7 @@ class OddsPortalScraper(BaseScraper):
         tab = await context.new_page()
         try:
             response = await tab.goto(url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
-            self._raise_if_rate_limited(response, url)
+            raise_if_rate_limited(response, url, "listing")
             if league and is_league_path(league):
                 await self._assert_league_page_exists(tab, url)
             await self._prepare_page_for_scraping(page=tab)
@@ -448,14 +448,6 @@ class OddsPortalScraper(BaseScraper):
             f"Season page redirected to {landed_url}; the season does not exist under this league slug.",
             url=requested_url,
         )
-
-    @staticmethod
-    def _raise_if_rate_limited(response, url: str) -> None:
-        """A refused listing would otherwise read as an empty league, or as a missing one (gotcha 23)."""
-        if response is not None and response.status == 429:
-            raise RateLimitError(
-                f"rate limited by OddsPortal: HTTP 429 on listing {url}", url=url, retry_after=RATE_LIMIT_RETRY_DELAY_S
-            )
 
     @staticmethod
     async def _assert_league_page_exists(page, league_url: str) -> None:

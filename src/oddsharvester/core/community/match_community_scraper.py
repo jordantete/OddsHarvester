@@ -2,25 +2,18 @@
 
 from datetime import UTC, datetime
 import logging
-from urllib.parse import urldefrag, urlsplit
+from urllib.parse import urlsplit
 
 from oddsharvester.core.browser.cookies import CookieDismisser
 from oddsharvester.core.browser.hydration import hydrate_match_view
+from oddsharvester.core.browser.session import browser_session, open_page
 from oddsharvester.core.community.match_community_parser import parse_match_community_dom
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
-from oddsharvester.core.retry import RetryConfig, retry_with_backoff
+from oddsharvester.core.retry import OPERATION_RETRY_CONFIG, retry_with_backoff
 from oddsharvester.core.url_builder import rebase_url
-from oddsharvester.utils.constants import (
-    OPERATION_RETRY_BASE_DELAY,
-    OPERATION_RETRY_MAX_ATTEMPTS,
-    OPERATION_RETRY_MAX_DELAY,
-)
-from oddsharvester.utils.proxy_manager import ProxyManager
 
 logger = logging.getLogger(__name__)
-
-PAGE_GOTO_TIMEOUT_MS = 30000
 
 
 class MatchCommunityScraper:
@@ -40,10 +33,7 @@ class MatchCommunityScraper:
         page = self.playwright_manager.page
         url = rebase_url(match_url, base_url)
         logger.info("Navigating to match page for community votes: %s", url)
-        if urldefrag(page.url).url == urldefrag(url).url:
-            # Same document: goto would only change the fragment, so a retry would reuse the view that failed.
-            await page.goto("about:blank")
-        await page.goto(url, timeout=PAGE_GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
+        await open_page(page, url)
         await self.cookie_dismisser.dismiss(page)
 
         # The sport is the first path segment on every mirror; a two-outcome sport has no 1X2 tab to nudge to.
@@ -78,32 +68,20 @@ async def run_match_community(
     Raises the last error when every attempt failed, so a page that never rendered is not reported as a match
     without votes.
     """
-    if isinstance(proxy_url, list | tuple):
-        proxy_manager = ProxyManager(proxy_urls=list(proxy_url), proxy_user=proxy_user, proxy_pass=proxy_pass)
-    else:
-        proxy_manager = ProxyManager(proxy_url=proxy_url, proxy_user=proxy_user, proxy_pass=proxy_pass)
-
-    playwright_manager = PlaywrightManager()
-    try:
-        await playwright_manager.initialize(
-            headless=headless,
-            user_agent=browser_user_agent,
-            locale=browser_locale_timezone,
-            timezone_id=browser_timezone_id,
-            proxy_manager=proxy_manager,
-        )
+    async with browser_session(
+        headless=headless,
+        proxy_url=proxy_url,
+        proxy_user=proxy_user,
+        proxy_pass=proxy_pass,
+        user_agent=browser_user_agent,
+        locale=browser_locale_timezone,
+        timezone_id=browser_timezone_id,
+    ) as playwright_manager:
         scraper = MatchCommunityScraper(playwright_manager, CookieDismisser())
-        config = RetryConfig(
-            max_attempts=OPERATION_RETRY_MAX_ATTEMPTS,
-            base_delay=OPERATION_RETRY_BASE_DELAY,
-            max_delay=OPERATION_RETRY_MAX_DELAY,
-        )
-        retry_result = await retry_with_backoff(scraper.scrape, match_url, base_url, config=config)
+        retry_result = await retry_with_backoff(scraper.scrape, match_url, base_url, config=OPERATION_RETRY_CONFIG)
         if retry_result.success:
             return retry_result.result
         logger.error(
             "Match-community scrape failed after %d attempts: %s", retry_result.attempts, retry_result.last_error
         )
         raise retry_result.exception
-    finally:
-        await playwright_manager.cleanup()

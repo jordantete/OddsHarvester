@@ -154,3 +154,21 @@ def test_team_rejects_a_word_that_is_not_an_eight_character_id():
 
     assert result.exit_code == 2
     assert "8 characters" in result.output
+
+
+def test_team_paces_its_pages_one_second_apart_by_default():
+    store, run = _patches()
+    with store, run as mock_run:
+        result = CliRunner().invoke(cli, ["team", "--team", "lId4TMwf"])
+
+    assert result.exit_code == 0, result.output
+    assert mock_run.call_args.kwargs["request_delay"] == 1.0
+
+
+def test_team_passes_the_request_delay():
+    store, run = _patches()
+    with store, run as mock_run:
+        result = CliRunner().invoke(cli, ["team", "--team", "lId4TMwf", "--request-delay", "2.5"])
+
+    assert result.exit_code == 0, result.output
+    assert mock_run.call_args.kwargs["request_delay"] == 2.5

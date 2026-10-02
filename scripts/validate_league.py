@@ -32,6 +32,7 @@ from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.url_builder import URLBuilder
+from oddsharvester.utils.constants import PAGE_GOTO_TIMEOUT_MS
 from oddsharvester.utils.proxy_manager import ProxyManager
 from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from oddsharvester.utils.sport_market_constants import Sport
@@ -56,7 +57,7 @@ def build_scraper(playwright_manager: PlaywrightManager) -> OddsPortalScraper:
 
 
 async def load_listing(page: Page, scraper: OddsPortalScraper, url: str) -> None:
-    await page.goto(url, timeout=30000, wait_until="domcontentloaded")
+    await page.goto(url, timeout=PAGE_GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
     await scraper.cookie_dismisser.dismiss(page)
     await page.wait_for_timeout(5000)
     await scraper.scroller.scroll_until_loaded(

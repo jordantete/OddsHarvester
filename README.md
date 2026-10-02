@@ -260,6 +260,9 @@ from the recent-form block, so it survives a page that shows no odds rows at all
 A wrong team id is reported as a failure rather than written as a blank record: the page it
 returns builds its heading from the URL and otherwise looks valid.
 
+Team pages are loaded one after the other, `--request-delay` seconds apart (default `1.0`), so a
+run of N teams takes about N seconds more than the pages themselves.
+
 ### CLI Options Reference
 
 #### Core Options
@@ -342,7 +345,7 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 | ----------------- | ----- | ----------------------------------------- | ------- |
 | `--headless`      |       | Run browser in headless mode              | `False` |
 | `--concurrency`   | `-c`  | Concurrent scraping tasks: match pages, and league listings when several leagues are given. On `historic` each parallel listing walks its own result pages, so `-c` also multiplies the listing-page request rate; lower it for large league/season products. | `3`     |
-| `--request-delay` |       | Delay (sec) between match requests        | `1.0`   |
+| `--request-delay` |       | Delay (sec) between page requests: matches, listing pages, teams | `1.0`   |
 | `--user-agent`    |       | Custom browser user agent                 | —       |
 | `--locale`        |       | Browser locale (e.g. `fr-BE`)             | —       |
 | `--timezone`      |       | Browser timezone (e.g. `Europe/Brussels`) | —       |

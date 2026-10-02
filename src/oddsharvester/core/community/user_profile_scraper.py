@@ -4,23 +4,18 @@ from datetime import UTC, datetime
 import logging
 
 from oddsharvester.core.browser.cookies import CookieDismisser
+from oddsharvester.core.browser.session import browser_session, open_page
 from oddsharvester.core.community.user_profile_parser import parse_profile_feed_predictions, parse_user_profile
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
-from oddsharvester.core.retry import RetryConfig, retry_with_backoff
+from oddsharvester.core.retry import OPERATION_RETRY_CONFIG, retry_with_backoff
 from oddsharvester.core.url_builder import rebase_url
 from oddsharvester.utils.constants import (
     ODDSPORTAL_BASE_URL,
-    OPERATION_RETRY_BASE_DELAY,
-    OPERATION_RETRY_MAX_ATTEMPTS,
-    OPERATION_RETRY_MAX_DELAY,
     SELECTOR_TIMEOUT_MS,
 )
-from oddsharvester.utils.proxy_manager import ProxyManager
 
 logger = logging.getLogger(__name__)
-
-PAGE_GOTO_TIMEOUT_MS = 30000
 
 
 class UserProfileScraper:
@@ -34,7 +29,7 @@ class UserProfileScraper:
         page = self.playwright_manager.page
         url = rebase_url(f"{ODDSPORTAL_BASE_URL}/profile/{username}/", base_url)
         logger.info("Navigating to user profile: %s", url)
-        await page.goto(url, timeout=PAGE_GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
+        await open_page(page, url)
         await self.cookie_dismisser.dismiss(page)
 
         try:
@@ -87,27 +82,17 @@ async def run_user_profile(
     base_url: str | None = None,
 ) -> dict:
     """Owns the Playwright lifecycle for one user-profile scrape run."""
-    if isinstance(proxy_url, list | tuple):
-        proxy_manager = ProxyManager(proxy_urls=list(proxy_url), proxy_user=proxy_user, proxy_pass=proxy_pass)
-    else:
-        proxy_manager = ProxyManager(proxy_url=proxy_url, proxy_user=proxy_user, proxy_pass=proxy_pass)
-
-    playwright_manager = PlaywrightManager()
-    try:
-        await playwright_manager.initialize(
-            headless=headless,
-            user_agent=browser_user_agent,
-            locale=browser_locale_timezone,
-            timezone_id=browser_timezone_id,
-            proxy_manager=proxy_manager,
-        )
+    async with browser_session(
+        headless=headless,
+        proxy_url=proxy_url,
+        proxy_user=proxy_user,
+        proxy_pass=proxy_pass,
+        user_agent=browser_user_agent,
+        locale=browser_locale_timezone,
+        timezone_id=browser_timezone_id,
+    ) as playwright_manager:
         scraper = UserProfileScraper(playwright_manager, CookieDismisser())
-        config = RetryConfig(
-            max_attempts=OPERATION_RETRY_MAX_ATTEMPTS,
-            base_delay=OPERATION_RETRY_BASE_DELAY,
-            max_delay=OPERATION_RETRY_MAX_DELAY,
-        )
-        retry_result = await retry_with_backoff(scraper.scrape, username, base_url, config=config)
+        retry_result = await retry_with_backoff(scraper.scrape, username, base_url, config=OPERATION_RETRY_CONFIG)
         if retry_result.success:
             return retry_result.result
         logger.error("User-profile scrape failed after %d attempts: %s", retry_result.attempts, retry_result.last_error)
@@ -119,5 +104,3 @@ async def run_user_profile(
             "predictions": [],
             "scraped_at": datetime.now(UTC).isoformat(),
         }
-    finally:
-        await playwright_manager.cleanup()

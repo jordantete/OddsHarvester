@@ -7,6 +7,7 @@ import sys
 import click
 
 from oddsharvester.cli.commands._output import write_output
+from oddsharvester.cli.options import request_delay_option
 from oddsharvester.cli.types import COMMA_LIST, STORAGE_FORMAT, STORAGE_TYPE
 from oddsharvester.cli.validators import (
     validate_base_url,
@@ -86,6 +87,7 @@ logger = logging.getLogger(__name__)
     envvar="OH_BASE_URL",
     help="Regional OddsPortal domain to scrape instead of www.oddsportal.com.",
 )
+@request_delay_option
 def team(**kwargs):
     """Scrape team metadata: names, venue, coach and recent form.
 
@@ -110,6 +112,7 @@ def team(**kwargs):
                 browser_locale_timezone=kwargs.get("browser_locale_timezone"),
                 browser_timezone_id=kwargs.get("browser_timezone_id"),
                 base_url=kwargs.get("base_url"),
+                request_delay=kwargs["request_delay"],
             )
         )
 

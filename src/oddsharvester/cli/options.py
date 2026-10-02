@@ -18,6 +18,7 @@ from oddsharvester.cli.validators import (
     warn_ignored_odds_format,
 )
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
+from oddsharvester.utils.constants import DEFAULT_REQUEST_DELAY_S
 from oddsharvester.utils.odds_format_enum import OddsFormat
 from oddsharvester.utils.period_constants import (
     AmericanFootballPeriod,
@@ -52,6 +53,15 @@ def _get_all_periods():
     ]:
         periods.update(p.value for p in period_enum)
     return sorted(periods)
+
+
+request_delay_option = click.option(
+    "--request-delay",
+    type=float,
+    default=DEFAULT_REQUEST_DELAY_S,
+    envvar="OH_REQUEST_DELAY",
+    help="Delay in seconds between page requests (default: 1.0).",
+)
 
 
 def merged_match_links(kwargs) -> list[str] | None:
@@ -260,13 +270,7 @@ def common_options(func):
         callback=validate_period,
         help="Match period to scrape (sport-specific).",
     )
-    @click.option(
-        "--request-delay",
-        type=float,
-        default=1.0,
-        envvar="OH_REQUEST_DELAY",
-        help="Delay in seconds between match requests (default: 1.0).",
-    )
+    @request_delay_option
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
