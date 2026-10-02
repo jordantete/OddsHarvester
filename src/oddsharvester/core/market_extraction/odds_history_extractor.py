@@ -136,7 +136,9 @@ class OddsHistoryExtractor:
         """Bookmaker name of an odds row, resolved the way OddsParser does."""
         name_el = await row.query_selector(f"{OddsPortalSelectors.BOOKMAKER_LINK_CSS} p")
         titled = await row.query_selector("a[title]")
+        link = await row.query_selector(OddsPortalSelectors.BOOKMAKER_LINK_CSS)
         return resolve_bookmaker_name(
             (await name_el.text_content()) if name_el else None,
             (await titled.get_attribute("title")) if titled else None,
+            (await link.get_attribute("href")) if link else None,
         )

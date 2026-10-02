@@ -76,7 +76,10 @@ class OddsParser:
             try:
                 bookmaker_name = self._extract_bookmaker_name(row)
 
-                if not bookmaker_name or (target_bookmaker and bookmaker_name.lower() != target_bookmaker.lower()):
+                if not bookmaker_name:
+                    self.logger.warning("A bookmaker row has no name, no title and no link slug. Skipping...")
+                    continue
+                if target_bookmaker and bookmaker_name.lower() != target_bookmaker.lower():
                     continue
 
                 odds_cells = row.select(OddsPortalSelectors.ODD_CELL_CSS)
@@ -183,12 +186,14 @@ class OddsParser:
         return shown_to_local(shown, tz_name, now).isoformat()
 
     def _extract_bookmaker_name(self, block: Tag) -> str | None:
-        """Extract the bookmaker name: the label next to the logo, else the logo link title."""
+        """Extract the bookmaker name: the label next to the logo, else the logo link title, else its link slug."""
         name_el = block.select_one(f"{OddsPortalSelectors.BOOKMAKER_LINK_CSS} p")
         a_tag = block.find("a", attrs={"title": True})
+        link = block.select_one(OddsPortalSelectors.BOOKMAKER_LINK_CSS)
         name = resolve_bookmaker_name(
             name_el.get_text(strip=True) if name_el else None,
             a_tag["title"] if a_tag else None,
+            link.get("href") if link else None,
         )
         if name is None:
             self.logger.debug("Could not resolve bookmaker name from block")

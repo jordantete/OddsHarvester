@@ -14,8 +14,8 @@ from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import ODDS_HISTORY_HOVER_WAIT_MS
 
 
-def _row(name=None, title=None, cells=0):
-    """Bookmaker row mock: `name` is the visible label, `title` the logo link title."""
+def _row(name=None, title=None, cells=0, href=None):
+    """Bookmaker row mock: `name` is the visible label, `title` the logo link title, `href` the logo link."""
     name_el = None
     if name is not None:
         name_el = AsyncMock()
@@ -24,9 +24,17 @@ def _row(name=None, title=None, cells=0):
     if title is not None:
         title_el = AsyncMock()
         title_el.get_attribute = AsyncMock(return_value=title)
+    link_el = None
+    if href is not None:
+        link_el = AsyncMock()
+        link_el.get_attribute = AsyncMock(return_value=href)
 
     async def query_selector(selector):
-        return title_el if selector == "a[title]" else name_el
+        if selector == "a[title]":
+            return title_el
+        if selector == OddsPortalSelectors.BOOKMAKER_LINK_CSS:
+            return link_el
+        return name_el
 
     row = AsyncMock()
     row.query_selector = AsyncMock(side_effect=query_selector)
@@ -166,6 +174,14 @@ class TestOddsHistoryExtractor:
         page.wait_for_function = AsyncMock(side_effect=_tooltips(["<a/>"]))
 
         result = await extractor.extract_odds_history_for_bookmaker(page, "Betfair Exchange", 1)
+
+        assert result == ["<a/>"]
+
+    async def test_matches_a_logo_only_row_by_its_link_slug(self, extractor, page):
+        page.query_selector_all = AsyncMock(return_value=[_row(href="/proxy/bookmakers/unibet-fr/link/", cells=1)])
+        page.wait_for_function = AsyncMock(side_effect=_tooltips(["<a/>"]))
+
+        result = await extractor.extract_odds_history_for_bookmaker(page, "Unibet.fr", 1)
 
         assert result == ["<a/>"]
 

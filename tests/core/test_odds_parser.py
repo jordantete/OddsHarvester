@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+import logging
 from unittest.mock import patch
 
 import pytest
@@ -381,14 +382,42 @@ class TestOddsParser:
         assert len(result) == 1
         assert result[0]["bookmaker_name"] == "Betfair Exchange"
 
-    def test_parse_market_odds_skips_row_with_no_resolvable_name(self, odds_parser):
-        """The logo alt is a generic "Bookmaker", so a row with no label and no
-        title yields no name and is skipped rather than named after the alt."""
+    def test_parse_market_odds_names_a_row_with_no_label_or_title_after_its_link(self, odds_parser):
+        """The logo alt is a generic "Bookmaker": a row with no label and no title is named from its logo link."""
         html = self._table([self._bm_row("", ("1.90", "2.10"), name_via="logo_only")])
 
         result = odds_parser.parse_market_odds(html, "FullTime", ["home", "away"])
 
+        assert [entry["bookmaker_name"] for entry in result] == ["x"]
+
+    def test_parse_market_odds_reads_the_logo_only_unibet_row(self, odds_parser):
+        """The Unibet.fr row as the site serves it: a logo link, no label, no title."""
+        unibet = (
+            '<tr class="h-9"><td><div class="flex"><div class="flex h-8 shrink-0">'
+            '<a href="/proxy/bookmakers/unibet-fr/link/"><div><img alt="Bookmaker"/></div></a></div>'
+            '<div class="shrink-0"></div></div></td>'
+            + "".join(odds_cell(value, betslip_slug="unibet-fr") for value in ("1.32", "4.35", "6.30"))
+            + '<td class="w-[68px]"><span>94.1%</span></td></tr>'
+        )
+        html = self._table([unibet, self._bm_row("Winamax", ("1.33", "4.40", "6.25"))])
+
+        result = odds_parser.parse_market_odds(html, "FullTime", ["1", "X", "2"])
+
+        assert [(e["bookmaker_name"], e["1"], e["X"], e["2"]) for e in result] == [
+            ("Unibet.fr", "1.32", "4.35", "6.30"),
+            ("Winamax", "1.33", "4.40", "6.25"),
+        ]
+
+    def test_parse_market_odds_warns_on_a_row_it_cannot_name(self, odds_parser, caplog):
+        """A bookmaker row whose link carries no slug cannot be named: skipped, but not silently."""
+        cells = "".join(odds_cell(o) for o in ("1.90", "2.10"))
+        row = f'<tr class="h-9"><td><a href="/proxy/bookmakers/"><img alt="Bookmaker"/></a></td>{cells}</tr>'
+
+        with caplog.at_level(logging.WARNING):
+            result = odds_parser.parse_market_odds(self._table([row]), "FullTime", ["home", "away"])
+
         assert result == []
+        assert "no name" in caplog.text
 
     def test_parse_market_odds_no_bookmaker_name_skips_row(self, odds_parser):
         """Collapsed submarket line rows carry no bookmaker link and must never be

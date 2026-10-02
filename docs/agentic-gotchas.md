@@ -1722,7 +1722,7 @@ is 0 on listings, match pages, community pages and profiles. The layout of
 | `[data-testid='breadcrumbs-line']` | the content root's first `<ul>`; the league is its last anchor |
 | `[data-testid='sports-nav-*-tab']` | `li.tab-item`; the active one carries `font-bold` on its label span |
 | `[data-testid='sub-nav-*-tab']` | plain `button[type=button]`; the selected one carries an inline `font-weight: 700` |
-| `[data-testid='outrights-expanded-bookmaker-name']` | the `<p>` inside `a[href*="/bookmakers/"]`, else the logo link's `title` (the logo `alt` is a generic "Bookmaker" and must not be used as a name) |
+| `[data-testid='outrights-expanded-bookmaker-name']` | the `<p>` inside `a[href*="/bookmakers/"]`, else the logo link's `title`, else the slug of that link through `BOOKMAKER_NAME_BY_SLUG` (the logo `alt` is a generic "Bookmaker" and must not be used as a name; since 2026-10-01 the Unibet.fr row shows its logo only, with no label and no title) |
 | `[data-testid='odd-container*']` | `td[class*="event-table-odd-col"]:has(.font-bold)` — the `:has` matters: an expanded submarket row puts the line label ("+2.5") in an odds column too, as a bare span |
 | `[data-testid='live-info']` / `partial-result` | the header's live block, marked by `p.result-live`; it disappears when the match ends |
 | community `betting-tip-header` | the odds table's middle `thead` headers |
