@@ -11,7 +11,6 @@ from tests.dom_builders import date_header, listing_row, live_block, match_heade
 
 from oddsharvester.core.base_scraper import (
     BaseScraper,
-    _extract_fragment_match_id,
     _history_reference,
     _is_offscreen_row,
     _parse_date_header,
@@ -1632,29 +1631,6 @@ def test_parse_results_from_dom_logs_and_returns_none_on_an_unexpected_error(set
     assert "DOM parse failed for results: boom" in caplog.text
 
 
-def test_extract_fragment_match_id_returns_fragment_when_present():
-    url = "https://www.oddsportal.com/baseball/h2h/a-team/b-team/#WbDmMwm1"
-    assert _extract_fragment_match_id(url) == "WbDmMwm1"
-
-
-def test_extract_fragment_match_id_returns_none_when_no_fragment():
-    assert _extract_fragment_match_id("https://www.oddsportal.com/baseball/h2h/a/b/") is None
-
-
-def test_extract_fragment_match_id_returns_none_when_fragment_is_empty():
-    assert _extract_fragment_match_id("https://www.oddsportal.com/baseball/h2h/a/b/#") is None
-
-
-def test_extract_fragment_match_id_returns_none_when_fragment_has_slash():
-    # Defensive: a stray slash means it isn't a match-id fragment
-    assert _extract_fragment_match_id("https://www.oddsportal.com/x/#a/b") is None
-
-
-def test_extract_fragment_match_id_strips_whitespace():
-    # Some scrapers can produce trailing whitespace from raw href
-    assert _extract_fragment_match_id("https://www.oddsportal.com/x/#abc   ") == "abc"
-
-
 async def test_scrape_match_data_propagates_h2h_fragment_error(setup_base_scraper_mocks):
     """The hydration failure must survive the broad handler in _scrape_match_data."""
     from oddsharvester.core.exceptions import H2HFragmentResolutionError
@@ -2375,11 +2351,6 @@ async def test_extract_match_details_teams_via_participant_name_testid(setup_bas
 
     assert result["home_team"] == "Crystal Palace"
     assert result["away_team"] == "Arsenal"
-
-
-def test_extract_fragment_match_id_strips_market_suffix():
-    # The hydrated SPA rewrites the fragment to '<id>:<market>;<scope>'.
-    assert _extract_fragment_match_id("https://www.oddsportal.com/x/h2h/a/b/#OOklm0j3:1X2;2") == "OOklm0j3"
 
 
 def _match_load_scraper(mocks, order):

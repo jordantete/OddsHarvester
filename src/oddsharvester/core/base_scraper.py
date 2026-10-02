@@ -5,7 +5,7 @@ from enum import Enum
 import json
 import logging
 import re
-from typing import Any, ClassVar
+from typing import Any
 import unicodedata
 from urllib.parse import urldefrag, urlsplit
 
@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError
 
 from oddsharvester.core.browser.cookies import CookieDismisser
+from oddsharvester.core.browser.hydration import dismiss_login_modal, hydrate_match_view
 from oddsharvester.core.browser.pagination import PaginationWalker
 from oddsharvester.core.browser.scrolling import PageScroller
 from oddsharvester.core.browser.selection import (
@@ -38,10 +39,6 @@ from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import (
     DEFAULT_REQUEST_DELAY_S,
     DYNAMIC_CONTENT_WAIT_MS,
-    HASH_NUDGE_DELAY_MS,
-    LOGIN_MODAL_CLOSE_WAIT_MS,
-    MATCH_HYDRATION_ATTEMPTS,
-    MATCH_HYDRATION_TIMEOUT_MS,
     MATCH_RETRY_BASE_DELAY,
     MATCH_RETRY_MAX_ATTEMPTS,
     MATCH_RETRY_MAX_DELAY,
@@ -312,19 +309,6 @@ def _parse_live_info(soup: BeautifulSoup) -> dict[str, Any] | None:
         "live_score_away": score_away,
         "live_score_raw": live_score_raw,
     }
-
-
-def _extract_fragment_match_id(match_link: str) -> str | None:
-    """
-    Extract the URL fragment as a match id from a match link.
-
-    OddsPortal H2H pages encode the requested historic match via the URL
-    fragment, e.g. `.../h2h/<home>/<away>/#<match_id>`. Returns the fragment
-    string if it looks like a match id (non-empty, no slash). Returns None
-    when no fragment is present, the fragment is empty, or it contains a
-    slash (which would indicate it isn't a bare match id).
-    """
-    return OddsPortalSelectors.event_id_from_url(match_link)
 
 
 def _history_reference(match_date: str | None, tz_name: str | None) -> datetime | None:
@@ -1324,20 +1308,7 @@ class BaseScraper:
 
     async def _dismiss_login_modal(self, page: Page) -> None:
         """Close the login modal that can block match-page rendering on cold profiles."""
-        try:
-            el = await page.query_selector(OddsPortalSelectors.LOGIN_MODAL_CLOSE)
-            if el and await el.is_visible():
-                await el.click()
-                await wait_for_element(
-                    page,
-                    OddsPortalSelectors.LOGIN_MODAL_CLOSE,
-                    LOGIN_MODAL_CLOSE_WAIT_MS,
-                    "login modal closing",
-                    state="hidden",
-                )
-                self.logger.info("Dismissed the login modal.")
-        except Exception as e:
-            self.logger.debug(f"Login modal dismissal skipped: {e}")
+        await dismiss_login_modal(page)
 
     # The tabs of the rendered match view, or the visible close button of the login modal.
     _VIEW_OR_LOGIN_MODAL_JS = """
@@ -1348,73 +1319,9 @@ class BaseScraper:
     }
     """
 
-    # The SPA renders the fragment match on load again since 2026-09, so the hash
-    # nudge is only a retry. Setting the bare id first guarantees the second
-    # assignment is a change even when the page URL already carried the full form.
-    _HASH_NUDGE_JS = """
-    (args) => {
-        if (args.bare) {
-            window.location.hash = '';
-            setTimeout(() => {
-                window.location.hash = '#' + args.fragment;
-                window.dispatchEvent(new HashChangeEvent('hashchange', { newURL: window.location.href }));
-            }, args.delayMs);
-            return;
-        }
-        window.location.hash = '#' + args.fragment;
-        setTimeout(() => {
-            window.location.hash = '#' + args.fragment + ':' + args.code + ';' + args.scope;
-            window.dispatchEvent(new HashChangeEvent('hashchange', { newURL: window.location.href }));
-        }, args.delayMs);
-    }
-    """
-
-    # Hydration needs a market tab that exists for the sport; two-outcome sports
-    # have no 1X2 tab. Adjusted by live validation, not exhaustive.
-    _DEFAULT_MARKET_CODE_BY_SPORT: ClassVar[dict[str, str]] = {
-        "tennis": "home-away",
-        "basketball": "home-away",
-        "baseball": "home-away",
-        "american-football": "home-away",
-        "volleyball": "home-away",
-        "cricket": "home-away",
-    }
-
     async def _hydrate_match_view(self, page: Page, match_link: str, sport: str | None = None) -> None:
-        """Wait for the SPA to render the match view, nudging the hash if it does not.
-
-        The view renders on load, so each attempt waits for the market tabs and
-        only then re-routes the hash (bare id on in-play pages, which own their
-        market codes; '#<id>:<market>;<scope>' elsewhere). Raises
-        H2HFragmentResolutionError (retryable, proxy-neutral) when the view never
-        renders.
-        """
-        fragment = _extract_fragment_match_id(match_link)
-        inplay = "/inplay-odds/" in match_link
-        code = self._DEFAULT_MARKET_CODE_BY_SPORT.get((sport or "").lower(), "1X2")
-        scope = OddsPortalSelectors.period_scope_code("FullTime") or 2
-
-        for attempt in range(1, MATCH_HYDRATION_ATTEMPTS + 1):
-            try:
-                await page.wait_for_selector(
-                    OddsPortalSelectors.MATCH_CONTENT_READY_SELECTOR, timeout=MATCH_HYDRATION_TIMEOUT_MS
-                )
-                return
-            except TimeoutError:
-                self.logger.warning(
-                    f"Match view hydration attempt {attempt}/{MATCH_HYDRATION_ATTEMPTS} timed out for {match_link}"
-                )
-                await self._dismiss_login_modal(page)
-                if fragment is None:
-                    # Legacy non-fragment match URL: nothing to re-route to.
-                    break
-                nudge = {"fragment": fragment, "delayMs": HASH_NUDGE_DELAY_MS}
-                nudge.update({"bare": True} if inplay else {"code": code, "scope": scope})
-                await page.evaluate(self._HASH_NUDGE_JS, nudge)
-
-        raise H2HFragmentResolutionError(
-            f"match view hydration failed: {match_link} never rendered match content", url=match_link
-        )
+        """Wait for the match view to render, nudging the hash if it does not (`hydrate_match_view`)."""
+        await hydrate_match_view(page, match_link, sport)
 
     def _parse_venue_from_ld_json(
         self, soup: BeautifulSoup, dom_match_date: str | None

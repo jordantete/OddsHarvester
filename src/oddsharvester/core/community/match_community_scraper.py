@@ -2,9 +2,10 @@
 
 from datetime import UTC, datetime
 import logging
+from urllib.parse import urldefrag, urlsplit
 
-from oddsharvester.core.base_scraper import BaseScraper
 from oddsharvester.core.browser.cookies import CookieDismisser
+from oddsharvester.core.browser.hydration import hydrate_match_view
 from oddsharvester.core.community.match_community_parser import parse_match_community_dom
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
@@ -20,9 +21,6 @@ from oddsharvester.utils.proxy_manager import ProxyManager
 logger = logging.getLogger(__name__)
 
 PAGE_GOTO_TIMEOUT_MS = 30000
-_HYDRATION_ATTEMPTS = 3
-_HYDRATION_TIMEOUT_MS = 8000
-_HYDRATION_NUDGE_DELAY_MS = 1500
 
 
 class MatchCommunityScraper:
@@ -42,43 +40,26 @@ class MatchCommunityScraper:
         page = self.playwright_manager.page
         url = rebase_url(match_url, base_url)
         logger.info("Navigating to match page for community votes: %s", url)
+        if urldefrag(page.url).url == urldefrag(url).url:
+            # Same document: goto would only change the fragment, so a retry would reuse the view that failed.
+            await page.goto("about:blank")
         await page.goto(url, timeout=PAGE_GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
         await self.cookie_dismisser.dismiss(page)
 
-        fragment = OddsPortalSelectors.event_id_from_url(url)
-        await self._hydrate(page, url, fragment)
+        # The sport is the first path segment on every mirror; a two-outcome sport has no 1X2 tab to nudge to.
+        await hydrate_match_view(page, url, sport=urlsplit(url).path.strip("/").split("/", 1)[0])
 
+        fragment = OddsPortalSelectors.event_id_from_url(url)
         html = await page.content()
         record = parse_match_community_dom(
             html, match_url, event_id=fragment, tz_name=self.playwright_manager.timezone_id
         )
         record["scraped_at"] = datetime.now(UTC).isoformat()
         if not record["markets"]:
-            logger.warning(
-                "No community vote data for %s (finished match, no votes yet, or view not hydrated).",
-                match_url,
-            )
+            logger.warning("No community vote data for %s (finished match or no votes yet).", match_url)
         else:
             logger.info("Parsed %d community market(s) for %s", len(record["markets"]), match_url)
         return record
-
-    async def _hydrate(self, page, url: str, fragment: str | None) -> None:
-        """Nudge the hash-driven match view into rendering (same recipe as BaseScraper)."""
-        sport = url.split("oddsportal.com/", 1)[-1].split("/", 1)[0] if "oddsportal.com/" in url else ""
-        code = BaseScraper._DEFAULT_MARKET_CODE_BY_SPORT.get(sport, "1X2")
-        for attempt in range(1, _HYDRATION_ATTEMPTS + 1):
-            if fragment:
-                await page.evaluate(
-                    BaseScraper._HASH_NUDGE_JS,
-                    {"fragment": fragment, "code": code, "scope": 2, "delayMs": _HYDRATION_NUDGE_DELAY_MS},
-                )
-            try:
-                await page.wait_for_selector(
-                    OddsPortalSelectors.MATCH_CONTENT_READY_SELECTOR, timeout=_HYDRATION_TIMEOUT_MS
-                )
-                return
-            except Exception:
-                logger.warning("Match view hydration attempt %d/%d timed out for %s", attempt, _HYDRATION_ATTEMPTS, url)
 
 
 async def run_match_community(
@@ -92,7 +73,11 @@ async def run_match_community(
     browser_timezone_id: str | None = None,
     base_url: str | None = None,
 ) -> dict:
-    """Owns the Playwright lifecycle for one match-community scrape run."""
+    """Owns the Playwright lifecycle for one match-community scrape run.
+
+    Raises the last error when every attempt failed, so a page that never rendered is not reported as a match
+    without votes.
+    """
     if isinstance(proxy_url, list | tuple):
         proxy_manager = ProxyManager(proxy_urls=list(proxy_url), proxy_user=proxy_user, proxy_pass=proxy_pass)
     else:
@@ -119,6 +104,6 @@ async def run_match_community(
         logger.error(
             "Match-community scrape failed after %d attempts: %s", retry_result.attempts, retry_result.last_error
         )
-        return {"mode": "match", "match_url": match_url, "markets": [], "scraped_at": datetime.now(UTC).isoformat()}
+        raise retry_result.exception
     finally:
         await playwright_manager.cleanup()

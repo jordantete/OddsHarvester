@@ -6,6 +6,7 @@ from click.testing import CliRunner
 import pytest
 
 from oddsharvester.cli.cli import cli
+from oddsharvester.core.exceptions import H2HFragmentResolutionError
 
 FAKE_RECORDS = [{"sport": "football", "market": "1X2", "match_url": "https://www.oddsportal.com/x"}]
 
@@ -96,6 +97,20 @@ def test_community_match_url_mode_exits_one_when_no_markets(mock_run):
     )
 
     assert result.exit_code == 1
+
+
+@patch("oddsharvester.cli.commands.community.run_match_community", new_callable=AsyncMock)
+def test_community_match_url_mode_reports_a_page_that_never_rendered(mock_run, caplog):
+    url = "https://www.oddsportal.com/football/h2h/a/b/#C2Nfvg77"
+    mock_run.side_effect = H2HFragmentResolutionError(
+        f"match view hydration failed: {url} never rendered match content", url=url
+    )
+
+    result = CliRunner().invoke(cli, ["community", "--match-url", url, "--headless"])
+
+    assert result.exit_code == 1
+    assert "never rendered match content" in caplog.text
+    assert "No community vote data" not in caplog.text
 
 
 @patch("oddsharvester.cli.commands._output.store_data", return_value=True)

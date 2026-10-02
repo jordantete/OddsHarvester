@@ -110,7 +110,7 @@ Four-layer flow: `CLI (cli/) → Core (core/) → Data (utils/) → Storage (sto
 2. Create market enum classes + add them to `SPORT_MARKETS_MAPPING` in `utils/utils.py`
 3. Add league URLs in `utils/sport_league_constants.py`
 4. Add period definitions in `utils/period_constants.py`
-5. Register markets in `core/sport_market_registry.py`: one `MarketSpec(main_market, specific_market, odds_labels, line_axis)` per token, in a `register_<sport>_markets` method called from `register_all_markets`. Each `main_market` needs a `MARKET_TAB_CODES` entry, and a sport with no 1X2 tab needs a `BaseScraper._DEFAULT_MARKET_CODE_BY_SPORT` entry
+5. Register markets in `core/sport_market_registry.py`: one `MarketSpec(main_market, specific_market, odds_labels, line_axis)` per token, in a `register_<sport>_markets` method called from `register_all_markets`. Each `main_market` needs a `MARKET_TAB_CODES` entry, and a sport with no 1X2 tab needs a `DEFAULT_MARKET_CODE_BY_SPORT` entry (`core/browser/hydration.py`)
 6. Add tests, and the sport's token count to `ACCEPTED_TOKEN_COUNTS` in `tests/core/test_market_tables.py`, which checks that the market tables agree
 
 ## Adding a New League

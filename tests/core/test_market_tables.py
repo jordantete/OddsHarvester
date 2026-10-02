@@ -2,7 +2,7 @@
 
 import pytest
 
-from oddsharvester.core.base_scraper import BaseScraper
+from oddsharvester.core.browser.hydration import DEFAULT_MARKET_CODE_BY_SPORT, default_market_code
 from oddsharvester.core.market_extraction.line_tokens import line_name_to_token
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.sport_market_registry import SportMarketRegistrar, SportMarketRegistry
@@ -85,13 +85,13 @@ def test_football_line_tokens_round_trip(registry):
 
 
 def test_default_market_codes_name_sports_and_tab_codes():
-    codes = BaseScraper._DEFAULT_MARKET_CODE_BY_SPORT
+    codes = DEFAULT_MARKET_CODE_BY_SPORT
     assert set(codes) - {sport.value for sport in Sport} == set()
     assert set(codes.values()) - set(OddsPortalSelectors.MARKET_TAB_CODES.values()) == set()
 
 
 @pytest.mark.parametrize("sport", list(Sport))
 def test_each_sport_opens_on_a_tab_it_registers(sport, registry):
-    """A sport left out of _DEFAULT_MARKET_CODE_BY_SPORT opens on 1X2, a tab two-outcome sports lack."""
-    code = BaseScraper._DEFAULT_MARKET_CODE_BY_SPORT.get(sport.value, "1X2")
+    """A sport left out of DEFAULT_MARKET_CODE_BY_SPORT opens on 1X2, a tab two-outcome sports lack."""
+    code = default_market_code(sport.value)
     assert code in {OddsPortalSelectors.MARKET_TAB_CODES[spec.main_market] for spec in registry[sport].values()}

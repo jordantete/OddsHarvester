@@ -7,6 +7,34 @@ from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 from oddsharvester.utils.sport_market_constants import Sport
 
 
+def test_event_id_from_url_returns_fragment_when_present():
+    url = "https://www.oddsportal.com/baseball/h2h/a-team/b-team/#WbDmMwm1"
+    assert OddsPortalSelectors.event_id_from_url(url) == "WbDmMwm1"
+
+
+def test_event_id_from_url_returns_none_when_no_fragment():
+    assert OddsPortalSelectors.event_id_from_url("https://www.oddsportal.com/baseball/h2h/a/b/") is None
+
+
+def test_event_id_from_url_returns_none_when_fragment_is_empty():
+    assert OddsPortalSelectors.event_id_from_url("https://www.oddsportal.com/baseball/h2h/a/b/#") is None
+
+
+def test_event_id_from_url_returns_none_when_fragment_has_slash():
+    # Defensive: a stray slash means it isn't a match-id fragment
+    assert OddsPortalSelectors.event_id_from_url("https://www.oddsportal.com/x/#a/b") is None
+
+
+def test_event_id_from_url_strips_whitespace():
+    # Some scrapers can produce trailing whitespace from raw href
+    assert OddsPortalSelectors.event_id_from_url("https://www.oddsportal.com/x/#abc   ") == "abc"
+
+
+def test_event_id_from_url_strips_market_suffix():
+    # The hydrated SPA rewrites the fragment to '<id>:<market>;<scope>'.
+    assert OddsPortalSelectors.event_id_from_url("https://www.oddsportal.com/x/h2h/a/b/#OOklm0j3:1X2;2") == "OOklm0j3"
+
+
 def test_market_code_from_url_extracts_code():
     url = "https://www.cuotasahora.com/football/h2h/cabo-verde-x/uruguay-y/#4pPp9nn3:over-under;2"
     assert OddsPortalSelectors.market_code_from_url(url) == "over-under"
