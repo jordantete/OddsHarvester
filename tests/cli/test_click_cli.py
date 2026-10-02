@@ -1,5 +1,6 @@
 """Tests for the Click-based CLI."""
 
+import json
 import logging
 import os
 from pathlib import Path
@@ -14,6 +15,7 @@ import pytest
 from oddsharvester import __version__
 from oddsharvester.cli.cli import cli
 from oddsharvester.cli.commands._output import format_combo_summary
+from oddsharvester.core.odds_portal_scraper import ListingResult
 from oddsharvester.core.scrape_options import ScrapeOptions
 from oddsharvester.core.scrape_result import ScrapeResult, ScrapeStats
 
@@ -798,6 +800,33 @@ class TestStreamNdjson:
 
         assert result.exit_code == 0
         store_mock.assert_called_once()
+
+    @pytest.mark.parametrize(
+        "args",
+        [
+            ["historic", "-s", "football", "-l", "england-premier-league", "--season", "2022-2023"],
+            ["historic", "-s", "football", "--season", "2022-2023", "--match-link", MATCH_URL],
+        ],
+        ids=["listing", "match link"],
+    )
+    def test_a_streamed_record_carries_the_season_the_file_gets(self, runner, fake_scraper, tmp_path, args):
+        def scrape(match_links, **_):
+            records = [{"match_link": link, "season": None} for link in match_links]
+            for record in records:
+                fake_scraper.built_with["on_match"](record)
+            return ScrapeResult(success=records, stats=ScrapeStats(total_urls=1, successful=1))
+
+        fake_scraper.answers["collect_historic_links"] = ListingResult(rows=[{"match_link": MATCH_URL}])
+        fake_scraper.answers["extract_match_odds"] = scrape
+        fake_scraper.answers["scrape_matches"] = scrape
+        out = tmp_path / "out.json"
+
+        result = runner.invoke(cli, [*args, "--headless", "--stream-ndjson", "-o", str(out)])
+
+        assert result.exit_code == 0, result.output
+        [streamed] = [json.loads(line) for line in result.stdout.splitlines()]
+        assert streamed == json.loads(out.read_text())[0]
+        assert streamed["season"] == "2022-2023"
 
     @pytest.mark.parametrize("command", list(COMMANDS))
     def test_streaming_keeps_stdout_free_of_summary_text(self, runner, command):

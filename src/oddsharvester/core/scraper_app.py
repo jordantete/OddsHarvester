@@ -24,6 +24,20 @@ logger = logging.getLogger("ScraperApp")
 Combo = tuple[str | None, str | None]
 
 
+class _SeasonedStream:
+    """Hands each scraped record to the run's stream with the season its stored copy gets."""
+
+    def __init__(self, emit: Callable[[dict[str, Any]], None]) -> None:
+        self.emit = emit
+        self.season_of: Callable[[str | None], str | None] = lambda link: None
+
+    def __call__(self, record: dict[str, Any]) -> None:
+        season = self.season_of(record.get("match_link"))
+        if season is not None:
+            record["season"] = season
+        self.emit(record)
+
+
 async def run_scraper(command: CommandEnum | str, **options: Any) -> ScrapeResult | None:
     """Run a scrape from keywords: the fields of `ScrapeOptions`, with their names and defaults."""
     return await run_scrape(ScrapeOptions(command=command, **options))
@@ -57,6 +71,7 @@ async def run_scrape(options: ScrapeOptions) -> ScrapeResult | None:
     proxy_manager = ProxyManager(
         proxy_urls=list(options.proxy_url), proxy_user=options.proxy_user, proxy_pass=options.proxy_pass
     )
+    stream = _SeasonedStream(options.on_match) if options.on_match else None
     SportMarketRegistrar.register_all_markets()
     playwright_manager = PlaywrightManager()
     cookie_dismisser = CookieDismisser()
@@ -79,7 +94,7 @@ async def run_scrape(options: ScrapeOptions) -> ScrapeResult | None:
         preview_submarkets_only=options.preview_submarkets_only,
         local_kickoff=options.local_kickoff,
         base_url=options.base_url,
-        on_match=options.on_match,
+        on_match=stream,
     )
 
     try:
@@ -97,8 +112,8 @@ async def run_scrape(options: ScrapeOptions) -> ScrapeResult | None:
         if options.command is CommandEnum.LIVE:
             return await _scrape_live(scraper, options)
         if options.match_links and options.sport:
-            return await _scrape_match_links(scraper, options)
-        return await _scrape_listings(scraper, options)
+            return await _scrape_match_links(scraper, options, stream)
+        return await _scrape_listings(scraper, options, stream)
 
     except Exception as e:
         logger.error(f"Scraping failed: {type(e).__name__}: {e}", exc_info=True)
@@ -158,12 +173,18 @@ async def _scrape_live(scraper: OddsPortalScraper, options: ScrapeOptions) -> Sc
     )
 
 
-async def _scrape_match_links(scraper: OddsPortalScraper, options: ScrapeOptions) -> ScrapeResult:
+async def _scrape_match_links(
+    scraper: OddsPortalScraper, options: ScrapeOptions, stream: _SeasonedStream | None
+) -> ScrapeResult:
     logger.info(
         f"Scraping specific matches: {options.match_links} for sport: {options.sport}, markets={options.markets}, "
         f"scrape_odds_history={options.scrape_odds_history}, target_bookmaker={options.target_bookmaker}, "
         f"bookies_filter={options.bookies_filter.value}, period={options.period}"
     )
+    # The match pages do not say which season they belong to; one season given for them does.
+    season = options.seasons[0] if options.seasons and len(options.seasons) == 1 else None
+    if stream:
+        stream.season_of = lambda link: season
     result = await retry_scrape(
         scraper.scrape_matches,
         match_links=options.match_links,
@@ -176,14 +197,15 @@ async def _scrape_match_links(scraper: OddsPortalScraper, options: ScrapeOptions
         request_delay=options.request_delay,
         concurrent_scraping_task=options.concurrency_tasks,
     )
-    # The match pages do not say which season they belong to; one season given for them does.
-    if options.seasons and len(options.seasons) == 1:
+    if season is not None:
         for record in result.success:
-            record["season"] = options.seasons[0]
+            record["season"] = season
     return result
 
 
-async def _scrape_listings(scraper: OddsPortalScraper, options: ScrapeOptions) -> ScrapeResult:
+async def _scrape_listings(
+    scraper: OddsPortalScraper, options: ScrapeOptions, stream: _SeasonedStream | None
+) -> ScrapeResult:
     """List the run's (league, season) combos, then scrape the matches they hold."""
     sport = options.sport
 
@@ -248,6 +270,7 @@ async def _scrape_listings(scraper: OddsPortalScraper, options: ScrapeOptions) -
             "period": options.period,
             "request_delay": options.request_delay,
         },
+        stream=stream,
     )
 
 
@@ -287,6 +310,7 @@ async def _scrape_combos(
     request_delay: float,
     links_only: bool,
     odds_kwargs: dict[str, Any],
+    stream: _SeasonedStream | None = None,
 ) -> ScrapeResult:
     """
     List every (league, season) combo in parallel, then scrape all matches in one batch.
@@ -306,6 +330,7 @@ async def _scrape_combos(
         request_delay: Base delay between listing requests, jittered
         links_only: Stop after the listing phase
         odds_kwargs: Forwarded to `extract_match_odds` alongside `match_links`
+        stream: The run's stream, told each link's season before the odds are scraped
 
     Returns:
         ScrapeResult: Merged results, with a per-combo breakdown in `combo_stats`.
@@ -365,6 +390,8 @@ async def _scrape_combos(
 
     result = ScrapeResult()
     if link_to_combo:
+        if stream:
+            stream.season_of = lambda link: combos[link_to_combo[link]][1] if link in link_to_combo else None
         result = await scraper.extract_match_odds(match_links=list(link_to_combo), **odds_kwargs)
 
     successful = [0] * len(combos)

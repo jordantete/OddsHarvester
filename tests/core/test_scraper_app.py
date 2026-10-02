@@ -272,6 +272,8 @@ async def test_several_proxy_urls_start_the_browser_with_a_rotating_pool(fake_sc
 
 
 async def test_the_scraper_is_built_with_the_run_page_options(fake_scraper):
+    streamed = []
+
     await run_scraper(
         command="scrape_upcoming",
         sport="football",
@@ -279,16 +281,17 @@ async def test_the_scraper_is_built_with_the_run_page_options(fake_scraper):
         local_kickoff=True,
         preview_submarkets_only=True,
         base_url="https://www.centroquote.it",
-        on_match=print,
+        on_match=streamed.append,
     )
 
     built = fake_scraper.built_with
-    assert (built["local_kickoff"], built["preview_submarkets_only"], built["base_url"], built["on_match"]) == (
+    assert (built["local_kickoff"], built["preview_submarkets_only"], built["base_url"]) == (
         True,
         True,
         "https://www.centroquote.it",
-        print,
     )
+    built["on_match"]({"match_link": M1, "season": None})
+    assert streamed == [{"match_link": M1, "season": None}]
 
 
 async def test_retry_scrape_success():
@@ -929,3 +932,58 @@ async def test_match_link_records_carry_the_one_season_given(fake_scraper, seaso
     result = await run_scraper(command=CommandEnum.HISTORIC, sport="football", match_links=[M1, M2], seasons=seasons)
 
     assert [record["season"] for record in result.success] == [season, season]
+
+
+def _streaming(fake_scraper, odds_result):
+    """An answer that streams each record through the run's callback, as the scraper does, then returns them."""
+
+    def answer(**kwargs):
+        result = odds_result(**kwargs)
+        for record in result.success:
+            fake_scraper.built_with["on_match"](record)
+        return result
+
+    return answer
+
+
+@pytest.mark.parametrize(
+    ("seasons", "season"),
+    [(["2025-2026"], "2025-2026"), (["current"], "current"), (None, None), (["2024-2025", "2025-2026"], None)],
+    ids=["one season", "current", "no season", "two seasons"],
+)
+async def test_a_streamed_match_link_record_carries_the_season_of_the_stored_one(fake_scraper, seasons, season):
+    streamed = []
+    fake_scraper.answers["scrape_matches"] = _streaming(
+        fake_scraper, lambda match_links, **_: _odds_result(match_links)
+    )
+
+    result = await run_scraper(
+        command=CommandEnum.HISTORIC,
+        sport="football",
+        match_links=[M1, M2],
+        seasons=seasons,
+        on_match=lambda record: streamed.append(dict(record)),
+    )
+
+    assert streamed == result.success
+    assert [record["season"] for record in streamed] == [season, season]
+
+
+async def test_a_streamed_listing_record_carries_the_season_of_its_combo(fake_scraper):
+    streamed = []
+    fake_scraper.answers["collect_historic_links"] = lambda season, **_: _listing(f"https://x/{season}")
+    fake_scraper.answers["extract_match_odds"] = _streaming(
+        fake_scraper, lambda match_links, **_: _odds_result(match_links)
+    )
+
+    result = await run_scraper(
+        command=CommandEnum.HISTORIC,
+        sport="football",
+        leagues=["epl"],
+        seasons=["2020-2021", "2021-2022"],
+        request_delay=0,
+        on_match=lambda record: streamed.append(dict(record)),
+    )
+
+    assert streamed == result.success
+    assert [record["season"] for record in streamed] == ["2020-2021", "2021-2022"]
