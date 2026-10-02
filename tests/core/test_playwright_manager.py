@@ -202,3 +202,17 @@ async def test_new_rotated_page_raises_when_exhausted(mock_playwright):
             pm.report_page_result(key, is_proxy_failure=True)
     with pytest.raises(AllProxiesExhaustedError):
         await pm.new_rotated_page()
+
+
+async def test_a_unit_test_cannot_start_the_browser():
+    """tests/conftest.py blocks Playwright outside integration tests; the `except Exception` here cannot swallow it."""
+    with pytest.raises(pytest.fail.Exception, match="test_a_unit_test_cannot_start_the_browser started Playwright"):
+        await PlaywrightManager().initialize(headless=True)
+
+
+async def test_a_test_that_patches_playwright_itself_still_starts_it(mock_playwright):
+    pm = PlaywrightManager()
+
+    await pm.initialize(headless=True)
+
+    assert pm.page is mock_playwright["page"]
