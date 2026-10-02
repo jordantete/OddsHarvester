@@ -22,7 +22,6 @@ from oddsharvester.utils.constants import (
     LISTING_PAGE_RETRY_ATTEMPTS,
     LISTING_PAGE_RETRY_DELAY_S,
     MAX_PAGINATION_PAGES,
-    ODDSPORTAL_BASE_URL,
     PAGE_COLLECTION_DELAY_MAX_MS,
     PAGE_COLLECTION_DELAY_MIN_MS,
     RESULTS_PAGE_SIZE,
@@ -117,7 +116,7 @@ class OddsPortalScraper(BaseScraper):
             self._assert_season_page_reached(requested_url=base_url, landed_url=tab.url)
             if is_league_path(league):
                 await self._assert_league_page_exists(tab, base_url)
-            await self._prepare_page_for_scraping(page=tab)
+            await self._warm_up_page(tab)
 
             self.logger.info("Step 1: Analyzing pagination information...")
             pages_to_scrape = await self._get_pagination_info(page=tab, max_pages=max_pages)
@@ -189,7 +188,7 @@ class OddsPortalScraper(BaseScraper):
             raise_if_rate_limited(response, url, "listing")
             if league and is_league_path(league):
                 await self._assert_league_page_exists(tab, url)
-            await self._prepare_page_for_scraping(page=tab)
+            await self._warm_up_page(tab)
 
             # Scroll to load all matches due to lazy loading
             self.logger.info("Scrolling page to load all upcoming matches...")
@@ -255,18 +254,13 @@ class OddsPortalScraper(BaseScraper):
 
         if match_links:
             links = [rebase_url(normalize_inplay_match_url(link), self.base_url) for link in match_links]
-            await current_page.goto(
-                self.base_url or ODDSPORTAL_BASE_URL,
-                timeout=GOTO_TIMEOUT_LONG_MS,
-                wait_until="domcontentloaded",
-            )
-            await self._prepare_page_for_scraping(page=current_page)
+            await self._warm_up_page(current_page, home_timeout_ms=GOTO_TIMEOUT_LONG_MS)
         else:
             url = URLBuilder.get_live_matches_url(sport=sport, base_url=self.base_url)
             self.logger.info(f"Fetching live matches from {url}")
 
             await current_page.goto(url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
-            await self._prepare_page_for_scraping(page=current_page)
+            await self._warm_up_page(current_page)
             await self.scroller.scroll_until_loaded(
                 page=current_page,
                 timeout=30,
@@ -330,12 +324,7 @@ class OddsPortalScraper(BaseScraper):
             raise RuntimeError("Playwright has not been initialized. Call `start_playwright()` first.")
 
         match_links = [rebase_url(link, self.base_url) for link in match_links]
-        await current_page.goto(
-            self.base_url or ODDSPORTAL_BASE_URL,
-            timeout=GOTO_TIMEOUT_LONG_MS,
-            wait_until="domcontentloaded",
-        )
-        await self._prepare_page_for_scraping(page=current_page)
+        await self._warm_up_page(current_page, home_timeout_ms=GOTO_TIMEOUT_LONG_MS)
         return await self.extract_match_odds(
             sport=sport,
             match_links=match_links,
@@ -348,16 +337,6 @@ class OddsPortalScraper(BaseScraper):
             period=period,
             request_delay=request_delay,
         )
-
-    async def _prepare_page_for_scraping(self, page: Page):
-        """
-        Prepares the Playwright page for scraping by setting odds format and dismissing banners.
-
-        Args:
-            page: Playwright page instance.
-        """
-        await self.set_odds_format(page=page)
-        await self.cookie_dismisser.dismiss(page=page)
 
     @staticmethod
     def _effective_page_limit(max_pages: int | None) -> int:

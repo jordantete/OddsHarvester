@@ -1289,7 +1289,7 @@ def _upcoming_scraper(tab) -> OddsPortalScraper:
         cookie_dismisser=AsyncMock(),
         selection_manager=AsyncMock(),
     )
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
     scraper.extract_match_odds = AsyncMock()
     return scraper
 

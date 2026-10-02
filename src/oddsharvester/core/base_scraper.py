@@ -739,6 +739,28 @@ class BaseScraper:
             self.logger.error(f"Error extracting live match links: {e}", exc_info=True)
             raise
 
+    async def _warm_up_page(
+        self, page: Page, home_timeout_ms: int | None = None, strict_on_canonical_host: bool = False
+    ) -> None:
+        """Accept the cookie banner, then set decimal odds; both are per-context state (gotchas §11).
+
+        Args:
+            page (Page): The page to warm up, already on an OddsPortal page unless `home_timeout_ms` is given.
+            home_timeout_ms (int | None): Load the run's home page first (`--base-url`, else www.oddsportal.com),
+                within this timeout.
+            strict_on_canonical_host (bool): Raise when the odds format cannot be set on a page that landed on
+                www.oddsportal.com. A proxy can be geo-redirected to a localized mirror even when the canonical
+                domain was requested, and a mirror's localized labels defeat the English match (gotchas §7), so
+                strictness follows the page's actual host.
+        """
+        if home_timeout_ms is not None:
+            await page.goto(
+                self.base_url or ODDSPORTAL_BASE_URL, timeout=home_timeout_ms, wait_until="domcontentloaded"
+            )
+        await self.cookie_dismisser.dismiss(page=page)
+        strict = strict_on_canonical_host and urlsplit(page.url).hostname == urlsplit(ODDSPORTAL_BASE_URL).hostname
+        await self.set_odds_format(page=page, strict=strict)
+
     async def _warm_proxy_contexts(self):
         """Warm each non-default proxy context once.
 
@@ -755,17 +777,7 @@ class BaseScraper:
                 page = None
                 try:
                     page = await self.playwright_manager.new_page_on_key(key)
-                    await page.goto(
-                        self.base_url or ODDSPORTAL_BASE_URL,
-                        timeout=NAVIGATION_TIMEOUT_MS,
-                        wait_until="domcontentloaded",
-                    )
-                    await self.cookie_dismisser.dismiss(page=page)
-                    # A geo-redirected proxy can land on a localized mirror even when the canonical
-                    # domain was requested, so strict mode follows the page's actual host, not the
-                    # requested one (gotchas §7).
-                    strict = urlsplit(page.url).hostname == urlsplit(ODDSPORTAL_BASE_URL).hostname
-                    await self.set_odds_format(page=page, strict=strict)
+                    await self._warm_up_page(page, home_timeout_ms=NAVIGATION_TIMEOUT_MS, strict_on_canonical_host=True)
                     self.logger.info(f"Warmed proxy context: {key}")
                     break
                 except Exception as e:

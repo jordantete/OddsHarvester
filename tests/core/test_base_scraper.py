@@ -26,6 +26,7 @@ from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.constants import (
     DYNAMIC_CONTENT_WAIT_MS,
+    GOTO_TIMEOUT_LONG_MS,
     LOGIN_MODAL_CLOSE_WAIT_MS,
     NAVIGATION_TIMEOUT_MS,
     ODDS_FORMAT_WAIT_MS,
@@ -1121,6 +1122,79 @@ async def test_set_odds_format_default_logs_a_missing_format_without_raising(set
         await mocks["scraper"].set_odds_format(page=mocks["page_mock"])
 
     assert "'Decimal Odds' not found" in caplog.text
+
+
+async def test_the_warm_up_accepts_the_cookie_banner_then_sets_the_odds_format(setup_base_scraper_mocks):
+    """The banner can cover the odds-format dropdown, so it goes first (gotchas §11)."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    order = []
+    scraper.cookie_dismisser.dismiss = AsyncMock(side_effect=lambda page: order.append("cookies"))
+    scraper.set_odds_format = AsyncMock(side_effect=lambda page, strict: order.append("odds format"))
+
+    await scraper._warm_up_page(page_mock)
+
+    assert order == ["cookies", "odds format"]
+    scraper.set_odds_format.assert_awaited_once_with(page=page_mock, strict=False)
+    page_mock.goto.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    ("base_url", "home"), [(None, ODDSPORTAL_BASE_URL), ("https://www.centroquote.it", "https://www.centroquote.it")]
+)
+async def test_the_warm_up_loads_the_run_home_page_first_within_the_given_timeout(
+    setup_base_scraper_mocks, base_url, home
+):
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    scraper.base_url = base_url
+    order = []
+    page_mock.goto = AsyncMock(side_effect=lambda url, **kwargs: order.append("home"))
+    scraper.cookie_dismisser.dismiss = AsyncMock(side_effect=lambda page: order.append("cookies"))
+    scraper.set_odds_format = AsyncMock(side_effect=lambda page, strict: order.append("odds format"))
+
+    await scraper._warm_up_page(page_mock, home_timeout_ms=GOTO_TIMEOUT_LONG_MS)
+
+    page_mock.goto.assert_awaited_once_with(home, timeout=GOTO_TIMEOUT_LONG_MS, wait_until="domcontentloaded")
+    assert order == ["home", "cookies", "odds format"]
+
+
+@pytest.mark.parametrize(
+    ("strict_on_canonical_host", "landed", "strict"),
+    [
+        (True, "https://www.oddsportal.com/", True),
+        (True, "https://www.cuotasahora.com/", False),
+        (False, "https://www.oddsportal.com/", False),
+    ],
+)
+async def test_the_warm_up_is_strict_only_when_asked_and_on_the_canonical_host(
+    setup_base_scraper_mocks, strict_on_canonical_host, landed, strict
+):
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.url = landed
+    scraper.set_odds_format = AsyncMock()
+
+    await scraper._warm_up_page(page_mock, strict_on_canonical_host=strict_on_canonical_host)
+
+    scraper.set_odds_format.assert_awaited_once_with(page=page_mock, strict=strict)
+
+
+async def test_the_proxy_warm_up_passes_its_timeout_and_strictness(setup_base_scraper_mocks):
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    mocks["playwright_manager_mock"].non_default_context_keys = MagicMock(return_value=["http://b.example.com:2"])
+    scraper._warm_up_page = AsyncMock()
+
+    await scraper._warm_proxy_contexts()
+
+    scraper._warm_up_page.assert_awaited_once_with(
+        mocks["page_mock"], home_timeout_ms=NAVIGATION_TIMEOUT_MS, strict_on_canonical_host=True
+    )
+    mocks["page_mock"].close.assert_awaited_once()
 
 
 @pytest.mark.parametrize("failure", ["format_missing", "timeout"])

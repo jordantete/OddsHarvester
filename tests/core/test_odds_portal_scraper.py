@@ -138,7 +138,7 @@ async def test_collect_historic_links_reads_the_season_listing(url_builder_mock,
         failed_pages=[],
     )
     scraper._collect_match_links = AsyncMock(return_value=link_result)
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
 
     # Call the method under test
     listing = await scraper.collect_historic_links(
@@ -153,7 +153,7 @@ async def test_collect_historic_links_reads_the_season_listing(url_builder_mock,
         sport="football", league="premier-league", season="2023", base_url=None
     )
     page_mock.goto.assert_called_once()
-    scraper._prepare_page_for_scraping.assert_called_once_with(page=page_mock)
+    scraper._warm_up_page.assert_awaited_once_with(page_mock)
     scraper._get_pagination_info.assert_called_once_with(page=page_mock, max_pages=2)
     scraper._collect_match_links.assert_called_once_with(
         base_url="https://oddsportal.com/football/england/premier-league-2023",
@@ -186,7 +186,7 @@ async def test_collect_historic_links_fails_when_season_url_redirects(url_builde
     )
     scraper._get_pagination_info = AsyncMock()
     scraper._collect_match_links = AsyncMock()
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
 
     with pytest.raises(PageNotFoundError):
         await scraper.collect_historic_links(sport="football", league="mexico-liga-mx", season="2012-2013")
@@ -236,7 +236,7 @@ async def test_collect_upcoming_links_reads_the_listing(url_builder_mock, setup_
     )
 
     # Mock methods
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
     scraper.extract_match_rows = AsyncMock(
         return_value=[
             {"match_link": "https://oddsportal.com/match1", "kickoff_utc": None},
@@ -256,7 +256,7 @@ async def test_collect_upcoming_links_reads_the_listing(url_builder_mock, setup_
         sport="football", date="20260601", league="premier-league", base_url=None
     )
     page_mock.goto.assert_called_once()
-    scraper._prepare_page_for_scraping.assert_called_once_with(page=page_mock)
+    scraper._warm_up_page.assert_awaited_once_with(page_mock)
     scraper.extract_match_rows.assert_called_once()
     _, extract_kwargs = scraper.extract_match_rows.call_args
     assert extract_kwargs["page"] is page_mock
@@ -283,14 +283,13 @@ async def test_collect_upcoming_links_keeps_rows_with_unknown_kickoff(url_builde
             {"match_link": "https://oddsportal.com/m2", "kickoff_utc": None},
         ]
     )
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
 
     listing = await scraper.collect_upcoming_links(sport="football", date="20260720", league=None, collect_kickoff=True)
 
     assert [row["kickoff_utc"] for row in listing.rows] == ["2026-07-20 18:30:00 UTC", None]
 
 
-@patch("oddsharvester.core.odds_portal_scraper.ODDSPORTAL_BASE_URL", "https://oddsportal.com")
 async def test_scrape_matches(setup_scraper_mocks):
     """Test scraping specific match links."""
     mocks = setup_scraper_mocks
@@ -298,7 +297,7 @@ async def test_scrape_matches(setup_scraper_mocks):
     page_mock = mocks["page_mock"]
 
     # Mock methods
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
 
     # Mock extract_match_odds to return ScrapeResult
     mock_scrape_result = ScrapeResult(
@@ -316,10 +315,7 @@ async def test_scrape_matches(setup_scraper_mocks):
     )
 
     # Verify the interactions
-    page_mock.goto.assert_called_once_with(
-        "https://oddsportal.com", timeout=GOTO_TIMEOUT_LONG_MS, wait_until="domcontentloaded"
-    )
-    scraper._prepare_page_for_scraping.assert_called_once_with(page=page_mock)
+    scraper._warm_up_page.assert_awaited_once_with(page_mock, home_timeout_ms=GOTO_TIMEOUT_LONG_MS)
     scraper.extract_match_odds.assert_called_once_with(
         sport="tennis",
         match_links=match_links,
@@ -346,7 +342,7 @@ async def test_collect_upcoming_links_forwards_kickoff_within_hours(url_builder_
     scraper = mocks["scraper"]
 
     url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/football/matches/20260601"
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
     scraper.extract_match_rows = AsyncMock(
         return_value=[{"match_link": "https://oddsportal.com/m1", "kickoff_utc": None}]
     )
@@ -364,7 +360,7 @@ async def test_collect_upcoming_links_runs_on_its_own_tab(url_builder_mock, setu
     tab = AsyncMock(spec=Page)
     mocks["context_mock"].new_page = AsyncMock(return_value=tab)
     url_builder_mock.get_upcoming_matches_url.return_value = "https://oddsportal.com/football/england/premier-league/"
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
     scraper.extract_match_rows = AsyncMock(
         return_value=[{"match_link": "https://oddsportal.com/m1", "kickoff_utc": None}]
     )
@@ -372,7 +368,7 @@ async def test_collect_upcoming_links_runs_on_its_own_tab(url_builder_mock, setu
     listing = await scraper.collect_upcoming_links(sport="football", date="20260601", league="premier-league")
 
     tab.goto.assert_awaited_once()
-    scraper._prepare_page_for_scraping.assert_awaited_once_with(page=tab)
+    scraper._warm_up_page.assert_awaited_once_with(tab)
     scraper.scroller.scroll_until_loaded.assert_awaited_once()
     assert scraper.scroller.scroll_until_loaded.await_args.kwargs["page"] is tab
     _assert_scroll_pace_left_to_the_scroller(scraper.scroller.scroll_until_loaded)
@@ -399,23 +395,6 @@ async def test_collect_upcoming_links_closes_the_tab_when_the_listing_raises(url
         await scraper.collect_upcoming_links(sport="football", date="20260601", league="premier-league")
 
     tab.close.assert_awaited_once()
-
-
-async def test_prepare_page_for_scraping(setup_scraper_mocks):
-    """Test preparing the page for scraping."""
-    mocks = setup_scraper_mocks
-    scraper = mocks["scraper"]
-    page_mock = mocks["page_mock"]
-
-    # Mock methods
-    scraper.set_odds_format = AsyncMock()
-
-    # Call the method under test
-    await scraper._prepare_page_for_scraping(page=page_mock)
-
-    # Verify the interactions
-    scraper.set_odds_format.assert_called_once_with(page=page_mock)
-    mocks["cookie_dismisser_mock"].dismiss.assert_called_once_with(page=page_mock)
 
 
 async def test_get_pagination_info(setup_scraper_mocks):
@@ -642,7 +621,7 @@ async def test_collect_match_links_passes_the_sport_to_the_listing_guard(setup_s
 async def test_collect_upcoming_links_passes_the_sport_to_the_listing_guard(url_builder_mock, setup_scraper_mocks):
     scraper = setup_scraper_mocks["scraper"]
     url_builder_mock.get_upcoming_matches_url.return_value = "https://www.oddsportal.com/matches/hockey/20261001/"
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
     scraper.extract_match_rows = AsyncMock(return_value=[])
 
     await scraper.collect_upcoming_links(sport="ice-hockey", date="20261001")
@@ -656,7 +635,7 @@ async def test_scrape_live_raises_when_the_listing_cannot_be_read(url_builder_mo
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
     url_builder_mock.get_live_matches_url.return_value = "https://oddsportal.com/inplay-odds/live-now/football/"
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
     mocks["page_mock"].content.side_effect = RuntimeError("Target page crashed")
     scraper.extract_match_odds = AsyncMock()
 
@@ -714,12 +693,13 @@ async def test_scrape_live_no_matches_returns_empty_result(url_builder_mock, set
     scraper = mocks["scraper"]
 
     url_builder_mock.get_live_matches_url.return_value = "https://oddsportal.com/inplay-odds/live-now/football/"
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
     scraper.extract_live_match_links = AsyncMock(return_value=[])
     scraper.extract_match_odds = AsyncMock()
 
     result = await scraper.scrape_live(sport="football")
 
+    scraper._warm_up_page.assert_awaited_once_with(mocks["page_mock"])
     assert result.success == []
     assert result.stats.total_urls == 0
     scraper.extract_match_odds.assert_not_awaited()
@@ -732,7 +712,7 @@ async def test_scrape_live_links_only(url_builder_mock, setup_scraper_mocks):
     scraper = mocks["scraper"]
 
     url_builder_mock.get_live_matches_url.return_value = "https://oddsportal.com/inplay-odds/live-now/football/"
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
     scraper.extract_live_match_links = AsyncMock(
         return_value=[{"match_link": "https://www.oddsportal.com/x/inplay-odds/#a"}]
     )
@@ -756,7 +736,7 @@ async def test_scrape_live_returns_the_odds_result_as_it_is(url_builder_mock, se
     scraper = mocks["scraper"]
 
     url_builder_mock.get_live_matches_url.return_value = "https://oddsportal.com/inplay-odds/live-now/football/"
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
     scraper.extract_live_match_links = AsyncMock(
         return_value=[
             {"match_link": "https://www.oddsportal.com/x/inplay-odds/#a"},
@@ -780,7 +760,7 @@ async def test_scrape_live_with_match_links_normalizes_urls(setup_scraper_mocks)
     mocks = setup_scraper_mocks
     scraper = mocks["scraper"]
 
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
     scraper.extract_live_match_links = AsyncMock()
     scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
 
@@ -803,7 +783,7 @@ async def test_scrape_live_never_scrapes_odds_history(url_builder_mock, setup_sc
     scraper = mocks["scraper"]
 
     url_builder_mock.get_live_matches_url.return_value = "https://oddsportal.com/inplay-odds/live-now/football/"
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
     scraper.extract_live_match_links = AsyncMock(
         return_value=[{"match_link": "https://www.oddsportal.com/x/inplay-odds/#a"}]
     )
@@ -1087,7 +1067,7 @@ async def test_scrape_matches_honors_regional_base_url(setup_scraper_mocks):
     page_mock = mocks["page_mock"]
 
     scraper.base_url = "https://regional.example"
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.set_odds_format = AsyncMock()
     scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
 
     match_link = "https://www.oddsportal.com/football/h2h/a-1/b-2/#EV123"
@@ -1116,7 +1096,7 @@ async def test_scrape_live_with_match_links_honors_regional_base_url(setup_scrap
     page_mock = mocks["page_mock"]
 
     scraper.base_url = "https://regional.example"
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper.set_odds_format = AsyncMock()
     scraper.extract_live_match_links = AsyncMock()
     scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
 
@@ -1149,7 +1129,7 @@ async def test_collect_historic_links_runs_on_its_own_tab_and_reports_failed_pag
     mocks["context_mock"].new_page = AsyncMock(return_value=tab)
     base = "https://oddsportal.com/football/england/premier-league-2022-2023/results/"
     url_builder_mock.get_historic_matches_url.return_value = base
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
     scraper._get_pagination_info = AsyncMock(return_value=[1, 2, 3])
     scraper._collect_match_links = AsyncMock(
         return_value=LinkCollectionResult(links=["https://oddsportal.com/m1"], successful_pages=2, failed_pages=[3])
@@ -1160,7 +1140,7 @@ async def test_collect_historic_links_runs_on_its_own_tab_and_reports_failed_pag
     )
 
     tab.goto.assert_awaited_once_with(base)
-    scraper._prepare_page_for_scraping.assert_awaited_once_with(page=tab)
+    scraper._warm_up_page.assert_awaited_once_with(tab)
     scraper._get_pagination_info.assert_awaited_once_with(page=tab, max_pages=None)
     tab.close.assert_awaited_once()
     mocks["page_mock"].goto.assert_not_called()
@@ -1278,7 +1258,7 @@ async def test_upcoming_checks_existence_of_league_paths_only(url_builder_mock, 
     tab = AsyncMock(spec=Page)
     mocks["context_mock"].new_page = AsyncMock(return_value=tab)
     url_builder_mock.get_upcoming_matches_url.return_value = "https://www.oddsportal.com/football/x/y/"
-    scraper._prepare_page_for_scraping = AsyncMock()
+    scraper._warm_up_page = AsyncMock()
     scraper._assert_league_page_exists = AsyncMock()
     scraper.extract_match_rows = AsyncMock(return_value=[])
 
