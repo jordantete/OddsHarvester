@@ -6,6 +6,7 @@ import pytest
 from tests.dom_builders import team_page
 
 from oddsharvester.core.exceptions import RateLimitError
+from oddsharvester.core.scrape_result import ErrorType
 from oddsharvester.core.team.team_scraper import TeamScraper, run_teams
 from oddsharvester.utils.constants import RATE_LIMIT_RETRY_DELAY_S
 
@@ -154,3 +155,35 @@ async def test_a_refused_team_page_is_retried_after_the_rate_limit_delay():
     assert [record["name"] for record in result.success] == ["Liverpool"]
     assert sleep.await_count == 1
     assert sleep.await_args.args[0] >= RATE_LIMIT_RETRY_DELAY_S
+
+
+async def test_a_wrong_team_id_is_reported_as_a_parsing_failure_that_no_retry_fixes():
+    with patch(_SESSION_MANAGER) as manager_cls:
+        manager = _manager_with(team_page(with_payload=False))
+        manager.initialize = AsyncMock()
+        manager.cleanup = AsyncMock()
+        manager_cls.return_value = manager
+
+        result = await run_teams(["zzzzzzzz"], headless=True, request_delay=0)
+
+    [failure] = result.failed
+    assert (failure.error_type, failure.is_retryable, failure.attempts) == (ErrorType.PARSING, False, 1)
+    assert "wrong team id" in failure.error_message
+
+
+async def test_a_team_page_refused_on_every_attempt_is_reported_as_rate_limited():
+    with (
+        patch(_SESSION_MANAGER) as manager_cls,
+        patch("oddsharvester.core.retry.asyncio.sleep", new_callable=AsyncMock),
+    ):
+        manager = _manager_with(team_page())
+        manager.page.goto = AsyncMock(return_value=MagicMock(status=429))
+        manager.initialize = AsyncMock()
+        manager.cleanup = AsyncMock()
+        manager_cls.return_value = manager
+
+        result = await run_teams(["lId4TMwf"], headless=True, request_delay=0)
+
+    [failure] = result.failed
+    assert (failure.error_type, failure.is_retryable) == (ErrorType.RATE_LIMITED, True)
+    assert failure.error_message.startswith("rate limited by OddsPortal")

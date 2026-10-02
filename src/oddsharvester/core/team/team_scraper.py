@@ -104,13 +104,13 @@ def _warn_on_missing_fields(record: dict) -> None:
 
 
 def _failure(team_id: str, retry_result) -> FailedUrl:
-    error = retry_result.last_error
+    error = retry_result.exception
     return FailedUrl(
         url=team_id,
         error_type=ErrorType.PARSING
         if isinstance(error, ScraperError) and not error.is_retryable
-        else ErrorType.UNKNOWN,
-        error_message=str(error),
+        else retry_result.error_type or ErrorType.UNKNOWN,
+        error_message=retry_result.last_error or str(error),
         attempts=retry_result.attempts,
-        is_retryable=getattr(error, "is_retryable", True),
+        is_retryable=retry_result.is_retryable,
     )
