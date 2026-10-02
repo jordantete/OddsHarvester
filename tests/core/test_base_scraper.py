@@ -3039,6 +3039,66 @@ async def test_scrape_match_data_keeps_the_match_when_a_market_fails(setup_base_
     assert result == {"home_team": "Arsenal", "match_date": "2023-05-01 20:00:00 UTC"}
 
 
+async def test_a_market_whose_data_never_came_fails_the_match_instead_of_keeping_a_wrong_record(
+    setup_base_scraper_mocks,
+):
+    """A record read past a lost market switch would carry the previous market's odds under the next one's name."""
+    from oddsharvester.core.exceptions import MarketDataError
+    from oddsharvester.core.retry import RetryConfig
+    from oddsharvester.core.scrape_result import ErrorType
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    scraper._hydrate_match_view = AsyncMock()
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._extract_match_details = AsyncMock(return_value={"home_team": "Chelsea"})
+    lost = MarketDataError("OddsPortal sent no data for the view 'bts;2' within 5500 ms")
+    mocks["market_extractor_mock"].scrape_markets = AsyncMock(side_effect=lost)
+
+    result = await scraper.extract_match_odds(
+        sport="football",
+        match_links=["https://www.oddsportal.com/football/h2h/a/b/#lMp9YMye"],
+        markets=["1x2", "btts"],
+        retry_config=RetryConfig(max_attempts=2, base_delay=0, max_delay=0),
+        request_delay=0,
+    )
+
+    assert result.success == []
+    [failed] = result.failed
+    assert (failed.error_type, failed.attempts, failed.is_retryable) == (ErrorType.MARKET_EXTRACTION, 2, True)
+    assert "no data for the view 'bts;2'" in failed.error_message
+
+
+async def test_a_market_whose_data_was_refused_with_429_is_a_rate_limit(setup_base_scraper_mocks):
+    """A 429 on the data request of a switch keeps its rate-limit wait (gotchas §23)."""
+    from oddsharvester.core.exceptions import MarketDataError, RateLimitError
+
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page = mocks["page_mock"]
+    listeners = []
+    page.on = MagicMock(side_effect=lambda event, listener: listeners.append(listener))
+    page.remove_listener = MagicMock()
+    scraper._hydrate_match_view = AsyncMock()
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._extract_match_details = AsyncMock(return_value={"home_team": "Chelsea"})
+    url = "https://www.oddsportal.com/proxy/match-event/1-1-lMp9YMye-13-2-c5.dat"
+
+    async def refused(**_):
+        listeners[0](MagicMock(url=url, status=429, request=MagicMock(resource_type="fetch")))
+        raise MarketDataError("OddsPortal refused the data of the view 'bts;2': HTTP 429")
+
+    mocks["market_extractor_mock"].scrape_markets = AsyncMock(side_effect=refused)
+
+    with pytest.raises(RateLimitError, match="rate limited by OddsPortal: HTTP 429 on 1 request"):
+        await scraper._scrape_match_data(
+            page=page,
+            sport="football",
+            match_link="https://www.oddsportal.com/football/h2h/a/b/#lMp9YMye",
+            markets=["btts"],
+        )
+
+
 def _history_ready_scraper(mocks, details):
     scraper = mocks["scraper"]
     scraper._hydrate_match_view = AsyncMock()

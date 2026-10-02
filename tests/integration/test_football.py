@@ -1,7 +1,13 @@
 """Integration tests for football scraping."""
 
+import copy
+import json
+from pathlib import Path
+import re
+
 import pytest
 
+from tests.integration.helpers.cli_runner import run_historic
 from tests.integration.helpers.comparison import compare_golden
 from tests.integration.helpers.replay import is_live, load_golden, replay_and_compare, run_replay
 
@@ -171,3 +177,132 @@ class TestFootballPreview:
         assert record["over_under_1_5_market"], "preview mode returned no Over/Under line"
         assert record["over_under_1_5_market"] == record["over_under_2_5_market"]
         assert {entry.get("extraction_mode") for entry in record["over_under_1_5_market"]} == {"passive"}
+
+
+MANCHESTER_CITY_CHELSEA = {
+    "sport": "football",
+    "league": "premier-league",
+    "match_id": "manchester-city-chelsea-lMp9YMye",
+    "url": "https://www.oddsportal.com/football/h2h/chelsea-4fGZN2oK/manchester-city-Wtn9Stg0/#lMp9YMye",
+}
+
+
+def _drop(entries, i, _one):
+    del entries[i]
+
+
+def _refuse(entries, i, _one):
+    entries[i]["response"]["status"] = 503
+
+
+def _empty(entries, i, _one):
+    entries[i]["response"]["content"]["text"] = ""
+
+
+def _serve_1x2(entries, i, one):
+    entries[i]["response"] = copy.deepcopy(one["response"])
+
+
+def _add_1x2(entries, market_id, one):
+    """A request the HAR never held, for market `market_id`, answered with the 1X2 data."""
+    added = copy.deepcopy(one)
+    added["request"]["url"] = re.sub(r"-1-(\d+)-([^-/]+\.dat)", rf"-{market_id}-\1-\2", one["request"]["url"])
+    entries.append(added)
+
+
+@pytest.mark.integration
+class TestAMarketWhoseDataDidNotCome:
+    """Each way OddsPortal can fail the data request of a market switch fails the match (gotchas §27).
+
+    The HAR is edited: replays abort a request it does not hold. Without the guard each run exits 0, with the
+    market empty or holding the 1X2 odds (seen live on 2026-10-02 for btts, double chance and over/under).
+    """
+
+    @staticmethod
+    def _run(har_for_match, tmp_path, match, fixture_name, market_id, edit, markets, bookies_filter="all"):
+        if is_live(har_for_match, match, fixture_name):
+            pytest.skip("edits a recorded request; the live site has none to edit")
+        har = json.loads(
+            Path(har_for_match(match["sport"], match["league"], match["match_id"], fixture_name)).read_text()
+        )
+        entries = har["log"]["entries"]
+        event = match["url"].rsplit("#", 1)[1]
+
+        def data_of(market):
+            pattern = re.compile(rf"/proxy/match-event/[^/?]*-{event}-{market}-2-")
+            return [i for i, entry in enumerate(entries) if pattern.search(entry["request"]["url"])]
+
+        one = entries[data_of(1)[0]]
+        if edit is _add_1x2:
+            _add_1x2(entries, market_id, one)
+        else:
+            for i in reversed(data_of(market_id)):
+                edit(entries, i, one)
+        edited = tmp_path / "edited.har"
+        edited.write_text(json.dumps(har))
+        output_path = tmp_path / "output"
+
+        exit_code, _stdout, stderr = run_historic(
+            sport=match["sport"],
+            match_link=match["url"],
+            markets=markets,
+            output_path=output_path,
+            bookies_filter=bookies_filter,
+            har_path=edited,
+        )
+
+        assert exit_code == 1, stderr[-2000:]
+        assert not Path(f"{output_path}.json").exists()
+        return stderr
+
+    @pytest.mark.parametrize(
+        ("edit", "reason"),
+        [
+            (_drop, "OddsPortal refused the data of the view 'bts;2': no response"),
+            (_refuse, "OddsPortal refused the data of the view 'bts;2': HTTP 503"),
+            (_empty, "The view 'bts;2' did not render within 5500 ms"),
+            (_serve_1x2, "OddsPortal sent the data of market 1 for the view 'bts;2'"),
+        ],
+        ids=["dropped", "refused", "empty", "1X2 data"],
+    )
+    @pytest.mark.parametrize("bookies_filter", ["all", "crypto"])
+    def test_btts_without_its_data_fails_the_match(self, har_for_match, tmp_path, edit, reason, bookies_filter):
+        stderr = self._run(
+            har_for_match,
+            tmp_path,
+            LEICESTER_BRENTFORD,
+            "1x2_btts_double_chance_full_time_all.json",
+            13,
+            edit,
+            ["1x2", "btts", "double_chance"],
+            bookies_filter,
+        )
+
+        assert reason in stderr
+
+    def test_a_handicap_line_given_the_1x2_data_fails_the_match(self, har_for_match, tmp_path):
+        """Rendered from the 1X2 data the view shows a line "Asian Handicap 0", a real token: its odds were 1X2's."""
+        stderr = self._run(
+            har_for_match,
+            tmp_path,
+            LEICESTER_BRENTFORD,
+            "1x2_btts_double_chance_full_time_all.json",
+            5,
+            _add_1x2,
+            ["1x2", "asian_handicap_0"],
+        )
+
+        assert "OddsPortal sent the data of market 1 for the view 'ah;2'" in stderr
+
+    def test_over_under_given_the_1x2_data_fails_the_match(self, har_for_match, tmp_path):
+        stderr = self._run(
+            har_for_match,
+            tmp_path,
+            MANCHESTER_CITY_CHELSEA,
+            "1x2_over_under_2_5_full_time_all_odds_history.json",
+            2,
+            _serve_1x2,
+            ["1x2", "over_under_2_5"],
+        )
+
+        assert "OddsPortal sent the data of market 1 for the view 'over-under;2'" in stderr

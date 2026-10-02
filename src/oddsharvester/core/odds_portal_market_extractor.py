@@ -13,6 +13,7 @@ from oddsharvester.core.browser.selection import (
     PeriodSelector,
     SelectionManager,
 )
+from oddsharvester.core.exceptions import MarketDataError
 from oddsharvester.core.market_extraction import (
     NavigationManager,
     OddsHistoryExtractor,
@@ -111,6 +112,8 @@ class OddsPortalMarketExtractor:
                     token = line_name_to_token(umbrella_main_market, line_name)
                     if token is not None and token not in line_tokens:
                         line_tokens.append(token)
+            except MarketDataError:
+                raise
             except Exception as e:
                 self.logger.warning(f"Error discovering lines for umbrella market '{market}': {e}")
                 continue
@@ -163,6 +166,8 @@ class OddsPortalMarketExtractor:
                 else:
                     self.logger.warning(f"Market '{market}' is not supported for sport '{sport}'.")
 
+            except MarketDataError:
+                raise
             except Exception as e:
                 self.logger.error(f"Error scraping market '{market}': {e}")
                 market_data[f"{market}_market"] = None
@@ -195,6 +200,8 @@ class OddsPortalMarketExtractor:
                     for specific_market in grouped_markets:
                         market_data[f"{specific_market}_market"] = main_market_data
 
+                except MarketDataError:
+                    raise
                 except Exception as e:
                     self.logger.error(f"Error scraping grouped markets for {main_market_name}: {e}")
                     for specific_market in grouped_markets:
@@ -363,6 +370,8 @@ class OddsPortalMarketExtractor:
 
             return odds_data
 
+        except MarketDataError:
+            raise
         except Exception as e:
             self.logger.error(f"Error extracting odds for {main_market} {specific_market}: {e}")
             return []

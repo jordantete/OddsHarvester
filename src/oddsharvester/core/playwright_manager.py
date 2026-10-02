@@ -5,6 +5,7 @@ import random
 
 from playwright.async_api import async_playwright
 
+from oddsharvester.core.browser.view_data import VIEW_DATA_HOOK_JS
 from oddsharvester.core.exceptions import AllProxiesExhaustedError
 from oddsharvester.utils.constants import PLAYWRIGHT_BROWSER_ARGS, PLAYWRIGHT_BROWSER_ARGS_DOCKER
 from oddsharvester.utils.utils import is_running_in_docker
@@ -231,6 +232,7 @@ class PlaywrightManager:
 
         context = await self.browser.new_context(**context_kwargs)
         await context.add_init_script(STEALTH_SCRIPT)
+        await context.add_init_script(VIEW_DATA_HOOK_JS)
 
         if enable_har:
             har_replay_path = os.environ.get(HAR_REPLAY_ENV_VAR)

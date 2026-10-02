@@ -2055,6 +2055,96 @@ market is read as shown.
 
 ---
 
+## §27: A market switch can show another market's odds under the requested tab
+
+**Severity:** High (another market's odds written under the requested one, silently).
+
+Every hash switch (market or period, §7, §19) makes the view send one data
+request, `/proxy/match-event/<n>-<n>-<event id>-<market id>-<scope>-<token>.dat`,
+decrypt the answer with WebCrypto (AES-CBC, a PBKDF2 key), gunzip it and render
+the table from `{"d": {"bt": <market id>, "sc": <scope>, "nav": {<market id>: ...},
+"encodeventId": <event id>, "oddsdata": ...}}`. `bt` is the market the data carry
+and `nav` lists every market the match offers. The ids (read on 2026-10-02, the
+same on every sport and on the mirrors) are in `OddsPortalSelectors.MARKET_FEED_IDS`:
+1 1X2, 2 Over/Under, 3 Home/Away, 4 Double Chance, 5 Asian Handicap, 6 Draw No
+Bet, 8 Correct Score, 12 European Handicap, 13 Both Teams to Score. The scope in
+the request is the one the view settles on: on basketball, `#<id>:home-away;2`
+asks for scope 1.
+
+Three things put another market's odds under the requested tab:
+
+- **A market the match does not offer.** The view asks for its default market's
+  data (1X2, or Home/Away on the sports of `DEFAULT_MARKET_CODE_BY_SPORT`) and
+  shows that market, fresh tabs and all. A tennis match switched to `bts`, `1X2`
+  or `dnb` asked for market 3 each time. Before the fix the scraper read that
+  table under the requested name.
+- **Data of another market.** On 2026-10-02 from 14:56 to about 15:01, from a
+  residential IP, after two 50-match listing runs and with no 429: the 1X2 and
+  its history read fine, then Both Teams to Score and Double Chance were written
+  with the 1X2 odds of the same bookmakers, Over/Under +2.5 found no line, every
+  odds-history tooltip stopped settling, exit 0. Ten minutes later the same
+  commands were clean; the trigger was not reproduced on demand, the same burst
+  included. Serving the 1X2 answer for another market's request in a replay
+  gives exactly that: Both Teams to Score renders a two-column table of each
+  bookmaker's first two 1X2 odds, Over/Under renders one line "Over/Under 0",
+  and Asian Handicap renders a line "Asian Handicap 0" whose odds are the 1X2's.
+  The feed is `cache-control: public, max-age=345600`.
+- **No usable answer.** A refused, failed, empty or truncated answer leaves the
+  view unrendered ("No view of", the tab bar gone), and the market was written
+  empty.
+
+### Detection signal
+
+- A market whose rows start with the odds of that bookmaker's 1X2 row (Both
+  Teams to Score with the first two 1X2 prices, Double Chance equal to 1X2).
+- "No row of line '+2.5' within 20000 ms" on a match that has the line.
+- A run much slower than usual, with "No settled odds-history tooltip" on every
+  cell.
+
+### Fix pattern
+
+`PlaywrightManager` installs `VIEW_DATA_HOOK_JS` (`core/browser/view_data.py`) in
+every context: in the top frame, a Proxy around `SubtleCrypto.decrypt` records
+the event, market, scope and offered markets of each decrypted view data answer,
+read as the view reads it (up to three gzip layers, JSON cut at a trailing error,
+a market offered when one of its periods lists a bookmaker, which is what makes
+the view fall back to its default market). `switch_view`
+waits for the data request the switch sends (registered before the hash is
+written), its answer, the fresh view, then the recorded data, and raises
+`MarketDataError` when the request is not sent or not answered within
+`VIEW_DATA_CAP_MS`, comes back with an error, the view does not render, or the
+data carry another market than the one switched to while the match offers it.
+`MarketTabNavigator._navigate_by_hash` reads a market the match does not offer
+as an empty market, with a warning and without the tab-click fallback. When no
+decrypted data were recorded within `VIEW_DATA_RECORD_CAP_MS` (the hook gone, a
+changed format, data served unencrypted), the market is read from the request's
+market id, with one warning per page: a market not offered is still caught, data
+of another market is not, and each switch waits that cap.
+
+`MarketDataError` passes through every market-level `except`
+(`extract_market_odds`, `scrape_markets`, the market loop of
+`_scrape_match_data_unguarded`), so the match is retried, then reported failed;
+a 429 among those requests still becomes `RateLimitError` (§23).
+
+Not covered: the tab-click path (in-play views, markets without a hash code);
+the refresh polls of a match not started (`requestPreMatch.refresh`, every 15 s
+by default), which re-render the table from answers no switch checks; and the
+view the page loads on when its URL already names the market (a link ending in
+`#id:home-away;1` skips the switch).
+
+`tests/integration/test_football.py::TestAMarketWhoseDataDidNotCome` replays
+each case by editing a HAR (replays abort a request the HAR does not hold).
+
+### References
+
+- `core/browser/view_data.py`: `VIEW_DATA_HOOK_JS`, `VIEW_DATA_JS`.
+- `core/browser/market_navigation.py`: `switch_view`, `MarketTabNavigator._navigate_by_hash`.
+- `core/odds_portal_selectors.py`: `MARKET_FEED_IDS`.
+- `core/exceptions.py`: `MarketDataError`.
+- §23 (429 on data requests), §26 (the panel every switch resets).
+
+---
+
 ## Adding a new gotcha
 
 When a fix lands that exposes an OddsPortal-specific behaviour an agent

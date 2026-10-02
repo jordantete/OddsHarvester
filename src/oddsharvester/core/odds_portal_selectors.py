@@ -120,6 +120,20 @@ class OddsPortalSelectors:
         "Draw No Bet": "dnb",
     }
 
+    # The market id each code makes the view request, /proxy/match-event/<n>-<n>-<event id>-<market id>-<scope>-
+    # <token>.dat, and its data carry; the same on every sport and mirror (read on 2026-10-02, gotchas §27).
+    MARKET_FEED_IDS: ClassVar[dict[str, int]] = {
+        "1X2": 1,
+        "over-under": 2,
+        "home-away": 3,
+        "double": 4,
+        "ah": 5,
+        "dnb": 6,
+        "cs": 8,
+        "eh": 12,
+        "bts": 13,
+    }
+
     # Market navigation - sub-market selection. Line rows are clickable <tr>s
     # whose full label sits in a span (redesign); click the enclosing <tr>.
     SUB_MARKET_SELECTOR = "tr.cursor-pointer span"

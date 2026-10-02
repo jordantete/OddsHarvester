@@ -98,3 +98,13 @@ class MatchContentError(ScraperError):
 
     def __init__(self, message: str, url: str | None = None, error_type: ErrorType = ErrorType.PARSING):
         super().__init__(message, url, is_retryable=True, error_type=error_type)
+
+
+class MarketDataError(MatchContentError):
+    """OddsPortal did not deliver the data of the market or period view switched to: the table would not show it.
+
+    Raised through every market-level catch: a record read past it would carry another market's odds.
+    """
+
+    def __init__(self, message: str, url: str | None = None):
+        super().__init__(message, url, error_type=ErrorType.MARKET_EXTRACTION)

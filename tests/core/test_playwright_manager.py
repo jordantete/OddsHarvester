@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from oddsharvester.core.browser.view_data import VIEW_DATA_HOOK_JS
 from oddsharvester.core.exceptions import AllProxiesExhaustedError
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.utils.proxy_manager import ProxyManager
@@ -165,6 +166,16 @@ async def test_one_context_per_proxy_when_multi(mock_playwright):
     launch_kwargs = mock_playwright["playwright"].chromium.launch.await_args.kwargs
     assert launch_kwargs["proxy"] == {"server": "per-context"}
     assert len(pm.non_default_context_keys()) == 1
+
+
+async def test_every_context_records_the_data_its_views_render(mock_playwright):
+    """A market switch reads which market its data carry from what the view decrypted (gotchas §27)."""
+    proxy_manager = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
+    pm = PlaywrightManager()
+    await pm.initialize(headless=True, proxy_manager=proxy_manager)
+
+    scripts = [c.args[0] for c in mock_playwright["context"].add_init_script.await_args_list]
+    assert scripts.count(VIEW_DATA_HOOK_JS) == 2
 
 
 async def test_new_rotated_page_reports_key(mock_playwright):

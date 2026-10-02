@@ -5,6 +5,7 @@ import pytest
 from tests.dom_builders import bookmaker_row, odds_table
 
 from oddsharvester.core.browser.selection import PERIOD_STRATEGY, SelectionManager
+from oddsharvester.core.exceptions import MarketDataError
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.sport_market_registry import MarketSpec, SportMarketRegistry
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
@@ -1111,3 +1112,75 @@ class TestBookiesFilterAfterEachSwitch:
         )
 
         assert events == ["switch", "click All Bookies", "read"]
+
+
+class TestAMarketWithoutItsData:
+    """A market whose data OddsPortal did not deliver fails the match: the table still shows the previous market."""
+
+    @pytest.fixture
+    def extractor(self):
+        return OddsPortalMarketExtractor(scroller=AsyncMock(), tab_navigator=AsyncMock(), selection_manager=AsyncMock())
+
+    @pytest.fixture
+    def page_mock(self):
+        mock = AsyncMock()
+        mock.content = AsyncMock(return_value=SAMPLE_HTML_ODDS)
+        return mock
+
+    async def test_the_market_switch_raises_instead_of_reading_the_previous_table(self, extractor, page_mock):
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(side_effect=MarketDataError("no data"))
+
+        with pytest.raises(MarketDataError):
+            await extractor.extract_market_odds(
+                page=page_mock, main_market="Both Teams to Score", odds_labels=["y", "n"]
+            )
+
+        page_mock.content.assert_not_awaited()
+
+    async def test_the_period_switch_raises_instead_of_reading_the_previous_table(self, extractor, page_mock):
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.period_selector.select_by_scope = AsyncMock(side_effect=MarketDataError("no data"))
+
+        with pytest.raises(MarketDataError):
+            await extractor.extract_market_odds(
+                page=page_mock, main_market="1X2", period="FirstHalf", odds_labels=["1", "X", "2"], sport="football"
+            )
+
+        page_mock.content.assert_not_awaited()
+
+    async def test_the_next_markets_are_not_read_once_one_lost_its_data(self, extractor, page_mock):
+        extractor.extract_market_odds = AsyncMock(side_effect=[[{"bookmaker_name": "B1"}], MarketDataError("no data")])
+
+        double_chance = MarketSpec("Double Chance", odds_labels=("1X", "12", "X2"))
+        mapping = {"1x2": ONE_X_TWO, "btts": BTTS, "double_chance": double_chance}
+
+        with patch.object(SportMarketRegistry, "get_market_mapping", return_value=mapping):
+            with pytest.raises(MarketDataError):
+                await extractor.scrape_markets(
+                    page=page_mock, sport="football", markets=["1x2", "btts", "double_chance"]
+                )
+
+        assert extractor.extract_market_odds.await_count == 2
+
+    async def test_an_umbrella_whose_lines_lost_their_data_raises(self, extractor, page_mock):
+        extractor.extract_market_odds = AsyncMock(return_value=[{"bookmaker_name": "B1"}])
+        extractor._discover_line_names = AsyncMock(side_effect=MarketDataError("no data"))
+
+        with patch.object(SportMarketRegistry, "get_market_mapping", return_value={"1x2": ONE_X_TWO}):
+            with pytest.raises(MarketDataError):
+                await extractor.scrape_markets(page=page_mock, sport="football", markets=["over_under", "1x2"])
+
+        extractor.extract_market_odds.assert_not_awaited()
+
+    async def test_a_preview_group_that_lost_its_data_raises(self, extractor, page_mock):
+        extractor.extract_market_odds = AsyncMock(side_effect=MarketDataError("no data"))
+        markets = {"over_under_2_5": over_under("2.5"), "over_under_3_5": over_under("3.5")}
+
+        with patch.object(SportMarketRegistry, "get_market_mapping", return_value=markets):
+            with pytest.raises(MarketDataError):
+                await extractor.scrape_markets(
+                    page=page_mock,
+                    sport="football",
+                    markets=["over_under_2_5", "over_under_3_5"],
+                    preview_submarkets_only=True,
+                )

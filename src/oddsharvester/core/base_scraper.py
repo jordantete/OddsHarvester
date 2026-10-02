@@ -21,7 +21,7 @@ from oddsharvester.core.browser.selection import (
     SelectionManager,
 )
 from oddsharvester.core.browser.waits import wait_for_element, wait_for_signal
-from oddsharvester.core.exceptions import H2HFragmentResolutionError, MatchContentError, RateLimitError
+from oddsharvester.core.exceptions import H2HFragmentResolutionError, MarketDataError, MatchContentError, RateLimitError
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
@@ -1153,6 +1153,8 @@ class BaseScraper:
                         match_details.update(market_data)
                     else:
                         self.logger.warning(f"No market data found for {match_link}")
+                except MarketDataError:
+                    raise
                 except Exception as market_error:
                     self.logger.error(f"Error scraping markets for {match_link}: {market_error}")
                     # Continue without market data rather than failing completely

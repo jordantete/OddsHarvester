@@ -7,6 +7,7 @@ from playwright.async_api import ElementHandle, Page
 
 from oddsharvester.core.browser.market_navigation import switch_view
 from oddsharvester.core.browser.waits import wait_for_signal
+from oddsharvester.core.exceptions import MarketDataError
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 from oddsharvester.utils.constants import (
@@ -202,6 +203,8 @@ class PeriodSelector:
 
             try:
                 await switch_view(page, fragment, code, target, MARKET_SWITCH_WAIT_TIME_MS)
+            except MarketDataError:
+                raise
             except Exception as e:
                 self.logger.warning(f"Hash switch to period scope {target} failed: {e}")
                 return False

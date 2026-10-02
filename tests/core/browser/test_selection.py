@@ -1,7 +1,8 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, call
 
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 import pytest
+from tests.core.browser.fake_view_data import serve_view_data
 
 from oddsharvester.core.browser.market_navigation import FRESH_VIEW_JS, STALE_TAB_ATTRIBUTE
 from oddsharvester.core.browser.selection import (
@@ -13,6 +14,7 @@ from oddsharvester.core.browser.selection import (
     SelectionManager,
 )
 from oddsharvester.core.browser.waits import SIGNAL_POLL_MS
+from oddsharvester.core.exceptions import MarketDataError
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import FALLBACK_VERIFY_WAIT_MS, MARKET_SWITCH_WAIT_TIME_MS
 
@@ -136,7 +138,26 @@ class TestPeriodSelector:
         assert await selector.select_by_scope(page, "football", "NotAPeriod") is None
         page.evaluate.assert_not_awaited()
 
-    def _bar_page(self, url, active, tabs=3, tab_scopes=None, click_writes_hash=True):
+    async def test_a_period_switch_without_its_data_fails_instead_of_reading_the_previous_period(self, selector):
+        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:over-under;2", active=1, status=503)
+
+        with pytest.raises(MarketDataError, match="refused the data of the view 'over-under;3': HTTP 503"):
+            await selector.select_by_scope(page, "football", "FirstHalf")
+
+    async def test_a_period_switch_given_another_market_fails_instead_of_reading_it(self, selector):
+        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:over-under;2", active=1, rendered=1)
+
+        with pytest.raises(MarketDataError, match="sent the data of market 1 for the view 'over-under;3'"):
+            await selector.select_by_scope(page, "football", "FirstHalf")
+
+    async def test_a_period_view_that_never_rendered_fails_instead_of_reading_the_previous_period(self, selector):
+        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:over-under;2", active=1)
+        page.wait_for_function = AsyncMock(side_effect=PlaywrightTimeoutError("Timeout 3000ms exceeded."))
+
+        with pytest.raises(MarketDataError, match="The view 'over-under;3' did not render within 3000 ms"):
+            await selector.select_by_scope(page, "football", "FirstHalf")
+
+    def _bar_page(self, url, active, tabs=3, tab_scopes=None, click_writes_hash=True, **view_data):
         """A page whose hash switch lands in the URL, with a period bar of `tabs` tabs.
 
         `active` is the index of the bold tab: -1 for none, None for a page without a period bar.
@@ -161,6 +182,7 @@ class TestPeriodSelector:
             return None if active is None else {"tabs": tabs, "active": active}
 
         page.evaluate = AsyncMock(side_effect=evaluate)
+        serve_view_data(page, **view_data)
         return page
 
     async def test_already_active_skips_hash_switch(self, selector):
@@ -190,22 +212,13 @@ class TestPeriodSelector:
 
         assert await selector.select_by_scope(page, "football", "FirstHalf") is True
 
-        page.wait_for_function.assert_awaited_once_with(
+        assert page.wait_for_function.await_args_list[0] == call(
             FRESH_VIEW_JS,
             arg=page.evaluate.await_args_list[0].args[1],
             timeout=MARKET_SWITCH_WAIT_TIME_MS,
             polling=SIGNAL_POLL_MS,
         )
         page.wait_for_timeout.assert_not_awaited()
-
-    async def test_a_period_view_never_rendered_warns_and_reads_the_url(self, selector, caplog):
-        page = self._bar_page("https://www.oddsportal.com/x/h2h/a/b/#id1:over-under;2", active=1)
-        page.wait_for_function = AsyncMock(side_effect=PlaywrightTimeoutError("Timeout 3000ms exceeded."))
-
-        with caplog.at_level("WARNING"):
-            assert await selector.select_by_scope(page, "football", "FirstHalf") is True
-
-        assert "No view of 'over-under;3' within 3000 ms; carrying on with the page as it is." in caplog.text
 
     async def test_each_period_tab_click_waits_for_that_tab_shown_active(self, selector):
         """R12: tab 2 is read within FALLBACK_VERIFY_WAIT_MS, tab 1 within MARKET_SWITCH_WAIT_TIME_MS, as they slept."""
