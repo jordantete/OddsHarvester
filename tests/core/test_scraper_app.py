@@ -1441,3 +1441,19 @@ async def test_each_branch_reads_only_its_own_options(fake_scraper, base, ignore
 
     assert [fake_scraper.called(method) for method in methods] == without
     assert all(without)
+
+
+@pytest.mark.parametrize(
+    ("seasons", "season"),
+    [(["2025-2026"], "2025-2026"), (["current"], "current"), (None, None), (["2024-2025", "2025-2026"], None)],
+    ids=["one season", "current", "no season", "two seasons"],
+)
+async def test_match_link_records_carry_the_one_season_given(fake_scraper, seasons, season):
+    fake_scraper.answers["scrape_matches"] = lambda **_: ScrapeResult(
+        success=[{"match_link": M1, "season": None}, {"match_link": M2, "season": None}],
+        stats=ScrapeStats(total_urls=2, successful=2),
+    )
+
+    result = await run_scraper(command=CommandEnum.HISTORIC, sport="football", match_links=[M1, M2], seasons=seasons)
+
+    assert [record["season"] for record in result.success] == [season, season]

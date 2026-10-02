@@ -29,7 +29,7 @@ def _listing_failure(page: int) -> FailedUrl:
 
 def _run(runner, result):
     with patch(
-        "oddsharvester.cli.commands.historic.run_scraper",
+        "oddsharvester.cli.commands._scrape.run_scrape",
         new_callable=AsyncMock,
         return_value=result,
     ):

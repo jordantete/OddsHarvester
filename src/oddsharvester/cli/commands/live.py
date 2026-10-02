@@ -1,16 +1,15 @@
 """CLI command for scraping live (in-play) matches."""
 
-import asyncio
 import logging
 import sys
 
 import click
 
 from oddsharvester.cli.commands._output import write_output
+from oddsharvester.cli.commands._scrape import run, scrape_options
 from oddsharvester.cli.options import common_options, merged_match_links
-from oddsharvester.core.scraper_app import run_scraper
-from oddsharvester.storage.ndjson_stream import NdjsonStreamWriter
-from oddsharvester.storage.storage_type import StorageType
+from oddsharvester.core.sport_period_registry import SportPeriodRegistry
+from oddsharvester.utils.command_enum import CommandEnum
 
 logger = logging.getLogger(__name__)
 
@@ -21,58 +20,24 @@ def live(**kwargs):
     """Scrape a one-shot snapshot of in-play odds for currently live matches."""
     if kwargs.get("scrape_odds_history"):
         raise click.UsageError("--odds-history is not supported for live scraping.")
-    if kwargs.get("period"):
-        raise click.UsageError("--period is not supported for live scraping (current view only).")
+
+    # The in-play view has no period selector: only the sport's full-match period, its default, describes it.
+    full_match = SportPeriodRegistry.get_default_period(kwargs["sport"].value).value
+    if kwargs.get("period") not in (None, full_match):
+        raise click.UsageError(
+            f"--period accepts only {full_match} for live scraping (the in-play view has no period)."
+        )
 
     leagues = kwargs.get("leagues")
     if leagues and len(leagues) > 1:
         raise click.UsageError("live supports at most one --league.")
 
-    match_links = merged_match_links(kwargs)
-    links_only = kwargs.get("links_only", False)
-    if links_only and match_links:
-        raise click.UsageError("--links-only cannot be combined with --match-link (links are already collected).")
-
-    stream_ndjson = kwargs.get("stream_ndjson", False)
-    if stream_ndjson and links_only:
-        raise click.UsageError("--stream-ndjson cannot be combined with --links-only (no match records are produced).")
-    if stream_ndjson and kwargs["storage"] is StorageType.REMOTE and not kwargs.get("file_path"):
-        raise click.UsageError(
-            "--storage remote with --stream-ndjson needs --output: the stream alone writes no file to upload."
-        )
-    stream_writer = NdjsonStreamWriter() if stream_ndjson else None
-
-    sport = kwargs["sport"]
-    storage = kwargs["storage"]
-    storage_format = kwargs["storage_format"]
-    bookies_filter = kwargs.get("bookies_filter")
+    options = scrape_options(CommandEnum.LIVE, kwargs, merged_match_links(kwargs))
+    stream_ndjson = kwargs["stream_ndjson"]
+    links_only = options.links_only
 
     try:
-        scraped_data = asyncio.run(
-            run_scraper(
-                command="scrape_live",
-                match_links=match_links,
-                sport=sport.value if sport else None,
-                leagues=leagues,
-                markets=kwargs.get("markets"),
-                proxy_url=kwargs.get("proxy_url"),
-                proxy_user=kwargs.get("proxy_user"),
-                proxy_pass=kwargs.get("proxy_pass"),
-                browser_user_agent=kwargs.get("browser_user_agent"),
-                browser_locale_timezone=kwargs.get("browser_locale_timezone"),
-                browser_timezone_id=kwargs.get("browser_timezone_id"),
-                base_url=kwargs.get("base_url"),
-                target_bookmaker=kwargs.get("target_bookmaker"),
-                headless=kwargs.get("headless", False),
-                preview_submarkets_only=kwargs.get("preview_submarkets_only", False),
-                local_kickoff=kwargs.get("local_kickoff", False),
-                bookies_filter=bookies_filter.value if bookies_filter else "all",
-                request_delay=kwargs.get("request_delay", 1.0),
-                concurrency_tasks=kwargs.get("concurrency_tasks", 3),
-                links_only=links_only,
-                on_match=stream_writer.emit if stream_writer else None,
-            )
-        )
+        scraped_data = run(options)
 
         if scraped_data is None:
             logger.error("Scraper did not return valid data.")
@@ -93,7 +58,7 @@ def live(**kwargs):
         write_failed = False
         # Without --output the stream is the output: skip the default scraped_data.json.
         if not stream_ndjson or kwargs.get("file_path"):
-            write_failed = not write_output(scraped_data.success, kwargs, storage, storage_format)
+            write_failed = not write_output(scraped_data.success, kwargs, kwargs["storage"], kwargs["storage_format"])
 
         if links_only:
             click.echo(f"Collected {scraped_data.stats.successful} live match links.", err=stream_ndjson)

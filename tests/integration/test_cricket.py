@@ -11,7 +11,7 @@ listings from France). Refresh with:
         --league one-day-international \
         --match-url "https://www.oddsportal.com/cricket/h2h/england-UJC5mtAU/india-fcOzl2uI/" \
         --markets "home_away" --period "full_including_ot" \
-        --bookies-filter "all" --season current --capture-har --proxy-url http://<proxy>
+        --bookies-filter "all" --capture-har --proxy-url http://<proxy>
 """
 
 import pytest
@@ -40,7 +40,6 @@ class TestCricketBasicMarkets:
             markets=["home_away"],
             period="full_including_ot",
             bookies_filter="all",
-            season="current",
         )
 
         # Metadata must be extracted correctly (the wiring works end-to-end).

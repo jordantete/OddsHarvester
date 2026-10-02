@@ -13,7 +13,7 @@ def run_historic(
     period: str | None = None,
     bookies_filter: str = "all",
     output_format: str = "json",
-    season: str = "current",
+    season: str | None = None,
     timeout: int = 300,
     har_path: Path | None = None,
     local_kickoff: bool = False,
@@ -35,12 +35,13 @@ def run_historic(
         output_format,
         "--bookies-filter",
         bookies_filter,
-        "--season",
-        season,
         "--headless",
         "--output",
         str(output_path),
     ]
+
+    if season:
+        cmd.extend(["--season", season])
 
     if local_kickoff:
         cmd.append("--local-kickoff")

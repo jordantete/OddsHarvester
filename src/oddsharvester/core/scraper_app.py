@@ -164,7 +164,7 @@ async def _scrape_match_links(scraper: OddsPortalScraper, options: ScrapeOptions
         f"scrape_odds_history={options.scrape_odds_history}, target_bookmaker={options.target_bookmaker}, "
         f"bookies_filter={options.bookies_filter.value}, period={options.period}"
     )
-    return await retry_scrape(
+    result = await retry_scrape(
         scraper.scrape_matches,
         match_links=options.match_links,
         sport=options.sport,
@@ -176,6 +176,11 @@ async def _scrape_match_links(scraper: OddsPortalScraper, options: ScrapeOptions
         request_delay=options.request_delay,
         concurrent_scraping_task=options.concurrency_tasks,
     )
+    # The match pages do not say which season they belong to; one season given for them does.
+    if options.seasons and len(options.seasons) == 1:
+        for record in result.success:
+            record["season"] = options.seasons[0]
+    return result
 
 
 async def _scrape_listings(scraper: OddsPortalScraper, options: ScrapeOptions) -> ScrapeResult:

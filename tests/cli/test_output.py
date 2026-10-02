@@ -23,13 +23,13 @@ def _result():
 
 
 CASES = {
-    "upcoming": (["upcoming", "-s", "football", "-d", FUTURE_DATE], "upcoming.run_scraper", _result),
+    "upcoming": (["upcoming", "-s", "football", "-d", FUTURE_DATE], "_scrape.run_scrape", _result),
     "historic": (
         ["historic", "-s", "football", "-l", "england-premier-league", "--season", "2022-2023"],
-        "historic.run_scraper",
+        "_scrape.run_scrape",
         _result,
     ),
-    "live": (["live", "-s", "football"], "live.run_scraper", _result),
+    "live": (["live", "-s", "football"], "_scrape.run_scrape", _result),
     "team": (["team", "--team", "lId4TMwf"], "team.run_teams", _result),
     "community": (["community", "--sport", "football"], "community.run_top_predictions", lambda: list(RECORDS)),
 }

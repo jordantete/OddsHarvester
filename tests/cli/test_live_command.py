@@ -7,6 +7,7 @@ import pytest
 
 from oddsharvester.cli.cli import cli
 from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult, ScrapeStats
+from oddsharvester.utils.command_enum import CommandEnum
 
 
 @pytest.fixture
@@ -15,10 +16,10 @@ def runner():
 
 
 @pytest.fixture
-def mock_live_run_scraper():
-    """Mock run_scraper so no browser is launched."""
+def mock_live_run():
+    """Mock the run so no browser is launched."""
     with patch(
-        "oddsharvester.cli.commands.live.run_scraper",
+        "oddsharvester.cli.commands._scrape.run_scrape",
         new_callable=AsyncMock,
         return_value=ScrapeResult(
             success=[{"home_team": "A", "away_team": "B", "live_period": "65'"}],
@@ -46,10 +47,31 @@ def test_live_rejects_odds_history(runner):
     assert "not supported" in result.output
 
 
-def test_live_rejects_period(runner):
-    result = runner.invoke(cli, ["live", "--sport", "football", "--period", "full_time"])
-    assert result.exit_code != 0
-    assert "not supported" in result.output
+@pytest.mark.parametrize(("sport", "period"), [("football", "full_time"), ("basketball", "full_including_ot")])
+@patch("oddsharvester.cli.commands._output.store_data")
+def test_live_accepts_the_full_match_period_as_a_no_op(store_mock, runner, mock_live_run, sport, period):
+    result = runner.invoke(cli, ["live", "--sport", sport, "--period", period])
+
+    assert result.exit_code == 0, result.output
+    assert mock_live_run.called
+
+
+@pytest.mark.parametrize(
+    ("sport", "period", "accepted"),
+    [("football", "1st_half", "full_time"), ("basketball", "1st_quarter", "full_including_ot")],
+)
+def test_live_rejects_any_other_period(runner, sport, period, accepted):
+    result = runner.invoke(cli, ["live", "--sport", sport, "--period", period])
+
+    assert result.exit_code == 2
+    assert f"--period accepts only {accepted} for live scraping" in result.output
+
+
+def test_live_rejects_links_only_with_local_kickoff(runner):
+    result = runner.invoke(cli, ["live", "--sport", "football", "--links-only", "--local-kickoff"])
+
+    assert result.exit_code == 2
+    assert "--links-only cannot be combined with --local-kickoff" in result.output
 
 
 def test_live_rejects_multiple_leagues(runner):
@@ -76,13 +98,13 @@ def test_live_rejects_links_only_with_match_link(runner):
 
 
 @patch("oddsharvester.cli.commands._output.store_data")
-def test_live_invokes_run_scraper_with_live_command(store_mock, runner, mock_live_run_scraper):
+def test_live_invokes_run_scraper_with_live_command(store_mock, runner, mock_live_run):
     result = runner.invoke(cli, ["live", "--sport", "football", "--market", "1x2"])
 
     assert result.exit_code == 0
-    kwargs = mock_live_run_scraper.call_args.kwargs
-    assert kwargs["command"] == "scrape_live"
-    assert kwargs["sport"] == "football"
+    [options] = mock_live_run.call_args.args
+    assert options.command is CommandEnum.LIVE
+    assert options.sport == "football"
     assert store_mock.called
 
 
@@ -90,7 +112,7 @@ def test_live_invokes_run_scraper_with_live_command(store_mock, runner, mock_liv
 def test_live_no_matches_exits_zero_without_storing(store_mock, runner):
     """Zero live matches is a normal outcome, not a failure."""
     with patch(
-        "oddsharvester.cli.commands.live.run_scraper",
+        "oddsharvester.cli.commands._scrape.run_scrape",
         new_callable=AsyncMock,
         return_value=ScrapeResult(),
     ):
@@ -105,7 +127,7 @@ def test_live_no_matches_exits_zero_without_storing(store_mock, runner):
 def test_live_exits_nonzero_when_scraper_returns_none(store_mock, runner):
     """A fatal scraper error must not be reported as a clean run."""
     with patch(
-        "oddsharvester.cli.commands.live.run_scraper",
+        "oddsharvester.cli.commands._scrape.run_scrape",
         new_callable=AsyncMock,
         return_value=None,
     ):
@@ -130,7 +152,7 @@ def test_live_exits_nonzero_when_every_match_fails(store_mock, runner):
         )
     ]
     with patch(
-        "oddsharvester.cli.commands.live.run_scraper",
+        "oddsharvester.cli.commands._scrape.run_scrape",
         new_callable=AsyncMock,
         return_value=ScrapeResult(
             success=[],
@@ -146,11 +168,11 @@ def test_live_exits_nonzero_when_every_match_fails(store_mock, runner):
 
 
 @patch("oddsharvester.cli.commands._output.store_data")
-def test_live_forwards_preview_and_local_kickoff(store_mock, runner, mock_live_run_scraper):
+def test_live_forwards_preview_and_local_kickoff(store_mock, runner, mock_live_run):
     """Options accepted by the CLI must reach the scraper, not be silently dropped."""
     result = runner.invoke(cli, ["live", "--sport", "football", "--market", "1x2", "--preview-only", "--local-kickoff"])
 
     assert result.exit_code == 0
-    kwargs = mock_live_run_scraper.call_args.kwargs
-    assert kwargs["preview_submarkets_only"] is True
-    assert kwargs["local_kickoff"] is True
+    [options] = mock_live_run.call_args.args
+    assert options.preview_submarkets_only is True
+    assert options.local_kickoff is True

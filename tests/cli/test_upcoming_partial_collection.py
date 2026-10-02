@@ -16,7 +16,7 @@ def _combo(league, successful, errored=False):
 
 def _run(result):
     with (
-        patch("oddsharvester.cli.commands.upcoming.run_scraper", new_callable=AsyncMock, return_value=result),
+        patch("oddsharvester.cli.commands._scrape.run_scrape", new_callable=AsyncMock, return_value=result),
         patch("oddsharvester.cli.commands._output.store_data") as store_mock,
     ):
         return CliRunner().invoke(cli, ARGS), store_mock

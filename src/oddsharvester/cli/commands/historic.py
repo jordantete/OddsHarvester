@@ -1,21 +1,12 @@
 """CLI command for scraping historical matches."""
 
-import asyncio
-import logging
-import sys
-
 import click
 
-from oddsharvester.cli.commands._output import format_combo_summary, report_incomplete_collection, write_output
+from oddsharvester.cli.commands._scrape import scrape_and_report
 from oddsharvester.cli.options import common_options, merged_match_links
 from oddsharvester.cli.types import COMMA_LIST
 from oddsharvester.cli.validators import validate_max_pages, validate_seasons
-from oddsharvester.core.scraper_app import run_scraper
-from oddsharvester.storage.ndjson_stream import NdjsonStreamWriter
-from oddsharvester.storage.storage_type import StorageType
-from oddsharvester.utils.sport_market_constants import Sport
-
-logger = logging.getLogger(__name__)
+from oddsharvester.utils.command_enum import CommandEnum
 
 
 @click.command("historic")
@@ -23,10 +14,10 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--season",
     "seasons",
-    required=True,
     type=COMMA_LIST,
     callback=validate_seasons,
-    help="Comma-separated seasons to scrape (YYYY, YYYY-YYYY, or 'current').",
+    help="Comma-separated seasons to scrape (YYYY, YYYY-YYYY, or 'current'). Required with --league; with "
+    "--match-link, the one season written into the records.",
 )
 @click.option(
     "--max-pages",
@@ -36,96 +27,14 @@ logger = logging.getLogger(__name__)
 )
 def historic(**kwargs):
     """Scrape historical odds for a league/season."""
-    sport = kwargs["sport"]
-    storage = kwargs["storage"]
-    storage_format = kwargs["storage_format"]
-    bookies_filter = kwargs.get("bookies_filter")
-    seasons = kwargs.get("seasons")
-    sport_value = sport.value if isinstance(sport, Sport) else sport
-
     match_links = merged_match_links(kwargs)
-    links_only = kwargs.get("links_only", False)
-    local_kickoff = kwargs.get("local_kickoff", False)
-    if links_only and match_links:
-        raise click.UsageError("--links-only cannot be combined with --match-link (links are already collected).")
-    if links_only and local_kickoff:
-        raise click.UsageError("--links-only cannot be combined with --local-kickoff (no match pages are visited).")
+    seasons = kwargs["seasons"]
 
-    stream_ndjson = kwargs.get("stream_ndjson", False)
-    if stream_ndjson and links_only:
-        raise click.UsageError("--stream-ndjson cannot be combined with --links-only (no match records are produced).")
-    if stream_ndjson and kwargs["storage"] is StorageType.REMOTE and not kwargs.get("file_path"):
-        raise click.UsageError(
-            "--storage remote with --stream-ndjson needs --output: the stream alone writes no file to upload."
-        )
-    stream_writer = NdjsonStreamWriter() if stream_ndjson else None
+    if not match_links and not kwargs.get("leagues"):
+        raise click.UsageError("You must provide --league or --match-link for historic matches.")
+    if not match_links and not seasons:
+        raise click.UsageError("Missing option '--season' (required with --league).")
+    if match_links and seasons and len(seasons) > 1:
+        raise click.UsageError("--match-link takes one --season at most: the season the matches belong to.")
 
-    try:
-        scraped_data = asyncio.run(
-            run_scraper(
-                command="scrape_historic",
-                match_links=match_links,
-                sport=sport_value,
-                date=None,
-                leagues=kwargs.get("leagues"),
-                seasons=seasons,
-                markets=kwargs.get("markets"),
-                max_pages=kwargs.get("max_pages"),
-                proxy_url=kwargs.get("proxy_url"),
-                proxy_user=kwargs.get("proxy_user"),
-                proxy_pass=kwargs.get("proxy_pass"),
-                browser_user_agent=kwargs.get("browser_user_agent"),
-                browser_locale_timezone=kwargs.get("browser_locale_timezone"),
-                browser_timezone_id=kwargs.get("browser_timezone_id"),
-                base_url=kwargs.get("base_url"),
-                target_bookmaker=kwargs.get("target_bookmaker"),
-                scrape_odds_history=kwargs.get("scrape_odds_history", False),
-                headless=kwargs.get("headless", False),
-                preview_submarkets_only=kwargs.get("preview_submarkets_only", False),
-                bookies_filter=bookies_filter.value if bookies_filter else "all",
-                period=kwargs.get("period"),
-                request_delay=kwargs.get("request_delay", 1.0),
-                concurrency_tasks=kwargs.get("concurrency_tasks", 3),
-                links_only=links_only,
-                local_kickoff=local_kickoff,
-                on_match=stream_writer.emit if stream_writer else None,
-            )
-        )
-
-        if scraped_data:
-            write_failed = False
-            if scraped_data.success:
-                # Without --output the stream is the output: skip the default scraped_data.json.
-                if not stream_ndjson or kwargs.get("file_path"):
-                    write_failed = not write_output(scraped_data.success, kwargs, storage, storage_format)
-                if links_only:
-                    click.echo(
-                        f"Collected {scraped_data.stats.successful} match links "
-                        f"({scraped_data.stats.failed} listing pages failed).",
-                        err=stream_ndjson,
-                    )
-                else:
-                    click.echo(
-                        f"Successfully scraped {scraped_data.stats.successful} matches "
-                        f"({scraped_data.stats.failed} failed, {scraped_data.stats.success_rate:.1f}% success rate).",
-                        err=stream_ndjson,
-                    )
-
-            if len(scraped_data.combo_stats) > 1:
-                click.echo(format_combo_summary(scraped_data.combo_stats, links_only=links_only), err=stream_ndjson)
-            if scraped_data.failed:
-                click.echo(f"Failed URLs: {[f.url for f in scraped_data.failed]}", err=True)
-
-            if not scraped_data.success:
-                logger.error("Scraper did not return valid data.")
-                sys.exit(1)
-
-            if report_incomplete_collection(scraped_data) or write_failed:
-                sys.exit(1)
-        else:
-            logger.error("Scraper did not return valid data.")
-            sys.exit(1)
-
-    except Exception as e:
-        logger.error(f"Error during scraping: {e}", exc_info=True)
-        sys.exit(1)
+    scrape_and_report(CommandEnum.HISTORIC, kwargs, match_links)

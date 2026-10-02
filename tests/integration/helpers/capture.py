@@ -121,7 +121,7 @@ def capture_fixture(
     output_format: str = "json",
     headless: bool = True,
     timeout: int = 300,
-    season: str = "current",
+    season: str | None = None,
     capture_har: bool = False,
     proxy_url: str | None = None,
     match_dir: str | None = None,
@@ -167,14 +167,15 @@ def capture_fixture(
         output_format,
         "--bookies-filter",
         bookies_filter,
-        "--season",
-        season,
         "--output",
         str(output_path.with_suffix("")),  # Extension added automatically
     ]
 
     if period:
         cmd.extend(["--period", period])
+
+    if season:
+        cmd.extend(["--season", season])
 
     if proxy_url:
         cmd.extend(["--proxy-url", proxy_url])
@@ -302,7 +303,7 @@ Examples:
     parser.add_argument("--bookies-filter", default="all", choices=["all", "classic", "crypto"], help="Bookies filter")
     parser.add_argument("--no-headless", action="store_true", help="Run browser with GUI (for debugging)")
     parser.add_argument("--timeout", type=int, default=300, help="Timeout in seconds (default: 300)")
-    parser.add_argument("--season", default="current", help="Season (default: current, e.g., 2024-2025)")
+    parser.add_argument("--season", default=None, help="Season written into the record (e.g., 2024-2025)")
     parser.add_argument(
         "--capture-har",
         action="store_true",

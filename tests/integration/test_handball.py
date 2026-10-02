@@ -18,7 +18,6 @@ fixture with:
         --markets "1x2" \
         --period "full_time" \
         --bookies-filter "all" \
-        --season 2024-2025 \
         --capture-har
 """
 

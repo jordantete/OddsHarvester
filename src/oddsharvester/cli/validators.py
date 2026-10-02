@@ -55,7 +55,9 @@ def _validate_one_season(value: str) -> str:
 
 
 def validate_seasons(ctx, param, value):
-    """Validate a list of seasons, preserving order and dropping duplicates."""
+    """Validate a list of seasons, preserving order and dropping duplicates; None when the option is absent."""
+    if value is None:
+        return None
     if not value:
         raise click.BadParameter("At least one season must be provided.")
 

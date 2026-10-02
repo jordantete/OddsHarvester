@@ -167,12 +167,16 @@ snapshots comparable.
 Notes:
 
 - **Zero live matches is a normal outcome**: the command prints a message and
-  exits 0 without writing a file.
+  exits 0 without writing a file. `upcoming` and `historic` exit 1 on a run that
+  scraped no match at all, an empty listing included.
 - **Matches that end between listing and scrape are dropped**, so a snapshot only
   ever contains genuinely live matches.
 - **In-play bookmaker coverage is thinner than pre-match** (often 2 to 4
   bookmakers instead of 15 to 20) and varies by region.
-- `--odds-history` and `--period` are rejected: the in-play view exposes neither.
+- `--odds-history` is rejected, and `--period` accepts only the sport's
+  full-match period (`full_time`, or `full_including_ot` where that is the
+  default), which changes nothing: the in-play view has no history and no
+  period selector.
 - **For repeated sampling, schedule the command externally** (cron or similar).
   Keep at least 60 seconds between snapshots, and prefer `--match-link` to
   re-sample a known match without re-reading the listing. The command itself
@@ -273,10 +277,10 @@ run of N teams takes about N seconds more than the pages themselves.
 | `--date`       | `-d`  | Target date in `YYYYMMDD` format. Refused only once that date is over in every timezone (UTC-12 included), so the machine's timezone does not matter | —          |
 | `--league`     | `-l`  | Comma-separated league slugs (e.g. `england-premier-league`), or league paths for leagues outside the built-in list (e.g. `football/bhutan/premier-league`, or the full oddsportal.com URL) | —          |
 | `--market`     | `-m`  | Comma-separated markets (e.g. `1x2,btts`)                                  | —          |
-| `--match-link` |       | Specific match URLs, comma-separated and/or repeated. Skips listing pages; `--date`/`--league`/`--season` are then ignored | —          |
+| `--match-link` |       | Specific match URLs, comma-separated and/or repeated. Skips listing pages; `--date` and `--league` are then ignored (`--league` with a warning), and `historic` writes a given `--season` into the records | —          |
 | `--match-links-file` |       | File with match URLs to scrape, one per line. Combines with `--match-link`; duplicates are dropped | —          |
 
-**`--match-link` usage:** `--sport` is still required. Prefer `upcoming` over `historic` for arbitrary match URLs: match links bypass the listing pages entirely, so `upcoming` also works for matches already played, while `historic` would additionally demand a `--season` it never uses. For large link sets (a `--links-only` output, re-running failures), prefer `--match-links-file`: a pasted command line gets silently truncated by the terminal past a few hundred URLs.
+**`--match-link` usage:** `--sport` is still required. Match links bypass the listing pages entirely, so `upcoming` and `historic` scrape any match, played or not. `historic` takes an optional `--season` (one at most) and writes it into each record's `season` field, which the match page does not give. For large link sets (a `--links-only` output, re-running failures), prefer `--match-links-file`: a pasted command line gets silently truncated by the terminal past a few hundred URLs.
 
 **`upcoming` only:** `--date` is required unless `--league` or `--match-link` is provided. `--date` and `--league` can be combined to filter the league's upcoming matches down to a specific calendar day. When combining both, the reference timezone for resolving the date is `--timezone` if provided, otherwise UTC. `--kickoff-within-hours N` keeps only matches starting within `N` hours from now; the filter runs during link collection, so far-off matches are never visited. It pairs with the default upcoming-only behaviour to bound the window on both sides; the window is counted in real hours from now, whatever the timezone. Combined with `--links-only`, each row also carries `kickoff_utc`, so a scheduler can plan a day of fixtures from one listing request instead of re-fetching the listing on every cycle.
 
@@ -284,12 +288,16 @@ run of N teams takes about N seconds more than the pages themselves.
 
 | Option        | Description                               | Default    |
 | ------------- | ----------------------------------------- | ---------- |
-| `--season`    | Comma-separated seasons to scrape (`YYYY`, `YYYY-YYYY`, or `current`). Scraped as the cartesian product with `--league`. Duplicates are ignored. | _required_ |
+| `--season`    | Comma-separated seasons to scrape (`YYYY`, `YYYY-YYYY`, or `current`). Scraped as the cartesian product with `--league`. Duplicates are ignored. With `--match-link`, optional: one season, written into the records. | _required_ with `--league` |
 | `--max-pages` | Max number of result pages to scrape. Applies per league/season combo, not per run. | unlimited  |
 
+`historic` needs `--league` or `--match-link`; without either it exits 2 before the browser starts.
+
 **`live` only:** no `--date` and no `--season`; the command always reads whatever is in
-play at the moment it runs. `--league` accepts **at most one** slug. `--odds-history` and
-`--period` are rejected outright, because the in-play view exposes neither. A
+play at the moment it runs. `--league` accepts **at most one** slug. `--odds-history` is
+rejected and `--period` accepts only the sport's full-match period, because the in-play view
+exposes no history and no period selector. `--links-only` cannot be combined with
+`--local-kickoff`, as on `upcoming` and `historic`. A
 `--match-link` given in classic form is normalized to its in-play URL automatically, so
 either form works. When every match fails to scrape the command exits non-zero, which is
 what lets a scheduled sampler tell a blocked run apart from a genuinely empty one.
@@ -320,8 +328,9 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 > **Breaking change:** every output row now carries a `season` column. For odds
 > rows it is inserted directly after `match_date`; `--links-only` rows have no
 > `match_date` and carry `season` alongside the other link fields instead. It
-> holds the scraped season for `historic` and is empty for `upcoming` and
-> `--match-link` runs. Appending to a file produced by an earlier version
+> holds the scraped season for `historic`, including the `--season` given with
+> `historic --match-link`, and is empty for `upcoming` and other `--match-link`
+> runs. Appending to a file produced by an earlier version
 > yields a file with two different column layouts, so start a new output file
 > rather than appending across the upgrade.
 
@@ -345,7 +354,7 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 | ----------------- | ----- | ----------------------------------------- | ------- |
 | `--headless`      |       | Run browser in headless mode              | `False` |
 | `--concurrency`   | `-c`  | Concurrent scraping tasks: match pages, and league listings when several leagues are given. On `historic` each parallel listing walks its own result pages, so `-c` also multiplies the listing-page request rate; lower it for large league/season products. | `3`     |
-| `--request-delay` |       | Delay (sec) between page requests: matches, listing pages, teams | `1.0`   |
+| `--request-delay` |       | Delay (sec) between match pages, between league/season listings (one per combo) and between team pages. The result pages of one listing keep their own 6 to 8 s pause | `1.0`   |
 | `--user-agent`    |       | Custom browser user agent                 | —       |
 | `--locale`        |       | Browser locale (e.g. `fr-BE`)             | —       |
 | `--timezone`      |       | Browser timezone (e.g. `Europe/Brussels`) | —       |
@@ -568,7 +577,7 @@ All CLI options can be set via environment variables — useful for Docker or CI
 | `OH_STREAM_NDJSON` | `--stream-ndjson` | Emit each match as an NDJSON line on stdout while scraping |
 | `OH_HEADLESS`      | `--headless`      | Run in headless mode         |
 | `OH_CONCURRENCY`   | `--concurrency`   | Number of concurrent tasks   |
-| `OH_REQUEST_DELAY` | `--request-delay` | Delay between requests (sec) |
+| `OH_REQUEST_DELAY` | `--request-delay` | Delay between match pages, listings and team pages (sec) |
 | `OH_PROXY_URL`     | `--proxy-url`     | Proxy server URL(s) — space-separated for multiple proxies |
 | `OH_PROXY_USER`    | `--proxy-user`    | Proxy username               |
 | `OH_PROXY_PASS`    | `--proxy-pass`    | Proxy password               |

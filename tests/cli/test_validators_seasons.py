@@ -24,9 +24,11 @@ def test_accepts_single_season():
     assert validate_seasons(None, None, ["2022-2023"]) == ["2022-2023"]
 
 
+def test_an_absent_season_is_none():
+    assert validate_seasons(None, None, None) is None
+
+
 def test_raises_for_empty_value():
-    with pytest.raises(click.BadParameter, match="At least one season must be provided"):
-        validate_seasons(None, None, None)
     with pytest.raises(click.BadParameter, match="At least one season must be provided"):
         validate_seasons(None, None, [])
 
