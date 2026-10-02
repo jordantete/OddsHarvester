@@ -30,3 +30,11 @@ def test_rejects_bad_scheme():
 def test_rejects_missing_port():
     with pytest.raises(click.BadParameter):
         validate_proxy_url(None, None, ("http://proxy.example.com",))
+
+
+@pytest.mark.parametrize("password", ["pa#s3cret", "pa?s3cret"])
+def test_rejects_a_password_the_url_cannot_carry_without_echoing_it(password):
+    with pytest.raises(click.BadParameter, match="--proxy-user and --proxy-pass") as excinfo:
+        validate_proxy_url(None, None, (f"http://alice:{password}@p1.example:8080",))
+
+    assert "s3cret" not in str(excinfo.value)

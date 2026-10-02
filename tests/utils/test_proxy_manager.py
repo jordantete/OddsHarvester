@@ -75,6 +75,20 @@ class TestUrlSanitization:
         assert "secret" not in sanitized
         assert "proxy.example.com:8080" in sanitized
 
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://alice:pa#s3cret@p1.example:8080",
+            "http://alice:pa?s3cret@p1.example:8080",
+            "alice:s3cret@p1.example:8080",
+        ],
+        ids=["hash in password", "question mark in password", "no scheme"],
+    )
+    def test_sanitize_url_strips_credentials_urlparse_cannot_see(self, url):
+        sanitized = ProxyManager._sanitize_url_for_logging(url)
+        assert "s3cret" not in sanitized
+        assert sanitized.endswith("p1.example:8080")
+
     def test_sanitize_url_preserves_clean_url(self):
         """Test that a URL without credentials is unchanged."""
         url = "http://proxy.example.com:8080"

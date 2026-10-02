@@ -1005,3 +1005,19 @@ async def test_a_falsy_stream_callback_still_receives_every_record(fake_scraper)
     await run_scraper(command=CommandEnum.HISTORIC, sport="football", match_links=[M1, M2], on_match=sink)
 
     assert [record["match_link"] for record in sink] == [M1, M2]
+
+
+@pytest.mark.parametrize(
+    "proxy_url",
+    [
+        "http://alice:pa#s3cret@p1.example:8080",
+        "http://alice:pa?s3cret@p1.example:8080",
+        "alice:s3cret@p1.example:8080",
+    ],
+    ids=["hash in password", "question mark in password", "no scheme"],
+)
+async def test_a_proxy_password_urlparse_cannot_see_stays_out_of_the_logs(fake_scraper, caplog, proxy_url):
+    with caplog.at_level(logging.DEBUG):
+        await run_scraper(command=CommandEnum.UPCOMING_MATCHES, sport="football", date="20991231", proxy_url=proxy_url)
+
+    assert "s3cret" not in caplog.text

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import logging
+import re
 from urllib.parse import urlparse, urlunparse
 
 # A proxy is dropped from rotation after this many CONSECUTIVE proxy-attributable
@@ -9,6 +10,8 @@ PROXY_CONSECUTIVE_FAILURE_THRESHOLD = 3
 _VALID_SCHEMES = ("http://", "https://", "socks4://", "socks5://")
 _DIRECT_KEY = "direct"
 _PER_CONTEXT_SENTINEL = {"server": "per-context"}
+# urlparse ends the authority at '#' or '?' and finds none without a scheme, so such credentials escape it.
+_USERINFO = re.compile(r"^((?:[a-z][a-z0-9+.-]*://)?)[^/]*@", re.IGNORECASE)
 
 
 @dataclass
@@ -81,7 +84,7 @@ class ProxyManager:
         if parsed.username or parsed.password:
             safe = parsed._replace(netloc=f"{parsed.hostname}:{parsed.port}" if parsed.port else parsed.hostname)
             return urlunparse(safe)
-        return url
+        return _USERINFO.sub(r"\1", url)
 
     def _build_entry(
         self,

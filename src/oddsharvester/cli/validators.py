@@ -9,6 +9,7 @@ import click
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 from oddsharvester.core.url_builder import URLBuilder
 from oddsharvester.utils.odds_format_enum import OddsFormat
+from oddsharvester.utils.proxy_manager import ProxyManager
 from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
 from oddsharvester.utils.sport_market_constants import FOOTBALL_UMBRELLA_MARKETS, Sport
 from oddsharvester.utils.utils import get_supported_markets
@@ -193,16 +194,17 @@ def validate_proxy_url(ctx, param, value):
 
     proxy_pattern = re.compile(
         r"^(?P<scheme>https?|socks5|socks4)://"
-        r"(?:(?P<user>[^:@/]+):(?P<pass>[^:@/]+)@)?"
+        r"(?:(?P<user>[^:@/#?]+):(?P<pass>[^:@/#?]+)@)?"
         r"(?P<host>[\w.-]+):(?P<port>\d+)$"
     )
 
     for url in value:
         if not proxy_pattern.match(url):
             raise click.BadParameter(
-                f"Invalid proxy URL '{url}'. Expected format: "
+                f"Invalid proxy URL '{ProxyManager._sanitize_url_for_logging(url)}'. Expected format: "
                 "'http[s]://host:port', 'socks5://host:port', or "
-                "'scheme://user:pass@host:port'"
+                "'scheme://user:pass@host:port'. Credentials holding ':', '@', '/', '#' or '?' "
+                "go through --proxy-user and --proxy-pass instead."
             )
 
     return value
