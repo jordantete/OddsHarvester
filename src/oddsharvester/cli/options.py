@@ -65,6 +65,115 @@ request_delay_option = click.option(
 )
 
 
+OUTPUT_OPTIONS = (
+    click.option(
+        "--storage",
+        type=STORAGE_TYPE,
+        default="local",
+        envvar="OH_STORAGE",
+        help="Storage type: local or remote.",
+    ),
+    click.option(
+        "--format",
+        "-f",
+        "storage_format",
+        type=STORAGE_FORMAT,
+        default="json",
+        envvar="OH_FORMAT",
+        help="Output format: json or csv.",
+    ),
+    click.option(
+        "--output",
+        "-o",
+        "file_path",
+        type=click.Path(),
+        callback=validate_file_path,
+        envvar="OH_FILE_PATH",
+        help="Output file path.",
+    ),
+    click.option(
+        "--append/--no-append",
+        default=False,
+        envvar="OH_APPEND",
+        help="Append to the output file instead of overwriting it (default: overwrite).",
+    ),
+)
+
+BROWSER_OPTIONS = (
+    click.option(
+        "--headless/--no-headless",
+        default=False,
+        envvar="OH_HEADLESS",
+        help="Run browser in headless mode.",
+    ),
+    click.option(
+        "--proxy-url",
+        "proxy_url",
+        multiple=True,
+        callback=validate_proxy_url,
+        envvar="OH_PROXY_URL",
+        help="Proxy URL (repeatable). Format: http[s]://host:port, socks5://host:port, "
+        "or scheme://user:pass@host:port. Repeat to spread load across proxies.",
+    ),
+    click.option(
+        "--proxy-user",
+        "proxy_user",
+        envvar="OH_PROXY_USER",
+        help="Proxy username (optional).",
+    ),
+    click.option(
+        "--proxy-pass",
+        "proxy_pass",
+        envvar="OH_PROXY_PASS",
+        help="Proxy password (optional).",
+    ),
+    click.option(
+        "--user-agent",
+        "browser_user_agent",
+        envvar="OH_USER_AGENT",
+        help="Custom browser user agent.",
+    ),
+    click.option(
+        "--locale",
+        "browser_locale_timezone",
+        envvar="OH_LOCALE",
+        help="Browser locale (e.g., fr-BE).",
+    ),
+    click.option(
+        "--timezone",
+        "browser_timezone_id",
+        envvar="OH_TIMEZONE",
+        help="Browser timezone ID (e.g., Europe/Brussels).",
+    ),
+    click.option(
+        "--base-url",
+        "base_url",
+        callback=validate_base_url,
+        envvar="OH_BASE_URL",
+        help=(
+            "Regional OddsPortal domain to scrape instead of www.oddsportal.com "
+            "(e.g. https://www.centroquote.it). Pair with --locale/--timezone matching the region."
+        ),
+    ),
+)
+
+
+def _apply(func, options):
+    for option in reversed(options):
+        func = option(func)
+    return func
+
+
+def output_options(func):
+    """--storage, --format, --output and --append, as every command that writes records takes them."""
+    return _apply(func, OUTPUT_OPTIONS)
+
+
+def browser_options(func):
+    """--headless and the proxy, user agent, locale, timezone and base URL options of the browser."""
+    return _apply(func, BROWSER_OPTIONS)
+
+
 def merged_match_links(kwargs) -> list[str] | None:
     """Combine --match-link and --match-links-file values, deduped, flag links first."""
     merged = list(dict.fromkeys((kwargs.get("match_links") or []) + (kwargs.get("match_links_file") or [])))
@@ -72,7 +181,7 @@ def merged_match_links(kwargs) -> list[str] | None:
 
 
 def common_options(func):
-    """Decorator that adds common options to both commands."""
+    """Decorator that adds the options upcoming, historic and live share."""
 
     @click.option(
         "--sport",
@@ -101,37 +210,7 @@ def common_options(func):
         envvar="OH_MARKETS",
         help="Comma-separated markets (e.g., 1x2,btts,over-under).",
     )
-    @click.option(
-        "--storage",
-        type=STORAGE_TYPE,
-        default="local",
-        envvar="OH_STORAGE",
-        help="Storage type: local or remote.",
-    )
-    @click.option(
-        "--format",
-        "-f",
-        "storage_format",
-        type=STORAGE_FORMAT,
-        default="json",
-        envvar="OH_FORMAT",
-        help="Output format: json or csv.",
-    )
-    @click.option(
-        "--output",
-        "-o",
-        "file_path",
-        type=click.Path(),
-        callback=validate_file_path,
-        envvar="OH_FILE_PATH",
-        help="Output file path.",
-    )
-    @click.option(
-        "--append/--no-append",
-        default=False,
-        envvar="OH_APPEND",
-        help="Append to the output file instead of overwriting it (default: overwrite).",
-    )
+    @output_options
     @click.option(
         "--links-only/--no-links-only",
         "links_only",
@@ -154,12 +233,6 @@ def common_options(func):
         envvar="OH_LOCAL_KICKOFF",
         help="Add venue-local kickoff time (venue_timezone + match_date_venue_local) to each record. "
         "match_date stays UTC. Distinct from --timezone, which sets the browser context timezone.",
-    )
-    @click.option(
-        "--headless/--no-headless",
-        default=False,
-        envvar="OH_HEADLESS",
-        help="Run browser in headless mode.",
     )
     @click.option(
         "--concurrency",
@@ -186,55 +259,7 @@ def common_options(func):
         callback=validate_match_links_file,
         help="File with match URLs to scrape, one per line. Combines with --match-link.",
     )
-    @click.option(
-        "--proxy-url",
-        "proxy_url",
-        multiple=True,
-        callback=validate_proxy_url,
-        envvar="OH_PROXY_URL",
-        help="Proxy URL (repeatable). Format: http[s]://host:port, socks5://host:port, "
-        "or scheme://user:pass@host:port. Repeat to spread load across proxies.",
-    )
-    @click.option(
-        "--proxy-user",
-        "proxy_user",
-        envvar="OH_PROXY_USER",
-        help="Proxy username (optional).",
-    )
-    @click.option(
-        "--proxy-pass",
-        "proxy_pass",
-        envvar="OH_PROXY_PASS",
-        help="Proxy password (optional).",
-    )
-    @click.option(
-        "--user-agent",
-        "browser_user_agent",
-        envvar="OH_USER_AGENT",
-        help="Custom browser user agent.",
-    )
-    @click.option(
-        "--locale",
-        "browser_locale_timezone",
-        envvar="OH_LOCALE",
-        help="Browser locale (e.g., fr-BE).",
-    )
-    @click.option(
-        "--timezone",
-        "browser_timezone_id",
-        envvar="OH_TIMEZONE",
-        help="Browser timezone ID (e.g., Europe/Brussels).",
-    )
-    @click.option(
-        "--base-url",
-        "base_url",
-        callback=validate_base_url,
-        envvar="OH_BASE_URL",
-        help=(
-            "Regional OddsPortal domain to scrape instead of www.oddsportal.com "
-            "(e.g. https://www.centroquote.it). Pair with --locale/--timezone matching the region."
-        ),
-    )
+    @browser_options
     @click.option(
         "--target-bookmaker",
         help="Filter for a specific bookmaker.",

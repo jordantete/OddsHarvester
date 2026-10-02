@@ -8,8 +8,8 @@ import click
 from click.core import ParameterSource
 
 from oddsharvester.cli.commands._output import write_output
-from oddsharvester.cli.types import SPORT, STORAGE_FORMAT, STORAGE_TYPE
-from oddsharvester.cli.validators import validate_base_url, validate_file_path, validate_proxy_url
+from oddsharvester.cli.options import browser_options, output_options
+from oddsharvester.cli.types import SPORT
 from oddsharvester.core.community.match_community_scraper import run_match_community
 from oddsharvester.core.community.top_predictions_scraper import run_top_predictions
 from oddsharvester.core.community.user_profile_scraper import run_user_profile
@@ -21,55 +21,8 @@ logger = logging.getLogger(__name__)
 @click.option("--sport", "-s", type=SPORT, envvar="OH_SPORT", help="Top-predictions mode: sport to scrape.")
 @click.option("--user", "username", envvar="OH_USER", help="User-profile mode: OddsPortal username.")
 @click.option("--match-url", "match_url", envvar="OH_MATCH_URL", help="Match-community mode: OddsPortal match URL.")
-@click.option(
-    "--storage", type=STORAGE_TYPE, default="local", envvar="OH_STORAGE", help="Storage type: local or remote."
-)
-@click.option(
-    "--format",
-    "-f",
-    "storage_format",
-    type=STORAGE_FORMAT,
-    default="json",
-    envvar="OH_FORMAT",
-    help="Output format: json or csv.",
-)
-@click.option(
-    "--output",
-    "-o",
-    "file_path",
-    type=click.Path(),
-    callback=validate_file_path,
-    envvar="OH_FILE_PATH",
-    help="Output file path.",
-)
-@click.option(
-    "--append/--no-append",
-    default=False,
-    envvar="OH_APPEND",
-    help="Append to the output file instead of overwriting it.",
-)
-@click.option("--headless/--no-headless", default=False, envvar="OH_HEADLESS", help="Run browser in headless mode.")
-@click.option(
-    "--proxy-url",
-    "proxy_url",
-    multiple=True,
-    callback=validate_proxy_url,
-    envvar="OH_PROXY_URL",
-    help="Proxy URL (repeatable).",
-)
-@click.option("--proxy-user", envvar="OH_PROXY_USER", help="Proxy username (optional).")
-@click.option("--proxy-pass", envvar="OH_PROXY_PASS", help="Proxy password (optional).")
-@click.option("--user-agent", "browser_user_agent", envvar="OH_USER_AGENT", help="Custom browser user agent.")
-@click.option("--locale", "browser_locale_timezone", envvar="OH_LOCALE", help="Browser locale (e.g., fr-BE).")
-@click.option(
-    "--timezone", "browser_timezone_id", envvar="OH_TIMEZONE", help="Browser timezone ID (e.g., Europe/Brussels)."
-)
-@click.option(
-    "--base-url",
-    callback=validate_base_url,
-    envvar="OH_BASE_URL",
-    help="Regional OddsPortal domain to scrape instead of www.oddsportal.com.",
-)
+@output_options
+@browser_options
 @click.pass_context
 def community(ctx, **kwargs):
     """Scrape OddsPortal Community data.
