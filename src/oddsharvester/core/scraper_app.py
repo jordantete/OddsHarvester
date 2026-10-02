@@ -13,91 +13,50 @@ from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtr
 from oddsharvester.core.odds_portal_scraper import ListingResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.retry import OPERATION_RETRY_CONFIG, RequestPacer, is_retryable_error, retry_with_backoff
+from oddsharvester.core.scrape_options import ScrapeOptions
 from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult
 from oddsharvester.core.sport_market_registry import SportMarketRegistrar
-from oddsharvester.utils.bookies_filter_enum import BookiesFilter
 from oddsharvester.utils.command_enum import CommandEnum
-from oddsharvester.utils.constants import (
-    DEFAULT_REQUEST_DELAY_S,
-)
 from oddsharvester.utils.proxy_manager import ProxyManager
-from oddsharvester.utils.utils import validate_and_convert_period
 
 logger = logging.getLogger("ScraperApp")
 
 Combo = tuple[str | None, str | None]
 
 
-async def run_scraper(
-    command: CommandEnum,
-    match_links: list | None = None,
-    sport: str | None = None,
-    date: str | None = None,
-    leagues: list[str] | None = None,
-    seasons: list[str] | None = None,
-    markets: list | None = None,
-    max_pages: int | None = None,
-    proxy_url: str | None = None,
-    proxy_user: str | None = None,
-    proxy_pass: str | None = None,
-    browser_user_agent: str | None = None,
-    browser_locale_timezone: str | None = None,
-    browser_timezone_id: str | None = None,
-    base_url: str | None = None,
-    target_bookmaker: str | None = None,
-    scrape_odds_history: bool = False,
-    headless: bool = True,
-    preview_submarkets_only: bool = False,
-    bookies_filter: str = BookiesFilter.ALL.value,
-    period: str | None = None,
-    request_delay: float = DEFAULT_REQUEST_DELAY_S,
-    concurrency_tasks: int = 3,
-    include_started: bool = False,
-    kickoff_within_hours: float | None = None,
-    links_only: bool = False,
-    local_kickoff: bool = False,
-    on_match: Callable[[dict[str, Any]], None] | None = None,
-) -> ScrapeResult | None:
+async def run_scraper(command: CommandEnum | str, **options: Any) -> ScrapeResult | None:
+    """Run a scrape from keywords: the fields of `ScrapeOptions`, with their names and defaults."""
+    return await run_scrape(ScrapeOptions(command=command, **options))
+
+
+async def run_scrape(options: ScrapeOptions) -> ScrapeResult | None:
     """
-    Runs the scraping process and handles execution.
+    Runs the scrape `options` describes.
 
     Returns:
         ScrapeResult containing successful matches, failed URLs, and statistics.
-        Returns None if a fatal error occurs during initialization.
+        Returns None when the options cannot make a run or a fatal error stops it; the error is logged.
     """
+    _log_start(options)
 
-    bookies_filter_enum = BookiesFilter(bookies_filter)
-    period_enum = validate_and_convert_period(period, sport)
-
-    logger.info(
-        f"Starting scraper with parameters: command={command}, match_links={match_links}, "
-        f"sport={sport}, date={date}, leagues={leagues}, seasons={seasons}, markets={markets}, "
-        f"max_pages={max_pages}, proxy_url={proxy_url}, browser_user_agent={browser_user_agent}, "
-        f"browser_locale_timezone={browser_locale_timezone}, browser_timezone_id={browser_timezone_id}, "
-        f"scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}, "
-        f"headless={headless}, preview_submarkets_only={preview_submarkets_only}, "
-        f"bookies_filter={bookies_filter}, period={period}, base_url={base_url}, local_kickoff={local_kickoff}"
-    )
-
-    if base_url:
-        host = urlsplit(base_url).netloc.lower()
+    if options.base_url:
+        host = urlsplit(options.base_url).netloc.lower()
         if (
             host != "oddsportal.com"
             and not host.endswith(".oddsportal.com")
-            and not browser_locale_timezone
-            and not browser_timezone_id
+            and not options.browser_locale_timezone
+            and not options.browser_timezone_id
         ):
             logger.warning(
                 "Regional base URL '%s' is set but no --locale/--timezone provided. "
                 "OddsPortal mirrors localise content; pass --locale and --timezone matching "
                 "the region (see GitHub issue #45) for consistent results.",
-                base_url,
+                options.base_url,
             )
 
-    if isinstance(proxy_url, list | tuple):
-        proxy_manager = ProxyManager(proxy_urls=list(proxy_url), proxy_user=proxy_user, proxy_pass=proxy_pass)
-    else:
-        proxy_manager = ProxyManager(proxy_url=proxy_url, proxy_user=proxy_user, proxy_pass=proxy_pass)
+    proxy_manager = ProxyManager(
+        proxy_urls=list(options.proxy_url), proxy_user=options.proxy_user, proxy_pass=options.proxy_pass
+    )
     SportMarketRegistrar.register_all_markets()
     playwright_manager = PlaywrightManager()
     cookie_dismisser = CookieDismisser()
@@ -117,138 +76,29 @@ async def run_scraper(
         scroller=scroller,
         cookie_dismisser=cookie_dismisser,
         selection_manager=selection_manager,
-        preview_submarkets_only=preview_submarkets_only,
-        local_kickoff=local_kickoff,
-        base_url=base_url,
-        on_match=on_match,
+        preview_submarkets_only=options.preview_submarkets_only,
+        local_kickoff=options.local_kickoff,
+        base_url=options.base_url,
+        on_match=options.on_match,
     )
 
     try:
+        _check(options)
         await scraper.start_playwright(
-            headless=headless,
-            browser_user_agent=browser_user_agent,
-            browser_locale_timezone=browser_locale_timezone,
-            browser_timezone_id=browser_timezone_id,
+            headless=options.headless,
+            browser_user_agent=options.browser_user_agent,
+            browser_locale_timezone=options.browser_locale_timezone,
+            browser_timezone_id=options.browser_timezone_id,
             proxy_manager=proxy_manager,
         )
 
-        # Checked before the generic match_links branch: live scraping needs its own
+        # Checked before the match-links branch: live scraping needs its own
         # in-play flow even when specific match links are supplied.
-        if command == CommandEnum.LIVE:
-            if not sport:
-                raise ValueError("'sport' must be provided for live scraping.")
-
-            logger.info(f"""
-                Scraping live matches for sport={sport}, leagues={leagues}, markets={markets},
-                target_bookmaker={target_bookmaker}, bookies_filter={bookies_filter}
-            """)
-            return await retry_scrape(
-                scraper.scrape_live,
-                sport=sport,
-                league=leagues[0] if leagues else None,
-                markets=markets,
-                match_links=list(match_links) if match_links else None,
-                target_bookmaker=target_bookmaker,
-                bookies_filter=bookies_filter_enum,
-                request_delay=request_delay,
-                concurrent_scraping_task=concurrency_tasks,
-                links_only=links_only,
-            )
-
-        if match_links and sport:
-            logger.info(f"""
-                Scraping specific matches: {match_links} for sport: {sport}, markets={markets},
-                scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker},
-                bookies_filter={bookies_filter}, period={period}
-            """)
-            return await retry_scrape(
-                scraper.scrape_matches,
-                match_links=match_links,
-                sport=sport,
-                markets=markets,
-                scrape_odds_history=scrape_odds_history,
-                target_bookmaker=target_bookmaker,
-                bookies_filter=bookies_filter_enum,
-                period=period_enum,
-                request_delay=request_delay,
-                concurrent_scraping_task=concurrency_tasks,
-            )
-
-        odds_kwargs = {
-            "sport": sport,
-            "markets": markets,
-            "scrape_odds_history": scrape_odds_history,
-            "target_bookmaker": target_bookmaker,
-            "concurrent_scraping_task": concurrency_tasks,
-            "preview_submarkets_only": preview_submarkets_only,
-            "bookies_filter": bookies_filter_enum,
-            "period": period_enum,
-            "request_delay": request_delay,
-        }
-
-        if command == CommandEnum.HISTORIC:
-            if not sport or not leagues:
-                raise ValueError("Both 'sport' and 'leagues' must be provided for historic scraping.")
-
-            printable_seasons = ", ".join(seasons) if seasons else "current"
-            logger.info(
-                "\n                Scraping historical odds for "
-                f"sport={sport}, leagues={leagues}, seasons={printable_seasons}, "
-                f"markets={markets}, scrape_odds_history={scrape_odds_history}, "
-                f"target_bookmaker={target_bookmaker}, max_pages={max_pages}\n            "
-            )
-            combos = [(league, season) for league in leagues for season in (seasons or [None])]
-
-            async def collect_historic(league: str | None, season: str | None) -> ListingResult:
-                return await scraper.collect_historic_links(
-                    sport=sport, league=league, season=season, max_pages=max_pages
-                )
-
-            def historic_context(league: str | None, season: str | None) -> dict[str, Any]:
-                return {"sport": sport, "league": league, "season": season}
-
-            collect, links_only_context = collect_historic, historic_context
-
-        elif command == CommandEnum.UPCOMING_MATCHES:
-            if not date and not leagues:
-                raise ValueError("Either 'date' or 'leagues' must be provided for upcoming matches scraping.")
-
-            logger.info(f"""
-                Scraping upcoming matches for sport={sport}, date={date}, leagues={leagues}, markets={markets},
-                scrape_odds_history={scrape_odds_history}, target_bookmaker={target_bookmaker}
-            """)
-            combos = [(league, None) for league in (leagues or [None])]
-
-            async def collect_upcoming(league: str | None, season: str | None) -> ListingResult:
-                return await scraper.collect_upcoming_links(
-                    sport=sport,
-                    date=date,
-                    league=league,
-                    include_started=include_started,
-                    kickoff_within_hours=kickoff_within_hours,
-                    collect_kickoff=links_only,
-                )
-
-            def upcoming_context(league: str | None, season: str | None) -> dict[str, Any]:
-                return {"sport": sport, "league": league, "date": date, "season": None}
-
-            collect, links_only_context = collect_upcoming, upcoming_context
-
-        else:
-            raise ValueError(
-                f"Unknown command: {command}. Supported commands are 'upcoming-matches', 'historic' and 'live'."
-            )
-
-        return await _scrape_combos(
-            scraper=scraper,
-            combos=combos,
-            collect=collect,
-            links_only_context=links_only_context,
-            concurrency=concurrency_tasks,
-            request_delay=request_delay,
-            links_only=links_only,
-            odds_kwargs=odds_kwargs,
-        )
+        if options.command is CommandEnum.LIVE:
+            return await _scrape_live(scraper, options)
+        if options.match_links and options.sport:
+            return await _scrape_match_links(scraper, options)
+        return await _scrape_listings(scraper, options)
 
     except Exception as e:
         logger.error(f"Scraping failed: {type(e).__name__}: {e}", exc_info=True)
@@ -256,6 +106,144 @@ async def run_scraper(
 
     finally:
         await scraper.stop_playwright()
+
+
+def _log_start(options: ScrapeOptions) -> None:
+    proxies = [ProxyManager._sanitize_url_for_logging(url) for url in options.proxy_url]
+    period = options.period.value if options.period else None
+    logger.info(
+        f"Starting scraper with parameters: command={options.command.value}, match_links={options.match_links}, "
+        f"sport={options.sport}, date={options.date}, leagues={options.leagues}, seasons={options.seasons}, "
+        f"markets={options.markets}, max_pages={options.max_pages}, proxy_url={proxies}, "
+        f"browser_user_agent={options.browser_user_agent}, "
+        f"browser_locale_timezone={options.browser_locale_timezone}, "
+        f"browser_timezone_id={options.browser_timezone_id}, scrape_odds_history={options.scrape_odds_history}, "
+        f"target_bookmaker={options.target_bookmaker}, headless={options.headless}, "
+        f"preview_submarkets_only={options.preview_submarkets_only}, "
+        f"bookies_filter={options.bookies_filter.value}, period={period}, base_url={options.base_url}, "
+        f"local_kickoff={options.local_kickoff}"
+    )
+
+
+def _check(options: ScrapeOptions) -> None:
+    """Raise ValueError for options no run can satisfy, before the browser starts."""
+    if options.command is CommandEnum.LIVE:
+        if not options.sport:
+            raise ValueError("'sport' must be provided for live scraping.")
+        return
+    if options.match_links and options.sport:
+        return
+    if options.command is CommandEnum.HISTORIC and (not options.sport or not options.leagues):
+        raise ValueError("Both 'sport' and 'leagues' must be provided for historic scraping.")
+    if options.command is CommandEnum.UPCOMING_MATCHES and not options.date and not options.leagues:
+        raise ValueError("Either 'date' or 'leagues' must be provided for upcoming matches scraping.")
+
+
+async def _scrape_live(scraper: OddsPortalScraper, options: ScrapeOptions) -> ScrapeResult:
+    logger.info(
+        f"Scraping live matches for sport={options.sport}, leagues={options.leagues}, markets={options.markets}, "
+        f"target_bookmaker={options.target_bookmaker}, bookies_filter={options.bookies_filter.value}"
+    )
+    return await retry_scrape(
+        scraper.scrape_live,
+        sport=options.sport,
+        league=options.leagues[0] if options.leagues else None,
+        markets=options.markets,
+        match_links=list(options.match_links) if options.match_links else None,
+        target_bookmaker=options.target_bookmaker,
+        bookies_filter=options.bookies_filter,
+        request_delay=options.request_delay,
+        concurrent_scraping_task=options.concurrency_tasks,
+        links_only=options.links_only,
+    )
+
+
+async def _scrape_match_links(scraper: OddsPortalScraper, options: ScrapeOptions) -> ScrapeResult:
+    logger.info(
+        f"Scraping specific matches: {options.match_links} for sport: {options.sport}, markets={options.markets}, "
+        f"scrape_odds_history={options.scrape_odds_history}, target_bookmaker={options.target_bookmaker}, "
+        f"bookies_filter={options.bookies_filter.value}, period={options.period}"
+    )
+    return await retry_scrape(
+        scraper.scrape_matches,
+        match_links=options.match_links,
+        sport=options.sport,
+        markets=options.markets,
+        scrape_odds_history=options.scrape_odds_history,
+        target_bookmaker=options.target_bookmaker,
+        bookies_filter=options.bookies_filter,
+        period=options.period,
+        request_delay=options.request_delay,
+        concurrent_scraping_task=options.concurrency_tasks,
+    )
+
+
+async def _scrape_listings(scraper: OddsPortalScraper, options: ScrapeOptions) -> ScrapeResult:
+    """List the run's (league, season) combos, then scrape the matches they hold."""
+    sport = options.sport
+
+    if options.command is CommandEnum.HISTORIC:
+        printable_seasons = ", ".join(options.seasons) if options.seasons else "current"
+        logger.info(
+            f"Scraping historical odds for sport={sport}, leagues={options.leagues}, seasons={printable_seasons}, "
+            f"markets={options.markets}, scrape_odds_history={options.scrape_odds_history}, "
+            f"target_bookmaker={options.target_bookmaker}, max_pages={options.max_pages}"
+        )
+        combos = [(league, season) for league in options.leagues for season in (options.seasons or [None])]
+
+        async def collect_historic(league: str | None, season: str | None) -> ListingResult:
+            return await scraper.collect_historic_links(
+                sport=sport, league=league, season=season, max_pages=options.max_pages
+            )
+
+        def historic_context(league: str | None, season: str | None) -> dict[str, Any]:
+            return {"sport": sport, "league": league, "season": season}
+
+        collect, links_only_context = collect_historic, historic_context
+
+    else:
+        logger.info(
+            f"Scraping upcoming matches for sport={sport}, date={options.date}, leagues={options.leagues}, "
+            f"markets={options.markets}, scrape_odds_history={options.scrape_odds_history}, "
+            f"target_bookmaker={options.target_bookmaker}"
+        )
+        combos = [(league, None) for league in (options.leagues or [None])]
+
+        async def collect_upcoming(league: str | None, season: str | None) -> ListingResult:
+            return await scraper.collect_upcoming_links(
+                sport=sport,
+                date=options.date,
+                league=league,
+                include_started=options.include_started,
+                kickoff_within_hours=options.kickoff_within_hours,
+                collect_kickoff=options.links_only,
+            )
+
+        def upcoming_context(league: str | None, season: str | None) -> dict[str, Any]:
+            return {"sport": sport, "league": league, "date": options.date, "season": None}
+
+        collect, links_only_context = collect_upcoming, upcoming_context
+
+    return await _scrape_combos(
+        scraper=scraper,
+        combos=combos,
+        collect=collect,
+        links_only_context=links_only_context,
+        concurrency=options.concurrency_tasks,
+        request_delay=options.request_delay,
+        links_only=options.links_only,
+        odds_kwargs={
+            "sport": sport,
+            "markets": options.markets,
+            "scrape_odds_history": options.scrape_odds_history,
+            "target_bookmaker": options.target_bookmaker,
+            "concurrent_scraping_task": options.concurrency_tasks,
+            "preview_submarkets_only": scraper.preview_submarkets_only,
+            "bookies_filter": options.bookies_filter,
+            "period": options.period,
+            "request_delay": options.request_delay,
+        },
+    )
 
 
 def _combo_label(league: str | None, season: str | None) -> str:

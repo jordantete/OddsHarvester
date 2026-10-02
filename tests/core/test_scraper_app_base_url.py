@@ -1,13 +1,6 @@
-import inspect
 import logging
 
 from oddsharvester.core import scraper_app
-
-
-def test_run_scraper_accepts_base_url_param():
-    sig = inspect.signature(scraper_app.run_scraper)
-    assert "base_url" in sig.parameters
-    assert sig.parameters["base_url"].default is None
 
 
 def test_run_scraper_forwards_base_url_to_scraper(monkeypatch):

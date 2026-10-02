@@ -1,4 +1,5 @@
 import asyncio
+from dataclasses import fields
 import logging
 from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
@@ -11,6 +12,7 @@ from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtr
 from oddsharvester.core.odds_portal_scraper import ListingResult, OddsPortalScraper
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.retry import TRANSIENT_ERROR_KEYWORDS
+from oddsharvester.core.scrape_options import ScrapeOptions
 from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult, ScrapeStats
 from oddsharvester.core.scraper_app import _scrape_combos, retry_scrape, run_scraper
 from oddsharvester.utils.command_enum import CommandEnum
@@ -25,6 +27,7 @@ def setup_mocks():
     scraper_mock = MagicMock(spec=OddsPortalScraper)
 
     # Configure the scraper mock
+    scraper_mock.preview_submarkets_only = False
     scraper_mock.start_playwright = AsyncMock()
     scraper_mock.stop_playwright = AsyncMock()
     scraper_mock.scrape_matches = AsyncMock(return_value={"result": "match_data"})
@@ -633,57 +636,6 @@ async def test_run_scraper_multiple_leagues_historic():
         assert call_args.kwargs["concurrency"] == 3
 
         assert result == [{"combined": "data"}]
-
-
-# Separate test cases for validation errors
-@pytest.mark.parametrize(
-    ("command", "params", "error_message"),
-    [
-        (CommandEnum.HISTORIC, {}, "Both 'sport', 'league' and 'season' must be provided for historic scraping"),
-        (
-            CommandEnum.UPCOMING_MATCHES,
-            {"sport": "football"},
-            "A valid 'date' must be provided for upcoming matches scraping",
-        ),
-        ("invalid_command", {}, "Unknown command: invalid_command"),
-    ],
-)
-def test_run_scraper_validation(command, params, error_message):
-    """
-    Test validation errors in run_scraper.
-
-    This test directly extracts and checks validation logic without actually
-    running the full function.
-    """
-
-    # Create a minimal version of run_scraper that only performs validation
-    async def validate_only():
-        if command == CommandEnum.HISTORIC:
-            sport = params.get("sport")
-            league = params.get("league")
-            season = params.get("season")
-            if not sport or not league or not season:
-                raise ValueError("Both 'sport', 'league' and 'season' must be provided for historic scraping.")
-        elif command == CommandEnum.UPCOMING_MATCHES:
-            date = params.get("date")
-            if not date:
-                raise ValueError("A valid 'date' must be provided for upcoming matches scraping.")
-        elif command not in (CommandEnum.HISTORIC, CommandEnum.UPCOMING_MATCHES):
-            raise ValueError(f"Unknown command: {command}. Supported commands are 'upcoming-matches' and 'historic'.")
-
-    # Run the validation function and check for the expected error
-    with pytest.raises(ValueError) as exc_info:
-        asyncio.run(validate_only())
-
-    assert error_message in str(exc_info.value)
-
-
-def test_run_scraper_accepts_local_kickoff_param():
-    import inspect
-
-    sig = inspect.signature(scraper_app.run_scraper)
-    assert "local_kickoff" in sig.parameters
-    assert sig.parameters["local_kickoff"].default is False
 
 
 async def test_run_scraper_forwards_local_kickoff(monkeypatch):
@@ -1330,3 +1282,162 @@ async def test_scrape_combos_keeps_an_upcoming_listing_without_rows_a_success():
         {"league": "england-premier-league", "season": None, "successful": 0, "failed": 0, "errored": False}
     ]
     assert result.failed == []
+
+
+M1 = "https://www.oddsportal.com/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/#xtmHKGT0"
+M2 = "https://www.oddsportal.com/football/h2h/chelsea-4fGZN2oK/manchester-city-Wtn9Stg0/#lMp9YMye"
+
+
+async def test_run_scraper_passes_every_keyword_to_the_options():
+    keywords = {
+        "match_links": [M1],
+        "sport": "football",
+        "date": "20991231",
+        "leagues": ["england-premier-league"],
+        "seasons": ["2024-2025"],
+        "markets": ["1x2"],
+        "max_pages": 2,
+        "proxy_url": "http://proxy.example:8080",
+        "proxy_user": "user",
+        "proxy_pass": "pass",
+        "browser_user_agent": "UA/1",
+        "browser_locale_timezone": "en-GB",
+        "browser_timezone_id": "Europe/London",
+        "base_url": "https://www.centroquote.it",
+        "target_bookmaker": "bet365",
+        "scrape_odds_history": True,
+        "headless": False,
+        "preview_submarkets_only": True,
+        "bookies_filter": "crypto",
+        "period": "1st_half",
+        "request_delay": 2.5,
+        "concurrency_tasks": 5,
+        "include_started": True,
+        "kickoff_within_hours": 6.0,
+        "links_only": True,
+        "local_kickoff": True,
+        "on_match": print,
+    }
+    assert {"command", *keywords} == {field.name for field in fields(ScrapeOptions)}
+
+    with patch("oddsharvester.core.scraper_app.run_scrape", new_callable=AsyncMock, return_value="result") as run:
+        result = await run_scraper(command=CommandEnum.HISTORIC, **keywords)
+
+    assert result == "result"
+    assert run.await_args.args == (ScrapeOptions(command=CommandEnum.HISTORIC, **keywords),)
+
+
+@pytest.mark.parametrize("outcome", ["links", "failed listing", "crash"])
+async def test_the_keyword_call_of_resolve_events_b_still_works(fake_scraper, outcome):
+    """The call at betting_research/strategies/telegram-value-ai-clv/resolve_events_b.py:110-111, verbatim."""
+    key, season, oh_sport = "football__england_premier-league__2024-2025", "2024-2025", "football"
+    answers = {
+        "links": ListingResult(rows=[{"match_link": M1}, {"match_link": M2}]),
+        "failed listing": ValueError("Season page redirected"),
+    }
+    if outcome == "crash":
+        fake_scraper.answers["start_playwright"] = RuntimeError("browser crashed")
+    else:
+        fake_scraper.answers["collect_historic_links"] = answers[outcome]
+
+    res = await run_scraper(command=CommandEnum.HISTORIC, sport=oh_sport, leagues=[key], seasons=[season],
+                            links_only=True, headless=True, request_delay=2.0, concurrency_tasks=1)  # fmt: skip
+
+    if outcome == "crash":
+        assert res is None
+        return
+    assert fake_scraper.called("start_playwright")[0]["headless"] is True
+    assert fake_scraper.called("collect_historic_links") == [
+        {"sport": "football", "league": key, "season": season, "max_pages": None}
+    ]
+    assert fake_scraper.called("extract_match_odds") == []
+    if outcome == "links":
+        assert [r["match_link"] for r in res.success] == [M1, M2]
+        assert res.failed == []
+    else:
+        assert res.success == []
+        assert res.failed[0].error_type is ErrorType.LISTING_PAGE
+        assert "ValueError: Season page redirected" in res.failed[0].error_message
+
+
+@pytest.mark.parametrize(
+    ("keywords", "message"),
+    [
+        ({"command": "scrape_live"}, "'sport' must be provided for live scraping."),
+        (
+            {"command": "scrape_historic", "sport": "football", "seasons": ["2024"]},
+            "Both 'sport' and 'leagues' must be provided for historic scraping.",
+        ),
+        (
+            {"command": "scrape_historic", "match_links": [M1], "leagues": ["england-premier-league"]},
+            "Both 'sport' and 'leagues' must be provided for historic scraping.",
+        ),
+        (
+            {"command": "scrape_upcoming", "sport": "football"},
+            "Either 'date' or 'leagues' must be provided for upcoming matches scraping.",
+        ),
+    ],
+    ids=["live without sport", "historic without league", "match links without sport", "upcoming without date"],
+)
+async def test_an_impossible_run_is_refused_before_the_browser_starts(fake_scraper, caplog, keywords, message):
+    with caplog.at_level(logging.ERROR, logger="ScraperApp"):
+        result = await run_scraper(**keywords)
+
+    assert result is None
+    assert f"Scraping failed: ValueError: {message}" in caplog.text
+    assert fake_scraper.called("start_playwright") == []
+    assert len(fake_scraper.called("stop_playwright")) == 1
+
+
+async def test_the_proxy_urls_are_logged_without_their_credentials(fake_scraper, caplog):
+    proxies = ("http://user:secret@proxy.example:8080", "socks5://name:hunter2@other.example:1080")
+
+    with caplog.at_level(logging.INFO):
+        await run_scraper(command="scrape_upcoming", sport="football", date="20991231", proxy_url=proxies)
+
+    assert "proxy_url=['http://proxy.example:8080', 'socks5://other.example:1080']" in caplog.text
+    assert "secret" not in caplog.text
+    assert "hunter2" not in caplog.text
+
+
+LISTED = ListingResult(rows=[{"match_link": M1}])
+
+
+@pytest.mark.parametrize(
+    ("base", "ignored", "methods"),
+    [
+        (
+            {"command": "scrape_live", "sport": "football"},
+            {"date": "20991231", "seasons": ["2024"], "max_pages": 2, "period": "1st_half",
+             "scrape_odds_history": True, "include_started": True, "kickoff_within_hours": 6},
+            ["scrape_live"],
+        ),
+        (
+            {"command": "scrape_upcoming", "sport": "football", "match_links": [M1]},
+            {"date": "20991231", "leagues": ["england-premier-league"], "max_pages": 2, "include_started": True,
+             "kickoff_within_hours": 6, "links_only": True},
+            ["scrape_matches"],
+        ),
+        (
+            {"command": "scrape_historic", "sport": "football", "leagues": ["england-premier-league"]},
+            {"date": "20991231", "include_started": True, "kickoff_within_hours": 6},
+            ["collect_historic_links", "extract_match_odds"],
+        ),
+        (
+            {"command": "scrape_upcoming", "sport": "football", "date": "20991231"},
+            {"seasons": ["2024"], "max_pages": 2},
+            ["collect_upcoming_links", "extract_match_odds"],
+        ),
+    ],
+    ids=["live", "match links", "historic listing", "upcoming listing"],
+)  # fmt: skip
+async def test_each_branch_reads_only_its_own_options(fake_scraper, base, ignored, methods):
+    fake_scraper.answers["collect_historic_links"] = fake_scraper.answers["collect_upcoming_links"] = LISTED
+
+    await run_scraper(**base)
+    without = [fake_scraper.called(method) for method in methods]
+    fake_scraper.calls.clear()
+    await run_scraper(**base, **ignored)
+
+    assert [fake_scraper.called(method) for method in methods] == without
+    assert all(without)
