@@ -71,7 +71,7 @@ async def run_scrape(options: ScrapeOptions) -> ScrapeResult | None:
     proxy_manager = ProxyManager(
         proxy_urls=list(options.proxy_url), proxy_user=options.proxy_user, proxy_pass=options.proxy_pass
     )
-    stream = _SeasonedStream(options.on_match) if options.on_match else None
+    stream = _SeasonedStream(options.on_match) if options.on_match is not None else None
     SportMarketRegistrar.register_all_markets()
     playwright_manager = PlaywrightManager()
     cookie_dismisser = CookieDismisser()

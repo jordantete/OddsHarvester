@@ -987,3 +987,21 @@ async def test_a_streamed_listing_record_carries_the_season_of_its_combo(fake_sc
 
     assert streamed == result.success
     assert [record["season"] for record in streamed] == ["2020-2021", "2021-2022"]
+
+
+class _ListSink(list):
+    """A stream callback that is falsy until it has received a record."""
+
+    def __call__(self, record):
+        self.append(dict(record))
+
+
+async def test_a_falsy_stream_callback_still_receives_every_record(fake_scraper):
+    sink = _ListSink()
+    fake_scraper.answers["scrape_matches"] = _streaming(
+        fake_scraper, lambda match_links, **_: _odds_result(match_links)
+    )
+
+    await run_scraper(command=CommandEnum.HISTORIC, sport="football", match_links=[M1, M2], on_match=sink)
+
+    assert [record["match_link"] for record in sink] == [M1, M2]
