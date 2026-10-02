@@ -176,3 +176,19 @@ def test_live_forwards_preview_and_local_kickoff(store_mock, runner, mock_live_r
     [options] = mock_live_run.call_args.args
     assert options.preview_submarkets_only is True
     assert options.local_kickoff is True
+
+
+def test_the_in_play_command_line_of_tipster_watch_runs_and_writes_its_file(runner, fake_scraper, tmp_path):
+    link = "https://www.oddsportal.com/football/h2h/bangu-82lJ5dFF/nova-iguacu-OAxRqJRK/inplay-odds/#dEaWsRM8"
+    fake_scraper.answers["scrape_live"] = ScrapeResult(
+        success=[{"match_link": link, "live_period": "11'"}], stats=ScrapeStats(total_urls=1, successful=1)
+    )
+    out = tmp_path / "out.json"
+    args = ["live", "-s", "football", "--match-link", link, "-m", "1x2", "--period", "full_time"]
+
+    result = runner.invoke(cli, [*args, "--bookies-filter", "all", "--headless", "-f", "json", "-o", str(out)])
+
+    assert result.exit_code == 0, result.output
+    assert out.exists()
+    [call] = fake_scraper.called("scrape_live")
+    assert call["match_links"] == [link]
