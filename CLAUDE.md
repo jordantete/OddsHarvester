@@ -15,7 +15,7 @@ OddsHarvester is a Python web scraper that extracts sports betting odds from odd
 - Parsing or extracting bookmaker odds, names, or any per-row attribute
 - Adding a new league or modifying `sport_league_constants.py` / `league_aliases.py`
 - Adding a CLI option or modifying option-validation logic in `cli/commands/`
-- Changing Playwright browser args (`utils/constants.py`), the stealth script or anti-detection config (`core/playwright_manager.py`)
+- Changing Playwright browser args (`utils/constants.py`), the launch, the default user agent and locale, or anti-detection config (`core/playwright_manager.py`)
 - Triaging a "0 results returned" symptom before assuming it's a parsing bug
 
 When a fix exposes a new OddsPortal behaviour worth remembering, append it to `docs/agentic-gotchas.md` (criteria are listed at the bottom of that file).

@@ -442,11 +442,11 @@ Quick checks (in order):
    dropping `--headless` does the same). If you see a Cloudflare challenge or
    a blank page, it's anti-bot.
 2. Manually load the same URL in a normal browser from the same IP. If it
-   works there but not from the scraper, it's anti-bot or stealth-script
-   regression.
-3. Check `STEALTH_SCRIPT` (`core/playwright_manager.py`) and the
-   `PLAYWRIGHT_BROWSER_ARGS` / `PLAYWRIGHT_BROWSER_ARGS_DOCKER` lists
-   (`utils/constants.py`) for divergence between local and Docker.
+   works there but not from the scraper, it's anti-bot, or a change in
+   what the scraper's browser sends (below).
+3. Read the run's `Browser: Chromium <version>, user agent: <UA>` line, and
+   check the `PLAYWRIGHT_BROWSER_ARGS` / `PLAYWRIGHT_BROWSER_ARGS_DOCKER`
+   lists (`utils/constants.py`) for divergence between local and Docker.
 
 ### Fix pattern
 
@@ -464,6 +464,26 @@ Quick checks (in order):
   `--no-headless` before assuming a parsing bug.
 - Treat anti-bot fixes as urgent: a silent 0-results scrape that succeeds
   is worse than one that errors out, because users don't notice for days.
+
+### What the browser tells the site
+
+No script patches `navigator`: the stealth script, removed in 2026-10,
+added tells of its own (an own `webdriver` property, `plugins` as numbers,
+a stub `window.chrome`). Every request carries the launched browser's own
+user agent with `HeadlessChrome/` renamed `Chrome/` (`headful_user_agent`
+in `core/playwright_manager.py`), so its version follows the installed
+Playwright and its platform is the host's, like `navigator.platform`;
+`--user-agent` replaces it as given. The locale sets `Accept-Language` and
+`navigator.languages`, `en-US` without `--locale` (the shell sent no
+Accept-Language at all before). `navigator.webdriver` is `false` through
+`--disable-blink-features=AutomationControlled`.
+
+Still visible: `--headless` runs use Playwright's headless shell, which
+names `HeadlessChrome` in `sec-ch-ua` whatever the user agent and has no
+plugins and no `window.chrome`; screen, inner and outer window sizes all
+equal the viewport; WebGL is SwiftShader or absent on a host without a GPU.
+OddsPortal's first-party scripts read none of these (34 HARs, 2026-10), and
+its rate limit keys on IP and volume (§23).
 
 **Reference:** `7e199bd` (PR #38 — Docker anti-detection args), issues #29,
 #45.

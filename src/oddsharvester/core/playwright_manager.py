@@ -56,21 +56,12 @@ _MONTH_ALIAS_PROBE_JS = """
 }
 """
 
+DEFAULT_LOCALE = "en-US"
 
-# Anti-detection script to hide automation signatures
-STEALTH_SCRIPT = """
-Object.defineProperty(navigator, "webdriver", {get: () => undefined});
-window.chrome = {runtime: {}};
-Object.defineProperty(navigator, "plugins", {get: () => [1, 2, 3, 4, 5]});
-Object.defineProperty(navigator, "languages", {get: () => ["en-US", "en"]});
-"""
 
-# Default user agents that look like real browsers
-DEFAULT_USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-]
+def headful_user_agent(user_agent: str) -> str:
+    """Return the user agent with `HeadlessChrome/` renamed `Chrome/`, as the same build sends it headed."""
+    return user_agent.replace("HeadlessChrome/", "Chrome/")
 
 
 class PlaywrightManager:
@@ -106,8 +97,10 @@ class PlaywrightManager:
 
         Args:
             headless (bool): Whether to start the browser in headless mode.
-            user_agent (str | None): The user agent of every context; None picks one of DEFAULT_USER_AGENTS at random.
-            locale (str | None): The locale of every context; None leaves Playwright's default.
+            user_agent (str | None): The user agent of every context; None or empty uses the launched browser's
+                own, with `HeadlessChrome` renamed `Chrome`.
+            locale (str | None): The locale of every context, which also sets Accept-Language; None or empty
+                gives DEFAULT_LOCALE.
             timezone_id (str | None): The timezone of every context. None keeps the host's, which is then read back
                 from the page into `self.timezone_id` (gotchas §10).
             proxy_manager: Optional ProxyManager providing the launch proxy and, in multi-proxy
@@ -125,7 +118,8 @@ class PlaywrightManager:
                 headless=headless, args=browser_args, proxy=launch_proxy
             )
 
-            effective_user_agent = user_agent or random.choice(DEFAULT_USER_AGENTS)  # noqa: S311
+            effective_user_agent = user_agent or await self._browser_user_agent()
+            self.logger.info(f"Browser: Chromium {self.browser.version}, user agent: {effective_user_agent}")
 
             # (key, per-context proxy override) for each context to create.
             # Per-context proxy is used ONLY in multi-proxy mode; otherwise the
@@ -142,7 +136,7 @@ class PlaywrightManager:
                 self.contexts[key] = await self._create_context(
                     proxy=ctx_proxy,
                     user_agent=effective_user_agent,
-                    locale=locale,
+                    locale=locale or DEFAULT_LOCALE,
                     timezone_id=timezone_id,
                     enable_har=(index == 0),
                 )
@@ -219,6 +213,13 @@ class PlaywrightManager:
             self.logger.error(f"Failed to initialize Playwright: {e!s}")
             raise
 
+    async def _browser_user_agent(self) -> str:
+        """Return the launched browser's own user agent, as its headed build sends it."""
+        session = await self.browser.new_browser_cdp_session()
+        version = await session.send("Browser.getVersion")
+        await session.detach()
+        return headful_user_agent(version["userAgent"])
+
     async def _create_context(self, proxy, user_agent, locale, timezone_id, enable_har):
         """Create one browser context. HAR record/replay is applied to the default context only."""
         context_kwargs = {
@@ -238,7 +239,6 @@ class PlaywrightManager:
                 context_kwargs["record_har_url_filter"] = HAR_REPLAY_URL_PATTERN
 
         context = await self.browser.new_context(**context_kwargs)
-        await context.add_init_script(STEALTH_SCRIPT)
         await context.add_init_script(VIEW_DATA_HOOK_JS)
 
         if enable_har:

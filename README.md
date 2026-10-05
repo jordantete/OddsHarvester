@@ -388,8 +388,8 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 | `--headless`      |       | all      | Run browser in headless mode              | `False` |
 | `--concurrency`   | `-c`  | upcoming, historic, live | Concurrent scraping tasks: match pages, and league listings when several leagues are given. On `historic` each parallel listing walks its own result pages, so `-c` also multiplies the listing-page request rate; lower it for large league/season products. | `3`     |
 | `--request-delay` |       | upcoming, historic, live, team | Delay (sec) between match pages, between league/season listings (one per combo) and between team pages. The result pages of one listing keep their own 6 to 8 s pause | `1.0`   |
-| `--user-agent`    |       | all      | Custom browser user agent                 | —       |
-| `--locale`        |       | all      | Browser locale (e.g. `fr-BE`)             | —       |
+| `--user-agent`    |       | all      | Custom browser user agent                 | the browser's own, `HeadlessChrome` renamed `Chrome` |
+| `--locale`        |       | all      | Browser locale (e.g. `fr-BE`), also sent as Accept-Language | `en-US` |
 | `--timezone`      |       | all      | Browser timezone (e.g. `Europe/Brussels`) | —       |
 | `--base-url`      |       | all      | Scrape a regional OddsPortal mirror instead of `www.oddsportal.com` (e.g. `https://www.centroquote.it`). Page structure is identical; only the domain changes. Regional mirrors may expose a different/larger set of bookmakers. Recommended: pair with `--locale`/`--timezone` matching the region. Env var: `OH_BASE_URL`. | —       |
 
@@ -670,6 +670,18 @@ pip install . --use-pep517
 ```
 
 </details>
+
+### Browser
+
+Playwright downloads its Chromium separately, once per machine:
+
+```bash
+playwright install chromium          # after pip install
+uv run playwright install chromium   # from source
+```
+
+On a Linux server, add `--with-deps` to install the system libraries the browser needs too
+(`playwright install --with-deps chromium`).
 
 Verify installation:
 

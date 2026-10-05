@@ -5,8 +5,17 @@ import pytest
 
 from oddsharvester.core.browser.view_data import VIEW_DATA_HOOK_JS
 from oddsharvester.core.exceptions import AllProxiesExhaustedError
-from oddsharvester.core.playwright_manager import PlaywrightManager
+from oddsharvester.core.playwright_manager import PlaywrightManager, headful_user_agent
 from oddsharvester.utils.proxy_manager import ProxyManager
+
+MAC_HEADLESS_UA = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
+    "HeadlessChrome/143.0.0.0 Safari/537.36"
+)
+MAC_CHROME_UA = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/143.0.0.0 Safari/537.36"
+)
 
 
 @pytest.fixture
@@ -17,16 +26,26 @@ def mock_playwright():
         browser = AsyncMock()
         context = AsyncMock()
         page = AsyncMock()
+        cdp_session = AsyncMock()
 
         mock_ap.return_value.start = AsyncMock(return_value=playwright)
         playwright.chromium.launch = AsyncMock(return_value=browser)
+        browser.version = "143.0.7499.4"
+        browser.new_browser_cdp_session = AsyncMock(return_value=cdp_session)
+        cdp_session.send = AsyncMock(return_value={"userAgent": MAC_HEADLESS_UA})
         browser.new_context = AsyncMock(return_value=context)
         context.new_page = AsyncMock(return_value=page)
         context.add_init_script = AsyncMock()
         context.route_from_har = AsyncMock()
         page.evaluate = AsyncMock(return_value="UTC")
 
-        yield {"playwright": playwright, "browser": browser, "context": context, "page": page}
+        yield {
+            "playwright": playwright,
+            "browser": browser,
+            "context": context,
+            "page": page,
+            "cdp_session": cdp_session,
+        }
 
 
 async def test_route_from_har_called_when_env_var_set(mock_playwright, monkeypatch, tmp_path):
@@ -176,6 +195,85 @@ async def test_every_context_records_the_data_its_views_render(mock_playwright):
 
     scripts = [c.args[0] for c in mock_playwright["context"].add_init_script.await_args_list]
     assert scripts.count(VIEW_DATA_HOOK_JS) == 2
+
+
+async def test_each_context_gets_the_view_data_hook_and_no_other_script(mock_playwright):
+    """No script patches navigator: webdriver, plugins and languages are the browser's own."""
+    proxy_manager = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
+    pm = PlaywrightManager()
+    await pm.initialize(headless=True, proxy_manager=proxy_manager)
+
+    scripts = [c.args[0] for c in mock_playwright["context"].add_init_script.await_args_list]
+    assert scripts == [VIEW_DATA_HOOK_JS, VIEW_DATA_HOOK_JS]
+
+
+@pytest.mark.parametrize("user_agent", [None, ""], ids=["none", "empty"])
+async def test_without_a_user_agent_every_context_gets_the_browsers_own_as_chrome(mock_playwright, user_agent):
+    proxy_manager = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
+    pm = PlaywrightManager()
+    await pm.initialize(headless=True, user_agent=user_agent, proxy_manager=proxy_manager)
+
+    agents = [c.kwargs["user_agent"] for c in mock_playwright["browser"].new_context.await_args_list]
+    assert agents == [MAC_CHROME_UA, MAC_CHROME_UA]
+    mock_playwright["cdp_session"].send.assert_awaited_once_with("Browser.getVersion")
+
+
+async def test_an_explicit_user_agent_is_passed_through(mock_playwright):
+    pm = PlaywrightManager()
+    await pm.initialize(headless=True, user_agent="Custom/1.0")
+
+    assert mock_playwright["browser"].new_context.await_args.kwargs["user_agent"] == "Custom/1.0"
+    mock_playwright["browser"].new_browser_cdp_session.assert_not_awaited()
+
+
+async def test_a_failed_user_agent_read_fails_the_run_and_cleanup_still_closes_the_browser(mock_playwright):
+    mock_playwright["cdp_session"].send = AsyncMock(side_effect=Exception("Browser.getVersion: Target closed"))
+    pm = PlaywrightManager()
+
+    with pytest.raises(Exception, match="Target closed"):
+        await pm.initialize(headless=True)
+    await pm.cleanup()
+
+    mock_playwright["browser"].new_context.assert_not_awaited()
+    mock_playwright["browser"].close.assert_awaited_once()
+    mock_playwright["playwright"].stop.assert_awaited_once()
+
+
+@pytest.mark.parametrize(("locale", "expected"), [(None, "en-US"), ("", "en-US"), ("en-GB", "en-GB")])
+async def test_every_context_gets_the_locale_or_en_us(mock_playwright, locale, expected):
+    proxy_manager = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
+    pm = PlaywrightManager()
+    await pm.initialize(headless=True, locale=locale, proxy_manager=proxy_manager)
+
+    locales = [c.kwargs["locale"] for c in mock_playwright["browser"].new_context.await_args_list]
+    assert locales == [expected, expected]
+
+
+async def test_the_run_logs_the_browser_version_and_user_agent_once(mock_playwright, caplog):
+    proxy_manager = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
+    pm = PlaywrightManager()
+
+    with caplog.at_level(logging.INFO):
+        await pm.initialize(headless=True, proxy_manager=proxy_manager)
+
+    assert caplog.messages.count(f"Browser: Chromium 143.0.7499.4, user agent: {MAC_CHROME_UA}") == 1
+
+
+@pytest.mark.parametrize(
+    ("browser_user_agent", "expected"),
+    [
+        (
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 "
+            "Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+        ),
+        (MAC_HEADLESS_UA, MAC_CHROME_UA),
+        (MAC_CHROME_UA, MAC_CHROME_UA),
+    ],
+    ids=["linux", "mac", "already-headful"],
+)
+def test_headful_user_agent(browser_user_agent, expected):
+    assert headful_user_agent(browser_user_agent) == expected
 
 
 async def test_new_rotated_page_reports_key(mock_playwright):

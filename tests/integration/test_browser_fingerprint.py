@@ -9,6 +9,13 @@ from oddsharvester.core.playwright_manager import PlaywrightManager
 
 pytestmark = pytest.mark.integration
 
+NAVIGATOR_JS = """() => ({
+    userAgent: navigator.userAgent,
+    languages: navigator.languages,
+    webdriver: navigator.webdriver,
+    webdriverOwn: Object.prototype.hasOwnProperty.call(navigator, "webdriver"),
+})"""
+
 
 @pytest.fixture
 def echo():
@@ -65,3 +72,31 @@ async def test_the_disable_features_switch_chromium_reads_keeps_playwrights_list
 
     assert sorted(switches[0] - switches[-1]) == []
     assert {"IsolateOrigins", "site-per-process"} <= switches[-1]
+
+
+async def test_the_user_agent_and_the_languages_agree_with_the_browser(launch, echo):
+    url, seen = echo
+    manager = await launch(locale="en-GB")
+
+    await manager.page.goto(url)
+    navigator = await manager.page.evaluate(NAVIGATOR_JS)
+
+    headers = seen[-1]
+    major = manager.browser.version.split(".")[0]
+    assert headers["user-agent"] == navigator["userAgent"]
+    assert "HeadlessChrome" not in headers["user-agent"]
+    assert f" Chrome/{major}." in headers["user-agent"]
+    assert headers["accept-language"] == "en-GB"
+    assert navigator["languages"][0] == "en-GB"
+    assert navigator["webdriver"] is False
+    assert navigator["webdriverOwn"] is False
+
+
+async def test_without_a_locale_the_browser_asks_for_en_us(launch, echo):
+    url, seen = echo
+    manager = await launch()
+
+    await manager.page.goto(url)
+
+    assert seen[-1]["accept-language"] == "en-US"
+    assert await manager.page.evaluate("navigator.languages") == ["en-US"]
