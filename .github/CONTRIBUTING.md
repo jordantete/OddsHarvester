@@ -19,11 +19,11 @@ Thanks for your interest in contributing to **OddsHarvester**!
 ### Running the scraper
 
 ```bash
-# Scrape upcoming matches
-uv run oddsharvester scrape-upcoming --sport football --date 20250101 --markets 1x2
+# Scrape today's upcoming matches
+uv run oddsharvester upcoming --sport football --date $(date +%Y%m%d) --market 1x2
 
 # Scrape historic matches
-uv run oddsharvester scrape-historic --sport football --leagues england-premier-league --season 2022-2023 --markets 1x2
+uv run oddsharvester historic --sport football --league england-premier-league --season 2022-2023 --market 1x2
 ```
 
 ### Linting & Formatting
@@ -46,8 +46,11 @@ uv run pre-commit run --all-files
 # Unit tests
 uv run pytest tests/ -q --ignore=tests/integration/
 
-# Integration tests (requires internet)
+# Integration tests (replay the recorded HAR files, no network)
 uv run pytest tests/integration/ -q -m integration
+
+# Integration tests against the live site
+uv run pytest tests/integration/ -q -m integration --live
 
 # Unit tests with coverage
 uv run pytest --cov=src/oddsharvester --cov-report=term --ignore=tests/integration/

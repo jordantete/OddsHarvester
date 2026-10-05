@@ -1,88 +1,116 @@
 # Integration Test Fixtures
 
-This directory contains reference data (fixtures) for integration tests.
+This directory contains the reference data of the integration tests. Each fixture is a pair: the JSON the CLI
+wrote (the golden) and, next to it with the same stem, the `.har` the page was recorded into. The tests replay the
+HAR (`ODDSHARVESTER_HAR_REPLAY`), so they run offline, and compare the output with the golden; `--live` skips the
+HAR and loads the pages from OddsPortal.
 
 ## Structure
 
 ```
 fixtures/
+├── <sport>/<league>/<match-dir>/       one directory per match
+│   ├── metadata.json
+│   ├── <markets>_<period>_<bookies>.json
+│   └── <markets>_<period>_<bookies>.har
+├── baseball/mlb/
+├── basketball/nba/
+├── community/                          top predictions, the BLAPRO profile, two match-vote pages
+├── cricket/one-day-international/
 ├── football/
+│   ├── club-friendly/samgurali-spaeri-0nx5GXqB/   live_listing.json and .har, the live-now listing
+│   ├── laliga/
 │   ├── premier-league/
-│   │   └── {match-slug}/
-│   │       ├── metadata.json
-│   │       └── {markets}_{period}_{bookies}.json
 │   └── super-cup-2025/
-│       └── ...
-├── basketball/
-│   └── nba/
-│       └── ...
-└── tennis/
-    └── australian-open/
-        └── ...
+├── handball/germany-bundesliga/
+├── team/                               teams.json and .har
+├── tennis/australian-open/
+└── volleyball/italy-superlega/
 ```
 
 ## File Naming Convention
 
-Fixture files follow this pattern:
+Match fixture files follow this pattern:
 ```
 {markets}_{period}_{bookies_filter}.json
 ```
+
+with the markets sorted and joined by `_`, then `_odds_history` and `_preview` when the capture used
+`--odds-history` or `--preview-only`. The HAR has the same name with `.har`.
 
 Examples:
 - `1x2_full_time_all.json`
 - `1x2_btts_double_chance_full_time_all.json`
 - `home_away_1st_half_all.json`
-- `match_winner_1st_set_classic.json`
+- `1x2_over_under_2_5_full_time_all_odds_history.json`
 
 ## Creating New Fixtures
 
-Use the capture script:
+Capture one match fixture, its golden and its HAR, with the capture helper (it needs the network):
 
 ```bash
-python -m tests.integration.helpers.capture \
+uv run python -m tests.integration.helpers.capture \
     --sport football \
     --league premier-league \
-    --match-url "https://www.oddsportal.com/..." \
-    --markets "1x2,btts" \
+    --match-url "https://www.oddsportal.com/football/h2h/brentford-xYe7DwID/leicester-KrrdAMyI/#xQ77QTN0" \
+    --markets "1x2" \
     --period "full_time" \
-    --bookies-filter "all"
+    --bookies-filter "all" \
+    --match-dir leicester-brentford-xQ77QTN0 \
+    --capture-har
 ```
+
+Without `--match-dir`, the directory is named after the URL's last path segment. Captures run the browser in
+`UTC` unless given `--timezone`, the zone the replays run in.
+
+## Updating Fixtures
+
+`scripts/capture_all_hars.py` recaptures every fixture: match fixtures are derived from each `metadata.json` and
+fixture name, and `SPECIAL_FIXTURES` holds the exact command of the others (community, team, the live-now listing,
+odds history, preview).
+
+```bash
+# Every fixture
+uv run python scripts/capture_all_hars.py
+
+# One kind: matches, community, team or live
+uv run python scripts/capture_all_hars.py --only community
+
+# One sport or one match directory (matches only)
+uv run python scripts/capture_all_hars.py --sport football
+uv run python scripts/capture_all_hars.py --match-id leicester-brentford-xQ77QTN0
+
+# List each HAR and its command, no network
+uv run python scripts/capture_all_hars.py --dry-run
+```
+
+Recapture on parsing changes, Playwright upgrades, or quarterly.
 
 ## metadata.json Format
 
-Each match directory contains a `metadata.json` with:
+Each match directory contains a `metadata.json`, written by the capture helper:
 
 ```json
 {
-    "match_id": "xQ77QTN0",
-    "match_url": "https://...",
+    "match_id": "KrrdAMyI",
+    "match_url": "https://www.oddsportal.com/football/h2h/brentford-xYe7DwID/leicester-KrrdAMyI/#xQ77QTN0",
     "sport": "football",
     "league": "premier-league",
     "home_team": "Leicester",
     "away_team": "Brentford",
-    "final_score": {"home": "0", "away": "4"},
-    "match_date": "26 Jan 2025, 15:00",
-    "captured_at": "2026-02-02T10:30:00Z",
-    "oddsharvester_version": "0.1.0",
+    "final_score": {
+        "home": "0",
+        "away": "4"
+    },
+    "match_date": "2025-02-21 20:00:00 UTC",
+    "notes": "",
+    "captured_at": "2026-10-01T08:04:12.448518+00:00",
+    "oddsharvester_version": "0.15.0",
     "available_fixtures": [
-        "1x2_full_time_all.json",
-        "1x2_1st_half_all.json"
-    ],
-    "notes": ""
+        "1x2_1st_half_all.json",
+        "1x2_full_time_all.json"
+    ]
 }
-```
-
-## Updating Fixtures
-
-If OddsHarvester's output format changes, re-run the capture script for affected fixtures:
-
-```bash
-# Re-capture all fixtures for a match
-python -m tests.integration.helpers.capture \
-    --sport football \
-    --league premier-league \
-    --match-url "https://www.oddsportal.com/football/england/premier-league/leicester-brentford-xQ77QTN0" \
-    --markets "1x2"
 ```
 
 ## Important Notes
