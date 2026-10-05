@@ -11,7 +11,6 @@ import re
 
 from bs4 import BeautifulSoup
 
-from oddsharvester.core.base_scraper import _parse_date_header
 from oddsharvester.core.community.row_helpers import (
     extract_datetime_and_market,
     extract_teams,
@@ -19,6 +18,7 @@ from oddsharvester.core.community.row_helpers import (
     row_of,
     to_float,
 )
+from oddsharvester.core.listing import _parse_date_header
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
 

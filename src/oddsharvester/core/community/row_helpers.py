@@ -9,7 +9,7 @@ the slash+comma community date shape (gotchas §13).
 from datetime import datetime
 import re
 
-from oddsharvester.core.base_scraper import _parse_date_header
+from oddsharvester.core.listing import _parse_date_header
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.page_time import shown_to_local
 

@@ -119,7 +119,7 @@ def test_feed_kickoff_is_the_local_time_of_the_browser_zone():
     clock = frozen_clock(datetime(2026, 11, 15, 12, 0, tzinfo=UTC))
 
     with (
-        patch("oddsharvester.core.base_scraper.datetime", clock),
+        patch("oddsharvester.core.listing.datetime", clock),
         patch("oddsharvester.utils.page_time.datetime", clock),
     ):
         preds = parse_profile_feed_predictions(html, tz_name="Europe/London")

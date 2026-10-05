@@ -54,7 +54,7 @@ def test_percentages_roughly_sum_to_100(records):
 
 def test_non_today_date_row_parses_kickoff():
     # Future rows render a slash-separated date "19/Jul," which
-    # base_scraper._parse_date_header cannot parse as-is. The live fixture only
+    # listing._parse_date_header cannot parse as-is. The live fixture only
     # carries today's picks, so this row is synthetic (same markup shape).
     columns = (
         community_column("1", "1.69", "89%") + community_column("X", "3.68", "9%") + community_column("2", "4.70", "2%")
@@ -86,7 +86,7 @@ def test_kickoff_is_the_local_time_of_the_browser_zone():
     clock = frozen_clock(datetime(2026, 9, 30, 12, 0, tzinfo=UTC))
 
     with (
-        patch("oddsharvester.core.base_scraper.datetime", clock),
+        patch("oddsharvester.core.listing.datetime", clock),
         patch("oddsharvester.utils.page_time.datetime", clock),
     ):
         rows = parse_top_predictions(html, tz_name="Europe/London")

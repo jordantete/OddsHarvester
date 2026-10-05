@@ -13,8 +13,8 @@ import re
 
 from bs4 import BeautifulSoup
 
-from oddsharvester.core.base_scraper import _parse_date_header
 from oddsharvester.core.community.row_helpers import to_pct
+from oddsharvester.core.listing import _parse_date_header
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.page_time import shown_to_local
 

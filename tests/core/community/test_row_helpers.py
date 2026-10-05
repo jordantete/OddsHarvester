@@ -48,7 +48,7 @@ def _kickoff(date: str, time: str, tz_name: str, now: datetime) -> tuple[str, st
     row = BeautifulSoup(community_row("/football/h2h/a/b/#x", "", date=date, time=time), "lxml").find("a")
     clock = frozen_clock(now)
     with (
-        patch("oddsharvester.core.base_scraper.datetime", clock),
+        patch("oddsharvester.core.listing.datetime", clock),
         patch("oddsharvester.utils.page_time.datetime", clock),
     ):
         kickoff_text, kickoff, _market = extract_datetime_and_market(row, tz_name)

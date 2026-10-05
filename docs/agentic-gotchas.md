@@ -798,7 +798,7 @@ text content shape, which is what OddsPortal renders for users to read.
 
 ### Fix pattern
 
-`base_scraper._row_has_started(row)` reads the row's first column
+`listing._row_has_started(row)` reads the row's first column
 (`_row_status_cell_text`): any text that is not `HH:MM` means started. Wired through
 `extract_match_rows(skip_started=…)` → `collect_upcoming_links(include_started=…)`
 → CLI `--include-started/--no-include-started` (default no = filter out
@@ -902,7 +902,7 @@ row parser reads `Yest.` and `Tomorr.` as `Yesterday` and `Tomorrow`, which
 ### References
 
 - `core/playwright_manager.py` — effective-timezone resolution.
-- `base_scraper._parse_date_header`; `utils/page_time.py` (`page_utc_offset`,
+- `listing._parse_date_header`; `utils/page_time.py` (`page_utc_offset`,
   `shown_to_utc`, `shown_to_local`, `local_to_shown`).
 - `upcoming --links-only`: a null `kickoff_utc` under the default
   `--no-include-started` has two causes. Usual: the date header failed to
@@ -1093,10 +1093,10 @@ match without votes from a match nobody has voted on yet.
 Community vote percentages are rounded and may sum to 99–101. Never assert an
 exact 100 total.
 
-### Community date tokens use a `/` + trailing-comma form base_scraper rejects
+### Community date tokens use a `/` + trailing-comma form `_parse_date_header` rejects
 
 Non-today community rows carry date tokens like `19/Jul,` (slash separator,
-trailing comma) which `base_scraper._parse_date_header` does **not** accept. The
+trailing comma) which `listing._parse_date_header` does **not** accept. The
 community parser normalizes the token locally before delegating to
 `_parse_date_header`. Unparseable kickoffs yield `kickoff = None` (the raw label
 is kept in `kickoff_text`), so a token-format drift degrades to a null kickoff,
@@ -1434,8 +1434,9 @@ the captured match is over.
 ### References
 
 - `core/url_builder.py`: `get_live_matches_url`, `normalize_inplay_match_url`.
-- `core/base_scraper.py`: `extract_live_match_links`, `_is_league_link`,
-  `_parse_live_info`, `extract_match_odds` (the ended-match drop).
+- `core/base_scraper.py`: `extract_live_match_links`, `_parse_live_info`,
+  `extract_match_odds` (the ended-match drop).
+- `core/listing.py`: `_is_league_link`.
 - `core/odds_portal_scraper.py`: `scrape_live`.
 - `core/browser/hydration.py`, `market_navigation.py`, `selection.py`: the
   in-play branches.
