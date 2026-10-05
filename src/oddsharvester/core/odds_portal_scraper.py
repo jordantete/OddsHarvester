@@ -10,7 +10,7 @@ from playwright.async_api import Page
 from oddsharvester.core.base_scraper import BaseScraper
 from oddsharvester.core.browser.pagination import WalkVerdict
 from oddsharvester.core.browser.session import raise_if_rate_limited
-from oddsharvester.core.exceptions import PageNotFoundError, SeasonNotFoundError
+from oddsharvester.core.exceptions import PageNotFoundError, RateLimitError, SeasonNotFoundError
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.scrape_result import ScrapeResult
 from oddsharvester.core.url_builder import URLBuilder, is_league_path, normalize_inplay_match_url, rebase_url
@@ -261,7 +261,8 @@ class OddsPortalScraper(BaseScraper):
             url = URLBuilder.get_live_matches_url(sport=sport, base_url=self.base_url)
             self.logger.info(f"Fetching live matches from {url}")
 
-            await current_page.goto(url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
+            response = await current_page.goto(url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
+            raise_if_rate_limited(response, url, "listing")
             await self._warm_up_page(current_page)
             await self.scroller.scroll_until_loaded(
                 page=current_page,
@@ -454,7 +455,8 @@ class OddsPortalScraper(BaseScraper):
                     tab = await self.playwright_manager.context.new_page()
                     page_url = f"{base_url}{OddsPortalSelectors.page_fragment(page_number)}"
                     self.logger.info(f"Navigating to: {page_url}")
-                    await tab.goto(page_url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
+                    response = await tab.goto(page_url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
+                    raise_if_rate_limited(response, page_url, "listing")
                 delay = random.randint(PAGE_COLLECTION_DELAY_MIN_MS, PAGE_COLLECTION_DELAY_MAX_MS)  # noqa: S311
                 await tab.wait_for_timeout(delay)
 
@@ -525,6 +527,9 @@ class OddsPortalScraper(BaseScraper):
                 if verdict is WalkVerdict.STOP_COMPLETE:
                     break
 
+            except RateLimitError:
+                # Re-fetched seconds later the page would be refused again: the run retries the listing instead.
+                raise
             except Exception as e:
                 # A crash is as transient as a truncation, so it gets the same single re-fetch.
                 if attempt <= LISTING_PAGE_RETRY_ATTEMPTS:

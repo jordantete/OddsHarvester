@@ -1,3 +1,4 @@
+import asyncio
 from collections import Counter
 from datetime import UTC, datetime, time
 import logging
@@ -717,6 +718,20 @@ async def test_scrape_live_raises_when_the_listing_cannot_be_read(scraper, site)
     scraper.extract_match_odds.assert_not_awaited()
 
 
+async def test_scrape_live_raises_rate_limit_on_a_refused_listing(scraper, site):
+    """A refused live-now listing fails the run, retried, instead of reading as 'no live matches' (gotchas §23)."""
+    site.serve(1, live_now(("/football/england/premier-league/", [inplay("a")])))
+    site.status[LIVE_NOW_URL] = 429
+    scraper.extract_match_odds = AsyncMock()
+
+    with pytest.raises(RateLimitError, match=f"HTTP 429 on listing {LIVE_NOW_URL}"):
+        await scraper.scrape_live(sport="football", links_only=True)
+
+    assert site.reads == [], "the refused listing is never read"
+    scraper._warm_up_page.assert_not_awaited()
+    scraper.extract_match_odds.assert_not_awaited()
+
+
 async def test_scrape_live_no_matches_returns_empty_result(scraper, site):
     """No live match is a normal outcome: empty result, no failures."""
     site.serve(1, live_now())
@@ -1244,6 +1259,32 @@ async def test_historic_listing_rate_limited_raises_rate_limit(scraper, site):
 
     assert site.locators == [], "the league check never ran"
     assert site.reads == [], "the walk never started"
+    assert site.every_tab_closed_once()
+
+
+@pytest.mark.parametrize("error", [RuntimeError("net::ERR_CONNECTION_RESET"), asyncio.CancelledError()])
+async def test_collect_historic_links_closes_the_season_tab_when_its_load_fails(scraper, site, error):
+    """A season page whose load raises, or a run cancelled during it, leaves no tab open."""
+    site.goto_error = error
+
+    with pytest.raises(type(error)):
+        await scraper.collect_historic_links(sport="football", league="england-premier-league", season="2024-2025")
+
+    assert len(site.tabs) == 1
+    assert site.every_tab_closed_once()
+
+
+async def test_collect_historic_links_raises_rate_limit_on_a_refused_page_of_the_walk(scraper, site):
+    """A 429 on page 2 fails the listing as one on the season page does, so the run retries it (gotchas §23)."""
+    site.serve(1, listing(hrefs(1, RESULTS_PAGE_SIZE), widget=[1, 2]))
+    site.serve(2, listing(hrefs(2, 10), widget=[1, 2]))
+    site.status[f"{SEASON_URL}#page/2"] = 429
+
+    with pytest.raises(RateLimitError, match=f"HTTP 429 on listing {SEASON_URL}#page/2"):
+        await scraper.collect_historic_links(sport="football", league="england-premier-league", season="2024-2025")
+
+    assert site.reads == [1], "the refused page is not read as a short page"
+    assert site.every_tab_closed_once()
 
 
 @pytest.mark.parametrize(("league", "guarded"), [(BHUTAN, True), ("england-premier-league", False)])
@@ -1263,3 +1304,4 @@ async def test_historic_checks_existence_of_a_league_path(scraper, site):
 
     assert site.locators == ["a[href='/football/bhutan/']"]
     assert site.reads == [], "the walk never started"
+    assert site.every_tab_closed_once()

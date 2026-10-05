@@ -6,16 +6,21 @@ import logging
 from oddsharvester.core.browser.cookies import CookieDismisser
 from oddsharvester.core.browser.session import browser_session, open_page
 from oddsharvester.core.community.user_profile_parser import parse_profile_feed_predictions, parse_user_profile
+from oddsharvester.core.exceptions import RateLimitError
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.playwright_manager import PlaywrightManager
 from oddsharvester.core.retry import OPERATION_RETRY_CONFIG, retry_with_backoff
 from oddsharvester.core.url_builder import rebase_url
 from oddsharvester.utils.constants import (
     ODDSPORTAL_BASE_URL,
+    RATE_LIMIT_RETRY_DELAY_S,
     SELECTOR_TIMEOUT_MS,
 )
 
 logger = logging.getLogger(__name__)
+
+# The Feed tab loads its rows from /proxy/ajax-communityFeed/profile/<id>/<timestamp>/.
+_FEED_AJAX_PATH = "/ajax-communityFeed/"
 
 
 class UserProfileScraper:
@@ -51,6 +56,27 @@ class UserProfileScraper:
         return record
 
     async def _scrape_feed_predictions(self, page) -> list[dict]:
+        """The Feed tab's predictions; raises RateLimitError when OddsPortal refused the feed's AJAX."""
+        refused: list[str] = []
+
+        def on_response(response) -> None:
+            if response.status == 429 and _FEED_AJAX_PATH in response.url:
+                refused.append(response.url)
+
+        page.on("response", on_response)
+        try:
+            predictions = await self._read_feed_predictions(page)
+        finally:
+            page.remove_listener("response", on_response)
+        if refused:
+            raise RateLimitError(
+                f"rate limited by OddsPortal: HTTP 429 on the profile feed {refused[0]}",
+                url=refused[0],
+                retry_after=RATE_LIMIT_RETRY_DELAY_S,
+            )
+        return predictions
+
+    async def _read_feed_predictions(self, page) -> list[dict]:
         try:
             tabs = await page.query_selector_all(OddsPortalSelectors.COMMUNITY_PROFILE_TAB)
             feed_tab = None

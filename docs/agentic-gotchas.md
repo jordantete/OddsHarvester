@@ -2049,11 +2049,14 @@ would turn half of a burst into failures. `retry_with_backoff` waits at least
 default 2 s backoff lands in the same window.
 
 Listings: a 429 on the listing document itself raises `RateLimitError` in
-`collect_historic_links` and `collect_upcoming_links`, before the league-path
-guard (§24) could read the nginx error body as "league does not exist". A 429
-on a pagination page or on a request inside the listing still reads as a short
-listing (§17). The 30 s wait is per task: with `--concurrency` above 1, the
-other tasks keep loading pages on the same IP meanwhile.
+`collect_historic_links`, `collect_upcoming_links` and `scrape_live` (the
+live-now listing), before the league-path guard (§24) could read the nginx
+error body as "league does not exist". A 429 on a page of the historic walk
+(`#page/N`) raises it too, and the run retries the whole listing: re-fetched
+seconds later, the page would be refused again. A 429 on a request inside the
+listing still reads as a short listing (§17). The 30 s wait is per task: with
+`--concurrency` above 1, the other tasks keep loading pages on the same IP
+meanwhile.
 
 Community and team pages: their runs load every page through
 `core/browser/session.py`'s `open_page`, which calls `raise_if_rate_limited` on
@@ -2062,22 +2065,21 @@ match-community or team page raises `RateLimitError`. Each of those runs retries
 the whole page through `retry_with_backoff` with `OPERATION_RETRY_CONFIG`
 (3 attempts), and a `RateLimitError` waits at least `RATE_LIMIT_RETRY_DELAY_S`
 (30 s) before the next attempt. `team` also spaces its pages by
-`--request-delay` (`RequestPacer`). Only the document is checked there: a 429
-on a request inside one of these pages is not recorded as one.
-
-Known gap: the live-now listing. `scrape_live` loads it with a bare `goto`
-and checks no status, so a refused listing parses to no rows, logs "No live
-matches found on the live-now listing." and `live` exits 0 with "No live
-matches found right now." A `live --match-link` run skips the listing and is
-covered by the match-page check above.
+`--request-delay` (`RequestPacer`). Only the document is checked there, and on
+a profile the Feed tab's AJAX (`/proxy/ajax-communityFeed/profile/...`), whose
+429 raises `RateLimitError` instead of storing the profile with no
+predictions. A 429 on any other request inside these pages is not recorded as
+one.
 
 ### References
 
 - `core/base_scraper.py` — `_scrape_match_data`, the response listener.
 - `core/browser/session.py`: `open_page`, `raise_if_rate_limited` (also called
-  on the historic and upcoming listing documents).
-- `core/odds_portal_scraper.py`: the listing checks in `collect_historic_links`
-  and `collect_upcoming_links`; `scrape_live`, the unchecked live-now load.
+  on the listing documents and on the pages of the historic walk).
+- `core/odds_portal_scraper.py`: the listing checks in `collect_historic_links`,
+  `_collect_match_links` (the walk's pages), `collect_upcoming_links` and
+  `scrape_live`.
+- `core/community/user_profile_scraper.py`: the Feed AJAX check.
 - `core/retry.py` — the rate-limit delay in `retry_with_backoff`.
 - `core/retry.py`: `OPERATION_RETRY_CONFIG` and `RequestPacer`, for the
   community and team runs.

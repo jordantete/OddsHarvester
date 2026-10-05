@@ -9,6 +9,7 @@ from oddsharvester.core.community.user_profile_scraper import UserProfileScraper
 from oddsharvester.core.exceptions import RateLimitError
 
 _PUBLIC_HTML = profile_page()
+_FEED_URL = "https://www.oddsportal.com/proxy/ajax-communityFeed/profile/58920901/1790665730/"
 
 
 def _manager_with_html(html):
@@ -70,3 +71,53 @@ async def test_run_user_profile_raises_a_rate_limit_that_outlasts_the_retries(ca
 
     assert "User-profile scrape failed after 3 attempts: rate limited by OddsPortal" in caplog.text
     manager.cleanup.assert_awaited_once()
+
+
+def _feed_answering(manager, *responses):
+    """Clicking the Feed tab delivers `responses` to the page's response listeners, then shows no row."""
+    page = manager.page
+    listeners = []
+    page.on = MagicMock(side_effect=lambda event, handler: listeners.append(handler))
+    page.remove_listener = MagicMock(side_effect=lambda event, handler: listeners.remove(handler))
+
+    async def click():
+        for response in responses:
+            for listener in list(listeners):
+                listener(response)
+
+    feed_tab = MagicMock(text_content=AsyncMock(return_value="Feed"), click=AsyncMock(side_effect=click))
+    page.query_selector_all = AsyncMock(return_value=[feed_tab])
+    page.wait_for_selector = AsyncMock(side_effect=[None, TimeoutError("no prediction row")])
+    return listeners
+
+
+async def test_a_refused_profile_feed_raises_rate_limit_error():
+    """A 429 on the Feed AJAX must not store the profile with no predictions (gotchas §23)."""
+    manager = _manager_with_html(_PUBLIC_HTML)
+    listeners = _feed_answering(manager, MagicMock(status=429, url=_FEED_URL))
+    scraper = UserProfileScraper(manager, MagicMock(dismiss=AsyncMock()))
+
+    with pytest.raises(RateLimitError, match=f"HTTP 429 on the profile feed {_FEED_URL}") as excinfo:
+        await scraper.scrape("BLAPRO")
+
+    assert excinfo.value.url == _FEED_URL
+    assert listeners == [], "the listener is removed once the feed is read"
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        MagicMock(status=200, url=_FEED_URL),
+        MagicMock(status=429, url="https://www.oddsportal.com/res/public/images/logo.png"),
+    ],
+    ids=["feed answered", "429 on another request"],
+)
+async def test_a_profile_feed_without_rows_keeps_the_profile(response):
+    manager = _manager_with_html(_PUBLIC_HTML)
+    _feed_answering(manager, response)
+    scraper = UserProfileScraper(manager, MagicMock(dismiss=AsyncMock()))
+
+    record = await scraper.scrape("BLAPRO")
+
+    assert record["username"] == "BLAPRO"
+    assert record["predictions"] == []

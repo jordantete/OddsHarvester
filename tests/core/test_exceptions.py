@@ -9,6 +9,7 @@ from oddsharvester.core.exceptions import (
     ScraperError,
 )
 from oddsharvester.core.scrape_result import ErrorType
+from oddsharvester.utils.constants import RATE_LIMIT_RETRY_DELAY_S
 
 
 class TestScraperError:
@@ -59,10 +60,10 @@ class TestRateLimitError:
         assert error.retry_after == 120
         assert error.is_retryable is True
 
-    def test_rate_limit_error_default_retry_after(self):
-        """Test default retry_after value."""
+    def test_rate_limit_error_waits_the_rate_limit_delay_by_default(self):
+        """A caller that gives no retry_after gets the delay every raise in the scraper passes."""
         error = RateLimitError("429", url="https://example.com")
-        assert error.retry_after == 60
+        assert error.retry_after == RATE_LIMIT_RETRY_DELAY_S
 
 
 class TestPageNotFoundError:

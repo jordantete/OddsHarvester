@@ -6,6 +6,7 @@ different types of scraping failures and enable targeted error handling.
 """
 
 from oddsharvester.core.scrape_result import ErrorType
+from oddsharvester.utils.constants import RATE_LIMIT_RETRY_DELAY_S
 
 
 class ScraperError(Exception):
@@ -50,7 +51,7 @@ class RateLimitError(ScraperError):
     These errors are retryable after waiting.
     """
 
-    def __init__(self, message: str, url: str, retry_after: float = 60):
+    def __init__(self, message: str, url: str, retry_after: float = RATE_LIMIT_RETRY_DELAY_S):
         super().__init__(message, url, is_retryable=True, error_type=ErrorType.RATE_LIMITED)
         self.retry_after = retry_after
 
