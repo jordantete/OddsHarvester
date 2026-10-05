@@ -99,7 +99,10 @@ class PlaywrightManager:
         proxy_manager=None,
     ):
         """
-        Start Playwright, launch Chromium, open one context per proxy and a page on the first context.
+        Start Playwright, launch Chromium, open the contexts and a page on the first one.
+
+        With no proxy manager there is one context, without a proxy; with one proxy, one context that uses the
+        launch proxy; with several, one context per proxy, the first one being the default.
 
         Args:
             headless (bool): Whether to start the browser in headless mode.
@@ -284,6 +287,7 @@ class PlaywrightManager:
         """Close the page, each context, the browser and Playwright, one failure skipping none of the others.
 
         A context writes its HAR recording when it closes, so it must be closed even when the page close failed.
+        The handles are dropped afterwards, so a second call closes nothing.
         """
         self.logger.info("Cleaning up Playwright resources...")
         steps = []
@@ -299,4 +303,9 @@ class PlaywrightManager:
                 await close()
             except Exception as e:
                 self.logger.warning(f"Could not close the {name}: {e}")
+        self.page = None
+        self.context = None
+        self.contexts = {}
+        self.browser = None
+        self.playwright = None
         self.logger.info("Playwright resources cleanup complete.")
