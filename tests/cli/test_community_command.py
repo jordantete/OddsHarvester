@@ -88,7 +88,8 @@ def test_community_match_url_mode_dispatches_and_exits_zero(mock_run, mock_store
 
 
 @patch("oddsharvester.cli.commands.community.run_match_community", new_callable=AsyncMock)
-def test_community_match_url_mode_exits_one_when_no_markets(mock_run):
+def test_community_match_url_mode_exits_one_when_no_markets(mock_run, caplog):
+    """The message names what the page shows, not a cause: a finished match can keep its votes (gotchas §13)."""
     empty_rec = {"mode": "match", "match_url": "u", "markets": []}
     mock_run.return_value = empty_rec
 
@@ -97,6 +98,7 @@ def test_community_match_url_mode_exits_one_when_no_markets(mock_run):
     )
 
     assert result.exit_code == 1
+    assert "No community vote data for this match: its page shows no vote row." in caplog.text
 
 
 @patch("oddsharvester.cli.commands.community.run_match_community", new_callable=AsyncMock)

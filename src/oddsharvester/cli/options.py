@@ -189,6 +189,8 @@ def common_options(func):
         type=SPORT,
         required=True,
         envvar="OH_SPORT",
+        # Read first: the --league, --market and --period validators check their value against it.
+        is_eager=True,
         help="Sport to scrape (football, tennis, basketball, etc.).",
     )
     @click.option(

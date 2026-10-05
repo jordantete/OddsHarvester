@@ -46,7 +46,7 @@ class MatchCommunityScraper:
         )
         record["scraped_at"] = datetime.now(UTC).isoformat()
         if not record["markets"]:
-            logger.warning("No community vote data for %s (finished match or no votes yet).", match_url)
+            logger.warning("No community vote data for %s: the page shows no vote row.", match_url)
         else:
             logger.info("Parsed %d community market(s) for %s", len(record["markets"]), match_url)
         return record

@@ -207,6 +207,43 @@ class TestHistoricCommand:
         assert mock_run_scrape.called
 
 
+class TestSportIsReadFirst:
+    """--sport is read before the options whose validators need it, whatever the argument order."""
+
+    @pytest.mark.parametrize(
+        ("args", "message"),
+        [
+            (
+                ["upcoming", "--period", "1st_quarter", "-s", "football", "-d", FUTURE_DATE],
+                "Invalid period '1st_quarter' for sport 'football'",
+            ),
+            (["upcoming", "-m", "home_away", "-s", "football", "-d", FUTURE_DATE], "Invalid market(s) for football"),
+            (["historic", "-l", "nba", "-s", "football", "--season", "2024-2025"], "Invalid league(s) for football"),
+        ],
+        ids=["period", "market", "league"],
+    )
+    def test_an_option_typed_before_sport_is_still_validated(self, runner, mock_run_scrape, args, message):
+        result = runner.invoke(cli, args)
+
+        assert result.exit_code == 2, result.output
+        assert message in result.output
+        mock_run_scrape.assert_not_awaited()
+
+    def test_a_sport_from_its_variable_still_validates_the_period(self, runner, mock_run_scrape):
+        result = runner.invoke(
+            cli, ["upcoming", "--period", "1st_quarter", "-d", FUTURE_DATE], env={"OH_SPORT": "football"}
+        )
+
+        assert result.exit_code == 2, result.output
+        assert "Invalid period '1st_quarter' for sport 'football'" in result.output
+
+    def test_help_needs_no_sport(self, runner):
+        result = runner.invoke(cli, ["live", "--period", "full_time", "--help"])
+
+        assert result.exit_code == 0, result.output
+        assert "--sport" in result.output
+
+
 class TestCommonOptions:
     """Test common options across commands."""
 

@@ -102,11 +102,12 @@ async def test_scrape_reads_the_kickoff_in_the_browser_zone():
     assert rec["kickoff"] == "Sunday, 04 Jan 2026, 17:30"
 
 
-async def test_scrape_non_hydrated_page_returns_empty_markets():
+async def test_scrape_non_hydrated_page_returns_empty_markets(caplog):
     manager = _manager_with_page("<html><body><h1>A - B</h1></body></html>")
     scraper = MatchCommunityScraper(manager, MagicMock(dismiss=AsyncMock()))
     rec = await scraper.scrape("https://www.oddsportal.com/football/h2h/a-x/b-y/")
     assert rec["markets"] == []
+    assert "the page shows no vote row" in caplog.text
 
 
 async def test_run_match_community_stamps_scraped_at_and_cleans_up():

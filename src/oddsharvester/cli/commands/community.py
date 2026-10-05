@@ -44,8 +44,8 @@ def community(ctx, **kwargs):
     storage = kwargs["storage"]
     storage_format = kwargs["storage_format"]
 
-    modes = [("--sport", sport), ("--user", username), ("--match-url", match_url)]
-    chosen = [name for name, value in modes if value]
+    flags = [("--sport", sport), ("--user", username), ("--match-url", match_url)]
+    chosen = [name for name, value in flags if value]
     if len(chosen) != 1:
         raise click.UsageError("Provide exactly one of --sport, --user or --match-url.")
 
@@ -94,7 +94,7 @@ def community(ctx, **kwargs):
                 storage,
                 storage_format,
                 f"Successfully scraped {len(record['markets'])} community markets for the match.",
-                "No community vote data for this match (finished match or empty).",
+                "No community vote data for this match: its page shows no vote row.",
             )
     except Exception as e:
         logger.error(f"Error during community scraping: {e}", exc_info=True)
