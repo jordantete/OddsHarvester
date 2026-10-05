@@ -453,6 +453,13 @@ Quick checks (in order):
 - For new Playwright/browser flags, add them to **both** local and Docker
   arg lists. The Docker list has been the source of multiple regressions
   because it lags behind local.
+- A feature to disable goes into `DISABLE_FEATURES_ARG` (`utils/constants.py`),
+  never into a second `--disable-features` switch: Chromium reads only the
+  last one, and Playwright passes its own list first, so ours repeats it.
+  Until 2026-10 ours dropped Playwright's list (`ThirdPartyStoragePartitioning`
+  came back on). After a Playwright bump, the offline test
+  `tests/integration/test_browser_fingerprint.py` names any feature of its
+  list that ours lacks.
 - When a user reports "scraping returns 0 results", request the output of
   `--no-headless` before assuming a parsing bug.
 - Treat anti-bot fixes as urgent: a silent 0-results scrape that succeeds
