@@ -10,7 +10,7 @@ OddsHarvester is a Python web scraper that extracts sports betting odds from odd
 
 **`docs/agentic-gotchas.md`** documents recurring OddsPortal-specific traps that are not deducible from the code alone — stale/phantom SSR data, silent truncation by client-side rendering (pagination ellipsis, lazy-load, URL conventions), per-bookmaker data format variation, league sponsor renames, CLI normalization layering, and anti-bot detection symptoms. Read it before:
 
-- Adding or modifying any DOM/JSON parsing in `base_scraper.py` or `market_extraction/`
+- Adding or modifying any DOM/JSON parsing in `base_scraper.py`, `listing.py`, `match_details.py` or `market_extraction/`
 - Iterating over rendered DOM collections (pagination, listings, scroll, market dropdowns)
 - Parsing or extracting bookmaker odds, names, or any per-row attribute
 - Adding a new league or modifying `sport_league_constants.py` / `league_aliases.py`
@@ -95,8 +95,9 @@ Four-layer flow: `CLI (cli/) → Core (core/) → Data (utils/) → Storage (sto
 
 - `scraper_app.py` orchestrates browser + scraper + storage
 - `odds_portal_scraper.py` navigates pages and coordinates per-match scraping
+- `base_scraper.py`: `BaseScraper`, which `OddsPortalScraper` extends: the listing walks and the per-match scrape. `listing.py` parses listing pages (date headers, a row's status and kickoff), `match_details.py` a match page (header, live state, JSON-LD venue)
 - `playwright_manager.py` owns browser lifecycle (reads `ODDSHARVESTER_HAR_REPLAY` / `ODDSHARVESTER_HAR_RECORD`)
-- `browser/`: one module per page concern: `cookies` (`CookieDismisser`), `hydration` (`hydrate_match_view`), `market_navigation` (`MarketTabNavigator`, `switch_view`), `pagination` (`PaginationWalker`), `scrolling` (`PageScroller`), `selection` (`SelectionManager`, `PeriodSelector`), `session` (`browser_session`, `open_page`, `raise_if_rate_limited`), `view_data` (the view data hook), `waits` (capped waits)
+- `browser/`: one module per page concern: `cookies` (`CookieDismisser`), `hydration` (`hydrate_match_view`), `market_navigation` (`MarketTabNavigator`, `switch_view`), `pagination` (`PaginationWalker`), `scrolling` (`PageScroller`), `selection` (`SelectionManager`, `PeriodSelector`), `session` (`browser_session`, `open_page`, `raise_if_rate_limited`), `view_data` (the view data hook), `waits` (capped waits), `warm_up` (`set_odds_format`, `warm_up_page`)
 - `community/`: the three `community` modes (top predictions, user profile, match votes), each a scraper and a pure parser, plus the row helpers they share
 - `team/`: the `team` command's scraper and team page parser
 - `odds_portal_market_extractor.py` + `market_extraction/` — odds extraction, submarket grouping, odds history, navigation

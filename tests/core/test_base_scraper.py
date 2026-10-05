@@ -11,6 +11,7 @@ from tests.dom_builders import date_header, listing_row, live_block, live_sectio
 
 from oddsharvester.core.base_scraper import BaseScraper
 from oddsharvester.core.browser.waits import SIGNAL_POLL_MS
+from oddsharvester.core.browser.warm_up import _ODDS_FORMAT_SHOWN_JS
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
@@ -184,7 +185,7 @@ async def test_set_odds_format_waits_for_its_options_then_for_the_chosen_label(s
     page_mock.wait_for_selector.assert_awaited_with(_FORMAT_OPTIONS, state="visible", timeout=ODDS_FORMAT_WAIT_MS)
     decimal.click.assert_awaited_once()
     page_mock.wait_for_function.assert_awaited_once_with(
-        BaseScraper._ODDS_FORMAT_SHOWN_JS, arg="Decimal Odds", timeout=ODDS_FORMAT_WAIT_MS, polling=SIGNAL_POLL_MS
+        _ODDS_FORMAT_SHOWN_JS, arg="Decimal Odds", timeout=ODDS_FORMAT_WAIT_MS, polling=SIGNAL_POLL_MS
     )
     page_mock.wait_for_timeout.assert_not_awaited()
 
@@ -1051,6 +1052,21 @@ async def test_set_odds_format_default_logs_a_missing_format_without_raising(set
         await mocks["scraper"].set_odds_format(page=mocks["page_mock"])
 
     assert "'Decimal Odds' not found" in caplog.text
+
+
+async def test_set_odds_format_logs_on_the_scraper_logger(setup_base_scraper_mocks, caplog):
+    """The console format prints the logger name, so the odds format lines keep the scraper's."""
+    mocks = setup_base_scraper_mocks
+    _odds_dropdown(mocks["page_mock"], "Decimal Odds", [])
+
+    with caplog.at_level(logging.INFO):
+        await mocks["scraper"].set_odds_format(page=mocks["page_mock"])
+
+    assert [(record.name, record.getMessage()) for record in caplog.records] == [
+        ("BaseScraper", "Setting odds format: Decimal Odds"),
+        ("BaseScraper", "Current odds format detected: Decimal Odds"),
+        ("BaseScraper", "Odds format is already set to 'Decimal Odds'. Skipping."),
+    ]
 
 
 async def test_the_warm_up_accepts_the_cookie_banner_then_sets_the_odds_format(setup_base_scraper_mocks):

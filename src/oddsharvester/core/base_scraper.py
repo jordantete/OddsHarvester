@@ -7,8 +7,9 @@ from typing import Any
 from urllib.parse import urldefrag, urlsplit
 
 from bs4 import BeautifulSoup
-from playwright.async_api import Page, TimeoutError
+from playwright.async_api import Page
 
+from oddsharvester.core.browser import warm_up
 from oddsharvester.core.browser.cookies import CookieDismisser
 from oddsharvester.core.browser.hydration import dismiss_login_modal, hydrate_match_view
 from oddsharvester.core.browser.pagination import PaginationWalker
@@ -17,7 +18,7 @@ from oddsharvester.core.browser.selection import (
     BOOKIES_FILTER_STRATEGY,
     SelectionManager,
 )
-from oddsharvester.core.browser.waits import wait_for_element, wait_for_signal
+from oddsharvester.core.browser.waits import wait_for_signal
 from oddsharvester.core.exceptions import H2HFragmentResolutionError, MarketDataError, MatchContentError, RateLimitError
 from oddsharvester.core.listing import (
     _is_league_link,
@@ -49,8 +50,6 @@ from oddsharvester.utils.constants import (
     MATCH_RETRY_MAX_ATTEMPTS,
     MATCH_RETRY_MAX_DELAY,
     NAVIGATION_TIMEOUT_MS,
-    ODDS_FORMAT_SELECTOR_TIMEOUT_MS,
-    ODDS_FORMAT_WAIT_MS,
     ODDSPORTAL_BASE_URL,
     PROXY_WARM_UP_ATTEMPTS,
     RATE_LIMIT_RETRY_DELAY_S,
@@ -105,80 +104,11 @@ class BaseScraper:
         self._warmed_proxy_keys: set[str] = set()
         self.pagination_walker = PaginationWalker()
 
-    # The odds format button (the first button whose text holds 'Odds') reads the label.
-    _ODDS_FORMAT_SHOWN_JS = """
-    (label) => {
-        const button = Array.from(document.querySelectorAll("button")).find((b) => /odds/i.test(b.textContent || ""));
-        return !!button && button.innerText.trim() === label;
-    }
-    """
-
     async def set_odds_format(
         self, page: Page, odds_format: OddsFormat = OddsFormat.DECIMAL_ODDS, strict: bool = False
     ) -> None:
-        """
-        Sets the odds format on the page.
-
-        Args:
-            page (Page): The Playwright page instance.
-            odds_format (OddsFormat): The desired odds format.
-            strict (bool): Raise instead of logging when the format cannot be set: a timeout, any other
-                error, or the format missing from the dropdown. Only the proxy warm-up sets it.
-        """
-        try:
-            self.logger.info(f"Setting odds format: {odds_format.value}")
-            # Text-based selector: OddsPortal's React build periodically reshuffles
-            # Tailwind utility classes on this control (issue #68: the old
-            # `div.group > button.gap-2` stopped matching when it became
-            # `button.flex gap-3`). The button label is always the current odds
-            # format ("Decimal Odds", "Fractional Odds", ...), so matching on the
-            # "Odds" text survives class refactors. Verified live 2026-05-15.
-            button_selector = "button:has-text('Odds')"
-            await page.wait_for_selector(button_selector, state="attached", timeout=ODDS_FORMAT_SELECTOR_TIMEOUT_MS)
-            dropdown_button = await page.query_selector(button_selector)
-
-            # Check if the desired format is already selected
-            current_format = await dropdown_button.inner_text()
-            self.logger.info(f"Current odds format detected: {current_format}")
-
-            if current_format == odds_format.value:
-                self.logger.info(f"Odds format is already set to '{odds_format.value}'. Skipping.")
-                return
-
-            await dropdown_button.click()
-            format_option_selector = "div.group > div.dropdown-content > ul > li > a"
-            await wait_for_element(page, format_option_selector, ODDS_FORMAT_WAIT_MS, "odds format options")
-            format_options = await page.query_selector_all(format_option_selector)
-
-            for option in format_options:
-                option_text = await option.inner_text()
-
-                if odds_format.value.lower() in option_text.lower():
-                    self.logger.info(f"Selecting odds format: {option_text}")
-                    await option.click()
-                    await wait_for_signal(
-                        page,
-                        self._ODDS_FORMAT_SHOWN_JS,
-                        ODDS_FORMAT_WAIT_MS,
-                        f"'{odds_format.value}' on the odds format button",
-                        arg=odds_format.value,
-                    )
-                    self.logger.info(f"Odds format changed to '{odds_format.value}'.")
-                    return
-
-            if strict:
-                raise ValueError(f"Desired odds format '{odds_format.value}' not found in dropdown options.")
-            self.logger.warning(f"Desired odds format '{odds_format.value}' not found in dropdown options.")
-
-        except TimeoutError:
-            if strict:
-                raise
-            self.logger.error("Timeout while setting odds format. Dropdown may not have loaded.")
-
-        except Exception as e:
-            if strict:
-                raise
-            self.logger.error(f"Error while setting odds format: {e}", exc_info=True)
+        """Set the odds format on the page (`warm_up.set_odds_format`), logging on this scraper's logger."""
+        await warm_up.set_odds_format(page, self.logger, odds_format=odds_format, strict=strict)
 
     async def extract_match_rows(
         self,
@@ -415,24 +345,10 @@ class BaseScraper:
     async def _warm_up_page(
         self, page: Page, home_timeout_ms: int | None = None, strict_on_canonical_host: bool = False
     ) -> None:
-        """Accept the cookie banner, then set decimal odds; both are per-context state (gotchas §11).
-
-        Args:
-            page (Page): The page to warm up, already on an OddsPortal page unless `home_timeout_ms` is given.
-            home_timeout_ms (int | None): Load the run's home page first (`--base-url`, else www.oddsportal.com),
-                within this timeout.
-            strict_on_canonical_host (bool): Raise when the odds format cannot be set on a page that landed on
-                www.oddsportal.com. A proxy can be geo-redirected to a localized mirror even when the canonical
-                domain was requested, and a mirror's localized labels defeat the English match (gotchas §7), so
-                strictness follows the page's actual host.
-        """
-        if home_timeout_ms is not None:
-            await page.goto(
-                self.base_url or ODDSPORTAL_BASE_URL, timeout=home_timeout_ms, wait_until="domcontentloaded"
-            )
-        await self.cookie_dismisser.dismiss(page=page)
-        strict = strict_on_canonical_host and urlsplit(page.url).hostname == urlsplit(ODDSPORTAL_BASE_URL).hostname
-        await self.set_odds_format(page=page, strict=strict)
+        """Accept the cookie banner, then set decimal odds through `self.set_odds_format` (`warm_up.warm_up_page`)."""
+        await warm_up.warm_up_page(
+            page, self.cookie_dismisser, self.set_odds_format, self.base_url, home_timeout_ms, strict_on_canonical_host
+        )
 
     async def _warm_proxy_contexts(self):
         """Warm each non-default proxy context once.

@@ -11,4 +11,5 @@ One module per page concern:
   raise_if_rate_limited turns a 429 answer into RateLimitError
 - view_data: what the data a match view rendered says about its market and period
 - waits: capped waits on page signals
+- warm_up: set_odds_format picks the odds format; warm_up_page accepts the cookie banner, then sets decimal odds
 """
