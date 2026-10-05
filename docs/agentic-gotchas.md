@@ -1434,9 +1434,9 @@ the captured match is over.
 ### References
 
 - `core/url_builder.py`: `get_live_matches_url`, `normalize_inplay_match_url`.
-- `core/base_scraper.py`: `extract_live_match_links`, `_parse_live_info`,
-  `extract_match_odds` (the ended-match drop).
+- `core/base_scraper.py`: `extract_live_match_links`, `extract_match_odds` (the ended-match drop).
 - `core/listing.py`: `_is_league_link`.
+- `core/match_details.py`: `_parse_live_info`.
 - `core/odds_portal_scraper.py`: `scrape_live`.
 - `core/browser/hydration.py`, `market_navigation.py`, `selection.py`: the
   in-play branches.

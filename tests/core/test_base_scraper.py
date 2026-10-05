@@ -4,17 +4,12 @@ import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo
 
-from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError
 import pytest
 from tests.clock import frozen_clock
 from tests.dom_builders import date_header, listing_row, live_block, live_section, match_header, page, trap_row
 
-from oddsharvester.core.base_scraper import (
-    BaseScraper,
-    _history_reference,
-    _parse_live_info,
-)
+from oddsharvester.core.base_scraper import BaseScraper
 from oddsharvester.core.browser.waits import SIGNAL_POLL_MS
 from oddsharvester.core.odds_portal_market_extractor import OddsPortalMarketExtractor
 from oddsharvester.core.odds_portal_scraper import OddsPortalScraper
@@ -542,7 +537,6 @@ async def test_extract_match_links_uses_playwright_manager_timezone(setup_base_s
 
 APRIL_NOON = datetime(2026, 4, 18, 12, 0, tzinfo=UTC)
 SUMMER_NOW = datetime(2026, 9, 30, 12, 0, tzinfo=UTC)
-WINTER_NOW = datetime(2027, 1, 15, 12, 0, tzinfo=UTC)
 
 
 def _page_clock(moment: datetime):
@@ -1426,206 +1420,6 @@ async def test_extract_match_odds_no_delay_when_zero(mock_sleep, setup_base_scra
     assert len(result.success) == 2
 
 
-def _make_date_html(date_str: str = "06 Aug 2022,", time_str: str = "11:30") -> str:
-    return match_header(weekday="Saturday,", date=date_str, time=time_str)
-
-
-def test_parse_match_date_from_dom_parses_utc_nominal(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    setup_base_scraper_mocks["playwright_manager_mock"].timezone_id = "UTC"
-    soup = BeautifulSoup(_make_date_html(), "html.parser")
-    assert scraper._parse_match_date_from_dom(soup) == "2022-08-06 11:30:00 UTC"
-
-
-def test_parse_match_date_from_dom_converts_local_tz_to_utc(setup_base_scraper_mocks):
-    # Scraped in summer, Brussels shows every time at UTC+2, so 13:30 Brussels = 11:30 UTC
-    scraper = setup_base_scraper_mocks["scraper"]
-    setup_base_scraper_mocks["playwright_manager_mock"].timezone_id = "Europe/Brussels"
-    soup = BeautifulSoup(_make_date_html(time_str="13:30"), "html.parser")
-    with _page_clock(SUMMER_NOW):
-        assert scraper._parse_match_date_from_dom(soup) == "2022-08-06 11:30:00 UTC"
-
-
-def test_parse_match_date_from_dom_reads_a_january_date_at_the_summer_page_offset(setup_base_scraper_mocks):
-    """Djokovic - Sinner, 26 Jan 2024 at 03:45 UTC, shows 04:45 when scraped in BST (gotchas §10)."""
-    scraper = setup_base_scraper_mocks["scraper"]
-    setup_base_scraper_mocks["playwright_manager_mock"].timezone_id = "Europe/London"
-    soup = BeautifulSoup(_make_date_html(date_str="26 Jan 2024,", time_str="04:45"), "html.parser")
-    with _page_clock(SUMMER_NOW):
-        assert scraper._parse_match_date_from_dom(soup) == "2024-01-26 03:45:00 UTC"
-
-
-def test_parse_match_date_from_dom_reads_a_july_date_at_the_winter_page_offset(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    setup_base_scraper_mocks["playwright_manager_mock"].timezone_id = "Europe/London"
-    soup = BeautifulSoup(_make_date_html(date_str="04 Jul 2026,", time_str="19:00"), "html.parser")
-    with _page_clock(WINTER_NOW):
-        assert scraper._parse_match_date_from_dom(soup) == "2026-07-04 19:00:00 UTC"
-
-
-@pytest.mark.parametrize("now", [SUMMER_NOW, WINTER_NOW])
-def test_parse_match_date_from_dom_in_utc_does_not_depend_on_the_season(setup_base_scraper_mocks, now):
-    scraper = setup_base_scraper_mocks["scraper"]
-    setup_base_scraper_mocks["playwright_manager_mock"].timezone_id = "UTC"
-    soup = BeautifulSoup(_make_date_html(date_str="26 Jan 2024,", time_str="03:45"), "html.parser")
-    with _page_clock(now):
-        assert scraper._parse_match_date_from_dom(soup) == "2024-01-26 03:45:00 UTC"
-
-
-def test_parse_match_date_from_dom_returns_none_when_div_missing(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    soup = BeautifulSoup("<html><body></body></html>", "html.parser")
-    assert scraper._parse_match_date_from_dom(soup) is None
-
-
-def test_parse_match_date_from_dom_returns_none_on_unparseable_text(setup_base_scraper_mocks, caplog):
-    scraper = setup_base_scraper_mocks["scraper"]
-    setup_base_scraper_mocks["playwright_manager_mock"].timezone_id = "UTC"
-    soup = BeautifulSoup(_make_date_html(date_str="32 Aug 2022,", time_str="??:??"), "html.parser")
-    with caplog.at_level(logging.WARNING):
-        result = scraper._parse_match_date_from_dom(soup)
-    assert result is None
-    assert any("DOM parse failed for match_date" in rec.message for rec in caplog.records)
-
-
-def _make_teams_html(home: str | None = "Fulham", away: str | None = "Liverpool") -> str:
-    return match_header(home=home if home is not None else "", away=away if away is not None else "")
-
-
-def test_parse_teams_from_dom_returns_both_when_present(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    soup = BeautifulSoup(_make_teams_html(), "html.parser")
-    assert scraper._parse_teams_from_dom(soup) == ("Fulham", "Liverpool")
-
-
-def test_parse_teams_from_dom_returns_none_pair_when_home_missing(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    soup = BeautifulSoup(_make_teams_html(home=None), "html.parser")
-    assert scraper._parse_teams_from_dom(soup) == (None, None)
-
-
-def test_parse_teams_from_dom_returns_none_pair_when_away_missing(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    soup = BeautifulSoup(_make_teams_html(away=None), "html.parser")
-    assert scraper._parse_teams_from_dom(soup) == (None, None)
-
-
-def test_parse_teams_from_dom_returns_none_pair_when_both_missing(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    soup = BeautifulSoup("<html><body></body></html>", "html.parser")
-    assert scraper._parse_teams_from_dom(soup) == (None, None)
-
-
-def _make_league_html(text: str | None = "Premier League 2024/2025", with_link: bool = True) -> str:
-    if not with_link:
-        return page("<ul></ul>")
-    return match_header(
-        breadcrumb=(
-            ("/", "Home"),
-            ("/football/", "Football"),
-            ("/football/england/", "England"),
-            (f"/football/england/{text}/", text),
-        )
-    )
-
-
-def test_parse_league_from_dom_strips_season_suffix(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    soup = BeautifulSoup(_make_league_html("Premier League 2024/2025"), "html.parser")
-    assert scraper._parse_league_from_dom(soup) == "Premier League"
-
-
-def test_parse_league_from_dom_keeps_name_without_suffix(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    soup = BeautifulSoup(_make_league_html("LaLiga"), "html.parser")
-    assert scraper._parse_league_from_dom(soup) == "LaLiga"
-
-
-def test_parse_league_from_dom_handles_multiple_spaces_before_suffix(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    soup = BeautifulSoup(_make_league_html("LaLiga  2019/2020"), "html.parser")
-    assert scraper._parse_league_from_dom(soup) == "LaLiga"
-
-
-def test_parse_league_from_dom_returns_none_when_link_missing(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    soup = BeautifulSoup(_make_league_html(with_link=False), "html.parser")
-    assert scraper._parse_league_from_dom(soup) is None
-
-
-def test_parse_league_from_dom_returns_none_when_breadcrumb_missing(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    soup = BeautifulSoup("<html><body></body></html>", "html.parser")
-    assert scraper._parse_league_from_dom(soup) is None
-
-
-def _make_results_html(score_text: str = "Final result 2:1 (1:0, 1:1)") -> str:
-    return f"""
-    <html><body>
-      <section>
-        <div data-testid="game-time-item"><p>x</p><p>06 Aug 2022,</p><p>11:30</p></div>
-        <div><span>logos</span></div>
-        <div>
-          <div class="flex flex-wrap">{score_text}</div>
-        </div>
-      </section>
-    </body></html>
-    """
-
-
-def test_parse_results_from_dom_extracts_score_and_partial(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    soup = BeautifulSoup(_make_results_html(), "html.parser")
-    home, away, partial = scraper._parse_results_from_dom(soup)
-    assert home == "2"
-    assert away == "1"
-    assert partial == "(1:0, 1:1)"
-
-
-def test_parse_results_from_dom_extracts_score_without_partial(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    soup = BeautifulSoup(_make_results_html(score_text="Final result 4:0"), "html.parser")
-    home, away, partial = scraper._parse_results_from_dom(soup)
-    assert home == "4"
-    assert away == "0"
-    assert partial is None
-
-
-def test_parse_results_from_dom_returns_none_when_pattern_absent(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    soup = BeautifulSoup('<html><body><div data-testid="game-time-item"></div></body></html>', "html.parser")
-    assert scraper._parse_results_from_dom(soup) == (None, None, None)
-
-
-def test_parse_results_from_dom_returns_none_when_game_time_div_missing(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    soup = BeautifulSoup("<html><body><div>Final result 2:1 (1:0, 1:1)</div></body></html>", "html.parser")
-    assert scraper._parse_results_from_dom(soup) == (None, None, None)
-
-
-def test_parse_results_from_dom_normalizes_nbsp_in_partial(setup_base_scraper_mocks):
-    scraper = setup_base_scraper_mocks["scraper"]
-    # OddsPortal renders non-breaking spaces (\xa0) between partial-result tokens.
-    soup = BeautifulSoup(_make_results_html("Final result 2:1 (1:0,\xa01:1)"), "html.parser")
-    home, away, partial = scraper._parse_results_from_dom(soup)
-    assert home == "2"
-    assert away == "1"
-    assert partial == "(1:0, 1:1)"
-
-
-def test_parse_results_from_dom_logs_and_returns_none_on_an_unexpected_error(setup_base_scraper_mocks, caplog):
-    scraper = setup_base_scraper_mocks["scraper"]
-    soup = BeautifulSoup(_make_results_html(), "html.parser")
-
-    with (
-        patch("oddsharvester.core.base_scraper.OddsPortalSelectors.match_date_cell", side_effect=RuntimeError("boom")),
-        caplog.at_level(logging.WARNING),
-    ):
-        assert scraper._parse_results_from_dom(soup) == (None, None, None)
-
-    assert "DOM parse failed for results: boom" in caplog.text
-
-
 async def test_scrape_match_data_propagates_h2h_fragment_error(setup_base_scraper_mocks):
     """The hydration failure must survive the broad handler in _scrape_match_data."""
     from oddsharvester.core.exceptions import H2HFragmentResolutionError
@@ -1791,94 +1585,7 @@ class TestOddsPortalScraperUrlWiring:
         assert captured["base_url"] is None
 
 
-# -- parse live info -------------------------------------------------------
-
 LIVE_INFO_TENNIS_HTML = page(live_block("2nd Set", "1:0", partial="6:4, 0:0"))
-
-LIVE_INFO_FOOTBALL_STYLE_HTML = page(live_block("65'", "2:1"))
-
-
-class TestParseLiveInfo:
-    """Unit tests for the _parse_live_info helper (live scraping support)."""
-
-    def _soup(self, html: str) -> BeautifulSoup:
-        return BeautifulSoup(html, "lxml")
-
-    def test_parses_tennis_header_with_partial_result(self):
-        result = _parse_live_info(self._soup(LIVE_INFO_TENNIS_HTML))
-        assert result == {
-            "live_period": "2nd Set",
-            "live_score_home": 1,
-            "live_score_away": 0,
-            "live_score_raw": "1:0 (6:4, 0:0)",
-        }
-
-    def test_parses_minimal_period_and_score(self):
-        result = _parse_live_info(self._soup(LIVE_INFO_FOOTBALL_STYLE_HTML))
-        assert result == {
-            "live_period": "65'",
-            "live_score_home": 2,
-            "live_score_away": 1,
-            "live_score_raw": "2:1",
-        }
-
-    def test_returns_none_when_live_info_absent(self):
-        assert _parse_live_info(self._soup("<div><p>Finished</p></div>")) is None
-
-    def test_parses_en_dash_score_separator(self):
-        """OddsPortal renders some scores with an en-dash rather than a colon."""
-        result = _parse_live_info(self._soup(page(live_block("HT", "2\u20131"))))
-        assert result == {
-            "live_period": "HT",
-            "live_score_home": 2,
-            "live_score_away": 1,
-            "live_score_raw": "2\u20131",
-        }
-
-    def test_parses_real_football_live_header(self):
-        """Ground truth captured from a live football match on 2026-07-20 15:04.
-
-        Football marks the period as elapsed minutes with an apostrophe, unlike
-        tennis sets or baseball innings, and repeats the running score inside
-        partial-result. Locked in so the shape-based parser cannot regress on it.
-        """
-        html = page(live_block("4'", "1:0", partial="1:0"))
-        assert _parse_live_info(self._soup(html)) == {
-            "live_period": "4'",
-            "live_score_home": 1,
-            "live_score_away": 0,
-            "live_score_raw": "1:0 (1:0)",
-        }
-
-    def test_returns_none_for_finished_match(self):
-        """A finished match keeps its live-info container but shows a terminal marker.
-
-        Verified live 2026-07-20: OddsPortal renders "Final result" (with a
-        non-breaking space) instead of dropping the container, so absence is not
-        the only end-of-match signal.
-        """
-        html = page(live_block("Final\u00a0result", "0:2"))
-        assert _parse_live_info(self._soup(html)) is None
-
-    def test_returns_none_for_finished_match_single_chunk(self):
-        """2026-08 redesign: the persistent live-info can serve the whole terminal
-        text as one chunk ("Final result 1:2 (0:1, 1:1)")."""
-        html = page('<div><p class="result-live"></p>Final result 1:2 (0:1, 1:1)</div>')
-        assert _parse_live_info(self._soup(html)) is None
-
-    def test_normalizes_non_breaking_space_in_period(self):
-        html = page(live_block("1st\u00a0Set", "0:0"))
-        assert _parse_live_info(self._soup(html))["live_period"] == "1st Set"
-
-    def test_missing_score_yields_none_ints_and_keeps_period(self):
-        result = _parse_live_info(self._soup(page('<div><p class="result-live"></p><div>HT</div></div>')))
-        assert result == {
-            "live_period": "HT",
-            "live_score_home": None,
-            "live_score_away": None,
-            "live_score_raw": None,
-        }
-
 
 LIVE_NOW_LISTING_HTML = page(
     live_section(
@@ -2430,6 +2137,44 @@ async def test_extract_match_details_teams_via_participant_name_testid(setup_bas
     assert result["away_team"] == "Arsenal"
 
 
+async def test_extract_match_details_reads_the_match_date_with_the_browser_zone_and_month_names(
+    setup_base_scraper_mocks,
+):
+    """The scraper hands the parser its browser's zone and month names: 18:00 shown in BST is 17:00 UTC."""
+    mocks = setup_base_scraper_mocks
+    mocks["playwright_manager_mock"].timezone_id = "Europe/London"
+    mocks["playwright_manager_mock"].month_name_to_num = {"localized-month-05": 5}
+    mocks["page_mock"].content = AsyncMock(
+        return_value=_make_hydrated_match_html(date_p="24 localized-month-05 2026,", time_p="18:00")
+    )
+
+    with _page_clock(SUMMER_NOW):
+        result = await mocks["scraper"]._extract_match_details(
+            page=mocks["page_mock"], match_link="https://example.test/m#id1"
+        )
+
+    assert result["match_date"] == "2026-05-24 17:00:00 UTC"
+
+
+@pytest.mark.parametrize(
+    ("html", "message"),
+    [
+        (_make_hydrated_match_html(date_p="32 Aug 2022,"), "DOM parse failed for match_date"),
+        ("<html><body></body></html>", "No match landmarks found for"),
+    ],
+    ids=["a parser", "the assembly"],
+)
+async def test_match_page_parsing_logs_on_the_scraper_logger(setup_base_scraper_mocks, caplog, html, message):
+    """The console format prints the logger name, so the match page parsers log on the scraper's logger."""
+    mocks = setup_base_scraper_mocks
+    mocks["page_mock"].content = AsyncMock(return_value=html)
+
+    with caplog.at_level(logging.WARNING):
+        await mocks["scraper"]._extract_match_details(page=mocks["page_mock"], match_link="https://example.test/m#id1")
+
+    assert [record.name for record in caplog.records if record.getMessage().startswith(message)] == ["BaseScraper"]
+
+
 def _match_load_scraper(mocks, order):
     scraper = mocks["scraper"]
     scraper._dismiss_login_modal = AsyncMock(side_effect=lambda page: order.append("dismiss"))
@@ -2638,26 +2383,6 @@ async def test_hydrate_match_view_inplay_nudges_bare_id_on_timeout(setup_base_sc
     payload = args[1] if len(args) >= 2 else kwargs.get("arg")
     assert payload["fragment"] == "niGX35MH"
     assert payload.get("bare") is True
-
-
-def test_parse_match_date_from_dom_uses_browser_month_aliases(setup_base_scraper_mocks):
-    """DOM match dates must support month names supplied by the browser locale."""
-    mocks = setup_base_scraper_mocks
-    scraper = mocks["scraper"]
-    mocks["playwright_manager_mock"].timezone_id = "UTC"
-    mocks["playwright_manager_mock"].month_name_to_num = {
-        "localized-month-09": 9,
-    }
-
-    soup = BeautifulSoup(
-        _make_date_html(
-            date_str="16 localized-month-09 2026,",
-            time_str="18:45",
-        ),
-        "html.parser",
-    )
-
-    assert scraper._parse_match_date_from_dom(soup) == "2026-09-16 18:45:00 UTC"
 
 
 async def test_extract_match_odds_streams_each_success_before_the_run_ends(setup_base_scraper_mocks):
@@ -3148,32 +2873,6 @@ async def test_odds_history_without_a_kickoff_warns_once_per_match(
 
     warnings = [r.message for r in caplog.records if "current year" in r.message]
     assert warnings == [f"No kickoff read on {link}: its odds-history timestamps take the current year."] * expected
-
-
-def test_history_reference_converts_kickoff_to_the_browser_timezone():
-    assert _history_reference("2026-06-04 18:30:00 UTC", "Europe/London") == datetime(2026, 6, 4, 19, 30)
-
-
-def test_history_reference_crosses_new_year_in_the_browser_timezone():
-    assert _history_reference("2025-12-31 23:30:00 UTC", "Asia/Tokyo") == datetime(2026, 1, 1, 8, 30)
-
-
-def test_history_reference_follows_the_london_clock_changes():
-    """Kickoffs on the two 2026 Europe/London clock-change days, either side of the switch."""
-    assert _history_reference("2026-03-29 00:30:00 UTC", "Europe/London") == datetime(2026, 3, 29, 0, 30)
-    assert _history_reference("2026-03-29 14:00:00 UTC", "Europe/London") == datetime(2026, 3, 29, 15, 0)
-    assert _history_reference("2026-10-25 00:30:00 UTC", "Europe/London") == datetime(2026, 10, 25, 1, 30)
-    assert _history_reference("2026-10-25 14:00:00 UTC", "Europe/London") == datetime(2026, 10, 25, 14, 0)
-
-
-def test_history_reference_defaults_to_utc():
-    assert _history_reference("2026-01-04 18:30:00 UTC", None) == datetime(2026, 1, 4, 18, 30)
-    assert _history_reference("2026-01-04 18:30:00 UTC", "Not/AZone") == datetime(2026, 1, 4, 18, 30)
-
-
-def test_history_reference_is_none_without_a_usable_match_date():
-    assert _history_reference(None, "UTC") is None
-    assert _history_reference("not a date", "UTC") is None
 
 
 async def test_extract_match_odds_keeps_results_when_closing_a_tab_fails(setup_base_scraper_mocks):
