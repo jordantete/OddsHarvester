@@ -530,16 +530,29 @@ async def test_get_pagination_info_is_not_capped_by_the_page_limit(scraper, site
     assert await scraper._get_pagination_info(page=await _season_tab(site)) == total
 
 
+def _season_widget_gone_once_scrolled(site, page1_hrefs):
+    """A scroller after which the season tab shows page 1 without its pagination widget."""
+
+    async def scroll(page, **_):
+        if page is site.tabs[0]:
+            page.dom = listing(page1_hrefs)
+        return True
+
+    return scroll
+
+
 async def test_collect_historic_links_fails_a_short_page_below_the_season_widget_s_count(scraper, site):
     """A widget read on the season page keeps the frontier at its count past --max-pages (spec 5c-5c 2.2).
 
-    The walked pages show no widget, so only the season page's read knows the season has 8 pages. A short page 3
-    below that frontier lost rows: it is fetched again, then reported, instead of ending the listing.
+    The season page loses its widget once scrolled and the walked pages show none, so only the floor read before the
+    scroll knows the season has 8 pages. A short page 3 below that frontier lost rows: it is fetched again, then
+    reported, instead of ending the listing.
     """
     page1, page2, page3 = hrefs(1, RESULTS_PAGE_SIZE), hrefs(2, RESULTS_PAGE_SIZE), hrefs(3, 20)
     site.serve(1, listing(page1, widget=list(range(1, 9))), listing(page1))
     site.serve(2, listing(page2))
     site.serve(3, listing(page3))
+    scraper.scroller.scroll_until_loaded = AsyncMock(side_effect=_season_widget_gone_once_scrolled(site, page1))
 
     listing_result = await scraper.collect_historic_links(
         sport="football", league="england-premier-league", season="2024-2025", max_pages=3
@@ -1075,10 +1088,14 @@ async def test_collect_historic_links_closes_the_tab_when_the_season_redirects(s
 
 
 async def test_collect_historic_links_does_not_cap_a_single_entry_widget(scraper, site):
-    """A widget showing one page number sets the floor even past --max-pages, so a short page below it failed."""
+    """A widget showing one page number sets the floor even past --max-pages, so a short page below it failed.
+
+    The season page loses its widget once scrolled, so only the floor read before the scroll knows page 3 exists.
+    """
     page1 = hrefs(1, RESULTS_PAGE_SIZE)
     site.serve(1, listing(page1, widget=[3]), listing(page1))
     site.serve(2, listing(hrefs(2, 20)))
+    scraper.scroller.scroll_until_loaded = AsyncMock(side_effect=_season_widget_gone_once_scrolled(site, page1))
 
     listing_result = await scraper.collect_historic_links(
         sport="football", league="england-premier-league", season="2024-2025", max_pages=2
