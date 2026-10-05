@@ -26,17 +26,13 @@ class TeamScraper:
     def __init__(self, playwright_manager: PlaywrightManager, cookie_dismisser: CookieDismisser):
         self.playwright_manager = playwright_manager
         self.cookie_dismisser = cookie_dismisser
-        self._cookies_dismissed = False
 
     async def scrape(self, team_id: str, base_url: str | None = None) -> dict:
         page = self.playwright_manager.page
         url = rebase_url(f"{ODDSPORTAL_BASE_URL}/{_TEAM_PATH}/{team_id}/", base_url)
         logger.info("Navigating to team page: %s", url)
         await open_page(page, url)
-        if not self._cookies_dismissed:
-            # Once accepted the banner is gone for the whole context, and looking
-            # for it again costs a full selector timeout on every later team.
-            self._cookies_dismissed = await self.cookie_dismisser.dismiss(page)
+        await self.cookie_dismisser.dismiss(page)
 
         record = parse_team_page(await page.content(), team_id=team_id, team_url=url, base_url=base_url)
         record["scraped_at"] = datetime.now(UTC).isoformat()
