@@ -52,13 +52,16 @@ Capture one match fixture, its golden and its HAR, with the capture helper (it n
 uv run python -m tests.integration.helpers.capture \
     --sport football \
     --league premier-league \
-    --match-url "https://www.oddsportal.com/football/h2h/brentford-xYe7DwID/leicester-KrrdAMyI/#xQ77QTN0" \
+    --match-url "https://www.oddsportal.com/football/h2h/<away>-<awayId>/<home>-<homeId>/#<eventId>" \
     --markets "1x2" \
     --period "full_time" \
     --bookies-filter "all" \
-    --match-dir leicester-brentford-xQ77QTN0 \
+    --match-dir <home>-<away>-<eventId> \
     --capture-har
 ```
+
+Run against an existing match directory with the same markets, period and filter, the helper replaces that
+fixture's golden and HAR.
 
 Without `--match-dir`, the directory is named after the URL's last path segment. Captures run the browser in
 `UTC` unless given `--timezone`, the zone the replays run in.
