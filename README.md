@@ -423,7 +423,7 @@ Matches are dispatched round-robin across the proxies; a proxy that fails 3 time
 | -------------------- | -------- | ------------------------------------------------------ | -------------- |
 | `--target-bookmaker` | upcoming, historic, live | Filter odds for a specific bookmaker                   | —              |
 | `--odds-history`     | upcoming, historic, live | Include historical odds movement per match; `live` refuses it | `False`        |
-| `--preview-only`     | upcoming, historic, live | Read the best odds of each submarket line instead of every bookmaker's (faster); `--full-scrape` asks for the full mode | `--full-scrape` |
+| `--preview-only`     | upcoming, historic, live | Read the best odds of each submarket line instead of every bookmaker's (faster); a market without lines, such as 1X2, falls back to the full bookmaker table. `--full-scrape` asks for the full mode | `--full-scrape` |
 | `--bookies-filter`   | upcoming, historic, live | Bookmaker filter: `all`, `classic`, or `crypto`        | `all`          |
 | `--period`           | upcoming, historic, live | Match period (sport-specific: full-time, halves, etc.); `live` accepts only the full-match period | sport default  |
 
