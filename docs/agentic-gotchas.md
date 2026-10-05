@@ -1476,8 +1476,9 @@ successful one carrying no data.
 
 Suspect this whenever the collected count is an exact multiple of a page's worth
 (50 on results pages) while pagination reported more pages than that. Concretely:
-`Final pages to scrape: [1..8]` followed by `Total links found: 50` and
-`Failed pages: 0` is the fingerprint.
+`Pages planned from widget: 8` with `Failed pages: 0` and `Total links found: 50`
+in the walk's summary is the fingerprint (before lot 5c-5c the first line read
+`Final pages to scrape: [1..8]`).
 
 ### The distinction that matters for the fix
 
