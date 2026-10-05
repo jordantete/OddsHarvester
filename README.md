@@ -681,7 +681,8 @@ uv run playwright install chromium   # from source
 ```
 
 On a Linux server, add `--with-deps` to install the system libraries the browser needs too
-(`playwright install --with-deps chromium`).
+(`playwright install --with-deps chromium`). Runs use Playwright's full Chromium build, headless or
+not: an install made with `--only-shell` is not enough.
 
 Verify installation:
 

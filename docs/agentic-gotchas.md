@@ -475,13 +475,20 @@ in `core/playwright_manager.py`), so its version follows the installed
 Playwright and its platform is the host's, like `navigator.platform`;
 `--user-agent` replaces it as given. The locale sets `Accept-Language` and
 `navigator.languages`, `en-US` without `--locale` (the shell sent no
-Accept-Language at all before). `navigator.webdriver` is `false` through
+Accept-Language at all, and full Chromium would follow the host's
+language). `navigator.webdriver` is `false` through
 `--disable-blink-features=AutomationControlled`.
 
-Still visible: `--headless` runs use Playwright's headless shell, which
-names `HeadlessChrome` in `sec-ch-ua` whatever the user agent and has no
-plugins and no `window.chrome`; screen, inner and outer window sizes all
-equal the viewport; WebGL is SwiftShader or absent on a host without a GPU.
+`--headless` runs launch full Chromium in its new headless mode
+(`channel="chromium"`), not Playwright's headless shell, which names
+`HeadlessChrome` in `sec-ch-ua` whatever the user agent and has no plugins
+and no `window.chrome`. The full build takes about 2.2 to 2.7 times the
+shell's memory (summed RSS on macOS, one context: 724 MiB against 270 with
+one page, 980 against 440 with three).
+
+Still visible: `sec-ch-ua` names `Chromium`, not `Google Chrome`; screen,
+inner and outer window sizes all equal the viewport; WebGL is SwiftShader
+or absent on a host without a GPU.
 OddsPortal's first-party scripts read none of these (34 HARs, 2026-10), and
 its rate limit keys on IP and volume (§23).
 

@@ -114,8 +114,9 @@ class PlaywrightManager:
 
             browser_args = PLAYWRIGHT_BROWSER_ARGS_DOCKER if is_running_in_docker() else PLAYWRIGHT_BROWSER_ARGS
             launch_proxy = proxy_manager.launch_proxy() if proxy_manager else None
+            # The headless shell names HeadlessChrome in sec-ch-ua whatever the user agent; full Chromium does not.
             self.browser = await self.playwright.chromium.launch(
-                headless=headless, args=browser_args, proxy=launch_proxy
+                channel="chromium", headless=headless, args=browser_args, proxy=launch_proxy
             )
 
             effective_user_agent = user_agent or await self._browser_user_agent()

@@ -100,3 +100,16 @@ async def test_without_a_locale_the_browser_asks_for_en_us(launch, echo):
 
     assert seen[-1]["accept-language"] == "en-US"
     assert await manager.page.evaluate("navigator.languages") == ["en-US"]
+
+
+async def test_the_client_hints_and_the_plugins_are_a_headed_chromiums(launch, echo):
+    """The headless shell names HeadlessChrome in sec-ch-ua whatever the user agent, and has no plugins."""
+    url, seen = echo
+    manager = await launch()
+
+    await manager.page.goto(url)
+
+    major = manager.browser.version.split(".")[0]
+    assert "HeadlessChrome" not in seen[-1]["sec-ch-ua"]
+    assert f'"Chromium";v="{major}"' in seen[-1]["sec-ch-ua"]
+    assert await manager.page.evaluate("typeof navigator.plugins[0]") == "object"

@@ -197,6 +197,29 @@ async def test_every_context_records_the_data_its_views_render(mock_playwright):
     assert scripts.count(VIEW_DATA_HOOK_JS) == 2
 
 
+@pytest.mark.parametrize("headless", [True, False], ids=["headless", "headed"])
+async def test_the_full_chromium_build_runs_headless_or_headed(mock_playwright, headless):
+    pm = PlaywrightManager()
+    await pm.initialize(headless=headless)
+
+    launch_kwargs = mock_playwright["playwright"].chromium.launch.await_args.kwargs
+    assert launch_kwargs["channel"] == "chromium"
+    assert launch_kwargs["headless"] is headless
+
+
+async def test_a_missing_browser_build_fails_the_run_with_playwrights_message(mock_playwright, caplog):
+    """No fallback to another build: Playwright's message names the install command to run."""
+    message = "BrowserType.launch: Executable doesn't exist at /ms-playwright/chromium-1200/chrome-linux/chrome"
+    mock_playwright["playwright"].chromium.launch = AsyncMock(side_effect=Exception(message))
+    pm = PlaywrightManager()
+
+    with caplog.at_level(logging.ERROR), pytest.raises(Exception, match="Executable doesn't exist"):
+        await pm.initialize(headless=True)
+
+    mock_playwright["playwright"].chromium.launch.assert_awaited_once()
+    assert f"Failed to initialize Playwright: {message}" in caplog.messages
+
+
 async def test_each_context_gets_the_view_data_hook_and_no_other_script(mock_playwright):
     """No script patches navigator: webdriver, plugins and languages are the browser's own."""
     proxy_manager = ProxyManager(proxy_urls=["http://a.example.com:1", "http://b.example.com:2"])
