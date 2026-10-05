@@ -1304,7 +1304,7 @@ scraped nor failed (`extract_match_odds`), so a match that ended between the
 listing and its visit leaves the snapshot.
 
 Text chunks in this container are separated with **non-breaking spaces**
-(`Final result`), so normalize ` ` before comparing. The main score
+(`Final\u00a0result`), so normalize `\u00a0` before comparing. The main score
 uses a colon (`1:0`), but OddsPortal renders scores with an en-dash elsewhere,
 so accept both.
 
