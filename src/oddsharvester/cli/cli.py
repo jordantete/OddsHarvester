@@ -16,11 +16,12 @@ from oddsharvester.utils.setup_logging import setup_logger
 def cli(verbose, quiet):
     """OddsHarvester - Scrape sports betting odds from OddsPortal.
 
-    Use 'upcoming' to scrape upcoming matches or 'historic' for historical data.
+    Five commands: 'upcoming' (matches to come), 'historic' (past seasons), 'live' (matches in play),
+    'community' (community predictions and votes) and 'team' (team pages).
 
-    Examples:
+    Examples (YYYYMMDD stands for a date, today or later):
 
-        oddsharvester upcoming -s football -d 20250201 -m 1x2
+        oddsharvester upcoming -s football -d YYYYMMDD -m 1x2
 
         oddsharvester historic -s football -l england-premier-league --season 2024-2025 -m 1x2
 
