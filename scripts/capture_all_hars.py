@@ -166,6 +166,24 @@ SPECIAL_FIXTURES = (
             "UTC",
         ),
     ),
+    SpecialFixture(
+        kind="listing",
+        har="football/premier-league/historic-listing/historic_listing.har",
+        argv=(
+            "historic",
+            "--sport",
+            "football",
+            "--league",
+            "england-premier-league",
+            "--season",
+            "2024-2025",
+            "--max-pages",
+            "2",
+            "--links-only",
+            "--timezone",
+            "UTC",
+        ),
+    ),
 )
 
 

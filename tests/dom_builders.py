@@ -41,6 +41,17 @@ def date_header(text: str) -> str:
     return f"<div>{text}</div>"
 
 
+def pagination(pages: list[int], current: int = 1) -> str:
+    """The pagination widget under a listing: digit buttons, the current page a <span>, then Next."""
+    items = "".join(f"<span>{n}</span>" if n == current else f"<button>{n}</button>" for n in pages)
+    return f'<div style="display: none;"><nav class="pagination">{items}<button>Next</button></nav></div>'
+
+
+def live_section(league_path: str, rows: str) -> str:
+    """A live-now section: its league breadcrumb followed by the section's rows."""
+    return f'<div><div><a href="{league_path}">League</a></div>{rows}</div>'
+
+
 def match_header(
     home: str = "Home",
     away: str = "Away",

@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError
 import pytest
 from tests.clock import frozen_clock
-from tests.dom_builders import date_header, listing_row, live_block, match_header, page, trap_row
+from tests.dom_builders import date_header, listing_row, live_block, live_section, match_header, page, trap_row
 
 from oddsharvester.core.base_scraper import (
     BaseScraper,
@@ -1988,13 +1988,8 @@ class TestParseLiveInfo:
         }
 
 
-def _live_section(league_path: str, rows: str) -> str:
-    """A live-now section: its league breadcrumb followed by the section's rows."""
-    return f'<div><div><a href="{league_path}">League</a></div>{rows}</div>'
-
-
 LIVE_NOW_LISTING_HTML = page(
-    _live_section(
+    live_section(
         "/tennis/atp-singles/atp-cup/",
         listing_row(
             "/tennis/h2h/janvier-maxime-S4riPNES/kuzmanov-dimitar-WEwUtEGs/inplay-odds/#t0bmQMVh",
@@ -2003,7 +1998,7 @@ LIVE_NOW_LISTING_HTML = page(
             away="Kuzmanov D.",
         ),
     )
-    + _live_section(
+    + live_section(
         "/football/england/premier-league/",
         listing_row(
             "/football/h2h/arsenal-chelsea-xYz12345/inplay-odds/#aB3dE6fG",
@@ -2055,7 +2050,7 @@ async def test_extract_live_match_links_skips_the_anti_bot_trap_row(setup_base_s
     page_mock = mocks["page_mock"]
     page_mock.content = AsyncMock(
         return_value=page(
-            _live_section(
+            live_section(
                 "/football/england/premier-league/",
                 listing_row("/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/inplay-odds/#xtmHKGT0", status="65'")
                 + trap_row(
