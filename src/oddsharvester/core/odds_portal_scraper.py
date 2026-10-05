@@ -85,8 +85,8 @@ class OddsPortalScraper(BaseScraper):
         """
         Collects match rows from every listing page of a season, on tabs of its own.
 
-        The season page and its pagination widget are read on a dedicated tab; the
-        walk then opens one tab per listing page as before.
+        The season page, its pagination widget and page 1 are read on a dedicated tab;
+        the walk then opens one tab per listing page from page 2 on.
 
         Args:
             sport (str): The sport to scrape.
@@ -111,7 +111,7 @@ class OddsPortalScraper(BaseScraper):
         tab = await context.new_page()
         try:
             self.logger.info("Navigating to base URL...")
-            response = await tab.goto(base_url)
+            response = await tab.goto(base_url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
             raise_if_rate_limited(response, base_url, "listing")
             self._assert_season_page_reached(requested_url=base_url, landed_url=tab.url)
             if is_league_path(league):
@@ -120,11 +120,13 @@ class OddsPortalScraper(BaseScraper):
 
             self.logger.info("Step 1: Analyzing pagination information...")
             floor = await self._get_pagination_info(page=tab)
-        finally:
+        except BaseException:
             await tab.close()
+            raise
 
         self.logger.info("Step 2: Collecting match links from all pages...")
         link_result = await self._collect_match_links(
+            season_tab=tab,
             base_url=base_url,
             floor=floor,
             page_limit=self._effective_page_limit(max_pages),
@@ -404,6 +406,7 @@ class OddsPortalScraper(BaseScraper):
 
     async def _collect_match_links(
         self,
+        season_tab: Page,
         base_url: str,
         floor: int,
         page_limit: int = MAX_PAGINATION_PAGES,
@@ -418,6 +421,8 @@ class OddsPortalScraper(BaseScraper):
         See gotchas 2 and 17.
 
         Args:
+            season_tab (Page): The season page's tab, already on page 1: the walk reads page 1 there,
+                then closes it.
             base_url (str): The base URL of the historic matches.
             floor (int): The highest page the season page's widget showed, 1 without one.
             page_limit (int): Hard bound on how many pages the walk may visit.
@@ -443,11 +448,13 @@ class OddsPortalScraper(BaseScraper):
             past_frontier = page_number >= frontier
 
             try:
-                tab = await self.playwright_manager.context.new_page()
-
-                page_url = f"{base_url}{OddsPortalSelectors.page_fragment(page_number)}"
-                self.logger.info(f"Navigating to: {page_url}")
-                await tab.goto(page_url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
+                if season_tab is not None:
+                    tab, season_tab = season_tab, None
+                else:
+                    tab = await self.playwright_manager.context.new_page()
+                    page_url = f"{base_url}{OddsPortalSelectors.page_fragment(page_number)}"
+                    self.logger.info(f"Navigating to: {page_url}")
+                    await tab.goto(page_url, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
                 delay = random.randint(PAGE_COLLECTION_DELAY_MIN_MS, PAGE_COLLECTION_DELAY_MAX_MS)  # noqa: S311
                 await tab.wait_for_timeout(delay)
 

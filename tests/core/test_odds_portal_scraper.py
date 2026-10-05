@@ -224,8 +224,9 @@ def links(row_hrefs: list[str]) -> list[str]:
 
 
 async def walk(scraper, floor: int = 1, **kwargs) -> LinkCollectionResult:
-    """The walk of SEASON_URL from a floor of `floor` pages, as the season page's widget sets it."""
-    return await scraper._collect_match_links(base_url=SEASON_URL, floor=floor, **kwargs)
+    """The walk of SEASON_URL from a floor of `floor` pages, starting on the season page's tab as the listing does."""
+    season_tab = await _season_tab(scraper.playwright_manager.context)
+    return await scraper._collect_match_links(season_tab=season_tab, base_url=SEASON_URL, floor=floor, **kwargs)
 
 
 def _assert_scroll_pace_left_to_the_scroller(scroll_mock):
@@ -508,7 +509,7 @@ async def test_collect_upcoming_links_without_a_league_keeps_every_date_of_the_p
 
 async def _season_tab(site) -> ListingTab:
     tab = await site.new_page()
-    await tab.goto(SEASON_URL)
+    await tab.goto(SEASON_URL, timeout=GOTO_TIMEOUT_MS, wait_until="domcontentloaded")
     return tab
 
 
@@ -1043,7 +1044,7 @@ async def test_scrape_live_with_match_links_honors_regional_base_url(setup_scrap
 
 
 async def test_collect_historic_links_runs_on_its_own_tab_and_reports_failed_pages(scraper, site):
-    """The season page and pagination read happen on a dedicated tab; lost pages come back as URLs."""
+    """The season page, its pagination read and page 1 happen on a dedicated tab; lost pages come back as URLs."""
     widget = [1, 2, 3]
     page1, page2 = hrefs(1, RESULTS_PAGE_SIZE), hrefs(2, RESULTS_PAGE_SIZE)
     site.serve(1, listing(page1, widget=widget))
@@ -1055,7 +1056,7 @@ async def test_collect_historic_links_runs_on_its_own_tab_and_reports_failed_pag
     )
 
     season_tab = site.tabs[0]
-    assert season_tab.gotos == [(SEASON_URL, {})]
+    assert season_tab.gotos == [(SEASON_URL, {"timeout": GOTO_TIMEOUT_MS, "wait_until": "domcontentloaded"})]
     scraper._warm_up_page.assert_awaited_once_with(season_tab)
     assert site.every_tab_closed_once()
     assert site.shared_tab.gotos == []
@@ -1099,6 +1100,25 @@ async def test_collect_historic_links_refetches_a_truncated_first_page(scraper, 
 
     assert listing_result.failed_page_urls == []
     assert [row["match_link"] for row in listing_result.rows] == links(page1 + page2)
+    assert site.every_tab_closed_once()
+    assert site.reads == [1, 1, 2], "the short read on the season tab, then page 1 again"
+    assert [tab.gotos[0][0] for tab in site.tabs] == [SEASON_URL, f"{SEASON_URL}#page/1", f"{SEASON_URL}#page/2"]
+
+
+async def test_collect_historic_links_reads_page_one_on_the_season_tab(scraper, site):
+    """Page 1 is read where the season page loaded: one load of it per season, the walk's tabs from page 2 on."""
+    widget = [1, 2]
+    site.serve(1, listing(hrefs(1, RESULTS_PAGE_SIZE), widget=widget))
+    site.serve(2, listing(hrefs(2, 10), widget=widget))
+
+    await scraper.collect_historic_links(sport="football", league="england-premier-league", season="2024-2025")
+
+    assert site.gotos == [
+        (SEASON_URL, {"timeout": GOTO_TIMEOUT_MS, "wait_until": "domcontentloaded"}),
+        (f"{SEASON_URL}#page/2", {"timeout": GOTO_TIMEOUT_MS, "wait_until": "domcontentloaded"}),
+    ]
+    assert site.reads == [1, 2]
+    assert len(site.pauses) == 2, "page 1 waits on the season tab as every walked page does"
     assert site.every_tab_closed_once()
 
 
