@@ -89,15 +89,6 @@ LISTING_PAGE_RETRY_DELAY_S = 5.0
 DEFAULT_REQUEST_DELAY_S = 1.0
 REQUEST_DELAY_JITTER_FACTOR = 0.5
 
-# Chromium reads only the last --disable-features switch, so ours repeats the list Playwright 1.57 passes before it.
-DISABLE_FEATURES_ARG = (
-    "--disable-features="
-    "AcceptCHFrame,AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,"
-    "GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,"
-    "Translate,AutoDeElevate,RenderDocument,OptimizationHints,"
-    "IsolateOrigins,site-per-process"
-)
-
 PLAYWRIGHT_BROWSER_ARGS = [
     "--disable-background-networking",
     "--disable-extensions",
@@ -107,7 +98,6 @@ PLAYWRIGHT_BROWSER_ARGS = [
     "--disable-translate",
     "--no-first-run",
     "--disable-infobars",
-    DISABLE_FEATURES_ARG,
     "--enable-gpu-rasterization",
     "--disable-blink-features=AutomationControlled",
 ]
@@ -121,7 +111,6 @@ PLAYWRIGHT_BROWSER_ARGS_DOCKER = [
     "--disable-popup-blocking",
     "--disable-extensions",
     "--disable-blink-features=AutomationControlled",
-    DISABLE_FEATURES_ARG,
     "--mute-audio",
     "--window-size=1280,720",
 ]

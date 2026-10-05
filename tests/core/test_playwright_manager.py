@@ -363,3 +363,14 @@ async def test_a_test_that_patches_playwright_itself_still_starts_it(mock_playwr
     await pm.initialize(headless=True)
 
     assert pm.page is mock_playwright["page"]
+
+
+@pytest.mark.parametrize("docker", [False, True], ids=["local", "docker"])
+async def test_no_launch_argument_replaces_playwrights_disabled_features(mock_playwright, docker):
+    """Chromium reads only the last --disable-features switch, and Playwright passes its own list first."""
+    with patch("oddsharvester.core.playwright_manager.is_running_in_docker", return_value=docker):
+        pm = PlaywrightManager()
+        await pm.initialize(headless=True)
+
+    args = mock_playwright["playwright"].chromium.launch.await_args.kwargs["args"]
+    assert [a for a in args if a.startswith("--disable-features")] == []

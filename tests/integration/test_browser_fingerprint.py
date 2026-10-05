@@ -60,18 +60,48 @@ async def launch(monkeypatch):
         await manager.cleanup()
 
 
+@pytest.fixture
+def storage_site():
+    """A page on 127.0.0.1 that frames localhost, whose frame stores a value; yields the page and a localhost page."""
+    pages = {
+        "/top": "<html><body><iframe id='f' src='http://localhost:{port}/frame'></iframe></body></html>",
+        "/frame": "<html><body><script>localStorage.setItem('k', 'set-by-3p-iframe');</script></body></html>",
+        "/read": "<html><body>read</body></html>",
+    }
+
+    class Site(BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = pages.get(self.path, "").format(port=self.server.server_address[1]).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Site)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    port = server.server_address[1]
+    yield f"http://127.0.0.1:{port}/top", f"http://localhost:{port}/read"
+    server.shutdown()
+    server.server_close()
+
+
 @pytest.mark.parametrize("docker", [False, True], ids=["local", "docker"])
-async def test_the_disable_features_switch_chromium_reads_keeps_playwrights_list(launch, monkeypatch, docker):
-    """Chromium reads only the last --disable-features switch, and Playwright puts its own before ours."""
+async def test_playwrights_disabled_features_still_apply(launch, monkeypatch, storage_site, docker):
+    """Playwright disables ThirdPartyStoragePartitioning; an argument replacing its list would partition the frame."""
     monkeypatch.setattr("oddsharvester.core.playwright_manager.is_running_in_docker", lambda: docker)
     manager = await launch()
+    top, read = storage_site
 
-    session = await manager.browser.new_browser_cdp_session()
-    arguments = (await session.send("Browser.getBrowserCommandLine"))["arguments"]
-    switches = [set(a.split("=", 1)[1].split(",")) for a in arguments if a.startswith("--disable-features=")]
+    await manager.page.goto(top)
+    frame = next(f for f in manager.page.frames if f.url.endswith("/frame"))
+    await frame.wait_for_function("localStorage.getItem('k') !== null")
+    await manager.page.goto(read)
 
-    assert sorted(switches[0] - switches[-1]) == []
-    assert {"IsolateOrigins", "site-per-process"} <= switches[-1]
+    assert await manager.page.evaluate("localStorage.getItem('k')") == "set-by-3p-iframe"
 
 
 async def test_the_user_agent_and_the_languages_agree_with_the_browser(launch, echo):
