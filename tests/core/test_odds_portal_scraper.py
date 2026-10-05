@@ -225,7 +225,7 @@ def links(row_hrefs: list[str]) -> list[str]:
 
 async def walk(scraper, floor: int = 1, **kwargs) -> LinkCollectionResult:
     """The walk of SEASON_URL from a floor of `floor` pages, as the season page's widget sets it."""
-    return await scraper._collect_match_links(base_url=SEASON_URL, pages_to_scrape=list(range(1, floor + 1)), **kwargs)
+    return await scraper._collect_match_links(base_url=SEASON_URL, floor=floor, **kwargs)
 
 
 def _assert_scroll_pace_left_to_the_scroller(scroll_mock):
@@ -506,37 +506,47 @@ async def test_collect_upcoming_links_without_a_league_keeps_every_date_of_the_p
     assert site.locators == [], "a date page has no league to check"
 
 
-async def test_get_pagination_info(setup_scraper_mocks):
-    """_get_pagination_info returns a floor: gaps filled, capped, never a verdict."""
-    mocks = setup_scraper_mocks
-    scraper = mocks["scraper"]
-    page_mock = mocks["page_mock"]
-    scraper.pagination_walker.read_widget = AsyncMock(return_value=[1, 3])
-
-    assert await scraper._get_pagination_info(page=page_mock, max_pages=None) == [1, 2, 3]
-    assert await scraper._get_pagination_info(page=page_mock, max_pages=1) == [1]
-
-    scraper.pagination_walker.read_widget = AsyncMock(return_value=[])
-    assert await scraper._get_pagination_info(page=page_mock, max_pages=None) == [1]
+async def _season_tab(site) -> ListingTab:
+    tab = await site.new_page()
+    await tab.goto(SEASON_URL)
+    return tab
 
 
-async def test_get_pagination_info_max_pages_overrides_safety_cap(setup_scraper_mocks):
-    """When --max-pages exceeds MAX_PAGINATION_PAGES, the user value is respected."""
-    mocks = setup_scraper_mocks
-    scraper = mocks["scraper"]
-    page_mock = mocks["page_mock"]
+async def test_get_pagination_info(scraper, site):
+    """_get_pagination_info returns the floor: the widget's highest page, gaps and all, 1 without a widget."""
+    site.serve(1, listing(hrefs(1, 3), widget=[1, 2, 3, 27]))
+    assert await scraper._get_pagination_info(page=await _season_tab(site)) == 27
 
+    site.serve(1, listing(hrefs(1, 3)))
+    assert await scraper._get_pagination_info(page=await _season_tab(site)) == 1
+
+
+async def test_get_pagination_info_is_not_capped_by_the_page_limit(scraper, site):
+    """The page limit bounds the walk once, in _collect_match_links; the floor is the widget's true count."""
     total = MAX_PAGINATION_PAGES + 20
-    scraper.pagination_walker.read_widget = AsyncMock(return_value=list(range(1, total + 1)))
+    site.serve(1, listing(hrefs(1, 3), widget=list(range(1, total + 1))))
 
-    # Without max_pages: safety cap applies
-    result = await scraper._get_pagination_info(page=page_mock, max_pages=None)
-    assert len(result) == MAX_PAGINATION_PAGES
+    assert await scraper._get_pagination_info(page=await _season_tab(site)) == total
 
-    # With max_pages > safety cap: user value wins
-    result = await scraper._get_pagination_info(page=page_mock, max_pages=total)
-    assert len(result) == total
-    assert result == list(range(1, total + 1))
+
+async def test_collect_historic_links_fails_a_short_page_below_the_season_widget_s_count(scraper, site):
+    """A widget read on the season page keeps the frontier at its count past --max-pages (spec 5c-5c 2.2).
+
+    The walked pages show no widget, so only the season page's read knows the season has 8 pages. A short page 3
+    below that frontier lost rows: it is fetched again, then reported, instead of ending the listing.
+    """
+    page1, page2, page3 = hrefs(1, RESULTS_PAGE_SIZE), hrefs(2, RESULTS_PAGE_SIZE), hrefs(3, 20)
+    site.serve(1, listing(page1, widget=list(range(1, 9))), listing(page1))
+    site.serve(2, listing(page2))
+    site.serve(3, listing(page3))
+
+    listing_result = await scraper.collect_historic_links(
+        sport="football", league="england-premier-league", season="2024-2025", max_pages=3
+    )
+
+    assert listing_result.failed_page_urls == [f"{SEASON_URL}#page/3"]
+    assert [row["match_link"] for row in listing_result.rows] == links(page1 + page2 + page3)
+    assert site.reads == [1, 2, 3, 3]
 
 
 @pytest.fixture(autouse=True)
@@ -691,47 +701,6 @@ async def test_scrape_live_raises_when_the_listing_cannot_be_read(scraper, site)
         await scraper.scrape_live(sport="football")
 
     scraper.extract_match_odds.assert_not_awaited()
-
-
-class TestFillPaginationGaps:
-    """Tests for _fill_pagination_gaps behavior."""
-
-    @pytest.fixture
-    def scraper(self, setup_scraper_mocks):
-        return setup_scraper_mocks["scraper"]
-
-    def test_single_page(self, scraper):
-        """Single page returns as-is."""
-        assert scraper._fill_pagination_gaps([1]) == [1]
-
-    def test_empty_list(self, scraper):
-        """Empty list returns as-is."""
-        assert scraper._fill_pagination_gaps([]) == []
-
-    def test_consecutive_pages(self, scraper):
-        """Consecutive pages are returned sorted."""
-        assert scraper._fill_pagination_gaps([3, 1, 2]) == [1, 2, 3]
-
-    def test_gap_filling(self, scraper):
-        """Gaps between discovered pages are filled (OddsPortal ellipsis)."""
-        result = scraper._fill_pagination_gaps([1, 2, 3, 27])
-        assert result == list(range(1, 28))
-
-    def test_deduplication(self, scraper):
-        """Duplicate pages are deduplicated via max()."""
-        assert scraper._fill_pagination_gaps([1, 2, 2, 3, 3]) == [1, 2, 3]
-
-    def test_large_page_list(self, scraper):
-        """Large page lists are returned in full (cap is applied in _get_pagination_info)."""
-        pages = list(range(1, MAX_PAGINATION_PAGES + 20))
-        result = scraper._fill_pagination_gaps(pages)
-        assert result == pages
-
-    def test_under_safety_cap(self, scraper):
-        """Pages under the safety cap are returned in full."""
-        pages = list(range(1, 11))
-        result = scraper._fill_pagination_gaps(pages)
-        assert result == list(range(1, 11))
 
 
 async def test_scrape_live_no_matches_returns_empty_result(scraper, site):

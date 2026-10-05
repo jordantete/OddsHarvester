@@ -119,14 +119,14 @@ class OddsPortalScraper(BaseScraper):
             await self._warm_up_page(tab)
 
             self.logger.info("Step 1: Analyzing pagination information...")
-            pages_to_scrape = await self._get_pagination_info(page=tab, max_pages=max_pages)
+            floor = await self._get_pagination_info(page=tab)
         finally:
             await tab.close()
 
         self.logger.info("Step 2: Collecting match links from all pages...")
         link_result = await self._collect_match_links(
             base_url=base_url,
-            pages_to_scrape=pages_to_scrape,
+            floor=floor,
             page_limit=self._effective_page_limit(max_pages),
             max_pages=max_pages,
             sport=sport,
@@ -343,73 +343,30 @@ class OddsPortalScraper(BaseScraper):
         """Explicit --max-pages overrides the default safety cap."""
         return max_pages if max_pages else MAX_PAGINATION_PAGES
 
-    async def _get_pagination_info(self, page: Page, max_pages: int | None) -> list[int]:
+    async def _get_pagination_info(self, page: Page) -> int:
         """
-        Extracts pagination details from the page.
+        Reads the walk's floor from the pagination widget.
 
         Args:
             page: Playwright page instance.
-            max_pages (Optional[int]): Maximum pages to scrape.
 
         Returns:
-            List[int]: List of pages to scrape.
+            int: The highest page the widget shows, 1 when it shows none. Not capped by --max-pages: the page
+            limit bounds the walk itself.
         """
         self.logger.info("Analyzing pagination information...")
 
-        total_pages = await self.pagination_walker.read_widget(page=page)
+        widget_pages = await self.pagination_walker.read_widget(page=page)
 
-        if not total_pages:
+        if not widget_pages:
             self.logger.info(
                 "No pagination widget on this page: either a single-page league or a degraded response. "
                 "The walk will determine the page count."
             )
-            return [1]
+            return 1
 
-        self.logger.info(f"Raw pagination pages found: {total_pages}")
-
-        # Check for gaps in pagination (e.g., [1,2,3,4,5,6,7,8,9,10,27] -> missing 11-26)
-        pages_to_scrape = self._fill_pagination_gaps(total_pages)
-
-        # Apply page limit: explicit --max-pages overrides the default safety cap
-        effective_limit = self._effective_page_limit(max_pages)
-        if len(pages_to_scrape) > effective_limit:
-            self.logger.warning(
-                f"Pagination has {len(pages_to_scrape)} pages, limiting to {effective_limit} "
-                f"({'--max-pages' if max_pages else 'safety cap'})."
-            )
-            pages_to_scrape = pages_to_scrape[:effective_limit]
-        else:
-            self.logger.info(f"Will scrape all {len(pages_to_scrape)} pages (limit: {effective_limit})")
-
-        self.logger.info(f"Final pages to scrape: {pages_to_scrape}")
-        return pages_to_scrape
-
-    def _fill_pagination_gaps(self, raw_pages: list[int]) -> list[int]:
-        """
-        Sort, deduplicate, and fill gaps in discovered pagination pages.
-
-        OddsPortal renders pagination with an ellipsis for large page ranges
-        (e.g. ``[1,2,3,...,28]``), so the HTML only contains the endpoints.
-        This determines the maximum under the page cap; the walk is what
-        actually ensures intermediate pages are scraped.
-
-        Args:
-            raw_pages (List[int]): Raw page numbers found in pagination.
-
-        Returns:
-            List[int]: Contiguous list of pages from 1..max.
-        """
-        if len(raw_pages) <= 1:
-            return raw_pages
-
-        max_page = max(raw_pages)
-        all_pages = list(range(1, max_page + 1))
-        self.logger.info(
-            f"Pagination HTML showed {sorted(set(raw_pages))}, "
-            f"filling to contiguous range 1..{max_page} ({len(all_pages)} pages)"
-        )
-
-        return all_pages
+        self.logger.info(f"Raw pagination pages found: {widget_pages}")
+        return max(widget_pages)
 
     @staticmethod
     def _assert_season_page_reached(requested_url: str, landed_url: str) -> None:
@@ -448,7 +405,7 @@ class OddsPortalScraper(BaseScraper):
     async def _collect_match_links(
         self,
         base_url: str,
-        pages_to_scrape: list[int],
+        floor: int,
         page_limit: int = MAX_PAGINATION_PAGES,
         max_pages: int | None = None,
         sport: str | None = None,
@@ -456,13 +413,13 @@ class OddsPortalScraper(BaseScraper):
         """
         Walks listing pages, collecting match links.
 
-        `pages_to_scrape` is a floor, not a plan: only its maximum is used, and the
-        walk always visits 1, 2, 3... contiguously from there, continuing while pages
-        come back full (issue #79). See gotchas 2 and 17.
+        `floor` is the page count the widget showed, not a plan: the walk always visits
+        1, 2, 3... contiguously, continuing past it while pages come back full (issue #79).
+        See gotchas 2 and 17.
 
         Args:
             base_url (str): The base URL of the historic matches.
-            pages_to_scrape (List[int]): Only the maximum is used, as the walk's floor.
+            floor (int): The highest page the season page's widget showed, 1 without one.
             page_limit (int): Hard bound on how many pages the walk may visit.
             max_pages (Optional[int]): The user-supplied --max-pages, if any; distinguishes
                 an intentional limit from the default safety cap in the truncation warning.
@@ -471,12 +428,11 @@ class OddsPortalScraper(BaseScraper):
         Returns:
             LinkCollectionResult: Contains links found and tracking of successful/failed pages.
         """
-        planned_max = max(pages_to_scrape) if pages_to_scrape else 1
-        self.logger.info(f"Starting collection of match links from a floor of {planned_max} page(s)")
+        self.logger.info(f"Starting collection of match links from a floor of {floor} page(s)")
 
         result = LinkCollectionResult()
         all_links = []
-        frontier = planned_max
+        frontier = floor
         observed_max: int | None = None
         page_number = 1
         attempt = 1
@@ -554,7 +510,7 @@ class OddsPortalScraper(BaseScraper):
                 # page confirming the season already ended; it rendered nothing, so it was not
                 # collected and must not inflate successful_pages (that count feeds the
                 # widget-mismatch warning below).
-                phantom_page = verdict is WalkVerdict.STOP_COMPLETE and not links and page_number > planned_max
+                phantom_page = verdict is WalkVerdict.STOP_COMPLETE and not links and page_number > floor
                 if not phantom_page:
                     result.successful_pages += 1
                 self.logger.info(f"Extracted {len(links)} links from page {page_number}")
@@ -585,9 +541,9 @@ class OddsPortalScraper(BaseScraper):
             page_number += 1
 
         pages_walked = result.total_pages
-        if pages_walked > planned_max:
+        if pages_walked > floor:
             self.logger.warning(
-                f"Pagination widget reported {planned_max} page(s) but the walk collected {pages_walked} page(s). "
+                f"Pagination widget reported {floor} page(s) but the walk collected {pages_walked} page(s). "
                 "The widget read was incomplete; walked past it to avoid truncation."
             )
         if page_number > page_limit:
@@ -604,7 +560,7 @@ class OddsPortalScraper(BaseScraper):
 
         result.links = list(dict.fromkeys(all_links))
         self.logger.info("Collection Summary:")
-        self.logger.info(f"   - Pages planned from widget: {planned_max}")
+        self.logger.info(f"   - Pages planned from widget: {floor}")
         self.logger.info(f"   - Pages actually walked: {pages_walked}")
         self.logger.info(f"   - Successful pages: {result.successful_pages}")
         self.logger.info(f"   - Failed pages: {len(result.failed_pages)}")
