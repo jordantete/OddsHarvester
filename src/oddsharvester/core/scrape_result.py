@@ -18,7 +18,7 @@ class ErrorType(Enum):
     NAVIGATION = "navigation"  # Timeout, connection errors
     PARSING = "parsing"  # HTML structure parsing failures
     MARKET_EXTRACTION = "market_extraction"  # Market data extraction failed
-    HEADER_NOT_FOUND = "header_not_found"  # React header missing
+    HEADER_NOT_FOUND = "header_not_found"  # Match view never rendered, or its header gave no details
     RATE_LIMITED = "rate_limited"  # Too many requests
     PAGE_NOT_FOUND = "page_not_found"  # 404 or page unavailable
     # A listing page that could not be collected. Distinct from a per-match

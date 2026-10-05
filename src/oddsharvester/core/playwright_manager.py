@@ -99,10 +99,14 @@ class PlaywrightManager:
         proxy_manager=None,
     ):
         """
-        Initialize and start Playwright with a browser and page.
+        Start Playwright, launch Chromium, open one context per proxy and a page on the first context.
 
         Args:
-            is_webdriver_headless (bool): Whether to start the browser in headless mode.
+            headless (bool): Whether to start the browser in headless mode.
+            user_agent (str | None): The user agent of every context; None picks one of DEFAULT_USER_AGENTS at random.
+            locale (str | None): The locale of every context; None leaves Playwright's default.
+            timezone_id (str | None): The timezone of every context. None keeps the host's, which is then read back
+                from the page into `self.timezone_id` (gotchas §10).
             proxy_manager: Optional ProxyManager providing the launch proxy and, in multi-proxy
                 mode, one context per proxy.
         """

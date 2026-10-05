@@ -99,7 +99,7 @@ async def hydrate_match_view(page: Page, match_link: str, sport: str | None = No
             )
             await dismiss_login_modal(page)
             if fragment is None:
-                # Legacy non-fragment match URL: nothing to re-route to.
+                # Without an event id in the URL the hash nudge has nothing to route to.
                 break
             nudge = {"fragment": fragment, "delayMs": HASH_NUDGE_DELAY_MS}
             nudge.update({"bare": True} if inplay else {"code": code, "scope": scope})

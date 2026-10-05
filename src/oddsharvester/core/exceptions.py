@@ -79,10 +79,10 @@ class AllProxiesExhaustedError(ScraperError):
 
 
 class H2HFragmentResolutionError(ScraperError):
-    """The H2H SPA never swapped to the fragment-targeted match.
+    """The match view never rendered: no market tab appeared within any hydration attempt.
 
-    Transient: the swap is a client-side render race, not a structure change.
-    Typed HEADER_NOT_FOUND so proxy failover does not count it against the IP.
+    Raised by hydrate_match_view for any match URL, with or without a fragment. Retryable, and typed
+    HEADER_NOT_FOUND so proxy failover does not count it against the IP.
     """
 
     def __init__(self, message: str, url: str | None = None):

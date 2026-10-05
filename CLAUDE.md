@@ -15,7 +15,7 @@ OddsHarvester is a Python web scraper that extracts sports betting odds from odd
 - Parsing or extracting bookmaker odds, names, or any per-row attribute
 - Adding a new league or modifying `sport_league_constants.py` / `league_aliases.py`
 - Adding a CLI option or modifying option-validation logic in `cli/commands/`
-- Changing Playwright browser args, stealth scripts, or anti-detection config in `playwright_manager.py`
+- Changing Playwright browser args (`utils/constants.py`), the stealth script or anti-detection config (`core/playwright_manager.py`)
 - Triaging a "0 results returned" symptom before assuming it's a parsing bug
 
 When a fix exposes a new OddsPortal behaviour worth remembering, append it to `docs/agentic-gotchas.md` (criteria are listed at the bottom of that file).
@@ -63,8 +63,10 @@ For multi-step work, state a brief plan with per-step verification.
 uv sync
 
 # Run scraper
-uv run oddsharvester upcoming --sport football --date 20250101 --market 1x2
+uv run oddsharvester upcoming --sport football --date $(date +%Y%m%d) --market 1x2
 uv run oddsharvester historic --sport football --league england-premier-league --season 2022-2023 --market 1x2
+uv run oddsharvester live --sport tennis --market match_winner --output live.json
+uv run oddsharvester team --team lId4TMwf --output teams.json
 uv run oddsharvester community --sport football --output top_predictions.json
 uv run oddsharvester community --user BLAPRO --output profile.json
 uv run oddsharvester community --match-url "https://www.oddsportal.com/football/h2h/.../" --output match_votes.json
@@ -94,7 +96,9 @@ Four-layer flow: `CLI (cli/) → Core (core/) → Data (utils/) → Storage (sto
 - `scraper_app.py` orchestrates browser + scraper + storage
 - `odds_portal_scraper.py` navigates pages and coordinates per-match scraping
 - `playwright_manager.py` owns browser lifecycle (reads `ODDSHARVESTER_HAR_REPLAY` / `ODDSHARVESTER_HAR_RECORD`)
-- `browser/` — focused helpers (`CookieDismisser`, `PageScroller`, `MarketTabNavigator`, `SelectionManager`)
+- `browser/`: one module per page concern: `cookies` (`CookieDismisser`), `hydration` (`hydrate_match_view`), `market_navigation` (`MarketTabNavigator`, `switch_view`), `pagination` (`PaginationWalker`), `scrolling` (`PageScroller`), `selection` (`SelectionManager`, `PeriodSelector`), `session` (`browser_session`, `open_page`, `raise_if_rate_limited`), `view_data` (the view data hook), `waits` (capped waits)
+- `community/`: the three `community` modes (top predictions, user profile, match votes), each a scraper and a pure parser, plus the row helpers they share
+- `team/`: the `team` command's scraper and team page parser
 - `odds_portal_market_extractor.py` + `market_extraction/` — odds extraction, submarket grouping, odds history, navigation
 - `url_builder.py`, `sport_market_registry.py`, `sport_period_registry.py`, `odds_portal_selectors.py`
 - `retry.py` — **canonical location for `TRANSIENT_ERROR_KEYWORDS`** and retry/backoff utilities
