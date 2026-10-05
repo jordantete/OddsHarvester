@@ -9,7 +9,7 @@ from typing import Any
 import unicodedata
 from urllib.parse import urldefrag, urlsplit
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from playwright.async_api import Page, TimeoutError
 
 from oddsharvester.core.browser.cookies import CookieDismisser
@@ -213,6 +213,65 @@ def _is_league_link(el) -> bool:
     """True for a section-header league link ('/<sport>/<country>/<league>/')."""
     href = el.get("href") or ""
     return "?" not in href and "/h2h/" not in href and len(href.strip("/").split("/")) == 3
+
+
+async def _listing_elements(page: Page, keep: Callable[[Tag], bool]) -> list[Tag]:
+    """The elements of the page's content root that `keep` accepts, in document order.
+
+    Scoped to the content root so sidebar widgets never register as rows or headers.
+    """
+    soup = BeautifulSoup(await page.content(), "lxml")
+    return [el for el in OddsPortalSelectors.content_root(soup).find_all(True) if keep(el)]
+
+
+class _ListingRows:
+    """The row steps both listing walks share, with a counter for each kind of row they drop."""
+
+    def __init__(self, sport: str | None, base_url: str) -> None:
+        self.sport = sport
+        self.sport_prefix = f"/{site_slug(sport)}/" if sport else None
+        self.base_url = base_url
+        self.hidden = 0
+        self.visible = 0
+        self.foreign = 0
+        self.short = 0
+        self._kept: set[str] = set()
+
+    def href(self, row: Tag) -> str | None:
+        """The row's href, or None for a hidden copy of a row or a row under another sport's path."""
+        if OddsPortalSelectors.is_hidden(row):
+            self.hidden += 1
+            return None
+        self.visible += 1
+        href = row["href"]
+        if self.sport_prefix and not href.startswith(self.sport_prefix):
+            self.foreign += 1
+            return None
+        return href
+
+    def link(self, href: str) -> str | None:
+        """The match URL of a row the walk keeps, or None for an href too short to be a match or a link already kept."""
+        if len(href.strip("/").split("/")) <= 3:
+            self.short += 1
+            return None
+        url = f"{self.base_url}{href}"
+        if url in self._kept:
+            return None
+        self._kept.add(url)
+        return url
+
+    def counts(self) -> str:
+        """The drop counters of the walk's log line."""
+        foreign = f", {self.foreign} rows of another sport dropped" if self.sport_prefix else ""
+        return f"{self.hidden} offscreen rows skipped, {self.short} short links dropped{foreign}"
+
+    def warn_if_all_foreign(self, logger: logging.Logger, listing: str) -> None:
+        """Warn when every visible row links under another sport: the page lists none of the requested sport."""
+        if self.sport_prefix and self.visible and self.foreign == self.visible:
+            logger.warning(
+                f"None of the {self.visible} rows of this {listing} links under {self.sport_prefix}: "
+                f"it lists no '{self.sport}' match."
+            )
 
 
 # Separator is a colon on the live header, but OddsPortal renders scores with an
@@ -477,18 +536,15 @@ class BaseScraper:
                 records a failed listing instead of an empty one.
         """
         try:
-            html_content = await page.content()
-            soup = BeautifulSoup(html_content, "lxml")
-            # Rows are the match <a> elements and date headers are leaf elements
-            # holding the group date; both are walked in document order, scoped to
-            # the content root so sidebar widgets never register as rows/headers.
-            root = OddsPortalSelectors.content_root(soup)
-            elements = [
-                el
-                for el in root.find_all(["a", "div", "span", "p"])
-                if OddsPortalSelectors.is_match_link(el)
-                or (OddsPortalSelectors.is_date_header(el) and not OddsPortalSelectors.is_hidden(el))
-            ]
+            # Rows are the match <a> elements and date headers are leaf elements holding the group date.
+            elements = await _listing_elements(
+                page,
+                lambda el: el.name in ("a", "div", "span", "p")
+                and (
+                    OddsPortalSelectors.is_match_link(el)
+                    or (OddsPortalSelectors.is_date_header(el) and not OddsPortalSelectors.is_hidden(el))
+                ),
+            )
             row_count = sum(1 for el in elements if OddsPortalSelectors.is_match_link(el))
             self.logger.info(f"Found {row_count} event rows.")
 
@@ -500,15 +556,12 @@ class BaseScraper:
             if kickoff_within_hours is not None:
                 window_cutoff = datetime.now(UTC) + timedelta(hours=kickoff_within_hours)
 
-            sport_prefix = f"/{site_slug(sport)}/" if sport else None
-            seen: set[str] = set()
+            rows = _ListingRows(sport, self.base_url or ODDSPORTAL_BASE_URL)
             rows_out: list[dict[str, Any]] = []
             current_row_date: date | None = None
             seen_header_dates: set[date] = set()
             filtered_out_count = 0
             unparseable_header_count = 0
-            offscreen_skipped_count = 0
-            foreign_count = 0
             started_filtered_out_count = 0
             window_filtered_out_count = 0
 
@@ -528,12 +581,8 @@ class BaseScraper:
                     continue
 
                 row = el
-                if OddsPortalSelectors.is_hidden(row):
-                    offscreen_skipped_count += 1
-                    continue
-
-                if sport_prefix and not row["href"].startswith(sport_prefix):
-                    foreign_count += 1
+                href = rows.href(row)
+                if href is None:
                     continue
 
                 if date_filter is not None and current_row_date is not None and current_row_date != date_filter:
@@ -552,15 +601,10 @@ class BaseScraper:
 
                 kickoff_utc = format_utc(kickoff_dt) if collect_kickoff and kickoff_dt is not None else None
 
-                href = row["href"]
-                if len(href.strip("/").split("/")) <= 3:
-                    continue
-                full_url = f"{self.base_url or ODDSPORTAL_BASE_URL}{href}"
-                if full_url not in seen:
-                    seen.add(full_url)
-                    rows_out.append({"match_link": full_url, "kickoff_utc": kickoff_utc})
+                link = rows.link(href)
+                if link is not None:
+                    rows_out.append({"match_link": link, "kickoff_utc": kickoff_utc})
 
-            foreign_suffix = f", {foreign_count} rows of another sport dropped" if sport_prefix else ""
             started_suffix = f", {started_filtered_out_count} started/finished rows skipped" if skip_started else ""
             window_suffix = (
                 f", {window_filtered_out_count} rows outside the {kickoff_within_hours}h kickoff window"
@@ -572,8 +616,7 @@ class BaseScraper:
                     f"Extracted {len(rows_out)} unique match links after date filtering "
                     f"(filter={date_filter.isoformat()}, filtered out {filtered_out_count} rows, "
                     f"{unparseable_header_count} unparseable headers, "
-                    f"{offscreen_skipped_count} offscreen rows skipped"
-                    f"{foreign_suffix}{started_suffix}{window_suffix})."
+                    f"{rows.counts()}{started_suffix}{window_suffix})."
                 )
                 if not rows_out and filtered_out_count:
                     headers_label = ", ".join(d.isoformat() for d in sorted(seen_header_dates)) or "none"
@@ -586,43 +629,19 @@ class BaseScraper:
                     )
             else:
                 self.logger.info(
-                    f"Extracted {len(rows_out)} unique match links "
-                    f"({offscreen_skipped_count} offscreen rows skipped"
-                    f"{foreign_suffix}{started_suffix}{window_suffix})."
+                    f"Extracted {len(rows_out)} unique match links ({rows.counts()}{started_suffix}{window_suffix})."
                 )
 
-            visible_rows = row_count - offscreen_skipped_count
-            if sport_prefix and visible_rows and foreign_count == visible_rows:
-                self.logger.warning(
-                    f"None of the {visible_rows} rows of this listing links under {sport_prefix}: "
-                    f"it lists no '{sport}' match."
-                )
-
+            rows.warn_if_all_foreign(self.logger, "listing")
             return rows_out
 
         except Exception as e:
             self.logger.error(f"Error extracting match links: {e}", exc_info=True)
             raise
 
-    async def extract_match_links(
-        self,
-        page: Page,
-        date_filter: date | None = None,
-        skip_started: bool = False,
-        kickoff_within_hours: float | None = None,
-        sport: str | None = None,
-    ) -> list[str]:
-        """Collect match links from a listing page.
-
-        Thin wrapper over `extract_match_rows` for callers that need only URLs.
-        """
-        rows = await self.extract_match_rows(
-            page=page,
-            date_filter=date_filter,
-            skip_started=skip_started,
-            kickoff_within_hours=kickoff_within_hours,
-            sport=sport,
-        )
+    async def extract_match_links(self, page: Page, sport: str | None = None) -> list[str]:
+        """Collect match links from a listing page: the links of `extract_match_rows`, the historic walk's page read."""
+        rows = await self.extract_match_rows(page=page, sport=sport)
         return [row["match_link"] for row in rows]
 
     async def extract_live_match_links(
@@ -636,7 +655,7 @@ class BaseScraper:
 
         Rows are the match <a> elements, whose hrefs here carry the
         `/inplay-odds/#<id>` suffix. The same match can appear twice in the DOM,
-        so rows are deduped on href.
+        so rows are deduped on their link, once the filters have run.
 
         Args:
             page (Page): A Playwright Page instance for this task.
@@ -659,23 +678,17 @@ class BaseScraper:
                 league_url = URLBuilder.get_league_url(sport, league)
                 league_path_prefix = urlsplit(league_url).path.rstrip("/")
 
-            html_content = await page.content()
-            soup = BeautifulSoup(html_content, "lxml")
-            root = OddsPortalSelectors.content_root(soup)
             # In-play hrefs are H2H URLs carrying no league segment, so the league
-            # of a row is the section-header link that precedes it (gotchas §20);
-            # both are walked in document order.
-            elements = [
-                el
-                for el in root.find_all("a", href=True)
-                if (OddsPortalSelectors.is_match_link(el) and "/inplay-odds/" in el["href"]) or _is_league_link(el)
-            ]
+            # of a row is the section-header link that precedes it (gotchas §20).
+            elements = await _listing_elements(
+                page,
+                lambda el: el.name == "a"
+                and el.has_attr("href")
+                and ((OddsPortalSelectors.is_match_link(el) and "/inplay-odds/" in el["href"]) or _is_league_link(el)),
+            )
 
-            sport_prefix = f"/{site_slug(sport)}/" if sport else None
-            seen: set[str] = set()
+            rows = _ListingRows(sport, self.base_url or ODDSPORTAL_BASE_URL)
             results: list[dict[str, Any]] = []
-            offscreen_skipped = 0
-            foreign_count = 0
             league_filtered_out = 0
             current_league: str | None = None
 
@@ -684,40 +697,21 @@ class BaseScraper:
                     current_league = row["href"]
                     continue
 
-                if OddsPortalSelectors.is_hidden(row):
-                    offscreen_skipped += 1
-                    continue
-
-                href = row["href"]
-                if href in seen:
-                    continue
-                seen.add(href)
-
-                if sport_prefix and not href.startswith(sport_prefix):
-                    foreign_count += 1
+                href = rows.href(row)
+                if href is None:
                     continue
 
                 if league_path_prefix and (current_league or "").rstrip("/") != league_path_prefix:
                     league_filtered_out += 1
                     continue
 
-                results.append(
-                    {
-                        "match_link": f"{self.base_url or ODDSPORTAL_BASE_URL}{href}",
-                    }
-                )
+                link = rows.link(href)
+                if link is not None:
+                    results.append({"match_link": link})
 
-            foreign_suffix = f", {foreign_count} rows of another sport dropped" if sport_prefix else ""
             league_suffix = f", {league_filtered_out} rows outside league '{league}'" if league_path_prefix else ""
-            self.logger.info(
-                f"Extracted {len(results)} live match links "
-                f"({offscreen_skipped} offscreen rows skipped{foreign_suffix}{league_suffix})."
-            )
-            if sport_prefix and seen and foreign_count == len(seen):
-                self.logger.warning(
-                    f"None of the {len(seen)} rows of this live listing links under {sport_prefix}: "
-                    f"it lists no '{sport}' match."
-                )
+            self.logger.info(f"Extracted {len(results)} live match links ({rows.counts()}{league_suffix}).")
+            rows.warn_if_all_foreign(self.logger, "live listing")
             return results
 
         except Exception as e:

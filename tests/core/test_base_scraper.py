@@ -1,4 +1,5 @@
 from datetime import UTC, date, datetime, timedelta
+import inspect
 import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -222,6 +223,11 @@ async def test_set_odds_format_carries_on_when_the_label_never_changes(setup_bas
     assert "Odds format changed to 'Decimal Odds'." in caplog.text
 
 
+async def _row_links(scraper, **kwargs) -> list[str]:
+    """The links of extract_match_rows, for the filters extract_match_links does not take."""
+    return [row["match_link"] for row in await scraper.extract_match_rows(**kwargs)]
+
+
 async def test_extract_match_links(setup_base_scraper_mocks):
     """Rows are the match <a> elements; short hrefs (<= 3 path segments) are filtered out."""
     mocks = setup_base_scraper_mocks
@@ -252,6 +258,28 @@ async def test_extract_match_links_reraises_a_parsing_error(bs4_mock, setup_base
 
     with pytest.raises(ValueError, match="Parsing error"):
         await mocks["scraper"].extract_match_links(page=mocks["page_mock"])
+
+
+def test_extract_match_links_takes_only_the_page_and_the_sport():
+    """The historic walk calls it with these two keywords; resolve_events_b.py replaces it with that call in mind."""
+    assert list(inspect.signature(BaseScraper.extract_match_links).parameters) == ["self", "page", "sport"]
+
+
+async def test_extract_match_rows_counts_the_short_links_it_drops(setup_base_scraper_mocks, caplog):
+    """An h2h href of 3 segments or fewer is no match: it is dropped and counted in the log line."""
+    mocks = setup_base_scraper_mocks
+    mocks["page_mock"].content = AsyncMock(
+        return_value=page(listing_row("/football/h2h/arsenal-hA1Zm19f/") + listing_row(_FOOTBALL_ROW))
+    )
+
+    with caplog.at_level(logging.INFO):
+        rows = await mocks["scraper"].extract_match_rows(page=mocks["page_mock"], sport="football")
+
+    assert [row["match_link"] for row in rows] == [f"{ODDSPORTAL_BASE_URL}{_FOOTBALL_ROW}"]
+    assert (
+        "Extracted 1 unique match links (0 offscreen rows skipped, 1 short links dropped, "
+        "0 rows of another sport dropped)." in caplog.messages
+    )
 
 
 # -- sport guard ---------------------------------------------------------------
@@ -340,7 +368,7 @@ async def test_extract_match_links_skips_started_rows_when_requested(setup_base_
     page_mock = mocks["page_mock"]
     page_mock.content = AsyncMock(return_value=_LISTING_HTML)
 
-    result = await scraper.extract_match_links(page=page_mock, skip_started=True)
+    result = await _row_links(scraper, page=page_mock, skip_started=True)
 
     assert any("upcoming-match/aaaa1111" in url for url in result)
     assert any("no-status-box/cccc3333" in url for url in result)
@@ -476,7 +504,7 @@ async def test_extract_match_links_date_filter_matches_one_group(setup_base_scra
     page_mock = mocks["page_mock"]
     page_mock.content = AsyncMock(return_value=_make_league_page_html())
 
-    result = await scraper.extract_match_links(page=page_mock, date_filter=date(2026, 4, 18))
+    result = await _row_links(scraper, page=page_mock, date_filter=date(2026, 4, 18))
 
     # Match 3 and Match 4 both inherit the "18 Apr 2026" header (Match 4 has no
     # header of its own so it inherits from the previous one).
@@ -492,7 +520,7 @@ async def test_extract_match_links_date_filter_no_match_returns_empty(setup_base
     page_mock = mocks["page_mock"]
     page_mock.content = AsyncMock(return_value=_make_league_page_html())
 
-    result = await scraper.extract_match_links(page=page_mock, date_filter=date(2030, 1, 1))
+    result = await _row_links(scraper, page=page_mock, date_filter=date(2030, 1, 1))
     assert result == []
 
 
@@ -522,7 +550,7 @@ async def test_extract_match_links_unparseable_header_fails_safe(setup_base_scra
         )
     )
 
-    result = await scraper.extract_match_links(page=page_mock, date_filter=date(2026, 4, 18))
+    result = await _row_links(scraper, page=page_mock, date_filter=date(2026, 4, 18))
 
     # Match X survives because its header is unparseable (fail-safe).
     # Match Y matches the filter explicitly.
@@ -539,7 +567,7 @@ async def test_extract_match_links_date_filter_no_match_logs_timezone_diagnostic
     page_mock.content = AsyncMock(return_value=_make_league_page_html())
 
     with caplog.at_level("WARNING"):
-        result = await scraper.extract_match_links(page=page_mock, date_filter=date(2030, 1, 1))
+        result = await _row_links(scraper, page=page_mock, date_filter=date(2030, 1, 1))
 
     assert result == []
     diagnostic = [r.message for r in caplog.records if "matched 0 matches" in r.message]
@@ -557,7 +585,7 @@ async def test_extract_match_links_date_filter_match_emits_no_diagnostic(setup_b
     page_mock.content = AsyncMock(return_value=_make_league_page_html())
 
     with caplog.at_level("WARNING"):
-        result = await scraper.extract_match_links(page=page_mock, date_filter=date(2026, 4, 18))
+        result = await _row_links(scraper, page=page_mock, date_filter=date(2026, 4, 18))
 
     assert result
     assert not [r for r in caplog.records if "matched 0 matches" in r.message]
@@ -596,7 +624,7 @@ async def test_extract_match_links_uses_playwright_manager_timezone(setup_base_s
         return_value=page(date_header("Today, 14 Apr") + listing_row("/football/h2h/tokyo-match/tttttttt/#tk"))
     )
 
-    result = await scraper.extract_match_links(page=page_mock, date_filter=tokyo_today)
+    result = await _row_links(scraper, page=page_mock, date_filter=tokyo_today)
     assert len(result) == 1
 
 
@@ -635,7 +663,7 @@ async def test_extract_match_links_kickoff_window_keeps_only_matches_within_wind
     page_mock.content = AsyncMock(return_value=_make_kickoff_window_html())
 
     with patch("oddsharvester.core.base_scraper.datetime", frozen_clock(APRIL_NOON)):
-        result = await scraper.extract_match_links(page=page_mock, kickoff_within_hours=2)
+        result = await _row_links(scraper, page=page_mock, kickoff_within_hours=2)
 
     assert any("soon-match/aaaaaaa1" in url for url in result)
     assert any("edge-match/aaaaaaa2" in url for url in result)
@@ -669,7 +697,7 @@ async def test_extract_match_links_kickoff_window_unparseable_time_fails_safe(se
     )
 
     with patch("oddsharvester.core.base_scraper.datetime", frozen_clock(APRIL_NOON)):
-        result = await scraper.extract_match_links(page=page_mock, kickoff_within_hours=1)
+        result = await _row_links(scraper, page=page_mock, kickoff_within_hours=1)
 
     assert any("live-match/bbbbbbb1" in url for url in result)
     assert not any("late-match/bbbbbbb2" in url for url in result)
@@ -685,7 +713,7 @@ async def test_extract_match_links_kickoff_window_row_without_date_header_fails_
     )
 
     with patch("oddsharvester.core.base_scraper.datetime", frozen_clock(APRIL_NOON)):
-        result = await scraper.extract_match_links(page=page_mock, kickoff_within_hours=1)
+        result = await _row_links(scraper, page=page_mock, kickoff_within_hours=1)
 
     assert any("orphan-match/ccccccc1" in url for url in result)
 
@@ -707,7 +735,7 @@ async def test_extract_match_links_kickoff_window_composes_with_skip_started(set
     )
 
     with patch("oddsharvester.core.base_scraper.datetime", frozen_clock(APRIL_NOON)):
-        result = await scraper.extract_match_links(page=page_mock, kickoff_within_hours=2, skip_started=True)
+        result = await _row_links(scraper, page=page_mock, kickoff_within_hours=2, skip_started=True)
 
     assert any("near-upcoming/ddddddd1" in url for url in result)
     assert not any("finished/ddddddd2" in url for url in result)
@@ -806,7 +834,7 @@ async def test_kickoff_window_reads_a_row_past_the_clock_change_at_the_page_offs
         patch("oddsharvester.core.base_scraper.datetime", clock),
         patch("oddsharvester.utils.page_time.datetime", clock),
     ):
-        links = await mocks["scraper"].extract_match_links(page=mocks["page_mock"], kickoff_within_hours=13)
+        links = await _row_links(mocks["scraper"], page=mocks["page_mock"], kickoff_within_hours=13)
 
     assert links == [f"{ODDSPORTAL_BASE_URL}/football/h2h/inside-window/aaaaaaa8/#i1"]
 
@@ -979,7 +1007,7 @@ async def test_the_trap_clone_s_date_header_does_not_move_the_rows_after_it_out_
     page_mock = mocks["page_mock"]
     page_mock.content = AsyncMock(return_value=_listing_with_a_trap_carrying_a_date_header())
 
-    result = await scraper.extract_match_links(page=page_mock, date_filter=date(2026, 10, 10))
+    result = await _row_links(scraper, page=page_mock, date_filter=date(2026, 10, 10))
 
     assert result == [
         f"{ODDSPORTAL_BASE_URL}/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/#xtmHKGT0",
@@ -1018,7 +1046,7 @@ async def test_extract_match_links_offscreen_skipped_before_date_filter(setup_ba
         )
     )
 
-    result = await scraper.extract_match_links(page=page_mock, date_filter=date(2026, 5, 17))
+    result = await _row_links(scraper, page=page_mock, date_filter=date(2026, 5, 17))
 
     assert result == [f"{ODDSPORTAL_BASE_URL}/football/h2h/real-aaa/match-bbb/#x1"]
 
@@ -1037,7 +1065,7 @@ async def test_extract_match_links_offscreen_row_keeps_header_inheritance(setup_
         )
     )
 
-    result = await scraper.extract_match_links(page=page_mock, date_filter=date(2026, 5, 17))
+    result = await _row_links(scraper, page=page_mock, date_filter=date(2026, 5, 17))
 
     assert result == [f"{ODDSPORTAL_BASE_URL}/football/h2h/real-aaa/match-bbb/#x1"]
 
@@ -2127,6 +2155,65 @@ async def test_extract_live_match_links_warns_when_every_row_is_another_sport(se
     assert rows == []
     assert (
         "None of the 2 rows of this live listing links under /hockey/: it lists no 'ice-hockey' match." in caplog.text
+    )
+
+
+async def test_extract_live_match_links_keeps_a_match_listed_first_under_another_league(setup_base_scraper_mocks):
+    """A match under two sections: its copy under the requested league is kept even when the other comes first."""
+    mocks = setup_base_scraper_mocks
+    shared = "/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/inplay-odds/#xtmHKGT0"
+    mocks["page_mock"].content = AsyncMock(
+        return_value=page(
+            live_section("/football/europe/champions-league/", listing_row(shared, status="65'"))
+            + live_section("/football/england/premier-league/", listing_row(shared, status="65'"))
+        )
+    )
+
+    rows = await mocks["scraper"].extract_live_match_links(
+        page=mocks["page_mock"], sport="football", league="england-premier-league"
+    )
+
+    assert [r["match_link"] for r in rows] == [f"{ODDSPORTAL_BASE_URL}{shared}"]
+
+
+async def test_extract_live_match_links_keeps_one_row_per_match_listed_twice(setup_base_scraper_mocks):
+    mocks = setup_base_scraper_mocks
+    shared = "/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/inplay-odds/#xtmHKGT0"
+    other = "/football/h2h/aston-villa-W00wmLO0/brentford-xYe7DwID/inplay-odds/#p6jPIfbD"
+    mocks["page_mock"].content = AsyncMock(
+        return_value=page(
+            live_section("/football/europe/champions-league/", listing_row(shared))
+            + live_section("/football/england/premier-league/", listing_row(shared) + listing_row(other))
+        )
+    )
+
+    rows = await mocks["scraper"].extract_live_match_links(page=mocks["page_mock"], sport="football")
+
+    assert [r["match_link"] for r in rows] == [f"{ODDSPORTAL_BASE_URL}{shared}", f"{ODDSPORTAL_BASE_URL}{other}"]
+
+
+async def test_extract_live_match_links_counts_the_short_links_it_drops(setup_base_scraper_mocks, caplog):
+    """An in-play href of 3 segments or fewer is no match: it is dropped and counted, as in the other walk."""
+    mocks = setup_base_scraper_mocks
+    mocks["page_mock"].content = AsyncMock(
+        return_value=page(
+            live_section(
+                "/football/england/premier-league/",
+                listing_row("/football/h2h/inplay-odds/") + listing_row(_FOOTBALL_ROW.replace("/#", "/inplay-odds/#")),
+            )
+            + live_section("/football/spain/laliga/", listing_row("/football/h2h/a-1/b-2/inplay-odds/#c3"))
+        )
+    )
+
+    with caplog.at_level(logging.INFO):
+        rows = await mocks["scraper"].extract_live_match_links(
+            page=mocks["page_mock"], sport="football", league="england-premier-league"
+        )
+
+    assert [r["match_link"] for r in rows] == [f"{ODDSPORTAL_BASE_URL}{_FOOTBALL_ROW.replace('/#', '/inplay-odds/#')}"]
+    assert (
+        "Extracted 1 live match links (0 offscreen rows skipped, 1 short links dropped, "
+        "0 rows of another sport dropped, 1 rows outside league 'england-premier-league')." in caplog.messages
     )
 
 

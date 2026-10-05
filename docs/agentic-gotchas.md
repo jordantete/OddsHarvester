@@ -839,7 +839,7 @@ the match is real and upcoming, just filed under the next calendar day.
   browser timezone (`Intl.DateTimeFormat().resolvedOptions().timeZone`) so both
   sides share one zone.
 - Symptom: `upcoming -l … -d …` returns 0 matches while the league page
-  visibly has fixtures. `extract_match_links` emits a WARNING listing the date
+  visibly has fixtures. `extract_match_rows` emits a WARNING listing the date
   headers actually seen when a filter matches nothing.
 
 ### Fix pattern
