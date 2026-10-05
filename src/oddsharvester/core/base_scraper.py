@@ -155,22 +155,6 @@ def _parse_date_header(header_text: str, tz_name: str | None = None) -> date | N
     return None
 
 
-_OFFSCREEN_STYLE_MARKERS = (
-    "left:-9999px",
-    "top:-9999px",
-    "display:none",
-    "visibility:hidden",
-)
-
-
-def _is_offscreen_row(row) -> bool:
-    """OddsPortal sometimes ships duplicate event rows in the DOM: a real
-    visible one and a CSS-hidden twin whose href points to a corrupted slug
-    that 301-redirects to an unrelated match. Skip the hidden twin."""
-    style = (row.get("style") or "").lower().replace(" ", "")
-    return any(marker in style for marker in _OFFSCREEN_STYLE_MARKERS)
-
-
 _KICKOFF_TIME_RE = re.compile(r"^\d{1,2}:\d{2}$")
 
 
@@ -502,7 +486,8 @@ class BaseScraper:
             elements = [
                 el
                 for el in root.find_all(["a", "div", "span", "p"])
-                if OddsPortalSelectors.is_match_link(el) or OddsPortalSelectors.is_date_header(el)
+                if OddsPortalSelectors.is_match_link(el)
+                or (OddsPortalSelectors.is_date_header(el) and not OddsPortalSelectors.is_hidden(el))
             ]
             row_count = sum(1 for el in elements if OddsPortalSelectors.is_match_link(el))
             self.logger.info(f"Found {row_count} event rows.")
@@ -543,7 +528,7 @@ class BaseScraper:
                     continue
 
                 row = el
-                if _is_offscreen_row(row):
+                if OddsPortalSelectors.is_hidden(row):
                     offscreen_skipped_count += 1
                     continue
 
@@ -699,7 +684,7 @@ class BaseScraper:
                     current_league = row["href"]
                     continue
 
-                if _is_offscreen_row(row):
+                if OddsPortalSelectors.is_hidden(row):
                     offscreen_skipped += 1
                     continue
 

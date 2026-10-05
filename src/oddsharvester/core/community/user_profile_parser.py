@@ -120,6 +120,8 @@ def _parse_predictions(soup, tz_name: str | None) -> list[dict]:
     root = OddsPortalSelectors.content_root(soup)
     predictions: list[dict] = []
     for link in root.select(OddsPortalSelectors.LISTING_ROW_SELECTOR):
+        if OddsPortalSelectors.is_hidden(link):
+            continue
         row = row_of(link)
         if row is None:
             continue

@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from unittest.mock import patch
 
 from tests.clock import frozen_clock
-from tests.dom_builders import community_column, community_row, profile_page, statistics_row
+from tests.dom_builders import community_column, community_row, profile_page, statistics_row, trap_row
 
 from oddsharvester.core.community.user_profile_parser import parse_user_profile
 
@@ -125,3 +125,17 @@ def test_feed_kickoff_is_the_local_time_of_the_browser_zone():
         preds = parse_profile_feed_predictions(html, tz_name="Europe/London")
 
     assert preds[0]["kickoff"] == "2026-10-04T19:00"
+
+
+def test_the_anti_bot_trap_row_is_not_a_prediction():
+    """A hidden clone of a prediction row with invented team ids is skipped (gotchas §28)."""
+    html = profile_page(
+        rows=community_row("/football/h2h/turkey-aaaaaaaa/paraguay-bbbbbbbb/#abc123", _PREDICTION_COLUMNS)
+        + trap_row(community_row("/football/h2h/turkey-37e4f5e9/paraguay-5a49c1bd/", _PREDICTION_COLUMNS))
+    )
+
+    predictions = parse_user_profile(html, tz_name="UTC")["predictions"]
+
+    assert [p["match_url"] for p in predictions] == [
+        "https://www.oddsportal.com/football/h2h/turkey-aaaaaaaa/paraguay-bbbbbbbb/#abc123"
+    ]

@@ -20,6 +20,9 @@ class OddsPortalSelectors:
     # direct <div> children are the kickoff/status cell and the participants.
     LISTING_ROW_SELECTOR = 'a[href*="/h2h/"]'
     MATCH_LINK_HREF_SUBSTRING = "/h2h/"
+    # A hidden copy of a row is never a match (gotchas §28, §1 c), and the trap hides an ancestor of the link.
+    TRAP_ATTRIBUTE = "data-ab-trap"
+    HIDDEN_STYLE_MARKERS = ("left:-9999px", "top:-9999px", "display:none", "visibility:hidden")
     # Date headers: a leaf element whose whole text is the group date
     # ("04 Sep 2026", "Today, 02 Sep", "Today, 02 Sep  - Clausura"). The day
     # number is required so the "Today" nav filter is not read as a header.
@@ -99,6 +102,17 @@ class OddsPortalSelectors:
     def is_match_link(el) -> bool:
         """True for a listing row: an <a> pointing at a match H2H fragment URL."""
         return el.name == "a" and OddsPortalSelectors.MATCH_LINK_HREF_SUBSTRING in (el.get("href") or "")
+
+    @staticmethod
+    def is_hidden(el) -> bool:
+        """True when `el` or one of its ancestors is the trap clone or carries an inline style that hides it."""
+        for node in (el, *el.parents):
+            if node.get(OddsPortalSelectors.TRAP_ATTRIBUTE) is not None:
+                return True
+            style = (node.get("style") or "").lower().replace(" ", "")
+            if any(marker in style for marker in OddsPortalSelectors.HIDDEN_STYLE_MARKERS):
+                return True
+        return False
 
     @staticmethod
     def page_fragment(n: int) -> str:

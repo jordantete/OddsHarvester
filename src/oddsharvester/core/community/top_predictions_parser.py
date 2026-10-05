@@ -33,6 +33,8 @@ def parse_top_predictions(html: str, tz_name: str | None = None) -> list[dict]:
 
     records: list[dict] = []
     for link in root.select(OddsPortalSelectors.LISTING_ROW_SELECTOR):
+        if OddsPortalSelectors.is_hidden(link):
+            continue
         row = row_of(link)
         if row is None:
             continue

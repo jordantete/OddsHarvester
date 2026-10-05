@@ -7,12 +7,11 @@ from bs4 import BeautifulSoup
 from playwright.async_api import Page, TimeoutError
 import pytest
 from tests.clock import frozen_clock
-from tests.dom_builders import date_header, listing_row, live_block, match_header, page
+from tests.dom_builders import date_header, listing_row, live_block, match_header, page, trap_row
 
 from oddsharvester.core.base_scraper import (
     BaseScraper,
     _history_reference,
-    _is_offscreen_row,
     _parse_date_header,
     _parse_live_info,
     _row_has_started,
@@ -906,43 +905,28 @@ async def test_extract_match_links_still_returns_plain_strings(setup_base_scrape
     assert all(isinstance(url, str) for url in result)
 
 
-# -- _is_offscreen_row + offscreen filtering (regression: issue #61) ---------
+# -- hidden row filtering (issue #61, gotchas §28) ---------
 
 
-class TestIsOffscreenRow:
-    """Unit tests for the _is_offscreen_row helper."""
+async def test_extract_match_links_skips_the_anti_bot_trap_row(setup_base_scraper_mocks):
+    """The trap clones a real row with two invented team ids and no fragment, hidden off-screen (gotchas §28)."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(
+        return_value=page(
+            listing_row("/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/#xtmHKGT0")
+            + trap_row(listing_row("/football/h2h/crystal-palace-37e4f5e9/nottingham-5a49c1bd/"))
+            + listing_row("/football/h2h/aston-villa-W00wmLO0/brentford-xYe7DwID/#p6jPIfbD")
+        )
+    )
 
-    def test_no_style_attr_is_visible(self):
-        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x"), "lxml").a
-        assert _is_offscreen_row(row) is False
+    result = await scraper.extract_match_links(page=page_mock)
 
-    def test_empty_style_is_visible(self):
-        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x", style=""), "lxml").a
-        assert _is_offscreen_row(row) is False
-
-    def test_left_minus_9999_marks_offscreen(self):
-        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x", style="position: absolute; left: -9999px;"), "lxml").a
-        assert _is_offscreen_row(row) is True
-
-    def test_top_minus_9999_marks_offscreen(self):
-        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x", style="top:-9999px"), "lxml").a
-        assert _is_offscreen_row(row) is True
-
-    def test_display_none_marks_offscreen(self):
-        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x", style="display: none;"), "lxml").a
-        assert _is_offscreen_row(row) is True
-
-    def test_visibility_hidden_marks_offscreen(self):
-        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x", style="visibility:hidden"), "lxml").a
-        assert _is_offscreen_row(row) is True
-
-    def test_uppercase_style_normalized(self):
-        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x", style="DISPLAY: NONE"), "lxml").a
-        assert _is_offscreen_row(row) is True
-
-    def test_unrelated_style_is_visible(self):
-        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x", style="color: red; padding-left: 9999px;"), "lxml").a
-        assert _is_offscreen_row(row) is False
+    assert result == [
+        f"{ODDSPORTAL_BASE_URL}/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/#xtmHKGT0",
+        f"{ODDSPORTAL_BASE_URL}/football/h2h/aston-villa-W00wmLO0/brentford-xYe7DwID/#p6jPIfbD",
+    ]
 
 
 async def test_extract_match_links_skips_offscreen_phantom_row(setup_base_scraper_mocks):
@@ -972,6 +956,51 @@ async def test_extract_match_links_skips_offscreen_phantom_row(setup_base_scrape
 
     assert result == [
         f"{ODDSPORTAL_BASE_URL}/football/h2h/galatasaray-riaqqurF/kasimpasa-dOlaIG4l/#4CyOBFbK",
+    ]
+
+
+def _listing_with_a_trap_carrying_a_date_header() -> str:
+    """The trap cloned the first row of the 19 Oct group, its date header included, into the 10 Oct group."""
+    return page(
+        date_header("10 Oct 2026")
+        + listing_row("/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/#xtmHKGT0", status="13:30")
+        + trap_row(
+            date_header("19 Oct 2026") + listing_row("/football/h2h/everton-37e4f5e9/fulham-5a49c1bd/", status="16:00")
+        )
+        + listing_row("/football/h2h/aston-villa-W00wmLO0/brentford-xYe7DwID/#p6jPIfbD", status="16:00")
+        + date_header("19 Oct 2026")
+        + listing_row("/football/h2h/everton-AAAAAAAA/fulham-BBBBBBBB/#evfu1234", status="16:00")
+    )
+
+
+async def test_the_trap_clone_s_date_header_does_not_move_the_rows_after_it_out_of_the_date(setup_base_scraper_mocks):
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(return_value=_listing_with_a_trap_carrying_a_date_header())
+
+    result = await scraper.extract_match_links(page=page_mock, date_filter=date(2026, 10, 10))
+
+    assert result == [
+        f"{ODDSPORTAL_BASE_URL}/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/#xtmHKGT0",
+        f"{ODDSPORTAL_BASE_URL}/football/h2h/aston-villa-W00wmLO0/brentford-xYe7DwID/#p6jPIfbD",
+    ]
+
+
+async def test_the_trap_clone_s_date_header_does_not_redate_the_kickoffs_after_it(setup_base_scraper_mocks):
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    mocks["playwright_manager_mock"].timezone_id = "UTC"
+    page_mock.content = AsyncMock(return_value=_listing_with_a_trap_carrying_a_date_header())
+
+    with _page_clock(datetime(2026, 10, 5, 8, 0, tzinfo=UTC)):
+        rows = await scraper.extract_match_rows(page=page_mock, collect_kickoff=True)
+
+    assert [(r["match_link"].split("/h2h/")[1], r["kickoff_utc"]) for r in rows] == [
+        ("arsenal-hA1Zm19f/leeds-tUxUbLR2/#xtmHKGT0", "2026-10-10 13:30:00 UTC"),
+        ("aston-villa-W00wmLO0/brentford-xYe7DwID/#p6jPIfbD", "2026-10-10 16:00:00 UTC"),
+        ("everton-AAAAAAAA/fulham-BBBBBBBB/#evfu1234", "2026-10-19 16:00:00 UTC"),
     ]
 
 
@@ -2017,6 +2046,34 @@ async def test_extract_live_match_links_skips_offscreen_twin(setup_base_scraper_
 
     assert len(rows) == 2
     assert not any("hidden-twin-corrupt" in r["match_link"] for r in rows)
+
+
+async def test_extract_live_match_links_skips_the_anti_bot_trap_row(setup_base_scraper_mocks):
+    """The trap matches in-play links too: a clone hidden off-screen, ids invented, fragment dropped (gotchas §28)."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    page_mock.content = AsyncMock(
+        return_value=page(
+            _live_section(
+                "/football/england/premier-league/",
+                listing_row("/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/inplay-odds/#xtmHKGT0", status="65'")
+                + trap_row(
+                    listing_row("/football/h2h/brentford-37e4f5e9/liverpool-5a49c1bd/inplay-odds/", status="65'")
+                )
+                + listing_row(
+                    "/football/h2h/aston-villa-W00wmLO0/brentford-xYe7DwID/inplay-odds/#p6jPIfbD", status="12'"
+                ),
+            )
+        )
+    )
+
+    rows = await scraper.extract_live_match_links(page=page_mock)
+
+    assert [r["match_link"] for r in rows] == [
+        "https://www.oddsportal.com/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/inplay-odds/#xtmHKGT0",
+        "https://www.oddsportal.com/football/h2h/aston-villa-W00wmLO0/brentford-xYe7DwID/inplay-odds/#p6jPIfbD",
+    ]
 
 
 async def test_extract_live_match_links_league_filter(setup_base_scraper_mocks):

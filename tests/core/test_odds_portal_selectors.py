@@ -1,6 +1,15 @@
 from bs4 import BeautifulSoup
 import pytest
-from tests.dom_builders import bookmaker_row, date_header, line_row, listing_row, match_header, odds_table, page
+from tests.dom_builders import (
+    bookmaker_row,
+    date_header,
+    line_row,
+    listing_row,
+    match_header,
+    odds_table,
+    page,
+    trap_row,
+)
 
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
@@ -241,3 +250,56 @@ class TestRedesignSelectors:
 
     def test_login_modal_close_is_scoped_to_the_modal(self):
         assert OddsPortalSelectors.LOGIN_MODAL_CLOSE.startswith(".login-modal ")
+
+
+class TestIsHidden:
+    """A link is hidden when it or one of its ancestors carries the trap attribute or a hiding inline style."""
+
+    def test_no_style_attr_is_visible(self):
+        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x"), "lxml").a
+        assert OddsPortalSelectors.is_hidden(row) is False
+
+    def test_empty_style_is_visible(self):
+        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x", style=""), "lxml").a
+        assert OddsPortalSelectors.is_hidden(row) is False
+
+    def test_left_minus_9999_marks_offscreen(self):
+        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x", style="position: absolute; left: -9999px;"), "lxml").a
+        assert OddsPortalSelectors.is_hidden(row) is True
+
+    def test_top_minus_9999_marks_offscreen(self):
+        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x", style="top:-9999px"), "lxml").a
+        assert OddsPortalSelectors.is_hidden(row) is True
+
+    def test_display_none_marks_offscreen(self):
+        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x", style="display: none;"), "lxml").a
+        assert OddsPortalSelectors.is_hidden(row) is True
+
+    def test_visibility_hidden_marks_offscreen(self):
+        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x", style="visibility:hidden"), "lxml").a
+        assert OddsPortalSelectors.is_hidden(row) is True
+
+    def test_uppercase_style_normalized(self):
+        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x", style="DISPLAY: NONE"), "lxml").a
+        assert OddsPortalSelectors.is_hidden(row) is True
+
+    def test_unrelated_style_is_visible(self):
+        row = BeautifulSoup(listing_row("/football/h2h/a/b/#x", style="color: red; padding-left: 9999px;"), "lxml").a
+        assert OddsPortalSelectors.is_hidden(row) is False
+
+    def test_the_trap_clone_hides_its_link(self):
+        row = BeautifulSoup(trap_row(listing_row("/football/h2h/a-37e4f5e9/b-5a49c1bd/")), "lxml").a
+        assert OddsPortalSelectors.is_hidden(row) is True
+
+    def test_the_trap_attribute_alone_hides_its_link(self):
+        row = BeautifulSoup(trap_row(listing_row("/football/h2h/a/b/"), style=""), "lxml").a
+        assert OddsPortalSelectors.is_hidden(row) is True
+
+    def test_an_offscreen_ancestor_alone_hides_its_link(self):
+        row = BeautifulSoup(trap_row(listing_row("/football/h2h/a/b/"), trap_attribute=False), "lxml").a
+        assert OddsPortalSelectors.is_hidden(row) is True
+
+    def test_an_aria_hidden_ancestor_alone_keeps_the_link(self):
+        """A modal can mark the whole page aria-hidden while it is open, so that attribute alone is no trap."""
+        row = BeautifulSoup(trap_row(listing_row("/football/h2h/a/b/#x"), trap_attribute=False, style=""), "lxml").a
+        assert OddsPortalSelectors.is_hidden(row) is False

@@ -144,14 +144,14 @@ Integration tests run in **HAR replay mode by default** (deterministic, no netwo
 uv run python -m tests.integration.helpers.capture --sport football --league premier-league \
     --match-url "https://..." --markets "1x2" --period "full_time" --bookies-filter "all" --capture-har
 
-# Every fixture, or one kind (matches, community, team, live)
+# Every fixture, or one kind (matches, community, team, live, listing)
 uv run python scripts/capture_all_hars.py
 uv run python scripts/capture_all_hars.py --only community
 # List every HAR and its command, no network
 uv run python scripts/capture_all_hars.py --dry-run
 ```
 
-`scripts/capture_all_hars.py` derives match captures from each `metadata.json` and fixture name, and holds the exact command of the other fixtures (community, team, live listing, odds history) in `SPECIAL_FIXTURES`. A community, team or live capture replaces the committed HAR and golden only when its command succeeded and wrote records. Recapture on parsing changes, Playwright upgrades, or quarterly.
+`scripts/capture_all_hars.py` derives match captures from each `metadata.json` and fixture name, and holds the exact command of the other fixtures (community, team, live listing, upcoming league listing, odds history) in `SPECIAL_FIXTURES`. A community, team, live or listing capture replaces the committed HAR and golden only when its command succeeded and wrote records. Recapture on parsing changes, Playwright upgrades, or quarterly.
 
 **`live_only` tests:** the 8 tests that need the real site by design (the current-season listing walk for 4 sports, the live snapshot, the team command against the live site, the two upcoming listing filters); skipped by default, run with `--live`. Every other test replays a HAR, the CLI option tests and the MLB fragment test included. The pre-redesign "H2H fragment + cache-busted AJAX" replay limit is gone: since the 2026-08 redesign the SPA fetches match data by the fragment event id with stable URLs, so every match-page fixture replays deterministically (gotchas §19). One residual: the community profile Feed AJAX is still cache-busted, so the profile replay yields no predictions and its test compares them only when a run returns some.
 

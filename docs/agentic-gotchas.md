@@ -37,6 +37,7 @@ The gotchas, by section:
 - **§25**: A sport's site path is not always its CLI name.
 - **§26**: A market or period switch resets the bookies filter to Classic.
 - **§27**: A market switch can show another market's odds under the requested tab.
+- **§28**: An invisible anti-bot trap row clones a match link with invented team ids.
 
 ---
 
@@ -63,7 +64,7 @@ match, a phantom hidden duplicate, etc.).
 |---|---|---|---|
 | **a.** Embedded `react-event-header` JSON returns the most-recent matchup, not the requested historic match | `<div id="react-event-header" data='…'>` on H2H detail pages | All fields (teams, date, scores) belong to a different match | `cef2bf3` — DOM-first extraction with per-field JSON fallback |
 | **b.** DOM **and** JSON both wrong because the SSR for `/sport/h2h/home/away/#fragment` renders the *upcoming* matchup, the SPA hasn't swapped yet | H2H pages where teams play each other repeatedly (MLB, NBA, ATP) | `match_date` is in the future on a historic scrape | Issue #60 — force `hashchange` via `page.evaluate`, wait for `eventData.id === fragment` |
-| **c.** League listings include duplicate "phantom" event rows hidden in CSS, whose href points to a corrupted slug that 301-redirects to an unrelated match | `<tr style="left:-9999px">` (also `display:none`, `visibility:hidden`, `top:-9999px`) on `/results/` listings | Random unrelated matches scraped from a league listing | `f7c6ee4` — `_is_offscreen_row` helper, skip before processing |
+| **c.** League listings include duplicate "phantom" event rows hidden in CSS, whose href points to a corrupted slug that 301-redirects to an unrelated match | `<tr style="left:-9999px">` (also `display:none`, `visibility:hidden`, `top:-9999px`) on `/results/` listings | Random unrelated matches scraped from a league listing | `f7c6ee4` — `_is_offscreen_row` helper, skip before processing (now `OddsPortalSelectors.is_hidden`, which also reads ancestors, §28) |
 
 **Case b fails intermittently, and that is not a structure change.** The SPA
 swap is a client-side render race: on a full Turkish Süper Lig season (issue
@@ -100,9 +101,10 @@ independent signal:
   (case b). Gating purely on `fragment != eventData.id` shipped a regression
   that dropped every PR #54-class historic H2H match (see issue #60 follow-up).
 - **CSS visibility** — for any row/element you iterate over on a listing page,
-  check `style` for `left:-9999px`, `top:-9999px`, `display:none`,
-  `visibility:hidden` (markers live in `_OFFSCREEN_STYLE_MARKERS` in
-  `base_scraper.py`). These are not user-visible and should be skipped.
+  check the element and its ancestors for a `style` with `left:-9999px`,
+  `top:-9999px`, `display:none` or `visibility:hidden`, and for the anti-bot
+  trap attribute (`OddsPortalSelectors.is_hidden`, §28). These are not
+  user-visible and should be skipped.
 - **DOM vs JSON** — when both exist for the same field (team names, date,
   scores), prefer the DOM (hrefs, semantics and text shape since the testids
   went, §20) and use JSON only as fallback. The DOM is what the user sees; the embedded JSON may be stale.
@@ -2242,6 +2244,84 @@ each case by editing a HAR (replays abort a request the HAR does not hold).
 - `core/odds_portal_selectors.py`: `MARKET_FEED_IDS`.
 - `core/exceptions.py`: `MarketDataError`.
 - §23 (429 on data requests), §26 (the panel every switch resets).
+
+---
+
+## §28: An invisible anti-bot trap row clones a match link with invented team ids
+
+**Severity:** High (every listing run visited a page built to catch bots, then reported it as a failed match).
+
+OddsPortal pages carry an inline script, called with two 8-character tokens
+written into the page's HTML (`('37e4f5e9', '5a49c1bd')` on both captures of
+2026-10-05, another pair on 2026-10-02). None of the HARs committed on
+2026-09-02 holds it; every HAR committed since 2026-09-17 does. Once a page
+lists at least two rows whose links all point at
+`/<sport>/h2h/<home>-<id>/<away>-<id>/`, the script:
+
+- clones one of those rows at random;
+- replaces the two team ids of each link with the tokens and drops the
+  `#<event>` fragment;
+- hides the clone with `position:absolute;left:-9999px;top:0;height:0;overflow:hidden`,
+  `aria-hidden="true"` and `data-ab-trap="1"`, all three on the clone's root,
+  three levels above the link;
+- inserts it after a random row of the same list, and injects a new one when
+  the list re-renders and drops it (a MutationObserver), or, on a page with no
+  DOM mutation in its first 8 s, every 20 to 40 s; it never keeps more than
+  one clone.
+
+A person never sees the clone. A scraper that takes every h2h link does: on a
+league listing it was one more match, with the kickoff of the row it cloned;
+its page never rendered (`match view hydration failed`, after two attempts),
+and the run reported one failed URL per listing page. When the cloned row is
+the first of its date group, the clone also carries that group's date header,
+inserted among the rows of another date: the rows after it took that date, so
+their `kickoff_utc` moved and `upcoming --date` dropped them (6 of 24 replays
+of the committed listing). The same HTML also calls
+`/ajax-esi/ab-proof-mint/` every 250 s with an `X-Proof-Nonce` header. Whether
+a trap visit feeds the rate limit of §23 is not known.
+
+The filter of issue #61 (`_is_offscreen_row`) read the link's own `style`.
+Since the rows became the links themselves (§20), the clone's hiding style sat
+on an ancestor and every trap went through, on the historic, upcoming and live
+listing walks alike.
+
+The clone's team names change with each injection, since it copies a random
+row (Crystal Palace - Nottingham, then Coventry - Tottenham on the same page);
+the tokens stay. The tokens seen so far were lowercase hexadecimal, while real
+ids mix cases.
+
+### Detection signal
+
+- A links-only run returns a link without `#<event>`; real listing rows always
+  carry it. Its two team ids come back on other runs under other names.
+- A listing scrape logs `match view hydration failed` for such a link.
+- `data-ab-trap` in the page HTML.
+
+### Fix pattern
+
+`OddsPortalSelectors.is_hidden(link)` reads the link and each of its
+ancestors: the trap attribute, or an inline style holding one of
+`HIDDEN_STYLE_MARKERS`, hides it. Every walk over h2h links skips a hidden one:
+`extract_match_rows` and `extract_live_match_links` (counted in their
+"offscreen rows skipped" log line) and the top-predictions and profile
+parsers. `extract_match_rows` also ignores a hidden date header. `aria-hidden`
+is not used alone, since a modal may set it on the whole page.
+
+The trap needs two rows of match links only, so it showed on league listings;
+the live-now listing captured with one match and the community pages captured
+so far hold none, but the rule covers all four walks.
+
+`tests/integration/test_listing_replay.py` replays a Premier League listing
+captured with the trap: the script runs again in the replay and injects it,
+and the rows, kickoffs included, must equal the golden.
+
+### References
+
+- `core/odds_portal_selectors.py`: `is_hidden`, `TRAP_ATTRIBUTE`, `HIDDEN_STYLE_MARKERS`.
+- `core/base_scraper.py`: `extract_match_rows`, `extract_live_match_links`.
+- `core/community/top_predictions_parser.py`, `core/community/user_profile_parser.py`.
+- `tests/integration/fixtures/football/premier-league/upcoming-listing/`.
+- §1 (the issue #61 twin), §20 (rows are links), §23 (rate limit).
 
 ---
 

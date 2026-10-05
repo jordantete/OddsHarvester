@@ -13,7 +13,7 @@ Usage:
     uv run python scripts/capture_all_hars.py --match-id leicester-brentford-xQ77QTN0
     uv run python scripts/capture_all_hars.py --dry-run
 
---only takes matches, community, team or live. --sport and --match-id select matches only.
+--only takes matches, community, team, live or listing. --sport and --match-id select matches only.
 --dry-run prints each HAR and its command without running anything.
 Exit code: 0 when every selected capture succeeded, 1 otherwise.
 """
@@ -31,7 +31,7 @@ import tempfile
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 FIXTURES_DIR = PROJECT_ROOT / "tests" / "integration" / "fixtures"
-KINDS = ("matches", "community", "team", "live")
+KINDS = ("matches", "community", "team", "live", "listing")
 CAPTURE_MODULE = ("uv", "run", "python", "-m", "tests.integration.helpers.capture")
 ODDSHARVESTER = ("uv", "run", "oddsharvester")
 
@@ -149,6 +149,22 @@ SPECIAL_FIXTURES = (
         kind="live",
         har="football/club-friendly/samgurali-spaeri-0nx5GXqB/live_listing.har",
         argv=("live", "--sport", "football", "--links-only"),
+    ),
+    # Holds the trap of gotchas §28; recapture when the league has no match today or tomorrow, as the replay would
+    # read a "Today" or "Tomorrow" header against its own day.
+    SpecialFixture(
+        kind="listing",
+        har="football/premier-league/upcoming-listing/upcoming_listing.har",
+        argv=(
+            "upcoming",
+            "--sport",
+            "football",
+            "--league",
+            "england-premier-league",
+            "--links-only",
+            "--timezone",
+            "UTC",
+        ),
     ),
 )
 

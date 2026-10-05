@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 from tests.clock import frozen_clock
-from tests.dom_builders import community_column, community_row, community_section
+from tests.dom_builders import community_column, community_row, community_section, trap_row
 
 from oddsharvester.core.community.top_predictions_parser import parse_top_predictions
 
@@ -103,3 +103,20 @@ def test_malformed_row_is_skipped():
 
 def test_empty_html_returns_empty_list():
     assert parse_top_predictions("<html><body></body></html>") == []
+
+
+def test_the_anti_bot_trap_row_is_skipped():
+    """A hidden clone of a row with invented team ids must not become a pick (gotchas §28)."""
+    columns = (
+        community_column("1", "1.69", "89%") + community_column("X", "3.68", "9%") + community_column("2", "4.70", "2%")
+    )
+    html = community_section(
+        community_row("/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/#xtmHKGT0", columns)
+        + trap_row(community_row("/football/h2h/arsenal-37e4f5e9/leeds-5a49c1bd/", columns))
+    )
+
+    records = parse_top_predictions(html, tz_name="UTC")
+
+    assert [r["match_url"] for r in records] == [
+        "https://www.oddsportal.com/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/#xtmHKGT0"
+    ]

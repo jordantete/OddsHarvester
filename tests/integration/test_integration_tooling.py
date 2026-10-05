@@ -14,7 +14,7 @@ from tests.integration.helpers.capture import build_fixture_filename
 
 pytestmark = pytest.mark.integration
 
-DRY_RUN_HAR = re.compile(r"^(?:matches|community|team|live) +(\S+\.har)$", re.MULTILINE)
+DRY_RUN_HAR = re.compile(rf"^(?:{'|'.join(capture_all_hars.KINDS)}) +(\S+\.har)$", re.MULTILINE)
 
 
 def test_fixture_filename_without_odds_history():

@@ -26,6 +26,16 @@ def listing_row(href: str, status: str = "21:00", home: str = "Home", away: str 
     )
 
 
+TRAP_STYLE = "position: absolute; left: -9999px; top: 0px; height: 0px; overflow: hidden;"
+
+
+def trap_row(row: str, trap_attribute: bool = True, style: str = TRAP_STYLE) -> str:
+    """The anti-bot trap clone of a row as captured on 2026-10-05: hidden off-screen, its link three levels down."""
+    attribute = ' data-ab-trap="1"' if trap_attribute else ""
+    style_attr = f' style="{style}"' if style else ""
+    return f'<div aria-hidden="true"{attribute}{style_attr}><div><div>{row}</div></div></div>'
+
+
 def date_header(text: str) -> str:
     """A listing date-header: a leaf element holding only the group date."""
     return f"<div>{text}</div>"

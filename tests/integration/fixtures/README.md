@@ -21,6 +21,7 @@ fixtures/
 │   ├── club-friendly/samgurali-spaeri-0nx5GXqB/   live_listing.json and .har, the live-now listing
 │   ├── laliga/
 │   ├── premier-league/
+│   │   └── upcoming-listing/                       upcoming_listing.json and .har, a league listing
 │   └── super-cup-2025/
 ├── handball/germany-bundesliga/
 ├── team/                               teams.json and .har
@@ -70,13 +71,13 @@ Without `--match-dir`, the directory is named after the URL's last path segment.
 
 `scripts/capture_all_hars.py` recaptures every fixture: match fixtures are derived from each `metadata.json` and
 fixture name, and `SPECIAL_FIXTURES` holds the exact command of the others (community, team, the live-now listing,
-odds history, preview).
+the upcoming league listing, odds history, preview).
 
 ```bash
 # Every fixture
 uv run python scripts/capture_all_hars.py
 
-# One kind: matches, community, team or live
+# One kind: matches, community, team, live or listing
 uv run python scripts/capture_all_hars.py --only community
 
 # One sport or one match directory (matches only)
