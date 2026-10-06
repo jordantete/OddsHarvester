@@ -4,6 +4,7 @@ from datetime import UTC, datetime, time
 import logging
 from unittest.mock import ANY, AsyncMock, MagicMock, patch
 from urllib.parse import urldefrag
+from zoneinfo import ZoneInfo
 
 from bs4 import BeautifulSoup
 from playwright.async_api import Browser, BrowserContext, Page
@@ -301,6 +302,57 @@ async def test_collect_historic_links_reads_the_season_listing(scraper, site):
     assert isinstance(listing_result, ListingResult)
     assert [row["match_link"] for row in listing_result.rows] == links(page1 + page2), "the hockey row is dropped"
     assert listing_result.failed_page_urls == []
+
+
+async def test_collect_historic_links_gives_each_row_the_day_of_its_date_header(scraper, site):
+    """`match_day` is the day the results page groups the row under; None for a row above every header."""
+    before, may25, may18 = hrefs(1, 1), hrefs(2, RESULTS_PAGE_SIZE - 2), hrefs(3, 1)
+    site.serve(
+        1,
+        page(
+            listing_row(before[0], status="FIN")
+            + date_header("25 May 2025")
+            + "".join(listing_row(href, status="FIN") for href in may25)
+            + date_header("18 May 2025")
+            + listing_row(may18[0], status="FIN")
+            + pagination([1, 2])
+        ),
+    )
+    site.serve(2, listing(hrefs(4, 2), widget=[1, 2], day="11 May 2025"))
+
+    listing_result = await scraper.collect_historic_links(
+        sport="football", league="england-premier-league", season="2024-2025", max_pages=2
+    )
+
+    assert [(row["match_link"], row["match_day"]) for row in listing_result.rows] == [
+        (links(before)[0], None),
+        *((link, "2025-05-25") for link in links(may25)),
+        (links(may18)[0], "2025-05-18"),
+        *((link, "2025-05-11") for link in links(hrefs(4, 2))),
+    ]
+
+
+async def test_a_relative_date_header_gives_the_day_of_the_browser_zone(scraper, site):
+    """The page groups rows in the browser zone (gotchas §10): at 20:00 UTC on 5 Oct, Auckland's yesterday is 5 Oct."""
+    scraper.playwright_manager.timezone_id = "Pacific/Auckland"
+    site.serve(1, page(date_header("Yesterday, 05 Oct") + listing_row(hrefs(1, 1)[0], status="FIN")))
+
+    with patch("oddsharvester.core.listing.datetime", frozen_clock(datetime(2026, 10, 5, 20, 0, tzinfo=UTC))):
+        listing_result = await scraper.collect_historic_links(
+            sport="football", league="england-premier-league", season=None
+        )
+
+    assert [row["match_day"] for row in listing_result.rows] == ["2026-10-05"]
+
+
+async def test_upcoming_rows_carry_no_match_day(scraper, site):
+    site.serve(1, listing(hrefs(1, 2), day="18 May 2026"))
+
+    listing_result = await scraper.collect_upcoming_links(
+        sport="football", date=None, league="england-premier-league", collect_kickoff=True
+    )
+
+    assert [set(row) for row in listing_result.rows] == [{"match_link", "kickoff_utc"}] * 2
 
 
 async def test_collect_historic_links_fails_when_season_url_redirects(scraper, site):
@@ -1088,7 +1140,7 @@ async def test_collect_historic_links_runs_on_its_own_tab_and_reports_failed_pag
     scraper._warm_up_page.assert_awaited_once_with(season_tab)
     assert site.every_tab_closed_once()
     assert site.shared_tab.gotos == []
-    assert listing_result.rows == [{"match_link": link} for link in links(page1 + page2)]
+    assert listing_result.rows == [{"match_link": link, "match_day": "2025-05-18"} for link in links(page1 + page2)]
     assert listing_result.failed_page_urls == [f"{SEASON_URL}#page/3"]
 
 
@@ -1154,13 +1206,12 @@ async def test_collect_historic_links_reads_page_one_on_the_season_tab(scraper, 
     assert site.every_tab_closed_once()
 
 
-async def test_the_patches_of_resolve_events_b_still_reach_the_historic_walk(scraper, site, monkeypatch):
-    """resolve_events_b.py (betting_research, outside this repo) replaces two names to read each row's kickoff.
+def _apply_the_patches_of_resolve_events_b(monkeypatch) -> dict[str, str | None]:
+    """resolve_events_b.py's two patches (betting_research, outside this repo), its code reformatted.
 
     It swaps BaseScraper.extract_match_links for a call of extract_match_rows(collect_kickoff=True) that keeps the
-    kickoffs in a side dict, and wraps base_scraper._row_kickoff_datetime to fall back to noon of the row's date.
-    Both functions below are its code, reformatted. The browser zone is None here, so the noon fallback is naive
-    and its UTC value follows the host zone: the test checks only that the fallback ran.
+    kickoffs in a side dict (returned here), and wraps base_scraper._row_kickoff_datetime to fall back to noon of
+    the row's date in the browser zone.
     """
     kickoffs = {}
 
@@ -1184,14 +1235,19 @@ async def test_the_patches_of_resolve_events_b_still_reach_the_historic_walk(scr
     def _kick_or_noon(row, row_date, tz):
         k = _orig_kick(row, row_date, tz)
         if k is None and row_date is not None:
-            k = datetime.combine(row_date, time(12, 0), tzinfo=tz)
+            k = datetime.combine(row_date, time(12, 0), tzinfo=ZoneInfo(tz) if tz else UTC)
         return k
 
     monkeypatch.setattr(BaseScraper, "extract_match_links", _links_with_kickoff)
     monkeypatch.setattr(base_scraper, "_row_kickoff_datetime", _kick_or_noon)
+    return kickoffs
+
+
+def _played_postponed_and_hockey() -> tuple[list[str], list[str], str]:
     played, postponed, hockey = hrefs(1, 1), hrefs(1, 2)[1:], hrefs(1, 1, sport="hockey")
-    site.serve(
-        1,
+    return (
+        played,
+        postponed,
         page(
             date_header("18 May 2025")
             + listing_row(played[0], status="15:00")
@@ -1200,6 +1256,14 @@ async def test_the_patches_of_resolve_events_b_still_reach_the_historic_walk(scr
         ),
     )
 
+
+async def test_the_patches_of_resolve_events_b_still_reach_the_historic_walk(scraper, site, monkeypatch):
+    """resolve_events_b.py replaces two names to read each row's kickoff; both must still reach the walk."""
+    kickoffs = _apply_the_patches_of_resolve_events_b(monkeypatch)
+    scraper.playwright_manager.timezone_id = "UTC"
+    played, postponed, listing_page = _played_postponed_and_hockey()
+    site.serve(1, listing_page)
+
     listing_result = await scraper.collect_historic_links(
         sport="football", league="england-premier-league", season="2024-2025"
     )
@@ -1207,7 +1271,23 @@ async def test_the_patches_of_resolve_events_b_still_reach_the_historic_walk(scr
     assert [row["match_link"] for row in listing_result.rows] == links(played + postponed)
     assert list(kickoffs) == links(played + postponed)
     assert kickoffs[links(played)[0]] == "2025-05-18 15:00:00 UTC"
-    assert kickoffs[links(postponed)[0]] is not None, "the patched _row_kickoff_datetime was not called"
+    assert kickoffs[links(postponed)[0]] == "2025-05-18 12:00:00 UTC", "the patched noon fallback was not called"
+
+
+async def test_rows_carry_their_match_day_under_the_patches_of_resolve_events_b(scraper, site, monkeypatch):
+    """The day reaches the rows even when extract_match_links is the script's replacement (spec 2026-10-05 D6)."""
+    _apply_the_patches_of_resolve_events_b(monkeypatch)
+    scraper.playwright_manager.timezone_id = "UTC"
+    played, postponed, listing_page = _played_postponed_and_hockey()
+    site.serve(1, listing_page)
+
+    listing_result = await scraper.collect_historic_links(
+        sport="football", league="england-premier-league", season="2024-2025"
+    )
+
+    assert listing_result.rows == [
+        {"match_link": link, "match_day": "2025-05-18"} for link in links(played + postponed)
+    ]
 
 
 def _page_with_country_links(count):

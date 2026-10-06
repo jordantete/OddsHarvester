@@ -208,6 +208,23 @@ async def test_a_links_only_upcoming_run_returns_rows_with_their_kickoff(fake_sc
     assert list(result.success[0]) == ["match_link", "sport", "league", "date", "season", "kickoff_utc"]
 
 
+async def test_a_links_only_historic_run_appends_the_match_day_last(fake_scraper):
+    """A new CSV column goes last, so a file appended across the upgrade keeps its first columns in place."""
+    fake_scraper.answers["collect_historic_links"] = ListingResult(rows=[{"match_link": M1, "match_day": "2025-05-18"}])
+
+    result = await run_scraper(
+        command="scrape_historic",
+        sport="football",
+        leagues=["england-premier-league"],
+        seasons=["2024-2025"],
+        links_only=True,
+        request_delay=0,
+    )
+
+    assert list(result.success[0]) == ["match_link", "sport", "league", "season", "match_day"]
+    assert result.success[0]["match_day"] == "2025-05-18"
+
+
 async def test_a_live_run_reads_the_live_listing_of_its_one_league(fake_scraper):
     fake_scraper.answers["scrape_live"] = _odds_result([M1])
 

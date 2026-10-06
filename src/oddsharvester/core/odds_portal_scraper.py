@@ -35,6 +35,7 @@ class LinkCollectionResult:
     links: list[str] = field(default_factory=list)
     successful_pages: int = 0
     failed_pages: list[int] = field(default_factory=list)
+    days: dict[str, str | None] = field(default_factory=dict)
 
     @property
     def total_pages(self) -> int:
@@ -95,7 +96,9 @@ class OddsPortalScraper(BaseScraper):
             max_pages (Optional[int]): Maximum number of pages to walk (None for all pages).
 
         Returns:
-            ListingResult: The collected rows and the URLs of listing pages that failed.
+            ListingResult: The collected rows, each carrying `match_link` and `match_day` (the day of the date
+            header the page groups it under, in the browser zone, ISO; None without one), and the URLs of
+            listing pages that failed.
         """
         context = self.playwright_manager.context
         if not context:
@@ -138,7 +141,7 @@ class OddsPortalScraper(BaseScraper):
             self.logger.warning(f"Failed to collect links from pages: {link_result.failed_pages}")
 
         return ListingResult(
-            rows=[{"match_link": link} for link in link_result.links],
+            rows=[{"match_link": link, "match_day": link_result.days.get(link)} for link in link_result.links],
             failed_page_urls=[f"{base_url}{OddsPortalSelectors.page_fragment(p)}" for p in link_result.failed_pages],
         )
 
@@ -470,6 +473,9 @@ class OddsPortalScraper(BaseScraper):
                     self.logger.warning(f"Scrolling may not have completed for page {page_number}")
 
                 links = await self.extract_match_links(page=tab, sport=sport)
+                # extract_match_links returns links only, and resolve_events_b.py replaces it: the day comes aside.
+                for link in links:
+                    result.days.setdefault(link, self._row_days.get(link))
 
                 # Read on every page, not just empty ones: the tab is already loaded, so
                 # this costs no request, and a widget missing from page 1 is often present

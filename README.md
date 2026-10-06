@@ -372,6 +372,12 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 > output file rather than appending across the upgrade. `historic` and `live`
 > links-only rows are unchanged.
 
+> **Breaking change:** `historic --links-only` rows now carry a `match_day`
+> column, appended at the end. Appending to a CSV file produced by an earlier
+> version yields a file with two different column layouts, so start a new
+> output file rather than appending across the upgrade. `upcoming` and `live`
+> links-only rows are unchanged.
+
 > **Breaking change:** `boto3` moved to the `s3` extra, so `pip install oddsharvester` no longer
 > installs it, and there is no default S3 bucket any more. `--storage remote` (or
 > `OH_STORAGE=remote`) needs `pip install 'oddsharvester[s3]'` and a bucket in `OH_S3_BUCKET`;
@@ -487,7 +493,7 @@ offline which matches are close enough to be worth scraping.
 oddsharvester upcoming -s football -d $(date +%Y%m%d) --links-only -f csv -o upcoming_links.csv
 ```
 
-Output rows contain `match_link`, `sport`, `league`, and `season` (`date` and `kickoff_utc` for `upcoming`; `live` emits neither), in the site's listing order. `kickoff_utc` holds the match's own kickoff in UTC, in the same shape as `match_date` (`2026-07-31 18:30:00 UTC`), and is empty when the listing exposes no parseable kickoff. Under the default upcoming-only behaviour that means the date header could not be read or the row's first column held no `HH:MM` clock; with `--include-started`, a row whose first column shows a status or a period marker instead of the clock (a live or finished match) also comes back with an empty `kickoff_utc`. Options that only affect odds scraping (`--market`, `--period`, `--odds-history`, `--preview-only`, `--target-bookmaker`, `--bookies-filter`) are ignored when `--links-only` is set. `--links-only` cannot be combined with `--match-link`.
+Output rows contain `match_link`, `sport`, `league`, and `season` (`date` and `kickoff_utc` for `upcoming`, `match_day` for `historic`; `live` emits none of them), in the site's listing order. `match_day` (`2025-05-25`) is the day of the date header the results page groups the match under, as the browser renders it, so in the `--timezone` zone (a results page shows no kickoff time), and is empty for a row with no readable date header above it. `kickoff_utc` holds the match's own kickoff in UTC, in the same shape as `match_date` (`2026-07-31 18:30:00 UTC`), and is empty when the listing exposes no parseable kickoff. Under the default upcoming-only behaviour that means the date header could not be read or the row's first column held no `HH:MM` clock; with `--include-started`, a row whose first column shows a status or a period marker instead of the clock (a live or finished match) also comes back with an empty `kickoff_utc`. Options that only affect odds scraping (`--market`, `--period`, `--odds-history`, `--preview-only`, `--target-bookmaker`, `--bookies-filter`) are ignored when `--links-only` is set. `--links-only` cannot be combined with `--match-link`.
 
 ### Bulk scraping: multiple leagues, multiple seasons
 

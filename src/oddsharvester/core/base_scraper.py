@@ -103,6 +103,8 @@ class BaseScraper:
         self.on_match = on_match
         self._warmed_proxy_keys: set[str] = set()
         self.pagination_walker = PaginationWalker()
+        # The day of the date header each row was grouped under, by match link, from every listing page read.
+        self._row_days: dict[str, str | None] = {}
 
     async def set_odds_format(
         self, page: Page, odds_format: OddsFormat = OddsFormat.DECIMAL_ODDS, strict: bool = False
@@ -143,8 +145,7 @@ class BaseScraper:
                 UTC offset of the scrape moment (issue #77, gotchas §10); pair
                 with skip_started to bound the window on both sides.
             collect_kickoff (bool): If True, resolve each row's kickoff and emit
-                it as `kickoff_utc`. Off by default because it forces date-header
-                tracking, which the historic pagination path does not need.
+                it as `kickoff_utc`.
             sport (Optional[str]): The requested sport. When given, rows whose href
                 is not under the sport's site path (`/<site_slug>/`) are dropped and
                 counted, so a listing that serves another sport never passes its
@@ -152,7 +153,10 @@ class BaseScraper:
 
         Returns:
             List[dict]: One entry per unique match link, each carrying
-                `match_link` and `kickoff_utc` (None when undeterminable).
+                `match_link` and `kickoff_utc` (None when undeterminable). The
+                day of each row's date header (ISO, None without one) goes to
+                `self._row_days`, where the historic walk reads it whatever
+                replaced `extract_match_links`.
 
         Raises:
             Exception: Whatever reading or parsing the page raised, so the caller
@@ -173,7 +177,7 @@ class BaseScraper:
 
             need_kickoff = kickoff_within_hours is not None or collect_kickoff
             track_headers = date_filter is not None or need_kickoff
-            tz_name = getattr(self.playwright_manager, "timezone_id", None) if track_headers else None
+            tz_name = getattr(self.playwright_manager, "timezone_id", None)
 
             window_cutoff: datetime | None = None
             if kickoff_within_hours is not None:
@@ -191,17 +195,15 @@ class BaseScraper:
 
             for el in elements:
                 if not OddsPortalSelectors.is_match_link(el):
-                    if track_headers:
-                        header_text = el.get_text(" ", strip=True)
-                        parsed = _parse_date_header(header_text, tz_name=tz_name)
-                        if parsed is None:
-                            unparseable_header_count += 1
-                            self.logger.warning(
-                                f"Could not parse date-header '{header_text}'; rows under it will not be filtered."
-                            )
-                        else:
-                            seen_header_dates.add(parsed)
-                        current_row_date = parsed
+                    header_text = el.get_text(" ", strip=True)
+                    current_row_date = _parse_date_header(header_text, tz_name=tz_name)
+                    if current_row_date is not None:
+                        seen_header_dates.add(current_row_date)
+                    elif track_headers:
+                        unparseable_header_count += 1
+                        self.logger.warning(
+                            f"Could not parse date-header '{header_text}'; rows under it will not be filtered."
+                        )
                     continue
 
                 row = el
@@ -231,6 +233,7 @@ class BaseScraper:
                 link = rows.link(href)
                 if link is not None:
                     rows_out.append({"match_link": link, "kickoff_utc": kickoff_utc})
+                    self._row_days[link] = current_row_date.isoformat() if current_row_date else None
 
             started_suffix = f", {started_filtered_out_count} started/finished rows skipped" if skip_started else ""
             window_suffix = (
