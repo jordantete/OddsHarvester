@@ -45,7 +45,7 @@ class _Sent:
 
 
 def _loaded_view(url: str) -> dict:
-    """The view a page loaded on a URL that names its market ('#<id>:<code>;<scope>'), before any switch."""
+    """The view already active when a page's URL names its market ('#<id>:<code>;<scope>'), before any switch."""
     return {
         "fragment": OddsPortalSelectors.event_id_from_url(url),
         "code": OddsPortalSelectors.market_code_from_url(url),

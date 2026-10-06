@@ -103,7 +103,7 @@ class BaseScraper:
         self.on_match = on_match
         self._warmed_proxy_keys: set[str] = set()
         self.pagination_walker = PaginationWalker()
-        # The day of the date header each row was grouped under, by match link, from every listing page read.
+        # extract_match_links returns links only, and resolve_events_b.py replaces it: the day goes here instead.
         self._row_days: dict[str, str | None] = {}
 
     async def set_odds_format(

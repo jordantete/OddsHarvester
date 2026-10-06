@@ -110,7 +110,7 @@ async def switch_view(page: Page, fragment: str, code: str, scope: int, cap_ms: 
 
 
 async def loaded_view(page: Page, fragment: str, code: str, scope: int) -> int | None:
-    """The market the view the page loaded on shows, its data checked as a switch's are; None when none was recorded.
+    """The market the view already active for `code` shows, checked as a switch's data are; None when none recorded.
 
     Raises MarketDataError when the data carry another market than `code` while the match offers it.
     """

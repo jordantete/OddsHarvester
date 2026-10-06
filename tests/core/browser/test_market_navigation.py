@@ -105,7 +105,7 @@ class TestMarketTabNavigator:
     async def test_a_market_already_in_the_url_is_not_switched_again(self, navigator):
         """fb_004: every line of the umbrella lives on the tab already shown, and the same hash re-renders nothing.
 
-        The view's data are still read: the page may have loaded on that market's URL, which no switch checked.
+        The view's data are still read: an earlier switch already wrote that market into the URL, nothing new to check.
         """
         page = _page(url="https://www.oddsportal.com/football/h2h/a-x/b-y/#UNC9hLMj:over-under;2")
 
@@ -124,7 +124,7 @@ class TestMarketTabNavigator:
         page.query_selector_all.assert_not_awaited()
 
     async def test_a_page_loaded_on_a_market_with_another_market_s_data_fails(self, navigator):
-        """A link ending '#<id>:bts;2' skips the switch: the data its page loaded with are checked instead."""
+        """A page whose URL already names 'bts;2' skips the switch: the data already there are checked instead."""
         page = _page(url="https://www.oddsportal.com/football/h2h/a-x/b-y/#UNC9hLMj:bts;2", rendered=1)
 
         with pytest.raises(MarketDataError, match="OddsPortal sent the data of market 1 for the view 'bts;2'"):

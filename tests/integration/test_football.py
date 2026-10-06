@@ -313,8 +313,9 @@ class TestALinkThatNamesItsMarket:
     """A link ending '#<id>:<code>;<scope>' is loaded on its event, then the market is reached through the
     checked switch, like any other market request (gotchas §27).
 
-    Live on 2026-10-06: a page loaded directly on '#xQ77QTN0:bts;2' asked for the 1X2 data only and showed them
-    under the Both Teams to Score tab; loaded on its bare event instead, the switch reads the real btts odds.
+    Live on 2026-10-06: a page loaded directly on '#lMp9YMye:bts;2' asked for the 1X2 data only and showed them
+    under the Both Teams to Score tab; the replayed fixture here ('#xQ77QTN0') behaves the same: loaded on its
+    bare event instead, the switch reads the real btts odds.
     """
 
     def test_a_link_naming_the_1x2_reads_it(self, har_for_match, tmp_path):

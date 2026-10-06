@@ -362,15 +362,13 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 > `match_date` and carry `season` alongside the other link fields instead. It
 > holds the scraped season for `historic`, including the `--season` given with
 > `historic --match-link`, and is empty for `upcoming` and other `--match-link`
-> runs. Appending to a file produced by an earlier version
-> yields a file with two different column layouts, so start a new output file
-> rather than appending across the upgrade.
+> runs. Appending to a CSV file produced by an earlier version widens its
+> header: earlier rows get an empty `season`.
 
 > **Breaking change:** `upcoming --links-only` rows now carry a `kickoff_utc`
-> column, appended at the end. Appending to a file produced by an earlier
-> version yields a file with two different column layouts, so start a new
-> output file rather than appending across the upgrade. `live` links-only rows
-> are unchanged; `historic` ones gain `match_day` (below).
+> column, appended at the end. Appending to a CSV file produced by an earlier
+> version widens its header: earlier rows get an empty `kickoff_utc`. `live`
+> links-only rows are unchanged; `historic` ones gain `match_day` (below).
 
 > **Breaking change:** `historic --links-only` rows now carry a `match_day`
 > column, appended at the end. Appending to a CSV file produced by an earlier
