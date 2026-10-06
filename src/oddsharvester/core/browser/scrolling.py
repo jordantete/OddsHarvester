@@ -26,13 +26,15 @@ _CLICK_TARGET_RANK_JS = """
 }
 """
 
-# The rows (closest args.ancestor) of the args.selector elements whose label ends with the line's tokens, read as
-# OddsPortalSelectors.line_label_matches reads them. args.want: "present" for at least one row; "open" or "closed"
-# for one row whose next row holds, or does not hold, bookmaker rows.
+# The rows (closest args.ancestor) of the shown args.selector elements whose label ends with the line's tokens, read
+# as OddsPortalSelectors.line_label_matches reads them; an element without a box is one _click_row_of_line cannot
+# click. args.want: "present" for at least one row; "open" or "closed" for one row whose next row holds, or does not
+# hold, bookmaker rows.
 _LINE_ROW_JS = """
 (args) => {
     const rows = [];
     for (const element of document.querySelectorAll(args.selector)) {
+        if (element.getClientRects().length === 0) continue;
         const label = (element.textContent || "").split(/\\s+/).filter(Boolean);
         if (!args.tokens.length || label.length < args.tokens.length) continue;
         if (label.slice(label.length - args.tokens.length).join(" ") !== args.tokens.join(" ")) continue;
@@ -50,7 +52,7 @@ _LINE_ROW_JS = """
 
 
 class PageScroller:
-    """Incremental page scrolling and scroll-to-element-and-click."""
+    """Incremental page scrolling, and the click on the row of a line market."""
 
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
