@@ -174,10 +174,12 @@ class OddsParser:
         text: str, reference: datetime | None, tz_name: str | None = None, now: datetime | None = None
     ) -> str:
         """Naive ISO local time, in the browser zone on that date, of a modal time such as '27 Dec, 18:08'."""
+        # Read once: the year rule and the conversion must use the same page offset.
+        now = now if now is not None else datetime.now(UTC)
         # Parsed against a leap year so that 29 February is accepted before the real year is known.
         parsed = datetime.strptime(f"{_MONTH_ABBR_RE.sub('Sep', text)} 2000", "%d %b, %H:%M %Y")
         if reference is None:
-            year = (now or datetime.now(UTC)).year
+            year = now.year
         else:
             # The year rule compares shown dates, so the kickoff is moved to the page's offset first.
             shown_kickoff = local_to_shown(reference, tz_name, now)

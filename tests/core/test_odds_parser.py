@@ -190,6 +190,25 @@ class TestOddsParser:
             "2026-10-25T01:30:00"
         )
 
+    def test_history_timestamps_read_the_clock_once(self):
+        """Two reads across a DST switch would put the year rule and the conversion an hour apart."""
+        moments = iter([SUMMER_NOW, WINTER_NOW])
+
+        class SwitchingClock(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                moment = next(moments)
+                return moment if tz is None else moment.astimezone(tz)
+
+        kickoff = datetime(2026, 1, 4, 17, 30)
+        with (
+            patch("oddsharvester.utils.page_time.datetime", SwitchingClock),
+            patch("oddsharvester.core.market_extraction.odds_parser.datetime", frozen_clock(SUMMER_NOW)),
+        ):
+            timestamp = OddsParser._history_timestamp("4 Jan, 17:58", kickoff, "Europe/London")
+
+        assert timestamp == "2026-01-04T16:58:00"
+
     def test_parse_odds_history_modal_reads_every_time_at_the_page_offset(self, odds_parser):
         html = self._history_html([("4 Jan, 17:58", "1.46")], opening=("27 Dec, 18:08", "1.60"))
 

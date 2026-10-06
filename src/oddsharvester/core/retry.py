@@ -46,8 +46,9 @@ TRANSIENT_ERROR_KEYWORDS = (
 # Word-anchored: a bare "rate", "limit" or "429" also sits in "separate", "limit of 3 retries" or "14290".
 _RATE_LIMIT_PATTERN = re.compile(r"\brate[\s-]?limit(?:s|ed|ing)?\b|\b429\b|\btoo many requests\b")
 
-# A URL or a bare path quoted in a message ("/proxy/match-event/...") says nothing about the error itself.
-_URL_PATTERN = re.compile(r"[a-z][a-z0-9+.-]*://\S+|(?<![\w/])/[^\s'\"]+")
+# A URL or a path quoted in a message ("/proxy/match-event/...", "cache/proxy/x", "c:\\proxy\\x") says nothing
+# about the error itself.
+_URL_PATTERN = re.compile(r"[a-z][a-z0-9+.-]*://\S+|(?<![\w/])/[^\s'\"]+|[\w.-]+/[^\s'\"]+|(?:[a-z]:|\\)\\[^\s'\"]+")
 
 
 @dataclass

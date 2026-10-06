@@ -1195,6 +1195,26 @@ async def test_the_proxy_warm_up_passes_its_timeout_and_strictness(setup_base_sc
     mocks["page_mock"].close.assert_awaited_once()
 
 
+async def test_a_warm_up_page_that_will_not_close_does_not_stop_the_other_proxies(setup_base_scraper_mocks, caplog):
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    pm = mocks["playwright_manager_mock"]
+    keys = ["http://a.example.com:1", "http://b.example.com:2"]
+    pm.non_default_context_keys = MagicMock(return_value=keys)
+    scraper._warm_up_page = AsyncMock()
+    mocks["page_mock"].close = AsyncMock(side_effect=[RuntimeError("Target page has been closed"), None])
+
+    with caplog.at_level(logging.WARNING):
+        await scraper._warm_proxy_contexts()
+
+    assert [call.args[0] for call in pm.new_page_on_key.await_args_list] == keys
+    assert scraper._warmed_proxy_keys == set(keys)
+    pm.blacklist_proxy.assert_not_called()
+    assert "Could not close the warm-up page of proxy context http://a.example.com:1: Target page has been closed" in (
+        caplog.text
+    )
+
+
 @pytest.mark.parametrize("failure", ["format_missing", "timeout"])
 async def test_warm_up_blacklists_a_proxy_whose_odds_format_cannot_be_set(setup_base_scraper_mocks, failure):
     """B7: a context left on non-decimal odds would corrupt every match it scrapes (gotchas §11)."""

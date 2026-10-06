@@ -96,3 +96,9 @@ def test_a_time_shown_in_the_spring_gap_never_reads_as_a_missing_local_time():
 def test_local_to_shown_moves_a_local_time_to_the_page_offset():
     assert local_to_shown(datetime(2025, 12, 31, 23, 30), "Europe/London", SUMMER_NOW) == datetime(2026, 1, 1, 0, 30)
     assert local_to_shown(datetime(2026, 7, 4, 19, 0), "Europe/London", WINTER_NOW) == datetime(2026, 7, 4, 18, 0)
+
+
+def test_shown_to_utc_refuses_an_aware_time():
+    """The page shows naive times; an aware one would be shifted by the page offset as if it were naive."""
+    with pytest.raises(ValueError, match="naive"):
+        shown_to_utc(datetime(2026, 1, 4, 17, 30, tzinfo=UTC), "Europe/London", SUMMER_NOW)

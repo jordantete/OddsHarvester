@@ -148,6 +148,11 @@ class TestClassifyError:
                 'Timeout 30000ms exceeded navigating to "https://www.oddsportal.com/football/h2h/a/b/"',
                 ErrorType.NAVIGATION,
             ),
+            ("could not read cache/proxy/x.json", ErrorType.UNKNOWN),
+            ("could not read data/timeout.json", ErrorType.UNKNOWN),
+            ("could not open C:\\Users\\me\\proxy\\x.har", ErrorType.UNKNOWN),
+            ("could not open \\\\server\\proxy\\x.har", ErrorType.UNKNOWN),
+            ("connection reset while reading cache/x.json", ErrorType.NAVIGATION),
         ],
     )
     def test_keywords_inside_a_url_or_path_do_not_count(self, message, expected):

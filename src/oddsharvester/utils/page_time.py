@@ -22,7 +22,9 @@ def page_utc_offset(tz_name: str | None, now: datetime | None = None) -> timedel
 
 
 def shown_to_utc(shown: datetime, tz_name: str | None, now: datetime | None = None) -> datetime:
-    """The aware UTC instant of a naive time as the page shows it."""
+    """The aware UTC instant of a naive time as the page shows it; an aware time raises ValueError."""
+    if shown.tzinfo is not None:
+        raise ValueError(f"shown_to_utc takes the naive time the page shows, not {shown.isoformat()}")
     return (shown - page_utc_offset(tz_name, now)).replace(tzinfo=UTC)
 
 

@@ -394,7 +394,10 @@ class BaseScraper:
                         self.playwright_manager.blacklist_proxy(key)
                 finally:
                     if page:
-                        await page.close()
+                        try:
+                            await page.close()
+                        except Exception as e:
+                            self.logger.warning(f"Could not close the warm-up page of proxy context {key}: {e}")
 
     async def extract_match_odds(
         self,
