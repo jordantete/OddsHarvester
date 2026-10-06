@@ -120,3 +120,16 @@ def test_the_anti_bot_trap_row_is_skipped():
     assert [r["match_url"] for r in records] == [
         "https://www.oddsportal.com/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/#xtmHKGT0"
     ]
+
+
+def test_a_page_whose_rows_are_all_hidden_warns(caplog):
+    """A hiding style on a wrapper would read as a page without picks (gotchas §28)."""
+    columns = community_column("1", "1.69", "89%") + community_column("2", "4.70", "11%")
+    html = community_section(
+        '<div style="display:none">'
+        + community_row("/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/#xtmHKGT0", columns)
+        + "</div>"
+    )
+
+    assert parse_top_predictions(html, tz_name="UTC") == []
+    assert "All 1 match rows of the top predictions page are hidden" in caplog.text

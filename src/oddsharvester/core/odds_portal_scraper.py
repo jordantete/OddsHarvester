@@ -407,7 +407,7 @@ class OddsPortalScraper(BaseScraper):
 
     async def _collect_match_links(
         self,
-        season_tab: Page,
+        season_tab: Page | None,
         base_url: str,
         floor: int,
         page_limit: int = MAX_PAGINATION_PAGES,
@@ -422,7 +422,7 @@ class OddsPortalScraper(BaseScraper):
         See gotchas 2 and 17.
 
         Args:
-            season_tab (Page): The season page's tab, already on page 1: the walk reads page 1 there,
+            season_tab (Page | None): The season page's tab, already on page 1: the walk reads page 1 there,
                 then closes it.
             base_url (str): The base URL of the historic matches.
             floor (int): The highest page the season page's widget showed, 1 without one.

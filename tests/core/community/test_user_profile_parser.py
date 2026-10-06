@@ -139,3 +139,16 @@ def test_the_anti_bot_trap_row_is_not_a_prediction():
     assert [p["match_url"] for p in predictions] == [
         "https://www.oddsportal.com/football/h2h/turkey-aaaaaaaa/paraguay-bbbbbbbb/#abc123"
     ]
+
+
+def test_a_feed_whose_rows_are_all_hidden_warns(caplog):
+    from oddsharvester.core.community.user_profile_parser import parse_profile_feed_predictions
+
+    html = profile_page(
+        rows='<div style="display:none">'
+        + community_row("/football/h2h/turkey-aaaaaaaa/paraguay-bbbbbbbb/#abc123", _PREDICTION_COLUMNS)
+        + "</div>"
+    )
+
+    assert parse_profile_feed_predictions(html, tz_name="UTC") == []
+    assert "All 1 match rows of the profile page are hidden" in caplog.text

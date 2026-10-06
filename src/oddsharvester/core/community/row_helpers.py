@@ -7,11 +7,14 @@ the slash+comma community date shape (gotchas §13).
 """
 
 from datetime import datetime
+import logging
 import re
 
 from oddsharvester.core.listing import _parse_date_header
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.page_time import shown_to_local
+
+logger = logging.getLogger(__name__)
 
 _PCT_RE = re.compile(r"(\d+)\s*%")
 _TIME_RE = re.compile(r"^\d{1,2}:\d{2}$")
@@ -67,6 +70,18 @@ def outcome_columns(row) -> list[dict]:
             }
         )
     return columns
+
+
+def visible_match_links(root, page: str) -> list:
+    """The match links of `root` a person sees; a warning when there were some and every one was hidden."""
+    links = root.select(OddsPortalSelectors.LISTING_ROW_SELECTOR)
+    visible = [link for link in links if not OddsPortalSelectors.is_hidden(link)]
+    if links and not visible:
+        logger.warning(
+            f"All {len(links)} match rows of the {page} are hidden: a hiding style on the page itself would read "
+            "as a page without rows (gotchas §28)."
+        )
+    return visible
 
 
 def row_of(link):

@@ -17,6 +17,7 @@ from oddsharvester.core.community.row_helpers import (
     outcome_columns,
     row_of,
     to_float,
+    visible_match_links,
 )
 from oddsharvester.core.listing import _parse_date_header
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
@@ -119,9 +120,7 @@ def parse_profile_feed_predictions(html: str, tz_name: str | None = None) -> lis
 def _parse_predictions(soup, tz_name: str | None) -> list[dict]:
     root = OddsPortalSelectors.content_root(soup)
     predictions: list[dict] = []
-    for link in root.select(OddsPortalSelectors.LISTING_ROW_SELECTOR):
-        if OddsPortalSelectors.is_hidden(link):
-            continue
+    for link in visible_match_links(root, "profile page"):
         row = row_of(link)
         if row is None:
             continue

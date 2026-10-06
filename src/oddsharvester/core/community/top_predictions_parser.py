@@ -16,6 +16,7 @@ from oddsharvester.core.community.row_helpers import (
     extract_teams,
     outcome_columns,
     row_of,
+    visible_match_links,
 )
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
@@ -32,9 +33,7 @@ def parse_top_predictions(html: str, tz_name: str | None = None) -> list[dict]:
     root = OddsPortalSelectors.content_root(soup)
 
     records: list[dict] = []
-    for link in root.select(OddsPortalSelectors.LISTING_ROW_SELECTOR):
-        if OddsPortalSelectors.is_hidden(link):
-            continue
+    for link in visible_match_links(root, "top predictions page"):
         row = row_of(link)
         if row is None:
             continue

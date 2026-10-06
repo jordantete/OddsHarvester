@@ -181,6 +181,7 @@ class BaseScraper:
 
             rows = _ListingRows(sport, self.base_url or ODDSPORTAL_BASE_URL)
             rows_out: list[dict[str, Any]] = []
+            without_event: list[str] = []
             current_row_date: date | None = None
             seen_header_dates: set[date] = set()
             filtered_out_count = 0
@@ -207,6 +208,8 @@ class BaseScraper:
                 href = rows.href(row)
                 if href is None:
                     continue
+                if "#" not in href:
+                    without_event.append(href)
 
                 if date_filter is not None and current_row_date is not None and current_row_date != date_filter:
                     filtered_out_count += 1
@@ -257,6 +260,13 @@ class BaseScraper:
                 )
 
             rows.warn_if_all_foreign(self.logger, "listing")
+            rows.warn_if_all_hidden(self.logger, "listing", page.url)
+            if without_event:
+                self.logger.warning(
+                    f"{len(without_event)} visible match links of this listing ({page.url}) carry no event id, "
+                    f"first {without_event[0]}: real rows carry '#<event>', the anti-bot trap clone does not "
+                    "(gotchas §28)."
+                )
             return rows_out
 
         except Exception as e:
@@ -286,8 +296,8 @@ class BaseScraper:
             sport (Optional[str]): The requested sport, required when `league` is given.
                 When given, rows whose href is not under the sport's site path
                 (`/<site_slug>/`) are dropped and counted.
-            league (Optional[str]): League slug; keeps only rows whose href sits
-                under the league URL path from SPORTS_LEAGUES_URLS_MAPPING.
+            league (Optional[str]): League slug; keeps only the rows of the section
+                whose header link is the league's path (from SPORTS_LEAGUES_URLS_MAPPING).
 
         Returns:
             List[dict]: One dict per live match: {"match_link": str}.
@@ -336,6 +346,7 @@ class BaseScraper:
             league_suffix = f", {league_filtered_out} rows outside league '{league}'" if league_path_prefix else ""
             self.logger.info(f"Extracted {len(results)} live match links ({rows.counts()}{league_suffix}).")
             rows.warn_if_all_foreign(self.logger, "live listing")
+            rows.warn_if_all_hidden(self.logger, "live listing", page.url)
             return results
 
         except Exception as e:

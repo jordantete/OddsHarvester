@@ -2333,6 +2333,8 @@ ids mix cases.
 
 - A links-only run returns a link without `#<event>`; real listing rows always
   carry it. Its two team ids come back on other runs under other names.
+- A listing run logs `carry no event id` (a visible link without `#<event>`)
+  or `are hidden` (every row of a page hidden).
 - A listing scrape logs `match view hydration failed` for such a link.
 - `data-ab-trap` in the page HTML.
 
@@ -2350,6 +2352,17 @@ The trap needs two rows of match links only, so it showed on league listings;
 the live-now listing captured with one match and the community pages captured
 so far hold none, but the rule covers all four walks.
 
+The check reads the attribute and the inline style only, so two variants would
+go through, and each walk says so. A page whose rows are all hidden (a hiding
+style on `body` or a wrapper; the trap hides one row) logs `All N rows of this
+listing (<url>) are hidden`, and the top-predictions and profile parsers log
+the same for their page, instead of reading as an empty listing.
+`extract_match_rows` also warns once per page when visible links carry no
+`#<event>` (`N visible match links of this listing (<url>) carry no event id`),
+and keeps them: on 2026-10-05 none of the committed listing HARs held such a
+link once the hidden clones were left out, so one is a clone whose hiding moved
+into a class.
+
 `tests/integration/test_listing_replay.py` replays a Premier League listing
 captured with the trap: the script runs again in the replay and injects it,
 and the rows, kickoffs included, must equal the golden.
@@ -2357,8 +2370,10 @@ and the rows, kickoffs included, must equal the golden.
 ### References
 
 - `core/odds_portal_selectors.py`: `is_hidden`, `TRAP_ATTRIBUTE`, `HIDDEN_STYLE_MARKERS`.
-- `core/base_scraper.py`: `extract_match_rows`, `extract_live_match_links`.
-- `core/community/top_predictions_parser.py`, `core/community/user_profile_parser.py`.
+- `core/base_scraper.py`: `extract_match_rows`, `extract_live_match_links`;
+  `core/listing.py`: `_ListingRows.warn_if_all_hidden`.
+- `core/community/top_predictions_parser.py`, `core/community/user_profile_parser.py`,
+  `core/community/row_helpers.py` (`visible_match_links`).
 - `tests/integration/fixtures/football/premier-league/upcoming-listing/`.
 - §1 (the issue #61 twin), §20 (rows are links), §23 (rate limit).
 

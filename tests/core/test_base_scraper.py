@@ -222,7 +222,7 @@ async def _row_links(scraper, **kwargs) -> list[str]:
 
 
 async def test_extract_match_links(setup_base_scraper_mocks):
-    """Rows are the match <a> elements; short hrefs (<= 3 path segments) are filtered out."""
+    """Rows are the match <a> elements; an <a> that is no h2h link is not a row."""
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
     page_mock = mocks["page_mock"]
@@ -385,7 +385,7 @@ async def test_extract_match_links_default_keeps_started_rows(setup_base_scraper
     assert any("live-match/dddd4444" in url for url in result)
 
 
-# -- extract_match_links with date_filter ---------------------------------
+# -- extract_match_rows with date_filter ----------------------------------
 
 
 def _make_league_page_html() -> str:
@@ -533,7 +533,7 @@ async def test_extract_match_links_uses_playwright_manager_timezone(setup_base_s
     assert len(result) == 1
 
 
-# -- extract_match_links with kickoff_within_hours (GitHub issue #77) --------
+# -- extract_match_rows with kickoff_within_hours (GitHub issue #77) ---------
 
 
 APRIL_NOON = datetime(2026, 4, 18, 12, 0, tzinfo=UTC)
@@ -809,7 +809,7 @@ async def test_extract_match_links_still_returns_plain_strings(setup_base_scrape
 # -- hidden row filtering (issue #61, gotchas §28) ---------
 
 
-async def test_extract_match_links_skips_the_anti_bot_trap_row(setup_base_scraper_mocks):
+async def test_extract_match_links_skips_the_anti_bot_trap_row(setup_base_scraper_mocks, caplog):
     """The trap clones a real row with two invented team ids and no fragment, hidden off-screen (gotchas §28)."""
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
@@ -822,11 +822,64 @@ async def test_extract_match_links_skips_the_anti_bot_trap_row(setup_base_scrape
         )
     )
 
-    result = await scraper.extract_match_links(page=page_mock)
+    with caplog.at_level(logging.WARNING):
+        result = await scraper.extract_match_links(page=page_mock)
 
     assert result == [
         f"{ODDSPORTAL_BASE_URL}/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/#xtmHKGT0",
         f"{ODDSPORTAL_BASE_URL}/football/h2h/aston-villa-W00wmLO0/brentford-xYe7DwID/#p6jPIfbD",
+    ]
+    assert caplog.records == [], "a hidden trap row is skipped silently"
+
+
+LISTING_URL = "https://www.oddsportal.com/football/england/premier-league/"
+
+
+async def test_extract_match_rows_warns_when_every_row_of_the_page_is_hidden(setup_base_scraper_mocks, caplog):
+    """A hiding style on a wrapper would drop every row and read as an empty listing (gotchas §28)."""
+    mocks = setup_base_scraper_mocks
+    page_mock = mocks["page_mock"]
+    page_mock.url = LISTING_URL
+    page_mock.content = AsyncMock(
+        return_value=page(
+            '<div style="display: none">'
+            + listing_row("/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/#xtmHKGT0")
+            + listing_row("/football/h2h/aston-villa-W00wmLO0/brentford-xYe7DwID/#p6jPIfbD")
+            + "</div>"
+        )
+    )
+
+    with caplog.at_level(logging.WARNING):
+        rows = await mocks["scraper"].extract_match_rows(page=page_mock)
+
+    assert rows == []
+    assert [record.getMessage() for record in caplog.records] == [
+        f"All 2 rows of this listing ({LISTING_URL}) are hidden: a hiding style on the page itself would read "
+        "as an empty listing (gotchas §28)."
+    ]
+
+
+async def test_extract_match_rows_warns_once_about_visible_links_without_an_event(setup_base_scraper_mocks, caplog):
+    """Real rows carry '#<event>'; a visible one without it is a trap clone the hiding check missed (gotchas §28)."""
+    mocks = setup_base_scraper_mocks
+    page_mock = mocks["page_mock"]
+    page_mock.url = LISTING_URL
+    page_mock.content = AsyncMock(
+        return_value=page(
+            listing_row("/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/#xtmHKGT0")
+            + listing_row("/football/h2h/crystal-palace-37e4f5e9/nottingham-5a49c1bd/")
+            + listing_row("/football/h2h/everton-37e4f5e9/fulham-5a49c1bd/")
+        )
+    )
+
+    with caplog.at_level(logging.WARNING):
+        rows = await mocks["scraper"].extract_match_rows(page=page_mock)
+
+    assert len(rows) == 3, "the warning reports the rows, it does not drop them"
+    assert [record.getMessage() for record in caplog.records] == [
+        f"2 visible match links of this listing ({LISTING_URL}) carry no event id, first "
+        "/football/h2h/crystal-palace-37e4f5e9/nottingham-5a49c1bd/: real rows carry '#<event>', the anti-bot "
+        "trap clone does not (gotchas §28)."
     ]
 
 
@@ -1658,6 +1711,30 @@ async def test_extract_live_match_links_skips_offscreen_twin(setup_base_scraper_
     assert not any("hidden-twin-corrupt" in r["match_link"] for r in rows)
 
 
+async def test_extract_live_match_links_warns_when_every_row_is_hidden(setup_base_scraper_mocks, caplog):
+    mocks = setup_base_scraper_mocks
+    page_mock = mocks["page_mock"]
+    page_mock.url = "https://www.oddsportal.com/inplay-odds/live-now/football/"
+    page_mock.content = AsyncMock(
+        return_value=page(
+            '<div style="visibility: hidden">'
+            + live_section(
+                "/football/england/premier-league/",
+                listing_row("/football/h2h/arsenal-hA1Zm19f/leeds-tUxUbLR2/inplay-odds/#xtmHKGT0", status="65'"),
+            )
+            + "</div>"
+        )
+    )
+
+    with caplog.at_level(logging.WARNING):
+        rows = await mocks["scraper"].extract_live_match_links(page=page_mock)
+
+    assert rows == []
+    assert "All 1 rows of this live listing (https://www.oddsportal.com/inplay-odds/live-now/football/) are hidden" in (
+        caplog.text
+    )
+
+
 async def test_extract_live_match_links_skips_the_anti_bot_trap_row(setup_base_scraper_mocks):
     """The trap matches in-play links too: a clone hidden off-screen, ids invented, fragment dropped (gotchas §28)."""
     mocks = setup_base_scraper_mocks
@@ -1687,7 +1764,7 @@ async def test_extract_live_match_links_skips_the_anti_bot_trap_row(setup_base_s
 
 
 async def test_extract_live_match_links_league_filter(setup_base_scraper_mocks):
-    """A league slug keeps only rows whose href sits under that league path."""
+    """A league slug keeps only the rows of the section whose header link is that league's path."""
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
     page_mock = mocks["page_mock"]

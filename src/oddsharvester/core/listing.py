@@ -224,6 +224,14 @@ class _ListingRows:
         foreign = f", {self.foreign} rows of another sport dropped" if self.sport_prefix else ""
         return f"{self.hidden} offscreen rows skipped, {self.short} short links dropped{foreign}"
 
+    def warn_if_all_hidden(self, logger: logging.Logger, listing: str, url: str) -> None:
+        """Warn when the page had rows and hid every one: the trap hides one row, never all of them."""
+        if self.hidden and not self.visible:
+            logger.warning(
+                f"All {self.hidden} rows of this {listing} ({url}) are hidden: a hiding style on the page itself "
+                "would read as an empty listing (gotchas §28)."
+            )
+
     def warn_if_all_foreign(self, logger: logging.Logger, listing: str) -> None:
         """Warn when every visible row links under another sport: the page lists none of the requested sport."""
         if self.sport_prefix and self.visible and self.foreign == self.visible:
