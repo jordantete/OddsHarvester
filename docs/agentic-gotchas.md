@@ -930,9 +930,10 @@ The community replays and their `SPECIAL_FIXTURES` captures pass
 `--timezone UTC` as well. A community row dated within a day of the day the
 page is read says `Yest.`, `Today` or `Tomorr.` (replayed under a fixed
 browser clock, 2026-09-30), and its year is inferred from that day, so the
-top-predictions replay leaves both kickoff fields out of its compare. The
-row parser reads `Yest.` and `Tomorr.` as `Yesterday` and `Tomorrow`, which
-`_parse_date_header` resolves against the browser zone's current date.
+top-predictions replay leaves kickoff out of its compare (kickoff_text is
+compared). The row parser reads `Yest.` and `Tomorr.` as `Yesterday` and
+`Tomorrow`, which `_parse_date_header` resolves against the browser zone's
+current date.
 
 ### References
 

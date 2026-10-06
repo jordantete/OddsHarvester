@@ -3,10 +3,10 @@
 Script to capture new fixtures from live scraping.
 
 Usage:
-    python -m tests.integration.helpers.capture \\
+    uv run python -m tests.integration.helpers.capture \\
         --sport football \\
         --league premier-league \\
-        --match-url "https://www.oddsportal.com/football/england/premier-league/leicester-brentford-xQ77QTN0" \\
+        --match-url "https://www.oddsportal.com/football/h2h/brentford-xYe7DwID/leicester-KrrdAMyI/#xQ77QTN0" \\
         --markets "1x2" \\
         --period "full_time" \\
         --bookies-filter "all"
@@ -44,10 +44,12 @@ def get_version() -> str:
         return "unknown"
 
 
-def extract_match_id_from_url(url: str) -> str:
-    """Extract match ID from OddsPortal URL."""
-    path = urlparse(url).path.rstrip("/")
-    last_segment = path.split("/")[-1]
+def extract_match_id_from_url(url: str) -> str | None:
+    """The match's event id: an h2h URL's fragment (None without one), else the id ending a pre-redesign URL."""
+    parsed = urlparse(url)
+    if "/h2h/" in parsed.path:
+        return parsed.fragment.split(":", 1)[0] or None
+    last_segment = parsed.path.rstrip("/").split("/")[-1]
 
     # Match ID is the last part after the last hyphen
     parts = last_segment.rsplit("-", 1)
@@ -55,6 +57,16 @@ def extract_match_id_from_url(url: str) -> str:
         return parts[1]
 
     return last_segment
+
+
+def default_match_dir(url: str) -> str:
+    """The fixture directory of a match URL: an h2h URL's two team slugs then its event id, else its last segment."""
+    path = urlparse(url).path.rstrip("/")
+    if "/h2h/" not in path:
+        return path.split("/")[-1]
+    teams = [segment.rsplit("-", 1)[0] for segment in path.split("/h2h/", 1)[1].split("/")]
+    event = extract_match_id_from_url(url)
+    return "-".join([*teams, event] if event else teams)
 
 
 def build_fixture_filename(
@@ -136,10 +148,9 @@ def capture_fixture(
     """
     match_id = extract_match_id_from_url(match_url)
 
-    # Fixture directory: the caller's name when refreshing an existing match,
-    # else derived from the URL's last segment.
+    # Fixture directory: the caller's name when refreshing an existing match, else derived from the URL.
     if match_dir is None:
-        match_dir = urlparse(match_url).path.rstrip("/").split("/")[-1]
+        match_dir = default_match_dir(match_url)
 
     # Create output directory
     output_dir = FIXTURES_DIR / sport / league / match_dir
@@ -270,25 +281,25 @@ def main():
         epilog="""
 Examples:
   # Football - basic 1x2 market
-  python -m tests.integration.helpers.capture \\
+  uv run python -m tests.integration.helpers.capture \\
       --sport football \\
       --league premier-league \\
-      --match-url "https://www.oddsportal.com/football/england/premier-league/leicester-brentford-xQ77QTN0" \\
+      --match-url "https://www.oddsportal.com/football/h2h/brentford-xYe7DwID/leicester-KrrdAMyI/#xQ77QTN0" \\
       --markets "1x2"
 
   # Basketball - with period
-  python -m tests.integration.helpers.capture \\
+  uv run python -m tests.integration.helpers.capture \\
       --sport basketball \\
       --league nba \\
-      --match-url "https://www.oddsportal.com/basketball/usa/nba/los-angeles-lakers-boston-celtics-0fwUQJEk/" \\
+      --match-url "https://www.oddsportal.com/basketball/h2h/<team>-<id>/<team>-<id>/#<event id>" \\
       --markets "home_away" \\
       --period "1st_half"
 
   # Tennis - multiple markets
-  python -m tests.integration.helpers.capture \\
+  uv run python -m tests.integration.helpers.capture \\
       --sport tennis \\
       --league australian-open \\
-      --match-url "https://www.oddsportal.com/tennis/australia/atp-australian-open-2024/..." \\
+      --match-url "https://www.oddsportal.com/tennis/h2h/djokovic-novak-AZg49Et9/sinner-jannik-6HdC3z4H/#IwSMNP62" \\
       --markets "match_winner,over_under_sets_2_5"
         """,
     )
@@ -307,7 +318,7 @@ Examples:
     parser.add_argument(
         "--capture-har",
         action="store_true",
-        help="Record a HAR file (snapshot.har) alongside the JSON fixture.",
+        help="Record a HAR file (<fixture stem>.har) alongside the JSON fixture.",
     )
     parser.add_argument(
         "--proxy-url",
@@ -317,7 +328,8 @@ Examples:
     parser.add_argument(
         "--match-dir",
         default=None,
-        help="Fixture directory name; defaults to the URL's last segment. Set it to refresh an existing match.",
+        help="Fixture directory name; defaults to <team>-<team>-<event id> for an h2h URL, else the URL's last "
+        "segment. Set it to refresh an existing match.",
     )
     parser.add_argument(
         "--odds-history", action="store_true", help="Scrape odds history (adds _odds_history to the name)"

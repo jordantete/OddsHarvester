@@ -65,7 +65,8 @@ uv run python -m tests.integration.helpers.capture \
 Run against an existing match directory with the same markets, period and filter, the helper replaces that
 fixture's golden and HAR.
 
-Without `--match-dir`, the directory is named after the URL's last path segment. Captures run the browser in
+Without `--match-dir`, an h2h URL names the directory `<team>-<team>-<eventId>` (the two team slugs in the URL's
+order) and any other URL its last path segment. Captures run the browser in
 `UTC` unless given `--timezone`, the zone the replays run in.
 
 ## Updating Fixtures
@@ -97,7 +98,7 @@ Each match directory contains a `metadata.json`, written by the capture helper:
 
 ```json
 {
-    "match_id": "KrrdAMyI",
+    "match_id": "xQ77QTN0",
     "match_url": "https://www.oddsportal.com/football/h2h/brentford-xYe7DwID/leicester-KrrdAMyI/#xQ77QTN0",
     "sport": "football",
     "league": "premier-league",

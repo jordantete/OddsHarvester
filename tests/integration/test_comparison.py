@@ -220,10 +220,16 @@ def test_structure_missing_entry_key_fails(match):
 
 def test_structure_field_emptied_to_none_fails(match):
     actual = copy.deepcopy(match)
+    actual["league_name"] = None
+    result = compare_match_structure(actual, match)
+    assert result.errors == [f"'league_name' is None in actual, the golden has {match['league_name']!r}"]
+
+
+def test_structure_an_identity_field_come_back_none_says_it_is_another_match(match):
+    actual = copy.deepcopy(match)
     actual["home_team"] = None
     result = compare_match_structure(actual, match)
-    assert not result.passed
-    assert "home_team" in str(result)
+    assert result.errors == [f"Field 'home_team' mismatch: actual=None vs expected={match['home_team']!r}"]
 
 
 def test_structure_accepts_a_market_the_golden_holds_empty(match):

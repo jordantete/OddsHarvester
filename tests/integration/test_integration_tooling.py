@@ -10,7 +10,8 @@ from scripts import capture_all_hars
 
 from oddsharvester.cli.options import _get_all_periods
 from tests.integration.helpers import cli_runner
-from tests.integration.helpers.capture import build_fixture_filename
+from tests.integration.helpers.capture import build_fixture_filename, default_match_dir, extract_match_id_from_url
+from tests.integration.helpers.fixture_files import FIXTURES_DIR
 
 pytestmark = pytest.mark.integration
 
@@ -31,6 +32,61 @@ def test_fixture_filename_with_odds_history():
 def test_fixture_filename_with_preview_only():
     name = build_fixture_filename(["over_under_2_5", "1x2"], "full_time", "all", preview_only=True)
     assert name == "1x2_over_under_2_5_full_time_all_preview.json"
+
+
+LEICESTER_BRENTFORD = "https://www.oddsportal.com/football/h2h/brentford-xYe7DwID/leicester-KrrdAMyI/#xQ77QTN0"
+
+
+@pytest.mark.parametrize(
+    ("url", "match_id"),
+    [
+        (LEICESTER_BRENTFORD, "xQ77QTN0"),
+        (f"{LEICESTER_BRENTFORD}:bts;2", "xQ77QTN0"),
+        ("https://www.oddsportal.com/cricket/h2h/england-UJC5mtAU/india-fcOzl2uI/", None),
+        ("https://www.oddsportal.com/football/england/premier-league/leicester-brentford-xQ77QTN0/", "xQ77QTN0"),
+    ],
+    ids=["h2h", "h2h naming a market", "h2h without an event", "pre-redesign"],
+)
+def test_the_match_id_is_the_event_of_the_url(url, match_id):
+    """An h2h URL's last segment is the second team's id; the match is the event after its '#'."""
+    assert extract_match_id_from_url(url) == match_id
+
+
+@pytest.mark.parametrize(
+    ("url", "match_dir"),
+    [
+        (LEICESTER_BRENTFORD, "brentford-leicester-xQ77QTN0"),
+        ("https://www.oddsportal.com/cricket/h2h/england-UJC5mtAU/india-fcOzl2uI/", "england-india"),
+        (
+            "https://www.oddsportal.com/football/england/premier-league/leicester-brentford-xQ77QTN0/",
+            "leicester-brentford-xQ77QTN0",
+        ),
+    ],
+    ids=["h2h", "h2h without an event", "pre-redesign"],
+)
+def test_the_default_match_dir_names_the_teams_and_the_event(url, match_dir):
+    assert default_match_dir(url) == match_dir
+
+
+def _events_of_the_hars(match_dir: Path) -> set[str]:
+    """The event ids of the match data requests the directory's HARs recorded."""
+    pattern = re.compile(r"/proxy/match-event/\d+-\d+-([^-/]+)-\d+-")
+    return {
+        found.group(1)
+        for har in match_dir.glob("*.har")
+        for entry in json.loads(har.read_text())["log"]["entries"]
+        if (found := pattern.search(entry["request"]["url"]))
+    }
+
+
+@pytest.mark.parametrize(
+    "metadata", sorted(FIXTURES_DIR.glob("*/*/*/metadata.json")), ids=lambda path: path.parent.name
+)
+def test_a_fixture_s_match_id_is_the_event_its_hars_scraped(metadata):
+    recorded = json.loads(metadata.read_text())
+
+    assert _events_of_the_hars(metadata.parent) == {recorded["match_id"]}
+    assert extract_match_id_from_url(recorded["match_url"]) in (recorded["match_id"], None)
 
 
 def test_run_historic_forwards_extra_args_and_replay_env(monkeypatch, tmp_path):

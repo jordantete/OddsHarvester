@@ -90,10 +90,10 @@ def compare_match_structure(actual: dict[str, Any], expected: dict[str, Any]) ->
                 empty = sorted(k for k in filled & entry.keys() if not (isinstance(entry[k], str) and entry[k]))
                 if empty:
                     result.add_error(f"{key}: entry {_entry_key(entry)} has no value in {empty}")
-        elif golden is not None and actual[key] is None and key not in NULLABLE_FIELDS:
-            result.add_error(f"'{key}' is None in actual, the golden has {golden!r}")
         elif key in IDENTITY_FIELDS and golden is not None and actual[key] != golden:
             result.add_error(f"Field '{key}' mismatch: actual={actual[key]!r} vs expected={golden!r}")
+        elif golden is not None and actual[key] is None and key not in NULLABLE_FIELDS:
+            result.add_error(f"'{key}' is None in actual, the golden has {golden!r}")
     return result
 
 

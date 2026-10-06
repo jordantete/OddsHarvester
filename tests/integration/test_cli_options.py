@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.integration.helpers.replay import replay_and_compare
+
 FOOTBALL_MATCH_URL = "https://www.oddsportal.com/football/h2h/brentford-xYe7DwID/leicester-KrrdAMyI/#xQ77QTN0"
 BASKETBALL_MATCH_URL = (
     "https://www.oddsportal.com/basketball/h2h/boston-celtics-KYD9hVEm/los-angeles-lakers-ngegZ8bg/#0fwUQJEk"
@@ -181,27 +183,21 @@ class TestBookiesFilter:
         market_data = actual[0].get("1x2_market", [])
         assert market_data, "No odds data in output"
 
-    def test_opt_002_crypto_bookies(
-        self,
-        run_scraper,
-        temp_output_dir,
-        har_for_match,
-    ):
-        """OPT-002: Test crypto bookies filter."""
-        output_path = temp_output_dir / "output"
-
-        exit_code, _, stderr = run_scraper(
-            sport="football",
-            match_link=FOOTBALL_MATCH_URL,
+    def test_opt_002_crypto_bookies(self, temp_output_dir, har_for_match):
+        """OPT-002: the crypto panel's bookmakers, as the golden captured them."""
+        replay_and_compare(
+            har_for_match,
+            temp_output_dir,
+            {
+                "sport": "football",
+                "league": "premier-league",
+                "match_id": FOOTBALL_FIXTURES[2],
+                "url": FOOTBALL_MATCH_URL,
+            },
+            "1x2_full_time_crypto.json",
             markets=["1x2"],
-            output_path=output_path,
             bookies_filter="crypto",
-            har_path=har_for_match(*FOOTBALL_FIXTURES, "1x2_full_time_crypto.json"),
         )
-
-        # Note: May return empty if no crypto bookies for this match
-        # Just verify command doesn't crash
-        assert exit_code == 0, f"Scraper failed: {stderr}"
 
     def test_opt_all_bookies(
         self,

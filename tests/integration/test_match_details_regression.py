@@ -1,15 +1,10 @@
 """Regression tests for match-details extraction (PR #54 bug).
 
-For some matches, OddsPortal's embedded react-event-header JSON returns
-data for a different (typically the most-recent) match than the URL's
-page-fragment-disambiguated target. The fix in `_extract_match_details_event_header`
-prefers DOM-rendered values (post React hydration) over the JSON, with
-per-field fallback.
-
-These tests run the scraper against captured HARs of known-affected
-matches and assert that match-details fields equal the DOM (correct)
-values curated in `metadata.json`. If the DOM-first dispatcher regresses,
-the assertions will fail with the JSON (stale) values.
+For some matches, the page's header JSON held the details of another meeting of
+the two teams (typically the most recent) than the one the URL's fragment names.
+The details are read from the rendered page (`core/match_details.py`), so these
+tests run the scraper on captured HARs of such matches and assert that the
+match-details fields equal the values curated in `metadata.json`.
 """
 
 import pytest
