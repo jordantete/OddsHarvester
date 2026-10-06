@@ -1,9 +1,9 @@
-from datetime import UTC, datetime
+from datetime import datetime
 from unittest.mock import patch
 
 from bs4 import BeautifulSoup
 import pytest
-from tests.clock import frozen_clock
+from tests.clock import SUMMER_NOW, WINTER_NOW, frozen_clock
 from tests.dom_builders import community_row
 
 from oddsharvester.core.community.row_helpers import extract_datetime_and_market, to_float, to_pct
@@ -39,10 +39,6 @@ def test_extract_datetime_handles_duplicated_responsive_date():
     assert "-06-20" in kickoff
 
 
-SUMMER_NOW = datetime(2026, 9, 30, 12, 0, tzinfo=UTC)
-WINTER_NOW = datetime(2027, 1, 15, 12, 0, tzinfo=UTC)
-
-
 def _kickoff(date: str, time: str, tz_name: str, now: datetime) -> tuple[str, str | None]:
     """kickoff_text and kickoff of one row, with the clock frozen for the year rule and for the page offset."""
     row = BeautifulSoup(community_row("/football/h2h/a/b/#x", "", date=date, time=time), "lxml").find("a")
@@ -75,6 +71,11 @@ def test_a_utc_kickoff_is_read_as_shown(now):
 def test_a_kickoff_shown_just_after_midnight_on_new_year_moves_back_a_year():
     """Shown 00:30 on 1 January in BST is 23:30 GMT on 31 December."""
     assert _kickoff("01/Jan", "00:30", "Europe/London", SUMMER_NOW)[1] == "2026-12-31T23:30"
+
+
+def test_a_time_that_is_no_clock_time_keeps_the_row_without_a_kickoff():
+    """'25:00' has the shape of a time but is none: the row keeps its text and gets no kickoff."""
+    assert _kickoff("10/Jan", "25:00", "UTC", SUMMER_NOW) == ("10/Jan 25:00 10/Jan, 25:00 1X2", None)
 
 
 @pytest.mark.parametrize(("label", "kickoff"), [("Tomorr.", "2026-10-01T18:45"), ("Yest.", "2026-09-29T18:45")])

@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import pytest
 
 from oddsharvester.storage.local_data_storage import LocalDataStorage
@@ -16,6 +18,8 @@ def test_storage_type_local():
 
 def test_storage_type_remote(monkeypatch):
     monkeypatch.setenv("OH_S3_BUCKET", "test-bucket")
+    # Without AWS credentials on the machine, a real client asks the instance metadata service for some.
+    monkeypatch.setattr("boto3.client", MagicMock())
     storage_type = StorageType.REMOTE
     assert storage_type.value == "remote"
 

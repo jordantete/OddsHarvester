@@ -1,15 +1,12 @@
-from datetime import UTC, datetime
+from datetime import datetime
 import logging
 from unittest.mock import patch
 
 import pytest
-from tests.clock import frozen_clock
+from tests.clock import SUMMER_NOW, WINTER_NOW, frozen_clock
 from tests.dom_builders import live_block, match_view
 
 from oddsharvester.core.community.match_community_parser import parse_match_community_dom
-
-SUMMER_NOW = datetime(2026, 9, 30, 12, 0, tzinfo=UTC)
-WINTER_NOW = datetime(2027, 1, 15, 12, 0, tzinfo=UTC)
 
 _PREMATCH_HTML = match_view(
     home="Fulham",

@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from datetime import UTC, date, datetime
 import inspect
 import logging
@@ -6,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 from playwright.async_api import Page, TimeoutError
 import pytest
-from tests.clock import frozen_clock
+from tests.clock import SUMMER_NOW, frozen_clock, page_clock
 from tests.dom_builders import date_header, listing_row, live_block, live_section, match_header, page, trap_row
 
 from oddsharvester.core.base_scraper import BaseScraper
@@ -119,6 +120,17 @@ async def test_set_odds_format(setup_base_scraper_mocks):
     page_mock.query_selector_all.assert_called_once()
     format_option1.inner_text.assert_called_once()
     format_option1.click.assert_called_once()
+
+
+async def test_set_odds_format_forwards_the_format_asked_for(setup_base_scraper_mocks):
+    """The scraper's set_odds_format passes its odds_format on: the Fractional option is the one clicked."""
+    mocks = setup_base_scraper_mocks
+    page_mock = mocks["page_mock"]
+    _odds_dropdown(page_mock, "Decimal Odds", ["Decimal Odds", "Fractional Odds"])
+
+    await mocks["scraper"].set_odds_format(page=page_mock, odds_format=OddsFormat.FRACTIONAL_ODDS)
+
+    assert [option.click.await_count for option in page_mock.query_selector_all.return_value] == [0, 1]
 
 
 async def test_set_odds_format_uses_text_based_button_selector(setup_base_scraper_mocks):
@@ -537,12 +549,6 @@ async def test_extract_match_links_uses_playwright_manager_timezone(setup_base_s
 
 
 APRIL_NOON = datetime(2026, 4, 18, 12, 0, tzinfo=UTC)
-SUMMER_NOW = datetime(2026, 9, 30, 12, 0, tzinfo=UTC)
-
-
-def _page_clock(moment: datetime):
-    """Freeze the clock the page's UTC offset is read from (gotchas §10)."""
-    return patch("oddsharvester.utils.page_time.datetime", frozen_clock(moment))
 
 
 def _make_kickoff_window_html() -> str:
@@ -616,8 +622,7 @@ async def test_extract_match_links_kickoff_window_row_without_date_header_fails_
         return_value=page(listing_row("/football/h2h/orphan-match/ccccccc1/#or", status="16:00"))
     )
 
-    with patch("oddsharvester.core.base_scraper.datetime", frozen_clock(APRIL_NOON)):
-        result = await _row_links(scraper, page=page_mock, kickoff_within_hours=1)
+    result = await _row_links(scraper, page=page_mock, kickoff_within_hours=1)
 
     assert any("orphan-match/ccccccc1" in url for url in result)
 
@@ -667,7 +672,7 @@ async def test_extract_match_rows_converts_kickoff_from_browser_tz_to_utc(setup_
     mocks["playwright_manager_mock"].timezone_id = "Europe/Paris"
     page_mock.content = AsyncMock(return_value=_make_kickoff_column_html())
 
-    with _page_clock(datetime(2026, 4, 18, 12, 0, tzinfo=UTC)):
+    with page_clock(datetime(2026, 4, 18, 12, 0, tzinfo=UTC)):
         rows = await scraper.extract_match_rows(page=page_mock, collect_kickoff=True)
 
     normal = next(r for r in rows if "normal-match/aaaaaaa1" in r["match_link"])
@@ -684,7 +689,7 @@ async def test_extract_match_rows_reads_a_winter_kickoff_at_the_summer_page_offs
         )
     )
 
-    with _page_clock(SUMMER_NOW):
+    with page_clock(SUMMER_NOW):
         rows = await mocks["scraper"].extract_match_rows(page=mocks["page_mock"], collect_kickoff=True)
 
     assert rows[0]["kickoff_utc"] == "2027-01-10 14:00:00 UTC"
@@ -948,7 +953,7 @@ async def test_the_trap_clone_s_date_header_does_not_redate_the_kickoffs_after_i
     mocks["playwright_manager_mock"].timezone_id = "UTC"
     page_mock.content = AsyncMock(return_value=_listing_with_a_trap_carrying_a_date_header())
 
-    with _page_clock(datetime(2026, 10, 5, 8, 0, tzinfo=UTC)):
+    with page_clock(datetime(2026, 10, 5, 8, 0, tzinfo=UTC)):
         rows = await scraper.extract_match_rows(page=page_mock, collect_kickoff=True)
 
     assert [(r["match_link"].split("/h2h/")[1], r["kickoff_utc"]) for r in rows] == [
@@ -2271,7 +2276,7 @@ async def test_extract_match_details_reads_the_match_date_with_the_browser_zone_
         return_value=_make_hydrated_match_html(date_p="24 localized-month-05 2026,", time_p="18:00")
     )
 
-    with _page_clock(SUMMER_NOW):
+    with page_clock(SUMMER_NOW):
         result = await mocks["scraper"]._extract_match_details(
             page=mocks["page_mock"], match_link="https://example.test/m#id1"
         )
@@ -2293,6 +2298,40 @@ async def test_match_page_parsing_logs_on_the_scraper_logger(setup_base_scraper_
     mocks["page_mock"].content = AsyncMock(return_value=html)
 
     with caplog.at_level(logging.WARNING):
+        await mocks["scraper"]._extract_match_details(page=mocks["page_mock"], match_link="https://example.test/m#id1")
+
+    assert [record.name for record in caplog.records if record.getMessage().startswith(message)] == ["BaseScraper"]
+
+
+_UNKNOWN_PLACE_LD_JSON = _MATCHING_LD_JSON.replace('"London"', '"Nowhere"').replace('"England"', '"Atlantis"')
+_PLACE_AS_TEXT_LD_JSON = '{"@type":"SportsEvent","startDate":"2026-05-24T18:00:00+01:00","location":"Selhurst Park"}'
+
+
+@pytest.mark.parametrize(
+    ("broken", "ld_json", "message"),
+    [
+        ("match_title_block", None, "DOM parse failed for teams"),
+        ("content_root", None, "DOM parse failed for league_name"),
+        ("match_date_cell", None, "DOM parse failed for results"),
+        (None, _PLACE_AS_TEXT_LD_JSON, "JSON-LD venue parse failed"),
+        (None, _UNKNOWN_PLACE_LD_JSON, "Unresolved venue timezone"),
+    ],
+    ids=["teams", "league", "results", "venue", "venue timezone"],
+)
+async def test_every_match_page_log_line_is_on_the_scraper_logger(
+    setup_base_scraper_mocks, caplog, broken, ld_json, message
+):
+    """The other five log sites of the match page parsers, as the two above."""
+    mocks = setup_base_scraper_mocks
+    mocks["page_mock"].content = AsyncMock(return_value=_make_hydrated_match_html(ld_json=ld_json))
+    mocks["scraper"].local_kickoff = True
+    breaking = (
+        patch.object(OddsPortalSelectors, broken, side_effect=RuntimeError("layout changed"))
+        if broken
+        else nullcontext()
+    )
+
+    with breaking, caplog.at_level(logging.DEBUG):
         await mocks["scraper"]._extract_match_details(page=mocks["page_mock"], match_link="https://example.test/m#id1")
 
     assert [record.name for record in caplog.records if record.getMessage().startswith(message)] == ["BaseScraper"]

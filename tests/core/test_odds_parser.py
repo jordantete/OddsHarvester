@@ -3,13 +3,10 @@ import logging
 from unittest.mock import patch
 
 import pytest
-from tests.clock import frozen_clock
+from tests.clock import SUMMER_NOW, WINTER_NOW, frozen_clock
 from tests.dom_builders import bookmaker_row, line_row, odds_cell, odds_table
 
 from oddsharvester.core.market_extraction.odds_parser import OddsParser, parse_odds_value
-
-SUMMER_NOW = datetime(2026, 9, 30, 12, 0, tzinfo=UTC)
-WINTER_NOW = datetime(2027, 1, 15, 12, 0, tzinfo=UTC)
 
 
 class TestOddsParser:

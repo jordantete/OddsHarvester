@@ -1,10 +1,10 @@
-from datetime import UTC, datetime
+from datetime import datetime
 import logging
 from unittest.mock import patch
 
 from bs4 import BeautifulSoup
 import pytest
-from tests.clock import frozen_clock
+from tests.clock import SUMMER_NOW, WINTER_NOW, page_clock
 from tests.dom_builders import live_block, match_header, page
 
 from oddsharvester.core.match_details import (
@@ -17,13 +17,6 @@ from oddsharvester.core.match_details import (
 )
 
 SCRAPER_LOGGER = logging.getLogger("BaseScraper")
-SUMMER_NOW = datetime(2026, 9, 30, 12, 0, tzinfo=UTC)
-WINTER_NOW = datetime(2027, 1, 15, 12, 0, tzinfo=UTC)
-
-
-def _page_clock(moment: datetime):
-    """Freeze the clock the page's UTC offset is read from (gotchas §10)."""
-    return patch("oddsharvester.utils.page_time.datetime", frozen_clock(moment))
 
 
 def _make_date_html(date_str: str = "06 Aug 2022,", time_str: str = "11:30") -> str:
@@ -38,27 +31,27 @@ def test_parse_match_date_from_dom_parses_utc_nominal():
 def test_parse_match_date_from_dom_converts_local_tz_to_utc():
     # Scraped in summer, Brussels shows every time at UTC+2, so 13:30 Brussels = 11:30 UTC
     soup = BeautifulSoup(_make_date_html(time_str="13:30"), "html.parser")
-    with _page_clock(SUMMER_NOW):
+    with page_clock(SUMMER_NOW):
         assert _parse_match_date_from_dom(soup, "Europe/Brussels", {}, SCRAPER_LOGGER) == "2022-08-06 11:30:00 UTC"
 
 
 def test_parse_match_date_from_dom_reads_a_january_date_at_the_summer_page_offset():
     """Djokovic - Sinner, 26 Jan 2024 at 03:45 UTC, shows 04:45 when scraped in BST (gotchas §10)."""
     soup = BeautifulSoup(_make_date_html(date_str="26 Jan 2024,", time_str="04:45"), "html.parser")
-    with _page_clock(SUMMER_NOW):
+    with page_clock(SUMMER_NOW):
         assert _parse_match_date_from_dom(soup, "Europe/London", {}, SCRAPER_LOGGER) == "2024-01-26 03:45:00 UTC"
 
 
 def test_parse_match_date_from_dom_reads_a_july_date_at_the_winter_page_offset():
     soup = BeautifulSoup(_make_date_html(date_str="04 Jul 2026,", time_str="19:00"), "html.parser")
-    with _page_clock(WINTER_NOW):
+    with page_clock(WINTER_NOW):
         assert _parse_match_date_from_dom(soup, "Europe/London", {}, SCRAPER_LOGGER) == "2026-07-04 19:00:00 UTC"
 
 
 @pytest.mark.parametrize("now", [SUMMER_NOW, WINTER_NOW])
 def test_parse_match_date_from_dom_in_utc_does_not_depend_on_the_season(now):
     soup = BeautifulSoup(_make_date_html(date_str="26 Jan 2024,", time_str="03:45"), "html.parser")
-    with _page_clock(now):
+    with page_clock(now):
         assert _parse_match_date_from_dom(soup, "UTC", {}, SCRAPER_LOGGER) == "2024-01-26 03:45:00 UTC"
 
 

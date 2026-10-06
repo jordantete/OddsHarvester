@@ -3,7 +3,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import pytest
-from tests.clock import frozen_clock
+from tests.clock import SUMMER_NOW, WINTER_NOW, frozen_clock
 
 from oddsharvester.utils.page_time import (
     local_to_shown,
@@ -12,9 +12,6 @@ from oddsharvester.utils.page_time import (
     shown_to_utc,
     timezone_or_utc,
 )
-
-SUMMER_NOW = datetime(2026, 9, 30, 12, 0, tzinfo=UTC)
-WINTER_NOW = datetime(2027, 1, 15, 12, 0, tzinfo=UTC)
 
 
 @pytest.mark.parametrize("name", [None, "", "Not/AZone", "../Europe/London"])

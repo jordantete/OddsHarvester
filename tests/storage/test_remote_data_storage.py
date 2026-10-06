@@ -116,3 +116,13 @@ def test_failed_local_write_raises_before_any_upload(
         remote_data_storage.save_data(sample_data, file_path="out.json", storage_format="json", append=True)
 
     s3_client.upload_file.assert_not_called()
+
+
+def test_a_unit_test_cannot_send_an_aws_request():
+    """A boto3 call left unpatched fails the test instead of reaching AWS (tests/conftest.py)."""
+    import boto3
+
+    client = boto3.client("s3", region_name="eu-west-3", aws_access_key_id="x", aws_secret_access_key="y")
+
+    with pytest.raises(pytest.fail.Exception, match="test_a_unit_test_cannot_send_an_aws_request sent an AWS request"):
+        client.put_object(Bucket="oddsharvester-test", Key="k.json", Body=b"[]")

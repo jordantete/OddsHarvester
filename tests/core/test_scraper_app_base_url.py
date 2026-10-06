@@ -1,84 +1,35 @@
+"""run_scraper hands --base-url to the scraper and warns when a regional mirror runs without a locale or a timezone."""
+
 import logging
 
-from oddsharvester.core import scraper_app
+import pytest
+
+from oddsharvester.core.scraper_app import run_scraper
+
+UPCOMING = {"command": "scrape_upcoming", "sport": "football", "date": "2025-01-15"}
+MIRROR = "https://www.centroquote.it"
 
 
-def test_run_scraper_forwards_base_url_to_scraper(monkeypatch):
-    captured = {}
+async def test_run_scraper_forwards_base_url_to_scraper(fake_scraper):
+    await run_scraper(**UPCOMING, base_url=MIRROR)
 
-    class FakeScraper:
-        def __init__(self, *args, base_url=None, **kwargs):
-            captured["base_url"] = base_url
-
-        async def start_playwright(self, **kwargs):
-            raise RuntimeError("stop here")  # abort before real scraping
-
-        async def stop_playwright(self):
-            pass
-
-    monkeypatch.setattr(scraper_app, "OddsPortalScraper", FakeScraper)
-
-    import asyncio
-
-    asyncio.run(
-        scraper_app.run_scraper(
-            command="scrape_upcoming",
-            sport="football",
-            date="2025-01-15",
-            base_url="https://www.centroquote.it",
-        )
-    )
-    assert captured["base_url"] == "https://www.centroquote.it"
+    assert fake_scraper.built_with["base_url"] == MIRROR
 
 
-def _run_until_start(monkeypatch, **kwargs):
-    class FakeScraper:
-        def __init__(self, *a, base_url=None, **kw):
-            pass
-
-        async def start_playwright(self, **kw):
-            raise RuntimeError("stop here")
-
-        async def stop_playwright(self):
-            pass
-
-    monkeypatch.setattr(scraper_app, "OddsPortalScraper", FakeScraper)
-    import asyncio
-
-    asyncio.run(scraper_app.run_scraper(command="scrape_upcoming", sport="football", date="2025-01-15", **kwargs))
-
-
-def test_warns_when_regional_base_url_and_no_locale(monkeypatch, caplog):
+@pytest.mark.parametrize(
+    ("options", "warned"),
+    [
+        ({"base_url": MIRROR}, True),
+        ({}, False),
+        ({"base_url": MIRROR, "browser_locale_timezone": "it-IT"}, False),
+        ({"base_url": "https://es.oddsportal.com"}, False),
+        ({"base_url": MIRROR, "browser_timezone_id": "Europe/Rome"}, False),
+        ({"base_url": "https://www.notoddsportal.com"}, True),
+    ],
+    ids=["mirror", "default", "mirror with a locale", "oddsportal subdomain", "mirror with a timezone", "lookalike"],
+)
+async def test_a_regional_base_url_without_locale_or_timezone_warns(fake_scraper, caplog, options, warned):
     with caplog.at_level(logging.WARNING, logger="ScraperApp"):
-        _run_until_start(monkeypatch, base_url="https://www.centroquote.it")
-    assert any("locale" in r.message.lower() and "timezone" in r.message.lower() for r in caplog.records)
+        await run_scraper(**UPCOMING, **options)
 
-
-def test_no_warning_for_default_com(monkeypatch, caplog):
-    with caplog.at_level(logging.WARNING, logger="ScraperApp"):
-        _run_until_start(monkeypatch)
-    assert not any("base url" in r.message.lower() for r in caplog.records)
-
-
-def test_no_warning_when_locale_set(monkeypatch, caplog):
-    with caplog.at_level(logging.WARNING, logger="ScraperApp"):
-        _run_until_start(monkeypatch, base_url="https://www.centroquote.it", browser_locale_timezone="it-IT")
-    assert not any("base url" in r.message.lower() for r in caplog.records)
-
-
-def test_no_warning_for_oddsportal_subdomain(monkeypatch, caplog):
-    with caplog.at_level(logging.WARNING, logger="ScraperApp"):
-        _run_until_start(monkeypatch, base_url="https://es.oddsportal.com")
-    assert not any("base url" in r.message.lower() for r in caplog.records)
-
-
-def test_no_warning_when_timezone_set(monkeypatch, caplog):
-    with caplog.at_level(logging.WARNING, logger="ScraperApp"):
-        _run_until_start(monkeypatch, base_url="https://www.centroquote.it", browser_timezone_id="Europe/Rome")
-    assert not any("base url" in r.message.lower() for r in caplog.records)
-
-
-def test_warns_for_lookalike_host(monkeypatch, caplog):
-    with caplog.at_level(logging.WARNING, logger="ScraperApp"):
-        _run_until_start(monkeypatch, base_url="https://www.notoddsportal.com")
-    assert any("base url" in r.message.lower() for r in caplog.records)
+    assert any("Regional base URL" in record.getMessage() for record in caplog.records) is warned
