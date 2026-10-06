@@ -195,8 +195,8 @@ class OddsPortalSelectors:
     COMMUNITY_PROFILE_TAB = "li.tab-item"
 
     # Live (in-play) pages: the header's live block (period, running score,
-    # partial result) is marked by this pulse element and disappears once the
-    # match ends.
+    # partial result) is marked by this pulse element. Once the match ends the
+    # block goes, or stays with a final state in place of the period (gotchas §16).
     LIVE_INFO_MARKER = ".result-live"
 
     @staticmethod

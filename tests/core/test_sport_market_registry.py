@@ -431,10 +431,10 @@ class TestLineLabels:
 
     def test_no_label_ends_in_a_zero_decimal_or_an_axis_word(self):
         labels = [
-            method.specific_market
+            spec.specific_market
             for sport in Sport
-            for method in SportMarketRegistry.get_market_mapping(sport.value).values()
-            if method.specific_market
+            for spec in SportMarketRegistry.get_market_mapping(sport.value).values()
+            if spec.specific_market
         ]
 
         assert labels

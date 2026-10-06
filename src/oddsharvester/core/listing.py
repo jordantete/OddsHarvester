@@ -4,7 +4,6 @@ from collections.abc import Callable
 from datetime import date, datetime, time, timedelta
 import logging
 import re
-import unicodedata
 
 from bs4 import BeautifulSoup, Tag
 from playwright.async_api import Page
@@ -27,18 +26,6 @@ _MONTH_ABBREV_TO_NUM = {
     "nov": 11,
     "dec": 12,
 }
-
-
-def _normalize_month_name(value: str) -> str:
-    """Normalize a browser-rendered month label for locale-independent matching."""
-    normalized = unicodedata.normalize("NFKC", value).casefold().strip()
-
-    # Intl short month forms commonly carry trailing punctuation (for example
-    # a locale-specific abbreviation marker). The visible site may omit it.
-    while normalized and (normalized[-1].isspace() or unicodedata.category(normalized[-1]).startswith("P")):
-        normalized = normalized[:-1]
-
-    return normalized
 
 
 def _parse_date_header(header_text: str, tz_name: str | None = None) -> date | None:

@@ -5,10 +5,10 @@ import json
 import logging
 import re
 from typing import Any
+import unicodedata
 
 from bs4 import BeautifulSoup
 
-from oddsharvester.core.listing import _normalize_month_name
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.datetime_format import format_utc
 from oddsharvester.utils.local_kickoff import compute_local_kickoff
@@ -19,10 +19,9 @@ from oddsharvester.utils.page_time import shown_to_utc, timezone_or_utc
 _LIVE_MAIN_SCORE_RE = re.compile(r"^(\d+)\s*[:\u2013-]\s*(\d+)$")
 
 
-# A finished match keeps its live-info container and swaps the period marker for a
-# terminal state, so an absent container is not the only end-of-match signal.
-# "Final result" verified live 2026-07-20; the rest mirror the listing-page states
-# in docs/agentic-gotchas.md §9.
+# A match that ended either loses its live-info container or keeps it with a terminal
+# state in place of the period marker (gotchas §16). "Final result" verified live
+# 2026-07-20; the rest mirror the listing-page states in docs/agentic-gotchas.md §9.
 _LIVE_ENDED_PERIOD_MARKERS = frozenset(
     {
         "final result",
@@ -104,6 +103,18 @@ def _history_reference(match_date: str | None, tz_name: str | None) -> datetime 
         return None
     tz = timezone_or_utc(tz_name)
     return kickoff.astimezone(tz).replace(tzinfo=None)
+
+
+def _normalize_month_name(value: str) -> str:
+    """Normalize a browser-rendered month label for locale-independent matching."""
+    normalized = unicodedata.normalize("NFKC", value).casefold().strip()
+
+    # Intl short month forms commonly carry trailing punctuation (for example
+    # a locale-specific abbreviation marker). The visible site may omit it.
+    while normalized and (normalized[-1].isspace() or unicodedata.category(normalized[-1]).startswith("P")):
+        normalized = normalized[:-1]
+
+    return normalized
 
 
 def _parse_match_date_from_dom(

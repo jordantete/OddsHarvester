@@ -724,9 +724,11 @@ class BaseScraper:
             if live_mode:
                 live_info = _parse_live_info(BeautifulSoup(await page.content(), "lxml"))
                 if live_info is None:
-                    # No live-info header: the match ended (or lost live coverage)
-                    # between listing and visit. Not a scraping failure.
-                    self.logger.info(f"No live-info header on {match_link}; match no longer live, skipping.")
+                    # The match ended (or lost live coverage) between listing and visit: not a scraping failure.
+                    self.logger.info(
+                        f"{match_link} is no longer live: its header shows no live block, or one in a final state; "
+                        "skipping."
+                    )
                     return None
                 match_details.update(live_info)
                 match_details["scraped_at_utc"] = datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import UTC, datetime
 import logging
 import re
@@ -40,7 +41,7 @@ class OddsParser:
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def parse_market_odds(
-        self, html_content: str, period: str, odds_labels: list, target_bookmaker: str | None = None
+        self, html_content: str, period: str, odds_labels: Sequence[str], target_bookmaker: str | None = None
     ) -> list[dict[str, Any]]:
         """
         Parses odds for a given market type in a generic way.
@@ -48,7 +49,7 @@ class OddsParser:
         Args:
             html_content (str): The HTML content of the page.
             period (str): The match period (e.g., "FullTime").
-            odds_labels (list): A list of labels defining the expected odds columns (e.g., ["odds_over", "odds_under"]).
+            odds_labels (Sequence[str]): The expected odds columns (e.g., ("odds_over", "odds_under")).
             target_bookmaker (str, optional): If set, only parse odds for this bookmaker.
 
         Returns:

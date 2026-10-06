@@ -18,8 +18,9 @@ class ScrapeOptions:
 
     Strings and enums are both accepted and normalized once, here: `command`, `bookies_filter` and `period`
     become enums (the period that of the sport, or its default when None), `sport` its site value and
-    `proxy_url` a tuple of URLs. An unknown command or bookies filter raises ValueError. The proxy settings
-    stay out of the repr, so a logged ScrapeOptions never shows a credential.
+    `proxy_url` a tuple of URLs. The annotations name what the constructor accepts; `run_scrape` reads the
+    normalized forms. An unknown command or bookies filter raises ValueError. The proxy settings stay out of
+    the repr, so a logged ScrapeOptions never shows a credential.
     """
 
     command: CommandEnum | str

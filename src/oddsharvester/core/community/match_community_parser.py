@@ -105,11 +105,7 @@ def _kickoff_text(soup) -> str | None:
 
 
 def _kickoff(soup, tz_name: str | None) -> str | None:
-    """The header's kickoff, shown at the browser's current UTC offset, as the zone's local time (gotchas §10).
-
-    Written back in the header's shape with the weekday first: the header says Today, Tomorrow or
-    Yesterday instead around the day it is read.
-    """
+    """The header's kickoff as the zone's local time (gotchas §10), weekday first even where it says Today."""
     text = _kickoff_text(soup)
     match = _KICKOFF_RE.match(text or "")
     shown_date = _parse_date_header(match.group(1)) if match else None

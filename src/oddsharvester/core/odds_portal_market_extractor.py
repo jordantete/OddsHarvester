@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import datetime
 from enum import Enum
 import logging
@@ -240,7 +241,7 @@ class OddsPortalMarketExtractor:
         main_market: str,
         specific_market: str | None = None,
         period: str = "FullTime",
-        odds_labels: list | None = None,
+        odds_labels: Sequence[str] | None = None,
         scrape_odds_history: bool = False,
         target_bookmaker: str | None = None,
         preview_submarkets_only: bool = False,
@@ -257,7 +258,7 @@ class OddsPortalMarketExtractor:
             main_market (str): The main market name (e.g., "Over/Under", "European Handicap").
             specific_market (str, optional): The specific market within the main market (e.g., "Over/Under 2.5", ...)
             period (str): The match period (e.g., "FullTime").
-            odds_labels (list): Labels corresponding to odds values in the extracted data.
+            odds_labels (Sequence[str]): Labels corresponding to odds values in the extracted data.
             scrape_odds_history (bool): Whether to scrape and attach odds history.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
             preview_submarkets_only (bool): If True, only scrape the collapsed submarket odds (best/highest shown

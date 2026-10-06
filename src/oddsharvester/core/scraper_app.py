@@ -39,7 +39,12 @@ class _SeasonedStream:
 
 
 async def run_scraper(command: CommandEnum | str, **options: Any) -> ScrapeResult | None:
-    """Run a scrape from keywords: the fields of `ScrapeOptions`, with their names and defaults."""
+    """Run a scrape from keywords: the fields of `ScrapeOptions`, with their names and defaults.
+
+    Raises:
+        ValueError: An unknown command or bookies filter.
+        TypeError: A keyword that is no field of `ScrapeOptions`.
+    """
     return await run_scrape(ScrapeOptions(command=command, **options))
 
 

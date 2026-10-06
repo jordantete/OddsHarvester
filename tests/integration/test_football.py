@@ -160,7 +160,7 @@ class TestFootballPreview:
     """Tests for --preview-only, which reads each line's collapsed row instead of every bookmaker."""
 
     def test_fb_009_preview_only(self, har_for_match, tmp_path):
-        """FB-009: Over/Under is scraped once for both lines, and each line token holds every visible line.
+        """FB-009: in preview mode each Over/Under line token holds every visible line, the same for both tokens.
 
         Its capture command is the SPECIAL_FIXTURES entry in scripts/capture_all_hars.py.
         """

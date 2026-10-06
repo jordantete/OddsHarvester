@@ -840,7 +840,7 @@ text content shape, which is what OddsPortal renders for users to read.
 started/finished). The helper is fail-safe: a row whose first column is empty
 (future DOM rename) is kept rather than silently dropped.
 
-### When OddsPortal renames either testid
+### When the first column changes shape
 
 The filter degrades open: an empty first column → helper returns False → started
 rows leak through. Symptom mirrors the original issue #58 bug. Recapture
@@ -1009,6 +1009,8 @@ leaves the run.
 - `core/playwright_manager.py` — `non_default_context_keys`,
   `new_page_on_key` (one `BrowserContext` per proxy).
 - `core/browser/cookies.py` — `CookieDismisser`.
+- `core/browser/warm_up.py`: `warm_up_page` (strictness by the host the page
+  landed on) and `set_odds_format`.
 
 ---
 

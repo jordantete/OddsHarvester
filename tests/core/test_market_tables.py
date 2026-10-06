@@ -68,6 +68,7 @@ def test_rugby_and_ice_hockey_accept_the_tokens_they_accepted_before(sport, toke
 @pytest.mark.parametrize("sport", list(Sport))
 def test_every_main_market_has_a_tab_code(sport, registry):
     main_markets = {spec.main_market for spec in registry[sport].values()}
+    assert main_markets, f"{sport.value} registers no market"
     assert main_markets - set(OddsPortalSelectors.MARKET_TAB_CODES) == set()
 
 
@@ -86,6 +87,7 @@ def test_football_line_tokens_round_trip(registry):
 
 def test_default_market_codes_name_sports_and_tab_codes():
     codes = DEFAULT_MARKET_CODE_BY_SPORT
+    assert codes
     assert set(codes) - {sport.value for sport in Sport} == set()
     assert set(codes.values()) - set(OddsPortalSelectors.MARKET_TAB_CODES.values()) == set()
 

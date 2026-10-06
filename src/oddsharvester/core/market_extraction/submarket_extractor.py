@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 import logging
 from typing import Any
 
@@ -20,7 +21,7 @@ class SubmarketExtractor:
         self.logger = logging.getLogger(self.__class__.__name__)
 
     async def extract_visible_submarkets_passive(
-        self, page: Page, main_market: str, period: str, odds_labels: list | None = None
+        self, page: Page, main_market: str, period: str, odds_labels: Sequence[str] | None = None
     ) -> list[dict[str, Any]]:
         """
         Extracts all visible submarkets from the current page without clicking to load more.
@@ -29,7 +30,7 @@ class SubmarketExtractor:
             page (Page): The Playwright page instance.
             main_market (str): The main market name (e.g., "Over/Under", "European Handicap").
             period (str): The match period (e.g., "FullTime").
-            odds_labels (list, optional): Labels corresponding to odds values. If None, defaults to
+            odds_labels (Sequence[str], optional): Labels corresponding to odds values. If None, defaults to
             ["odds_over", "odds_under"].
 
         Returns:

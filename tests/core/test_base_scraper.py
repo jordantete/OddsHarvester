@@ -1940,21 +1940,31 @@ async def test_scrape_match_data_live_mode_adds_live_fields(setup_base_scraper_m
     assert data["scraped_at_utc"].endswith("Z")
 
 
-async def test_scrape_match_data_live_mode_returns_none_for_an_ended_match(setup_base_scraper_mocks):
-    """A page without a live-info header means the match ended: there is no record to return."""
+@pytest.mark.parametrize(
+    "header",
+    ["<div>FT 2:1</div>", live_block("Final result", "2:1")],
+    ids=["live block gone", "live block with a final state"],
+)
+async def test_scrape_match_data_live_mode_returns_none_for_an_ended_match(setup_base_scraper_mocks, caplog, header):
+    """A match that ended loses its live block or keeps it with a final state (gotchas §16): no record to return."""
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
     page_mock = mocks["page_mock"]
-    page_mock.content = AsyncMock(return_value="<html><body><div>FT 2:1</div></body></html>")
+    page_mock.content = AsyncMock(return_value=f"<html><body>{header}</body></html>")
     scraper._hydrate_match_view = AsyncMock()
     scraper._dismiss_login_modal = AsyncMock()
     scraper._extract_match_details = AsyncMock(return_value={"home_team": "A"})
 
-    data = await scraper._scrape_match_data(
-        page=page_mock, sport="football", match_link="https://x/inplay-odds/#a", live_mode=True
-    )
+    with caplog.at_level(logging.INFO):
+        data = await scraper._scrape_match_data(
+            page=page_mock, sport="football", match_link="https://x/inplay-odds/#a", live_mode=True
+        )
 
     assert data is None
+    assert (
+        "https://x/inplay-odds/#a is no longer live: its header shows no live block, or one in a final state; "
+        "skipping." in caplog.messages
+    )
 
 
 async def test_extract_match_odds_drops_an_ended_live_match(setup_base_scraper_mocks, caplog):

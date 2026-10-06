@@ -208,6 +208,18 @@ async def test_a_links_only_upcoming_run_returns_rows_with_their_kickoff(fake_sc
     assert list(result.success[0]) == ["match_link", "sport", "league", "date", "season", "kickoff_utc"]
 
 
+@pytest.mark.parametrize(
+    ("keywords", "error"),
+    [({"command": "scrape_everything"}, ValueError), ({"command": "scrape_upcoming", "no_such_option": 1}, TypeError)],
+    ids=["unknown command", "unknown keyword"],
+)
+async def test_run_scraper_raises_on_options_no_run_can_take(fake_scraper, keywords, error):
+    with pytest.raises(error):
+        await run_scraper(**keywords)
+
+    assert fake_scraper.calls == [], "nothing starts"
+
+
 async def test_a_links_only_historic_run_appends_the_match_day_last(fake_scraper):
     """A new CSV column goes last, so a file appended across the upgrade keeps its first columns in place."""
     fake_scraper.answers["collect_historic_links"] = ListingResult(rows=[{"match_link": M1, "match_day": "2025-05-18"}])
