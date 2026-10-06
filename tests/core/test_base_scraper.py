@@ -2756,6 +2756,53 @@ async def test_scrape_match_data_fresh_tab_navigates_once(setup_base_scraper_moc
     assert targets == ["https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"]
 
 
+async def test_scrape_match_data_loads_a_link_naming_a_market_on_its_event(setup_base_scraper_mocks):
+    """A link copied from a market tab must load on the bare event: OddsPortal serves the default market otherwise."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    _capture_response_listener(page_mock)
+    page_mock.url = "about:blank"
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._hydrate_match_view = AsyncMock()
+    scraper._extract_match_details = AsyncMock(
+        return_value={
+            "home_team": "Masar",
+            "match_link": "https://www.oddsportal.com/football/h2h/a/b/#YDZojogM:bts;2",
+        }
+    )
+
+    result = await scraper._scrape_match_data(
+        page=page_mock, sport="football", match_link="https://www.oddsportal.com/football/h2h/a/b/#YDZojogM:bts;2"
+    )
+
+    targets = [c.args[0] for c in page_mock.goto.await_args_list]
+    assert targets == ["https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"]
+    assert result["match_link"] == "https://www.oddsportal.com/football/h2h/a/b/#YDZojogM:bts;2"
+
+
+async def test_scrape_match_data_retry_reloads_a_page_already_on_the_bare_event(setup_base_scraper_mocks):
+    """The same-document check must compare against the bare event too, not only the link as given."""
+    mocks = setup_base_scraper_mocks
+    scraper = mocks["scraper"]
+    page_mock = mocks["page_mock"]
+    _capture_response_listener(page_mock)
+    page_mock.url = "https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"
+    scraper._dismiss_login_modal = AsyncMock()
+    scraper._hydrate_match_view = AsyncMock()
+    scraper._extract_match_details = AsyncMock(return_value={"home_team": "Masar"})
+
+    await scraper._scrape_match_data(
+        page=page_mock, sport="football", match_link="https://www.oddsportal.com/football/h2h/a/b/#YDZojogM:bts;2"
+    )
+
+    targets = [c.args[0] for c in page_mock.goto.await_args_list]
+    assert targets == [
+        "about:blank",
+        "https://www.oddsportal.com/football/h2h/a/b/#YDZojogM",
+    ]
+
+
 async def test_scrape_match_data_keeps_a_complete_record_when_only_an_image_got_429(setup_base_scraper_mocks):
     """Images and chunks are the first to be refused; a view that rendered with every market is a good record."""
     from unittest.mock import ANY

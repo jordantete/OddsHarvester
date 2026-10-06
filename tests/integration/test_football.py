@@ -8,7 +8,7 @@ import re
 import pytest
 
 from tests.integration.helpers.cli_runner import run_historic
-from tests.integration.helpers.comparison import compare_golden
+from tests.integration.helpers.comparison import compare_golden, compare_market
 from tests.integration.helpers.replay import is_live, load_golden, replay_and_compare, run_replay
 
 # Match configurations
@@ -332,7 +332,8 @@ class TestALinkThatNamesItsMarket:
         )
         assert result.passed, str(result)
 
-    def test_a_link_naming_btts_fails_instead_of_writing_the_1x2_odds(self, har_for_match, tmp_path):
+    def test_a_link_naming_btts_reads_the_btts_odds(self, har_for_match, tmp_path):
+        """Loaded on the bare event, the checked switch reaches btts instead of keeping the page's 1X2 data."""
         fixture_name = "1x2_btts_double_chance_full_time_all.json"
         if is_live(har_for_match, LEICESTER_BRENTFORD, fixture_name):
             pytest.skip("replays the load of the recorded page; the controller checks the live page")
@@ -346,6 +347,11 @@ class TestALinkThatNamesItsMarket:
             har_path=har_for_match("football", "premier-league", LEICESTER_BRENTFORD["match_id"], fixture_name),
         )
 
-        assert exit_code == 1, stderr[-2000:]
-        assert "OddsPortal sent the data of market 1 for the view 'bts;2'" in stderr
-        assert not Path(f"{output_path}.json").exists()
+        assert exit_code == 0, stderr[-2000:]
+        out = Path(f"{output_path}.json")
+        assert out.exists(), f"no output written: {stderr[-2000:]}"
+        [actual] = json.loads(out.read_text())
+        [expected] = load_golden(LEICESTER_BRENTFORD, fixture_name)
+        result = compare_market("btts_market", actual["btts_market"], expected["btts_market"])
+        assert result.passed, str(result)
+        assert "OddsPortal sent the data of market" not in stderr

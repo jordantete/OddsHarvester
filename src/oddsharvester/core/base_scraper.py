@@ -681,14 +681,18 @@ class BaseScraper:
         """
         self.logger.info(f"Scraping match: {match_link}")
 
+        # A page loaded on a URL that already names a market fetches that market's default data instead
+        # (gotchas §27): load the event, then reach the market through the checked switch_view.
+        event_url = OddsPortalSelectors.event_url(match_link)
+
         # Navigation is the proxy-sensitive step: let its failures propagate so
         # retry/backoff and multi-proxy failover can attribute them to the proxy.
         # Errors after a successful load are content/DOM issues: they become a
         # MatchContentError, retried but typed so that no proxy is blamed.
-        if urldefrag(page.url).url == urldefrag(match_link).url:
+        if urldefrag(page.url).url == urldefrag(event_url).url:
             # Same document: goto would only change the fragment, so a retry would reuse the broken view.
             await page.goto("about:blank")
-        await page.goto(match_link, timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded")
+        await page.goto(event_url, timeout=NAVIGATION_TIMEOUT_MS, wait_until="domcontentloaded")
 
         try:
             await wait_for_signal(

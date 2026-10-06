@@ -44,6 +44,35 @@ def test_event_id_from_url_strips_market_suffix():
     assert OddsPortalSelectors.event_id_from_url("https://www.oddsportal.com/x/h2h/a/b/#OOklm0j3:1X2;2") == "OOklm0j3"
 
 
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        (
+            "https://www.oddsportal.com/football/h2h/a-x/b-y/#UNC9hLMj:bts;2",
+            "https://www.oddsportal.com/football/h2h/a-x/b-y/#UNC9hLMj",
+        ),  # names a market
+        (
+            "https://www.oddsportal.com/football/h2h/a-x/b-y/#UNC9hLMj:over-under;2;2.50;0",
+            "https://www.oddsportal.com/football/h2h/a-x/b-y/#UNC9hLMj",
+        ),  # a line
+        (
+            "https://www.oddsportal.com/football/h2h/a-x/b-y/#UNC9hLMj",
+            "https://www.oddsportal.com/football/h2h/a-x/b-y/#UNC9hLMj",
+        ),  # bare event
+        (
+            "https://www.oddsportal.com/football/h2h/a-x/b-y/",
+            "https://www.oddsportal.com/football/h2h/a-x/b-y/",
+        ),  # no fragment
+        (
+            "https://www.oddsportal.com/football/england/premier-league-2024-2025/results/#/page/2/",
+            "https://www.oddsportal.com/football/england/premier-league-2024-2025/results/#/page/2/",
+        ),  # listing fragment
+    ],
+)
+def test_event_url_reduces_fragment_to_the_bare_event_id(url, expected):
+    assert OddsPortalSelectors.event_url(url) == expected
+
+
 def test_market_code_from_url_extracts_code():
     url = "https://www.cuotasahora.com/football/h2h/cabo-verde-x/uruguay-y/#4pPp9nn3:over-under;2"
     assert OddsPortalSelectors.market_code_from_url(url) == "over-under"

@@ -210,6 +210,14 @@ class OddsPortalSelectors:
         return fragment
 
     @staticmethod
+    def event_url(url: str) -> str:
+        """Reduce a `#<id>:<market>;<scope>...` fragment to its bare `#<id>`, else return `url` unchanged."""
+        event_id = OddsPortalSelectors.event_id_from_url(url)
+        if event_id is None or url.split("#", 1)[1] == event_id:
+            return url
+        return url.split("#", 1)[0] + "#" + event_id
+
+    @staticmethod
     def market_code_from_url(url: str) -> str | None:
         """Return the market code from a `#<id>:<code>;<scope>` fragment, else None."""
         if not isinstance(url, str) or "#" not in url:

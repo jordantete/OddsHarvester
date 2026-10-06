@@ -2270,12 +2270,14 @@ of another market is not, and each switch waits that cap.
 `_scrape_match_data_unguarded`), so the match is retried, then reported failed;
 a 429 among those requests still becomes `RateLimitError` (§23).
 
-When the URL already names the market (a link ending `#<id>:bts;2`, or the
-same market asked twice), the switch is skipped, since writing the same hash
-renders nothing, and the data the view holds are checked the same way
-(`loaded_view`). Replayed on 2026-10-05, a page loaded on `#<id>:bts;2` asks
-for the 1X2 data only and shows them under the Both Teams to Score tab: such a
-link used to write the 1X2 odds as btts and exit 0, it now fails the match.
+A match link that names a market (`#<id>:bts;2`) is loaded on its event
+instead (`OddsPortalSelectors.event_url`), then the market is reached through
+the checked switch, like any other market request. Live on 2026-10-06, a page
+loaded directly on `#lMp9YMye:bts;2` fetched the 1X2 data instead of the btts
+data. The loaded-view check of Task 6 still covers the other case: a market
+asked again on a page whose URL already names it, where the switch is skipped
+since writing the same hash renders nothing, and the data the view holds are
+checked the same way (`loaded_view`).
 
 Not covered: the tab-click path (in-play views, markets without a hash code);
 and the refresh polls of a match not started (`requestPreMatch.refresh`, every
