@@ -166,10 +166,12 @@ class BaseScraper:
             # Rows are the match <a> elements and date headers are leaf elements holding the group date.
             elements = await _listing_elements(
                 page,
-                lambda el: el.name in ("a", "div", "span", "p")
-                and (
-                    OddsPortalSelectors.is_match_link(el)
-                    or (OddsPortalSelectors.is_date_header(el) and not OddsPortalSelectors.is_hidden(el))
+                lambda el: (
+                    el.name in ("a", "div", "span", "p")
+                    and (
+                        OddsPortalSelectors.is_match_link(el)
+                        or (OddsPortalSelectors.is_date_header(el) and not OddsPortalSelectors.is_hidden(el))
+                    )
                 ),
             )
             row_count = sum(1 for el in elements if OddsPortalSelectors.is_match_link(el))
@@ -319,9 +321,13 @@ class BaseScraper:
             # of a row is the section-header link that precedes it (gotchas §20).
             elements = await _listing_elements(
                 page,
-                lambda el: el.name == "a"
-                and el.has_attr("href")
-                and ((OddsPortalSelectors.is_match_link(el) and "/inplay-odds/" in el["href"]) or _is_league_link(el)),
+                lambda el: (
+                    el.name == "a"
+                    and el.has_attr("href")
+                    and (
+                        (OddsPortalSelectors.is_match_link(el) and "/inplay-odds/" in el["href"]) or _is_league_link(el)
+                    )
+                ),
             )
 
             rows = _ListingRows(sport, self.base_url or ODDSPORTAL_BASE_URL)

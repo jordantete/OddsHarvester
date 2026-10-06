@@ -13,7 +13,7 @@ PROXYSCRAPE_URL = "https://api.proxyscrape.com/v2/?request=getproxies&protocol=h
 
 
 def fetch(limit: int) -> list[str]:
-    with urllib.request.urlopen(PROXYSCRAPE_URL, timeout=20) as resp:  # noqa: S310
+    with urllib.request.urlopen(PROXYSCRAPE_URL, timeout=20) as resp:
         raw = resp.read().decode("utf-8", errors="ignore")
     proxies = [line.strip() for line in raw.splitlines() if line.strip()]
     return proxies[:limit]

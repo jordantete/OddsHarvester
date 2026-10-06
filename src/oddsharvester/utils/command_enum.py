@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class CommandEnum(str, Enum):
+class CommandEnum(StrEnum):
     UPCOMING_MATCHES = "scrape_upcoming"
     HISTORIC = "scrape_historic"
     LIVE = "scrape_live"
