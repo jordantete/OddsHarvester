@@ -306,3 +306,46 @@ class TestAMarketWhoseDataDidNotCome:
         )
 
         assert "OddsPortal sent the data of market 1 for the view 'over-under;2'" in stderr
+
+
+@pytest.mark.integration
+class TestALinkThatNamesItsMarket:
+    """A link ending '#<id>:<code>;<scope>' skips the switch: the data its page loaded with are checked (gotchas §27).
+
+    Replayed on 2026-10-05: a page loaded on '#xQ77QTN0:bts;2' asks for the 1X2 data only and shows them under the
+    Both Teams to Score tab; before the check, btts was written with the 1X2 odds (Betclic.fr 3.50 and 3.67) and the
+    run exited 0.
+    """
+
+    def test_a_link_naming_the_1x2_reads_it(self, har_for_match, tmp_path):
+        fixture_name = "1x2_full_time_all.json"
+        match = {**LEICESTER_BRENTFORD, "url": f"{LEICESTER_BRENTFORD['url']}:1X2;2"}
+
+        [actual] = run_replay(har_for_match, tmp_path, match, fixture_name, markets=["1x2"])
+
+        [expected] = load_golden(LEICESTER_BRENTFORD, fixture_name)
+        assert actual["match_link"] == match["url"]
+        result = compare_golden(
+            {**actual, "match_link": expected["match_link"]},
+            expected,
+            live=is_live(har_for_match, LEICESTER_BRENTFORD, fixture_name),
+        )
+        assert result.passed, str(result)
+
+    def test_a_link_naming_btts_fails_instead_of_writing_the_1x2_odds(self, har_for_match, tmp_path):
+        fixture_name = "1x2_btts_double_chance_full_time_all.json"
+        if is_live(har_for_match, LEICESTER_BRENTFORD, fixture_name):
+            pytest.skip("replays the load of the recorded page; the controller checks the live page")
+        output_path = tmp_path / "output"
+
+        exit_code, _stdout, stderr = run_historic(
+            sport="football",
+            match_link=f"{LEICESTER_BRENTFORD['url']}:bts;2",
+            markets=["btts"],
+            output_path=output_path,
+            har_path=har_for_match("football", "premier-league", LEICESTER_BRENTFORD["match_id"], fixture_name),
+        )
+
+        assert exit_code == 1, stderr[-2000:]
+        assert "OddsPortal sent the data of market 1 for the view 'bts;2'" in stderr
+        assert not Path(f"{output_path}.json").exists()

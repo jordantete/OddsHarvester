@@ -103,15 +103,50 @@ class TestMarketTabNavigator:
         page.query_selector_all.assert_not_awaited()
 
     async def test_a_market_already_in_the_url_is_not_switched_again(self, navigator):
-        """fb_004: every line of the umbrella lives on the tab already shown, and the same hash re-renders nothing."""
+        """fb_004: every line of the umbrella lives on the tab already shown, and the same hash re-renders nothing.
+
+        The view's data are still read: the page may have loaded on that market's URL, which no switch checked.
+        """
         page = _page(url="https://www.oddsportal.com/football/h2h/a-x/b-y/#UNC9hLMj:over-under;2")
 
         assert await navigator.navigate_to_tab(page, "Over/Under") is True
 
         page.evaluate.assert_not_awaited()
-        page.wait_for_function.assert_not_awaited()
+        assert page.wait_for_function.await_args_list == [
+            call(
+                VIEW_DATA_JS,
+                arg={"event": "UNC9hLMj", "market": 2},
+                timeout=VIEW_DATA_RECORD_CAP_MS,
+                polling=SIGNAL_POLL_MS,
+            )
+        ]
         page.expect_request.assert_not_called()
         page.query_selector_all.assert_not_awaited()
+
+    async def test_a_page_loaded_on_a_market_with_another_market_s_data_fails(self, navigator):
+        """A link ending '#<id>:bts;2' skips the switch: the data its page loaded with are checked instead."""
+        page = _page(url="https://www.oddsportal.com/football/h2h/a-x/b-y/#UNC9hLMj:bts;2", rendered=1)
+
+        with pytest.raises(MarketDataError, match="OddsPortal sent the data of market 1 for the view 'bts;2'"):
+            await navigator.navigate_to_tab(page, "Both Teams to Score")
+
+        page.expect_request.assert_not_called()
+
+    async def test_a_page_loaded_on_a_market_the_match_does_not_offer_is_not_read(self, navigator, caplog):
+        page = _page(url="https://www.oddsportal.com/football/h2h/a-x/b-y/#UNC9hLMj:bts;2", requested=1, offered=[1, 2])
+
+        with caplog.at_level("WARNING"):
+            assert await navigator.navigate_to_tab(page, "Both Teams to Score") is False
+
+        assert "The match offers no 'bts' market: OddsPortal showed market 1 instead." in caplog.text
+        page.query_selector_all.assert_not_awaited()
+
+    async def test_a_page_loaded_on_a_market_without_view_data_is_read_as_before(self, navigator):
+        page = _page(url="https://www.oddsportal.com/football/h2h/a-x/b-y/#UNC9hLMj:bts;2", decrypted=False)
+
+        assert await navigator.navigate_to_tab(page, "Both Teams to Score") is True
+
+        page.expect_request.assert_not_called()
 
     async def test_a_bare_fragment_is_always_switched(self, navigator):
         """Right after the page load the URL holds '#<id>' only: the first market is switched to."""

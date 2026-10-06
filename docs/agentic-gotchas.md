@@ -2267,11 +2267,16 @@ of another market is not, and each switch waits that cap.
 `_scrape_match_data_unguarded`), so the match is retried, then reported failed;
 a 429 among those requests still becomes `RateLimitError` (§23).
 
+When the URL already names the market (a link ending `#<id>:bts;2`, or the
+same market asked twice), the switch is skipped, since writing the same hash
+renders nothing, and the data the view holds are checked the same way
+(`loaded_view`). Replayed on 2026-10-05, a page loaded on `#<id>:bts;2` asks
+for the 1X2 data only and shows them under the Both Teams to Score tab: such a
+link used to write the 1X2 odds as btts and exit 0, it now fails the match.
+
 Not covered: the tab-click path (in-play views, markets without a hash code);
-the refresh polls of a match not started (`requestPreMatch.refresh`, every 15 s
-by default), which re-render the table from answers no switch checks; and the
-view the page loads on when its URL already names the market (a link ending in
-`#id:home-away;1` skips the switch).
+and the refresh polls of a match not started (`requestPreMatch.refresh`, every
+15 s by default), which re-render the table from answers no switch checks.
 
 `tests/integration/test_football.py::TestAMarketWhoseDataDidNotCome` replays
 each case by editing a HAR (replays abort a request the HAR does not hold).
@@ -2279,7 +2284,7 @@ each case by editing a HAR (replays abort a request the HAR does not hold).
 ### References
 
 - `core/browser/view_data.py`: `VIEW_DATA_HOOK_JS`, `VIEW_DATA_JS`.
-- `core/browser/market_navigation.py`: `switch_view`, `MarketTabNavigator._navigate_by_hash`.
+- `core/browser/market_navigation.py`: `switch_view`, `loaded_view`, `MarketTabNavigator._navigate_by_hash`.
 - `core/odds_portal_selectors.py`: `MARKET_FEED_IDS`.
 - `core/exceptions.py`: `MarketDataError`.
 - §23 (429 on data requests), §26 (the panel every switch resets).

@@ -106,9 +106,24 @@ async def switch_view(page: Page, fragment: str, code: str, scope: int, cap_ms: 
             _PAGES_WITHOUT_VIEW_DATA.add(page)
             logger.warning(f"No decrypted data recorded for the view {view}; reading markets from the requests.")
         return int(is_view_data.search(request.url).group(1))
+    return _market_shown(records, market, view, page.url)
+
+
+async def loaded_view(page: Page, fragment: str, code: str, scope: int) -> int | None:
+    """The market the view the page loaded on shows, its data checked as a switch's are; None when none was recorded.
+
+    Raises MarketDataError when the data carry another market than `code` while the match offers it.
+    """
+    market = OddsPortalSelectors.MARKET_FEED_IDS.get(code)
+    records = await _view_data(page, fragment, market)
+    return _market_shown(records, market, f"'{code};{scope}'", page.url) if records else None
+
+
+def _market_shown(records: list[dict], market: int | None, view: str, url: str) -> int:
+    """The market the recorded data show; MarketDataError when they carry another market the match offers."""
     shown = market if any(record["market"] == market for record in records) else records[-1]["market"]
     if market is not None and market in records[-1]["offered"] and shown != market:
-        raise MarketDataError(f"OddsPortal sent the data of market {shown} for the view {view}", url=page.url)
+        raise MarketDataError(f"OddsPortal sent the data of market {shown} for the view {view}", url=url)
     return shown
 
 
@@ -169,7 +184,14 @@ class MarketTabNavigator:
         current_scope = OddsPortalSelectors.period_scope_from_url(page.url)
         # Writing the hash the URL already holds does not re-render the view, so there is nothing to switch.
         if current_scope is not None and OddsPortalSelectors.market_code_from_url(page.url) == code:
-            self.logger.info(f"Market code '{code}' and scope {current_scope} are already in the URL.")
+            shown = await loaded_view(page, fragment, code, current_scope)
+            self.logger.info(
+                f"Market code '{code}' and scope {current_scope} are already in the URL; "
+                + (f"the view shows market {shown}." if shown is not None else "no view data recorded.")
+            )
+            if shown is not None and shown != OddsPortalSelectors.MARKET_FEED_IDS.get(code, shown):
+                self.logger.warning(f"The match offers no '{code}' market: OddsPortal showed market {shown} instead.")
+                return None
             return True
         # Preserve the current period scope so a market switch keeps the period.
         scope = current_scope or 2

@@ -113,7 +113,7 @@ class SelectionManager:
                 if not tabs:
                     self.logger.warning(f"{strategy.name} navigation not found on page. Skipping selection.")
                 else:
-                    self.logger.error(f"{strategy.name} target element not found for: {display_label}")
+                    self.logger.warning(f"{strategy.name} target element not found for: {display_label}")
                 return False
 
             if _is_active(await target.get_attribute("style"), strategy):
@@ -140,11 +140,11 @@ class SelectionManager:
                 self.logger.info(f"Successfully set {strategy.name} to: {display_label}")
                 return True
 
-            self.logger.error(f"Failed to set {strategy.name} to: {display_label}")
+            self.logger.warning(f"Failed to set {strategy.name} to: {display_label}")
             return False
 
         except Exception as e:
-            self.logger.error(f"Error setting {strategy.name}: {e}")
+            self.logger.warning(f"Error setting {strategy.name}: {e}")
             return False
 
     async def _find_tab(self, page: Page, strategy: SelectionStrategy, label: str) -> ElementHandle | None:

@@ -112,6 +112,26 @@ class TestSelectionManager:
         assert "No selected bookies-filter 'Crypto Bookies' within 1000 ms" in caplog.text
         assert "Failed to set bookies-filter to: Crypto Bookies" in caplog.text
 
+    @pytest.mark.parametrize(
+        ("tabs", "message"),
+        [
+            ([_tab("All Bookies")], "bookies-filter target element not found for: Crypto Bookies"),
+            ([_tab("Crypto Bookies")], "Failed to set bookies-filter to: Crypto Bookies"),
+            (RuntimeError("Target closed"), "Error setting bookies-filter: Target closed"),
+        ],
+        ids=["no such button", "never shown selected", "page error"],
+    )
+    async def test_a_panel_that_cannot_be_shown_logs_a_warning(self, manager, caplog, tabs, message):
+        """The market is then read with the panel shown (gotchas §26): a warning, not an error."""
+        page = _page([tabs if isinstance(tabs, list) else []])
+        if isinstance(tabs, Exception):
+            page.query_selector_all = AsyncMock(side_effect=tabs)
+
+        with caplog.at_level("WARNING"):
+            assert await manager.ensure_selected(page, "crypto", "Crypto Bookies", BOOKIES_FILTER_STRATEGY) is False
+
+        assert [(record.levelname, record.getMessage()) for record in caplog.records] == [("WARNING", message)]
+
     async def test_returns_false_when_no_tab_matches_label(self, manager):
         page = _page([[_tab("All Bookies"), _tab("Crypto Bookies")]])
 
