@@ -2274,10 +2274,10 @@ A match link that names a market (`#<id>:bts;2`) is loaded on its event
 instead (`OddsPortalSelectors.event_url`), then the market is reached through
 the checked switch, like any other market request. Live on 2026-10-06, a page
 loaded directly on `#lMp9YMye:bts;2` fetched the 1X2 data instead of the btts
-data. The loaded-view check of Task 6 still covers the other case: a market
+data. The loaded-view check (`loaded_view`) still covers the other case: a market
 asked again on a page whose URL already names it, where the switch is skipped
-since writing the same hash renders nothing, and the data the view holds are
-checked the same way (`loaded_view`).
+since writing the same hash renders nothing, and the data the view already
+holds are checked the same way.
 
 Not covered: the tab-click path (in-play views, markets without a hash code);
 and the refresh polls of a match not started (`requestPreMatch.refresh`, every

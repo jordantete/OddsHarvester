@@ -2778,11 +2778,14 @@ async def test_scrape_match_data_loads_a_link_naming_a_market_on_its_event(setup
 
     targets = [c.args[0] for c in page_mock.goto.await_args_list]
     assert targets == ["https://www.oddsportal.com/football/h2h/a/b/#YDZojogM"]
+    scraper._extract_match_details.assert_called_once_with(
+        page_mock, "https://www.oddsportal.com/football/h2h/a/b/#YDZojogM:bts;2"
+    )
     assert result["match_link"] == "https://www.oddsportal.com/football/h2h/a/b/#YDZojogM:bts;2"
 
 
 async def test_scrape_match_data_retry_reloads_a_page_already_on_the_bare_event(setup_base_scraper_mocks):
-    """The same-document check must compare against the bare event too, not only the link as given."""
+    """A retry on a page already on the bare event goes through about:blank, then loads the bare event URL again."""
     mocks = setup_base_scraper_mocks
     scraper = mocks["scraper"]
     page_mock = mocks["page_mock"]

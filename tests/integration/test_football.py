@@ -310,11 +310,11 @@ class TestAMarketWhoseDataDidNotCome:
 
 @pytest.mark.integration
 class TestALinkThatNamesItsMarket:
-    """A link ending '#<id>:<code>;<scope>' skips the switch: the data its page loaded with are checked (gotchas §27).
+    """A link ending '#<id>:<code>;<scope>' is loaded on its event, then the market is reached through the
+    checked switch, like any other market request (gotchas §27).
 
-    Replayed on 2026-10-05: a page loaded on '#xQ77QTN0:bts;2' asks for the 1X2 data only and shows them under the
-    Both Teams to Score tab; before the check, btts was written with the 1X2 odds (Betclic.fr 3.50 and 3.67) and the
-    run exited 0.
+    Live on 2026-10-06: a page loaded directly on '#xQ77QTN0:bts;2' asked for the 1X2 data only and showed them
+    under the Both Teams to Score tab; loaded on its bare event instead, the switch reads the real btts odds.
     """
 
     def test_a_link_naming_the_1x2_reads_it(self, har_for_match, tmp_path):

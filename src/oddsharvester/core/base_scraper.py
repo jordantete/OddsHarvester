@@ -681,8 +681,7 @@ class BaseScraper:
         """
         self.logger.info(f"Scraping match: {match_link}")
 
-        # A page loaded on a URL that already names a market fetches that market's default data instead
-        # (gotchas §27): load the event, then reach the market through the checked switch_view.
+        # A page loaded on a market's URL fetches the default market's data (gotchas §27).
         event_url = OddsPortalSelectors.event_url(match_link)
 
         # Navigation is the proxy-sensitive step: let its failures propagate so
