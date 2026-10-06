@@ -369,14 +369,13 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 > **Breaking change:** `upcoming --links-only` rows now carry a `kickoff_utc`
 > column, appended at the end. Appending to a file produced by an earlier
 > version yields a file with two different column layouts, so start a new
-> output file rather than appending across the upgrade. `historic` and `live`
-> links-only rows are unchanged.
+> output file rather than appending across the upgrade. `live` links-only rows
+> are unchanged; `historic` ones gain `match_day` (below).
 
 > **Breaking change:** `historic --links-only` rows now carry a `match_day`
 > column, appended at the end. Appending to a CSV file produced by an earlier
-> version yields a file with two different column layouts, so start a new
-> output file rather than appending across the upgrade. `upcoming` and `live`
-> links-only rows are unchanged.
+> version widens its header: earlier rows get an empty `match_day`. `upcoming`
+> and `live` links-only rows are unchanged.
 
 > **Breaking change:** `boto3` moved to the `s3` extra, so `pip install oddsharvester` no longer
 > installs it, and there is no default S3 bucket any more. `--storage remote` (or
