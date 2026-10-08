@@ -382,12 +382,17 @@ EMPTY_SEARCH_TAB = {"total": 0, "pagination": []}
 
 
 def search_page(
-    search_data: dict, search_string: str | None = "Nacional Potosi", dom: str = "", chunks_before: int = 1
+    search_data: dict,
+    search_string: str | None = "Nacional Potosi",
+    dom: str = "",
+    chunks_before: int = 1,
+    split_at: str | None = None,
 ) -> str:
     """A search page: flight-data chunks, the last one holding searchData among the page's props.
 
     Next ships each chunk as a JSON string literal with `<` escaped, so the parser has to decode them.
     ``search_string=None`` drops the `searchStringUrl` prop; ``""`` is what an unknown team id returns.
+    ``split_at`` cuts the last chunk in two just before the first occurrence of that text.
     """
     props = {"h1": f"Search Results for: {search_string or ''}", "searchData": search_data, "sportUrl": ""}
     if search_string is not None:
@@ -396,6 +401,9 @@ def search_page(
     filler = [f'{n}:I[{n},["/_next/static/chunks/x.js"],"default"]' for n in range(chunks_before)]
     # The site serializes compactly, with no space after a colon.
     chunks = [*filler, "96:" + json.dumps(["$", "div", None, {"children": [props]}], separators=(",", ":"))]
+    if split_at is not None:
+        cut = chunks[-1].index(split_at)
+        chunks[-1:] = [chunks[-1][:cut], chunks[-1][cut:]]
     scripts = "".join(
         f"<script>self.__next_f.push([1,{json.dumps(chunk).replace('<', chr(92) + 'u003c')}])</script>"
         for chunk in chunks

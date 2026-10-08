@@ -166,6 +166,21 @@ def test_an_unknown_team_id_does_not_exist_on_oddsportal():
         parse_matches(html, url=_RESULTS_URL, team_id="zzzzzzzz", tab="results")
 
 
+def test_an_unknown_team_id_is_caught_when_its_name_arrives_in_the_next_chunk():
+    html = search_page(EMPTY_SEARCH_TAB, search_string="", split_at='"searchStringUrl"')
+
+    with pytest.raises(PageNotFoundError, match="Team id zzzzzzzz does not exist on OddsPortal"):
+        parse_matches(html, url=_RESULTS_URL, team_id="zzzzzzzz", tab="results")
+
+
+def test_a_payload_cut_across_two_chunks_is_read_whole():
+    html = search_page(search_results([search_match()]), split_at='"rows"')
+
+    [row] = parse_matches(html, url=_RESULTS_URL, team_id=_TEAM, tab="results").rows
+
+    assert row["match_link"] == _LINK
+
+
 def test_a_page_without_the_team_name_key_is_not_called_unknown():
     html = search_page(EMPTY_SEARCH_TAB, search_string=None)
 

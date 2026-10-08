@@ -82,22 +82,29 @@ def parse_matches(
 
 
 def _payload(html: str, url: str) -> tuple[dict, str]:
-    """The searchData object, and the rest of its chunk, where the page's other props follow it."""
-    for match in _PUSH_RE.finditer(html):
+    """The searchData object, and the flight data after it, where the page's other props follow it."""
+    flight = _flight(html)
+    start = flight.find(_DATA_KEY)
+    while start != -1:
         try:
-            chunk = json.loads(match.group(1))
-        except json.JSONDecodeError:
-            continue
-        start = chunk.find(_DATA_KEY)
-        if start == -1:
-            continue
-        try:
-            data, end = _DECODER.raw_decode(chunk, start + len(_DATA_KEY))
+            data, end = _DECODER.raw_decode(flight, start + len(_DATA_KEY))
         except json.JSONDecodeError as e:
             raise ParsingError(f"Search payload is not valid JSON: {e}", url) from e
         if isinstance(data, dict):
-            return data, chunk[end:]
+            return data, flight[end:]
+        start = flight.find(_DATA_KEY, end)
     raise ParsingError("Search page carries no searchData payload", url)
+
+
+def _flight(html: str) -> str:
+    """The flight data of every push, joined: a push boundary may fall inside a prop."""
+    chunks = []
+    for match in _PUSH_RE.finditer(html):
+        try:
+            chunks.append(json.loads(match.group(1)))
+        except json.JSONDecodeError:
+            continue
+    return "".join(chunks)
 
 
 def _team_name(rest: str) -> str | None:
