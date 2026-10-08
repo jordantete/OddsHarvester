@@ -13,7 +13,7 @@ Usage:
     uv run python scripts/capture_all_hars.py --match-id leicester-brentford-xQ77QTN0
     uv run python scripts/capture_all_hars.py --dry-run
 
---only takes matches, community, team, live or listing. --sport and --match-id select matches only.
+--only takes matches, community, team, live, listing or search. --sport and --match-id select matches only.
 --dry-run prints each HAR and its command without running anything.
 Exit code: 0 when every selected capture succeeded, 1 otherwise.
 """
@@ -31,7 +31,7 @@ import tempfile
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 FIXTURES_DIR = PROJECT_ROOT / "tests" / "integration" / "fixtures"
-KINDS = ("matches", "community", "team", "live", "listing")
+KINDS = ("matches", "community", "team", "live", "listing", "search")
 CAPTURE_MODULE = ("uv", "run", "python", "-m", "tests.integration.helpers.capture")
 ODDSHARVESTER = ("uv", "run", "oddsharvester")
 
@@ -144,6 +144,17 @@ SPECIAL_FIXTURES = (
         kind="team",
         har="team/teams.har",
         argv=("team", "--team", "lId4TMwf,zzzzzzzz,WGt8En5I"),
+    ),
+    SpecialFixture(
+        kind="search",
+        har="search/candidates.har",
+        argv=("search", "--query", "Nacional", "--sport", "football"),
+    ),
+    # Arsenal has priced upcoming matches, so both tabs hold rows; a small club's upcoming tab is often empty.
+    SpecialFixture(
+        kind="search",
+        har="search/team_matches.har",
+        argv=("search", "--team-id", "hA1Zm19f"),
     ),
     SpecialFixture(
         kind="live",

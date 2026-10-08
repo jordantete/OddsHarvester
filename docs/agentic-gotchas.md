@@ -38,6 +38,7 @@ The gotchas, by section:
 - **§26**: A market or period switch resets the bookies filter to Classic.
 - **§27**: A market switch can show another market's odds under the requested tab.
 - **§28**: An invisible anti-bot trap row clones a match link with invented team ids.
+- **§29**: The search runs in two steps, and its data is in the flight payload.
 
 ---
 
@@ -2386,6 +2387,54 @@ and the rows, kickoffs included, must equal the golden.
   `core/community/row_helpers.py` (`visible_match_links`).
 - `tests/integration/fixtures/football/premier-league/upcoming-listing/`.
 - §1 (the issue #61 twin), §20 (rows are links), §23 (rate limit).
+
+---
+
+## §29: The search runs in two steps, and its data is in the flight payload
+
+**Severity:** Medium (a name search that looks like it returns matches returns teams, and an unknown team id looks
+like a team with no match). Verified live on 2026-10-08 from a French IP while building the `search` command.
+
+### Two steps, three URLs
+
+- `/search/results/<name>/<sport>/` lists the **teams** whose name matches, never matches: 19 for "Nacional"
+  (Portugal, Uruguay, Bolivia, U20 and women's sides), 1 for "Nacional Potosi".
+- `/search/results/:<teamId>/` lists the team's past matches, 20 a page, newest first; later pages sit at
+  `/search/results/%3A<teamId>/page/<N>/`.
+- `/search/:<teamId>/` lists its upcoming matches, but only those the selected bookmakers price: Nacional Potosi
+  showed none ("no odds available from your selected bookmakers") while Arsenal showed 4.
+
+### The data is in the payload
+
+Every search page ships a `searchData` object in the Next flight payload, whole inside one
+`self.__next_f.push([1,"..."])` chunk. Decode the chunk as a JSON string, then `raw_decode` from the key: a brace
+inside a team name then cannot cut the object short. The name search holds `participants`, keyed by numeric id, so
+the payload order is not the page's; rank by `score`. A team tab holds `total`, `rows` and, when it paginates,
+`pagination.pageCount`. Empty collections arrive as `[]` (`"pagination":[]`), not as objects. A row's league is
+`breadcrumbs.tournament.url`; `tournament-url` is only the slug. The rendered date shows no year (`03/Oct`); use
+`date-start-timestamp`. The h2h link orders its two teams alphabetically (`arsenal-.../brighton-...` for Brighton
+at home), so home and away come from `home-name` and `away-name`, never from the link.
+
+The rendered results rows also hold the §28 trap row (hex ids, no fragment). The payload never carries it.
+
+### Detection signal
+
+An unknown team id answers 200 with `"searchData":{"total":0,"pagination":[]}`, exactly what a quiet team returns.
+Its sibling prop `"searchStringUrl"` is `""` and the heading reads "Search Results for: " with no name; for a real
+team both hold the team's name. Key the check on an empty `searchStringUrl`, and treat a missing key as unknown
+rather than as an error, so a renamed prop does not turn every team into an unknown one.
+
+### Fix pattern
+
+- `core/search/search_parser.py` reads only the payload; `parse_matches` raises `PageNotFoundError` ("does not
+  exist on OddsPortal") on an empty `searchStringUrl`.
+- `core/search/search_scraper.py` fails the whole call when one page fails: a partial list would tell a caller that
+  a match is not there when a page was only missing.
+
+### References
+
+- `core/search/`, `cli/commands/search.py`, `tests/integration/test_search.py`.
+- §21 (team pages, the other payload-backed page), §25 (`site_slug`), §28 (the trap row).
 
 ---
 
