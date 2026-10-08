@@ -57,16 +57,21 @@ def parse_candidates(html: str, url: str, base_url: str | None = None) -> list[d
     ]
 
 
-def parse_matches(html: str, url: str, team_id: str, tab: str, base_url: str | None = None) -> MatchPage:
+def parse_matches(
+    html: str, url: str, team_id: str, tab: str, base_url: str | None = None, page: int | None = None
+) -> MatchPage:
     """One page of a team's matches, from its upcoming (``next``) or its ``results`` tab.
 
     Raises:
         PageNotFoundError: The site does not know ``team_id``: the page names no team.
-        ParsingError: The page carries no searchData payload.
+        ParsingError: The page carries no searchData payload, or another ``page`` than the one asked for.
     """
     data, rest = _payload(html, url)
     if _team_name(rest) == "":
         raise PageNotFoundError(f"Team id {team_id} does not exist on OddsPortal: its search page names no team.", url)
+    served = data.get("page")
+    if page is not None and served is not None and int(served) != page:
+        raise ParsingError(f"Search results: asked for page {page}, the payload holds page {served}", url)
     pagination = data.get("pagination")
     page_count = pagination.get("pageCount") if isinstance(pagination, dict) else None
     return MatchPage(
@@ -110,12 +115,13 @@ def _match_row(row: dict, tab: str, base_url: str | None) -> dict:
         "match_link": _absolute(row.get("url"), base_url),
         "kickoff_utc": _kickoff(row.get("date-start-timestamp")),
         "tab": tab,
-        "home_team": row.get("home-name"),
+        "home_team": _plain(row.get("home-name")),
         "home_team_id": _team_id(row.get("homeParticipantUrl")),
-        "away_team": row.get("away-name"),
+        "away_team": _plain(row.get("away-name")),
         "away_team_id": _team_id(row.get("awayParticipantUrl")),
         "home_score": _score(row.get("homeResult")),
         "away_score": _score(row.get("awayResult")),
+        "partial_results": _partial(row.get("partialresult")),
         "tournament": row.get("tournament-name"),
         "league_url": _absolute(tournament.get("url"), base_url),
         "country": row.get("country-name"),
@@ -129,6 +135,12 @@ def _kickoff(timestamp) -> str | None:
 
 def _score(value) -> str | None:
     return None if value in (None, "") else str(value)
+
+
+def _partial(text: str | None) -> str | None:
+    """Period scores in historic's shape, "(1:1, 0:0, 4:3)"; a shoot-out shows as the last pair."""
+    periods = " ".join((text or "").split())
+    return f"({periods})" if periods else None
 
 
 def _team_id(participant_url: str | None) -> str | None:

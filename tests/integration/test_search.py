@@ -86,7 +86,7 @@ def test_candidates_come_in_the_order_the_page_shows_them(temp_output_dir):
 def test_team_matches_har_replay(temp_output_dir):
     output = temp_output_dir / "out.json"
 
-    result = _run(["--team-id", ARSENAL], output, _replay(TEAM_MATCHES_HAR))
+    result = _run(["--team-id", ARSENAL, "--max-pages", "2"], output, _replay(TEAM_MATCHES_HAR))
 
     assert result.returncode == 0, f"stderr: {result.stderr[-2000:]}"
     matches = json.loads(output.read_text())
@@ -95,6 +95,7 @@ def test_team_matches_har_replay(temp_output_dir):
     assert all(ARSENAL in (m["home_team_id"], m["away_team_id"]) for m in matches), "a row without the team is a trap"
     assert all(_UTC.fullmatch(m["kickoff_utc"]) for m in matches)
     assert len({m["match_link"] for m in matches}) == len(matches)
+    assert sum(m["tab"] == "results" for m in matches) > 20, "the second results page was not read"
 
 
 @pytest.mark.integration
@@ -107,10 +108,10 @@ def test_search_against_the_live_site(temp_output_dir):
     assert any(c["team_id"] == NACIONAL_POTOSI and c["country"] == "Bolivia" for c in json.loads(teams.read_text()))
 
     matches_out = temp_output_dir / "matches.json"
-    result = _run(["--team-id", NACIONAL_POTOSI], matches_out)
+    result = _run(["--team-id", NACIONAL_POTOSI, "--max-pages", "2"], matches_out)
     assert result.returncode == 0, f"stderr: {result.stderr[-2000:]}"
     matches = json.loads(matches_out.read_text())
-    assert matches, "the results tab lists the team's past matches"
+    assert sum(m["tab"] == "results" for m in matches) > 20, "the second results page was not read"
     assert all(NACIONAL_POTOSI in (m["home_team_id"], m["away_team_id"]) for m in matches)
     assert all(m["kickoff_utc"] and m["league_url"] for m in matches)
 

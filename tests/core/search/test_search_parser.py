@@ -88,6 +88,7 @@ def test_a_played_match_carries_every_field():
             "away_team_id": "KG3q1tio",
             "home_score": "2",
             "away_score": "0",
+            "partial_results": "(1:0, 1:0)",
             "tournament": "Copa Pacena",
             "league_url": "https://www.oddsportal.com/football/bolivia/copa-pacena/",
             "country": "Bolivia",
@@ -102,7 +103,28 @@ def test_an_upcoming_match_has_no_score():
     [row] = parse_matches(html, url=_RESULTS_URL, team_id=_TEAM, tab="next").rows
 
     assert row["tab"] == "next"
-    assert (row["home_score"], row["away_score"]) == (None, None)
+    assert (row["home_score"], row["away_score"], row["partial_results"]) == (None, None, None)
+
+
+def test_a_shoot_out_keeps_its_period_scores():
+    """The shown score gives the shoot-out winner one more goal; the periods tell a 1:1 draw from a win."""
+    html = search_page(
+        search_results([search_match(home_result="2", away_result="1", partial_result="0:1, 1:0, 0:0, 4:3")])
+    )
+
+    [row] = parse_matches(html, url=_RESULTS_URL, team_id=_TEAM, tab="results").rows
+
+    assert (row["home_score"], row["away_score"], row["partial_results"]) == ("2", "1", "(0:1, 1:0, 0:0, 4:3)")
+
+
+def test_team_names_lose_the_trailing_space_of_their_country_tag():
+    """International competitions show "Arsenal (Eng) " with a trailing space."""
+    match = search_match(home=("Arsenal (Eng) ", "arsenal", "hA1Zm19f"), away=("Como (Ita) ", "como", "6qzGmfXS"))
+    html = search_page(search_results([match]))
+
+    [row] = parse_matches(html, url=_RESULTS_URL, team_id=_TEAM, tab="results").rows
+
+    assert (row["home_team"], row["away_team"]) == ("Arsenal (Eng)", "Como (Ita)")
 
 
 @pytest.mark.parametrize("zero", ["0", 0])
@@ -120,6 +142,14 @@ def test_a_results_page_gives_its_total_and_page_count():
     page = parse_matches(html, url=_RESULTS_URL, team_id=_TEAM, tab="results")
 
     assert (page.total, page.page_count) == (79, 4)
+
+
+def test_a_results_page_holding_another_page_is_a_parsing_error():
+    """A stale payload would repeat page 1's rows under page 2, and the cross-page dedup would hide it."""
+    html = search_page(search_results([search_match()], page=1, page_count=4))
+
+    with pytest.raises(ParsingError, match="asked for page 2, the payload holds page 1"):
+        parse_matches(html, url=_RESULTS_URL, team_id=_TEAM, tab="results", page=2)
 
 
 def test_an_empty_tab_of_a_known_team_is_an_empty_page():

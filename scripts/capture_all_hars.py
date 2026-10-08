@@ -150,11 +150,11 @@ SPECIAL_FIXTURES = (
         har="search/candidates.har",
         argv=("search", "--query", "Nacional", "--sport", "football"),
     ),
-    # Arsenal has priced upcoming matches, so both tabs hold rows; a small club's upcoming tab is often empty.
+    # Arsenal has priced upcoming matches and hundreds of results, so both tabs and a second results page hold rows.
     SpecialFixture(
         kind="search",
         har="search/team_matches.har",
-        argv=("search", "--team-id", "hA1Zm19f"),
+        argv=("search", "--team-id", "hA1Zm19f", "--max-pages", "2"),
     ),
     SpecialFixture(
         kind="live",

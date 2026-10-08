@@ -150,6 +150,17 @@ async def test_a_failing_results_page_fails_the_whole_call():
         await _scraper(manager).team_matches(_TEAM, max_pages=2)
 
 
+async def test_a_results_page_serving_page_1_again_fails_the_call():
+    manager = _manager_with(
+        search_page(EMPTY_SEARCH_TAB),
+        search_page(search_results([search_match(event_id="PAGE0001")], page_count=2)),
+        search_page(search_results([search_match(event_id="PAGE0001")], page=1, page_count=2)),
+    )
+
+    with pytest.raises(ParsingError, match="asked for page 2"):
+        await _scraper(manager).team_matches(_TEAM, max_pages=2)
+
+
 async def test_an_unknown_team_id_fails_without_a_retry():
     manager = _manager_with(search_page(EMPTY_SEARCH_TAB, search_string=""))
 

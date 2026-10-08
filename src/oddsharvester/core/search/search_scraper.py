@@ -58,7 +58,7 @@ class SearchScraper:
         for page in range(1, max_pages + 1):
             url = results_url(team_id, page, base_url)
             current: MatchPage = await self._read(
-                url, partial(parse_matches, url=url, team_id=team_id, tab="results", base_url=base_url)
+                url, partial(parse_matches, url=url, team_id=team_id, tab="results", base_url=base_url, page=page)
             )
             results += current.rows
             if page >= current.page_count:
