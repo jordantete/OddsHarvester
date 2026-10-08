@@ -2,10 +2,12 @@
 
 from dataclasses import dataclass
 import logging
+import re
 
 from playwright.async_api import ElementHandle, Page
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
-from oddsharvester.core.browser.market_navigation import switch_view
+from oddsharvester.core.browser.market_navigation import VIEW_DATA_CAP_MS, switch_view
 from oddsharvester.core.browser.waits import wait_for_signal
 from oddsharvester.core.exceptions import MarketDataError
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
@@ -55,6 +57,18 @@ _CLICK_PERIOD_TAB_JS = """
 # The period bar shows its tab at args.index bold.
 _PERIOD_TAB_ACTIVE_JS = (
     "(args) => { const bar = (" + _PERIOD_BAR_JS.strip() + ")(args); return !!bar && bar.active === args.index; }"
+)
+
+# Clears the recorded view data, then clicks the period bar's tab at args.index.
+_INPLAY_CLICK_PERIOD_TAB_JS = (
+    "(args) => { window.__ohViewData = []; return (" + _CLICK_PERIOD_TAB_JS.strip() + ")(args); }"
+)
+
+# The period bar shows its tab at args.index bold, and the view rendered the data of args.scope.
+_INPLAY_PERIOD_SHOWN_JS = (
+    "(args) => { const bar = (" + _PERIOD_BAR_JS.strip() + ")(args);"
+    " return !!bar && bar.active === args.index"
+    " && (window.__ohViewData || []).some((r) => r.event === args.event && r.scope === args.scope); }"
 )
 
 # A sub-nav button whose text is args.label carries the selected style.
@@ -168,6 +182,7 @@ class PeriodSelector:
     `…:over-under;2`). Scope ids are global and identical across localized
     mirrors (gotchas §7). The redesigned SPA routes the whole match view off
     the hash, so the scope is selected by rewriting the fragment directly.
+    An in-play view is switched by clicking its period bar instead (_select_inplay).
     Returns None when no scope code is known for the period, signalling the
     caller to fall back to label-based selection.
     """
@@ -188,7 +203,7 @@ class PeriodSelector:
             return None
 
         if "/inplay-odds/" in page.url:
-            return None
+            return await self._select_inplay(page, sport, target, internal_period)
 
         if OddsPortalSelectors.period_scope_from_url(page.url) == target:
             self.logger.info(f"Period scope {target} already in the URL for '{internal_period}'.")
@@ -217,6 +232,72 @@ class PeriodSelector:
         if _is_default_period(sport, internal_period):
             return True
         return await self._period_is_on_screen(page, target, internal_period)
+
+    async def _select_inplay(self, page: Page, sport: str | None, target: int, internal_period: str) -> bool:
+        """Click the in-play period bar by position until a tab's data request carries the target scope.
+
+        A scope written into an in-play hash requests nothing, or another market's data, for a period the
+        market lacks; the bar lists only the shown market's periods (gotchas §16).
+        """
+        current = OddsPortalSelectors.period_scope_from_url(page.url)
+        if current == target or (current is None and _is_default_period(sport, internal_period)):
+            return True
+
+        fragment = OddsPortalSelectors.event_id_from_url(page.url)
+        bar_args = {
+            "buttons": OddsPortalSelectors.SUB_NAV_TAB_ANY,
+            "group": OddsPortalSelectors.SUB_NAV_GROUP_CSS,
+            "marker": OddsPortalSelectors.SUB_NAV_ACTIVE_STYLE_MARKER.replace(" ", ""),
+        }
+        bar = await page.evaluate(_PERIOD_BAR_JS, bar_args)
+        if not fragment or not bar or bar["tabs"] < 2:
+            return self._refuse(target, internal_period, "the in-play view shows no period bar")
+
+        is_view_data = re.compile(rf"/proxy/feed/live-event/[^/?]*-{re.escape(fragment)}-\d+-(\d+)-")
+        seen = []
+        for index in range(bar["tabs"]):
+            if index == bar["active"]:
+                continue
+            try:
+                async with page.expect_request(
+                    lambda request: is_view_data.search(request.url) is not None, timeout=VIEW_DATA_CAP_MS
+                ) as sent:
+                    await page.evaluate(_INPLAY_CLICK_PERIOD_TAB_JS, {**bar_args, "index": index})
+                request = await sent.value
+            except PlaywrightTimeoutError as e:
+                raise MarketDataError(
+                    f"The in-play period tab {index + 1} sent no data request within {VIEW_DATA_CAP_MS} ms",
+                    url=page.url,
+                ) from e
+
+            scope = int(is_view_data.search(request.url).group(1))
+            if scope != target:
+                seen.append(scope)
+                continue
+
+            response = await request.response()
+            if response is None or not response.ok:
+                answer = "no response" if response is None else f"HTTP {response.status}"
+                raise MarketDataError(
+                    f"OddsPortal refused the data of the in-play period scope {target}: {answer}", url=page.url
+                )
+            await wait_for_signal(
+                page,
+                _INPLAY_PERIOD_SHOWN_JS,
+                MARKET_SWITCH_WAIT_TIME_MS,
+                f"in-play period scope {target} shown",
+                arg={**bar_args, "index": index, "event": fragment, "scope": target},
+            )
+            if OddsPortalSelectors.period_scope_from_url(page.url) != target:
+                raise MarketDataError(f"The in-play period scope {target} did not reach the URL", url=page.url)
+            self.logger.info(
+                f"Selected in-play period scope {target} for '{internal_period}' (tab {index + 1} of {bar['tabs']})."
+            )
+            return True
+
+        return self._refuse(
+            target, internal_period, f"the in-play view offers no tab for it (its other tabs request scopes {seen})"
+        )
 
     async def _period_is_on_screen(self, page: Page, target: int, internal_period: str) -> bool:
         """True when a later tab is bold, or the first tab, clicked back to, writes the target scope."""
