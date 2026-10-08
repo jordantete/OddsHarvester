@@ -1371,9 +1371,25 @@ the score.
 - They use their own hash market codes (`O/U`, not `over-under`), so
   `MarketTabNavigator.navigate_to_tab` skips the hash path on an
   `/inplay-odds/` URL and clicks the tab.
-- They have no period selector: `PeriodSelector.select_by_scope` returns None
-  on an `/inplay-odds/` URL, `scrape_live` passes no period, and `live` accepts
-  no `--period` but the sport's full-match one.
+- They have a period bar, below the bookies filter, as pre-match views do (verified 2026-10-08:
+  Full Time / 1st Half / 2nd Half in football, FT including OT / 1st Half / quarters in basketball,
+  Full Time / sets in tennis). It lists only the periods the shown market offers in play right now:
+  the same match had 1st and 2nd Half on 1X2 and no 2nd Half on O/U, and an NBL Home/Away showed no
+  period tab at half-time. Its tabs write the pre-match scope ids into the hash (`#<id>:1X2;3`).
+- Their data come from `/proxy/feed/live-event/<sport>-<n>-<id>-<market>-<scope>-<hash>.dat`, not from
+  `/proxy/match-event/`, so `switch_view` cannot switch them.
+- Never write a period scope into an in-play hash. For a period the market lacks, the view requests
+  nothing (`H/A;14`, a third set during the first) or another market's data (`O/U;4` served 1X2
+  second-half data under the O/U hash, the §27 trap). `PeriodSelector._select_inplay` clicks the bar
+  by position instead and reads the scope from the request each click sends; every click sends one,
+  a revisited period included. A period click re-renders the bookmaker rows but not the market tabs.
+- Their labels can come in another language: from the Helsinki VPS (feed `geo=BG`) the bar read
+  `Regulaminowy czas gry (FT)` / `1. połowa` / `2. połowa` in an `en-US` context. Never select by label.
+- At half-time (verified 2026-10-08) the live block reads `Half-time 2:1`, the bar keeps all three
+  tabs, 1st Half shows the first half's last quotes and 2nd Half shows quotes, both with a payout of
+  `-`. A bookmaker can leave a period's quotes frozen: Bets.io's 2nd Half 1X2 still showed its
+  half-time prices at 74', payout `-`, which the record carries as `blocked_outcomes`. A period
+  snapshot is a price only where its outcomes are not blocked.
 
 ### Being in play is not the same as having in-play odds
 
@@ -1460,15 +1476,22 @@ recorded; `MyBookmarks` is provably in that category). Pre-match H2H fragment
 pages had a similar replay limit until the 2026-08 redesign; they replay since
 (§19), so the in-play view is the one match view left that a HAR cannot serve.
 
-That investigation predates the 2026-08 redesign, and no in-play match page has
-been captured since, so whether the redesigned in-play view replays is not
-known. The live-now listing does replay (`test_live_listing_replays_captured_live_now_page`,
+The live-now listing does replay (`test_live_listing_replays_captured_live_now_page`,
 a listing captured on 2026-09-29).
+
+Rechecked 2026-10-08 on the redesigned view: a HAR of a match's second half replayed the live block,
+the In-Play Odds tab and the second-half table while the match was still in play, and stopped
+replaying once it ended, every request still served from the HAR. The page opens
+`wss://oppush-tt2.livesport.eu/WebSocketConnection-Secure`, which a HAR neither records nor serves, so
+during a replay it reaches the real network; with it blocked, `.result-live` never mounts, even with
+the clock pinned to the capture. The live block most likely comes from that push channel. A replay
+test would need its frames recorded and served through `context.route_web_socket`.
 
 Consequence: do not write a replay test that asserts the live header. The one
 written for the 2026-07-20 capture was deleted with its HAR in 2026-09: it could
 only xfail on replay, and `live_only` would have made it a permanent no-op since
-the captured match is over.
+the captured match is over. The 2026-10-08 one, which passed only while its match
+was live, went the same way before it was merged.
 
 ### References
 
@@ -1479,6 +1502,7 @@ the captured match is over.
 - `core/odds_portal_scraper.py`: `scrape_live`.
 - `core/browser/hydration.py`, `market_navigation.py`, `selection.py`: the
   in-play branches.
+- `core/browser/selection.py`: `PeriodSelector._select_inplay`.
 - `tests/integration/test_live_snapshot.py`.
 
 ---
