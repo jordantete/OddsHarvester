@@ -50,6 +50,13 @@ def site_slug(sport: str) -> str:
     return SPORT_SITE_SLUGS.get(sport, sport)
 
 
+def sport_from_site_slug(slug: str | None) -> str | None:
+    """The CLI name of a sport from its OddsPortal path segment: 'hockey' -> 'ice-hockey'."""
+    if slug is None:
+        return None
+    return next((sport for sport, site in SPORT_SITE_SLUGS.items() if site == slug), slug)
+
+
 def normalize_inplay_match_url(url: str) -> str:
     """
     Ensure a match URL points at its in-play view.

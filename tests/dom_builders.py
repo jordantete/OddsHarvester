@@ -376,3 +376,107 @@ _LIVERPOOL_LAST_PERFORMANCE = {
     "shutoutGamesPercent": "",
     "_meta": {"overThreshold": 2.5},
 }
+
+
+EMPTY_SEARCH_TAB = {"total": 0, "pagination": []}
+
+
+def search_page(
+    search_data: dict, search_string: str | None = "Nacional Potosi", dom: str = "", chunks_before: int = 1
+) -> str:
+    """A search page: flight-data chunks, the last one holding searchData among the page's props.
+
+    Next ships each chunk as a JSON string literal with `<` escaped, so the parser has to decode them.
+    ``search_string=None`` drops the `searchStringUrl` prop; ``""`` is what an unknown team id returns.
+    """
+    props = {"h1": f"Search Results for: {search_string or ''}", "searchData": search_data, "sportUrl": ""}
+    if search_string is not None:
+        props["searchStringUrl"] = search_string
+    props["isArchive"] = True
+    filler = [f'{n}:I[{n},["/_next/static/chunks/x.js"],"default"]' for n in range(chunks_before)]
+    # The site serializes compactly, with no space after a colon.
+    chunks = [*filler, "96:" + json.dumps(["$", "div", None, {"children": [props]}], separators=(",", ":"))]
+    scripts = "".join(
+        f"<script>self.__next_f.push([1,{json.dumps(chunk).replace('<', chr(92) + 'u003c')}])</script>"
+        for chunk in chunks
+    )
+    return page(f"{dom}{scripts}")
+
+
+def search_participant(
+    team_id: str = "hUyau0Vc",
+    name: str = "<strong>Nacional</strong>&nbsp;Potosi",
+    country: str = "Bolivia",
+    sport: str = "football",
+    score: float = 100.0,
+    slug: str = "nacional-potosi",
+) -> dict:
+    """One candidate of a name search, as `searchData.participants` holds it."""
+    return {
+        "id": 39212,
+        "score": score,
+        "encoded-id": team_id,
+        "name": name,
+        "full-name": name,
+        "country-name": country,
+        "sport-url-name": sport,
+        "events": [],
+        "search-url": f"/api/search/results/:{team_id}/",
+        "participant-url": f"/{sport}/team/{slug}/{team_id}/",
+    }
+
+
+def search_match(
+    event_id: str = "jgMzUSAC",
+    home: tuple[str, str, str] = ("Nacional Potosi", "nacional-potosi", "hUyau0Vc"),
+    away: tuple[str, str, str] = ("Real Oruro", "real-oruro", "KG3q1tio"),
+    kickoff: int = 1791062100,
+    home_result: str | int | None = "2",
+    away_result: str | int | None = "0",
+    tournament: tuple[str, str] = ("Copa Pacena", "/football/bolivia/copa-pacena/"),
+    country: str = "Bolivia",
+    sport: str = "football",
+) -> dict:
+    """One match row of a team's search tab; ``home``/``away`` are (name, slug, team id)."""
+    (home_name, home_slug, home_id), (away_name, away_slug, away_id) = home, away
+    played = home_result not in (None, "")
+    return {
+        "id": 11328597,
+        "encodeEventId": event_id,
+        "url": f"/{sport}/h2h/{home_slug}-{home_id}/{away_slug}-{away_id}/#{event_id}",
+        "home-name": home_name,
+        "away-name": away_name,
+        "homeParticipantUrl": f"/{sport}/team/{home_slug}/{home_id}/",
+        "awayParticipantUrl": f"/{sport}/team/{away_slug}/{away_id}/",
+        "date-start-timestamp": kickoff,
+        "homeResult": home_result,
+        "awayResult": away_result,
+        "result": f"{home_result}:{away_result}" if played else "",
+        "status-id": 3 if played else 1,
+        "tournament-name": tournament[0],
+        "tournament-url": tournament[1].rstrip("/").rsplit("/", 1)[-1],
+        "country-name": country,
+        "sport-url-name": sport,
+        "breadcrumbs": {
+            "sport": {"name": sport.title(), "url": f"/{sport}/"},
+            "country": {"name": country, "url": tournament[1].rstrip("/").rsplit("/", 1)[0] + "/"},
+            "tournament": {"name": tournament[0], "url": tournament[1]},
+        },
+        "odds": [],
+    }
+
+
+def search_results(rows: list[dict], total: int | None = None, page: int = 1, page_count: int = 1) -> dict:
+    """The searchData of a results tab page, paginated 20 rows a page."""
+    return {
+        "total": total if total is not None else len(rows),
+        "onePage": 20,
+        "page": page,
+        "rows": rows,
+        "pagination": {"pageCount": page_count, "activePage": page, "hasPagination": page_count > 1},
+    }
+
+
+def search_next(rows: list[dict]) -> dict:
+    """The searchData of an upcoming tab: no pagination object."""
+    return {"total": len(rows), "rows": rows}

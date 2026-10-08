@@ -8,6 +8,7 @@ from oddsharvester.core.url_builder import (
     normalize_inplay_match_url,
     rebase_url,
     site_slug,
+    sport_from_site_slug,
 )
 from oddsharvester.utils.constants import ODDSPORTAL_BASE_URL
 from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
@@ -597,6 +598,12 @@ def test_site_slug_is_the_sport_path_on_the_site():
     assert site_slug("ice-hockey") == "hockey"
     assert site_slug("football") == "football"
     assert site_slug("american-football") == "american-football"
+
+
+def test_sport_from_site_slug_is_the_cli_name_of_a_site_path():
+    assert sport_from_site_slug("hockey") == "ice-hockey"
+    assert sport_from_site_slug("football") == "football"
+    assert sport_from_site_slug(None) is None
 
 
 def test_date_listing_of_ice_hockey_uses_the_site_path():
