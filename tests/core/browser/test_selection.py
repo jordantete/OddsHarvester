@@ -345,7 +345,7 @@ class TestPeriodSelector:
         `active` is the bold tab (None: no period bar), `tab_scopes` the scope each tab writes and requests.
         """
         page = self._page(url)
-        sent = {}
+        page.requests = []
 
         async def evaluate(js, args):
             if js == _PERIOD_BAR_JS:
@@ -353,7 +353,13 @@ class TestPeriodSelector:
             if js == _INPLAY_CLICK_PERIOD_TAB_JS:
                 scope = tab_scopes[args["index"]]
                 page.url = f"{page.url.rsplit(';', 1)[0]};{scope}"
-                sent["url"] = f"https://www.oddsportal.com/proxy/feed/live-event/1-1-id1-2-{scope}-yj39a.dat?geo=FR"
+                answer = MagicMock(status=status, ok=200 <= status < 300)
+                page.requests.append(
+                    MagicMock(
+                        url=f"https://www.oddsportal.com/proxy/feed/live-event/1-1-id1-2-{scope}-yj39a.dat?geo=FR",
+                        response=AsyncMock(return_value=answer),
+                    )
+                )
                 return True
             raise AssertionError(f"unexpected evaluate: {js[:60]}")
 
@@ -369,8 +375,7 @@ class TestPeriodSelector:
             @property
             def value(self):
                 async def request():
-                    answer = MagicMock(status=status, ok=200 <= status < 300)
-                    return MagicMock(url=sent["url"], response=AsyncMock(return_value=answer))
+                    return page.requests[-1]
 
                 return request()
 
@@ -406,6 +411,30 @@ class TestPeriodSelector:
         assert shown.args[0] == _INPLAY_PERIOD_SHOWN_JS
         arg = shown.kwargs["arg"]
         assert (arg["index"], arg["event"], arg["scope"]) == (2, "id1", 4)
+
+    async def test_an_in_play_click_ignores_the_data_of_the_period_already_shown(self, selector):
+        """The market switch's late request and the view's polls carry the shown scope, never a clicked tab's."""
+        page = self._inplay_page(f"{self.INPLAY}#id1:1X2;2")
+
+        await selector.select_by_scope(page, "football", "FirstHalf")
+
+        predicate = page.expect_request.call_args_list[0].args[0]
+        assert not predicate(MagicMock(url="https://www.oddsportal.com/proxy/feed/live-event/1-1-id1-1-2-yj39a.dat"))
+        assert predicate(MagicMock(url="https://www.oddsportal.com/proxy/feed/live-event/1-1-id1-1-3-yj39a.dat"))
+
+    async def test_each_skipped_in_play_tab_is_answered_before_the_next_click(self, selector):
+        page = self._inplay_page(f"{self.INPLAY}#id1:O/U;2", active=0, tab_scopes=(2, 3, 4))
+
+        assert await selector.select_by_scope(page, "football", "SecondHalf") is True
+
+        assert [request.response.await_count for request in page.requests] == [1, 1]
+
+    async def test_an_in_play_period_that_never_renders_fails_the_match(self, selector):
+        page = self._inplay_page(f"{self.INPLAY}#id1:1X2;2")
+        page.wait_for_function = AsyncMock(side_effect=PlaywrightTimeoutError("Timeout 3000ms exceeded."))
+
+        with pytest.raises(MarketDataError, match="in-play period scope 3 did not render within 3000 ms"):
+            await selector.select_by_scope(page, "football", "FirstHalf")
 
     async def test_an_in_play_period_the_bar_lacks_is_refused(self, selector, caplog):
         page = self._inplay_page(f"{self.INPLAY}#id1:O/U;2", active=0, tab_scopes=(2, 3))

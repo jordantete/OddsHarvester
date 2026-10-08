@@ -1,5 +1,6 @@
 """See module docstring in core/browser/__init__.py."""
 
+import asyncio
 from dataclasses import dataclass
 import logging
 import re
@@ -8,7 +9,7 @@ from playwright.async_api import ElementHandle, Page
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from oddsharvester.core.browser.market_navigation import VIEW_DATA_CAP_MS, switch_view
-from oddsharvester.core.browser.waits import wait_for_signal
+from oddsharvester.core.browser.waits import SIGNAL_POLL_MS, wait_for_signal
 from oddsharvester.core.exceptions import MarketDataError
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
@@ -64,11 +65,13 @@ _INPLAY_CLICK_PERIOD_TAB_JS = (
     "(args) => { window.__ohViewData = []; return (" + _CLICK_PERIOD_TAB_JS.strip() + ")(args); }"
 )
 
-# The period bar shows its tab at args.index bold, and the view rendered the data of args.scope.
+# The period bar shows its tab at args.index bold, and the last data the view rendered for args.event are of
+# args.scope: a late answer of another period may land after the target's.
 _INPLAY_PERIOD_SHOWN_JS = (
     "(args) => { const bar = (" + _PERIOD_BAR_JS.strip() + ")(args);"
-    " return !!bar && bar.active === args.index"
-    " && (window.__ohViewData || []).some((r) => r.event === args.event && r.scope === args.scope); }"
+    " const records = (window.__ohViewData || []).filter((r) => r.event === args.event);"
+    " return !!bar && bar.active === args.index && records.length > 0"
+    " && records[records.length - 1].scope === args.scope; }"
 )
 
 # A sub-nav button whose text is args.label carries the selected style.
@@ -258,9 +261,14 @@ class PeriodSelector:
         for index in range(bar["tabs"]):
             if index == bar["active"]:
                 continue
+            # The market switch's own late request and the view's polls carry the scope already shown.
+            shown = OddsPortalSelectors.period_scope_from_url(page.url)
             try:
                 async with page.expect_request(
-                    lambda request: is_view_data.search(request.url) is not None, timeout=VIEW_DATA_CAP_MS
+                    lambda request, shown=shown: (
+                        (found := is_view_data.search(request.url)) is not None and int(found.group(1)) != shown
+                    ),
+                    timeout=VIEW_DATA_CAP_MS,
                 ) as sent:
                     await page.evaluate(_INPLAY_CLICK_PERIOD_TAB_JS, {**bar_args, "index": index})
                 request = await sent.value
@@ -271,23 +279,23 @@ class PeriodSelector:
                 ) from e
 
             scope = int(is_view_data.search(request.url).group(1))
+            await self._inplay_answer(request, scope, page.url)
             if scope != target:
                 seen.append(scope)
                 continue
 
-            response = await request.response()
-            if response is None or not response.ok:
-                answer = "no response" if response is None else f"HTTP {response.status}"
-                raise MarketDataError(
-                    f"OddsPortal refused the data of the in-play period scope {target}: {answer}", url=page.url
+            try:
+                await page.wait_for_function(
+                    _INPLAY_PERIOD_SHOWN_JS,
+                    arg={**bar_args, "index": index, "event": fragment, "scope": target},
+                    timeout=MARKET_SWITCH_WAIT_TIME_MS,
+                    polling=SIGNAL_POLL_MS,
                 )
-            await wait_for_signal(
-                page,
-                _INPLAY_PERIOD_SHOWN_JS,
-                MARKET_SWITCH_WAIT_TIME_MS,
-                f"in-play period scope {target} shown",
-                arg={**bar_args, "index": index, "event": fragment, "scope": target},
-            )
+            except PlaywrightTimeoutError as e:
+                raise MarketDataError(
+                    f"The in-play period scope {target} did not render within {MARKET_SWITCH_WAIT_TIME_MS} ms",
+                    url=page.url,
+                ) from e
             if OddsPortalSelectors.period_scope_from_url(page.url) != target:
                 raise MarketDataError(f"The in-play period scope {target} did not reach the URL", url=page.url)
             self.logger.info(
@@ -298,6 +306,18 @@ class PeriodSelector:
         return self._refuse(
             target, internal_period, f"the in-play view offers no tab for it (its other tabs request scopes {seen})"
         )
+
+    async def _inplay_answer(self, request, scope: int, url: str) -> None:
+        """Wait for a period tab's data answer; MarketDataError when it is refused or never comes."""
+        try:
+            response = await asyncio.wait_for(request.response(), VIEW_DATA_CAP_MS / 1000)
+        except TimeoutError as e:
+            raise MarketDataError(
+                f"OddsPortal sent no answer for the in-play period scope {scope} within {VIEW_DATA_CAP_MS} ms", url=url
+            ) from e
+        if response is None or not response.ok:
+            answer = "no response" if response is None else f"HTTP {response.status}"
+            raise MarketDataError(f"OddsPortal refused the data of the in-play period scope {scope}: {answer}", url=url)
 
     async def _period_is_on_screen(self, page: Page, target: int, internal_period: str) -> bool:
         """True when a later tab is bold, or the first tab, clicked back to, writes the target scope."""

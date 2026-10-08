@@ -883,6 +883,25 @@ class TestOddsPortalMarketExtractor:
         assert result == []
         extractor.odds_parser.parse_market_odds.assert_not_called()
 
+    async def test_an_in_play_period_refused_by_its_bar_is_never_clicked_by_label(
+        self, extractor, page_mock, selection_manager_mock
+    ):
+        """In play a label click is never waited for, and the labels can be localized (gotchas §16)."""
+        page_mock.url = "https://www.oddsportal.com/football/h2h/a/b/inplay-odds/#id1:1X2;2"
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.odds_parser.parse_market_odds = MagicMock(
+            return_value=[{"1": "1.90", "X": "3.50", "2": "4.20", "bookmaker_name": "B1", "period": "SecondHalf"}]
+        )
+        extractor.period_selector.select_by_scope = AsyncMock(return_value=False)
+        selection_manager_mock.ensure_selected = AsyncMock(return_value=True)
+
+        result = await extractor.extract_market_odds(
+            page=page_mock, main_market="1X2", odds_labels=["1", "X", "2"], sport="football", period="SecondHalf"
+        )
+
+        assert result == []
+        selection_manager_mock.ensure_selected.assert_not_awaited()
+
     async def test_unverified_default_period_keeps_the_odds(self, extractor, page_mock, selection_manager_mock):
         """Football full time is the page's default: an unverified selection keeps today's behaviour."""
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)

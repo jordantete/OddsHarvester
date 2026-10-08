@@ -4,6 +4,7 @@ from playwright.async_api import async_playwright
 import pytest
 
 from oddsharvester.core.browser.market_navigation import HASH_SWITCH_JS, STALE_TAB_ATTRIBUTE
+from oddsharvester.core.browser.selection import _INPLAY_PERIOD_SHOWN_JS
 from oddsharvester.core.browser.view_data import VIEW_DATA_HOOK_JS, VIEW_DATA_JS
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 
@@ -139,3 +140,37 @@ class TestTheWaitForViewData:
         await page.evaluate(HASH_SWITCH_JS, args)
 
         assert await page.evaluate("window.__ohViewData") == []
+
+
+@pytest.mark.integration
+class TestTheInPlayPeriodShown:
+    BAR = (
+        "<div class='no-scrollbar'><button type='button'>All</button><button type='button'>Classic</button></div>"
+        "<div class='no-scrollbar'><button type='button'>FT</button><button type='button'>1H</button>"
+        "<button type='button' style='font-weight: 700;'>2H</button></div>"
+    )
+
+    async def _shown(self, page, records):
+        await page.evaluate(
+            "([html, records]) => { document.querySelector('main').innerHTML = html; window.__ohViewData = records; }",
+            [self.BAR, records],
+        )
+        args = {
+            "buttons": OddsPortalSelectors.SUB_NAV_TAB_ANY,
+            "group": OddsPortalSelectors.SUB_NAV_GROUP_CSS,
+            "marker": OddsPortalSelectors.SUB_NAV_ACTIVE_STYLE_MARKER.replace(" ", ""),
+            "index": 2,
+            "event": "EVT",
+            "scope": 4,
+        }
+        return await page.evaluate(_INPLAY_PERIOD_SHOWN_JS, args)
+
+    async def test_it_waits_for_the_last_record_of_the_event_to_carry_the_period(self, page):
+        target = {"event": "EVT", "market": 1, "scope": 4, "offered": [1]}
+        late = {"event": "EVT", "market": 1, "scope": 3, "offered": [1]}
+        other = {"event": "OTHER", "market": 1, "scope": 3, "offered": [1]}
+
+        assert await self._shown(page, [late, target]) is True
+        assert await self._shown(page, [target, other]) is True
+        assert await self._shown(page, [target, late]) is False
+        assert await self._shown(page, []) is False

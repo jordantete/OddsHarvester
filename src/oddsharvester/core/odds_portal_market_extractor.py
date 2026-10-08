@@ -398,6 +398,9 @@ class OddsPortalMarketExtractor:
         """Select the period; True when the odds on the page can be trusted to be that period's."""
         if await self.period_selector.select_by_scope(page=page, sport=sport, internal_period=period) is True:
             return True
+        # In play a label click is never waited for, and the labels can be localized (gotchas §16).
+        if "/inplay-odds/" in page.url:
+            return False
 
         display_label = period_enum.get_display_label(period_enum)
         if await self.selection_manager.ensure_selected(
