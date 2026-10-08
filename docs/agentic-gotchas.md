@@ -2412,8 +2412,11 @@ inside a team name then cannot cut the object short. The name search holds `part
 the payload order is not the page's; rank by `score`. A team tab holds `total`, `rows` and, when it paginates,
 `pagination.pageCount`. Empty collections arrive as `[]` (`"pagination":[]`), not as objects. A row's league is
 `breadcrumbs.tournament.url`; `tournament-url` is only the slug. The rendered date shows no year (`03/Oct`); use
-`date-start-timestamp`. The h2h link orders its two teams alphabetically (`arsenal-.../brighton-...` for Brighton
-at home), so home and away come from `home-name` and `away-name`, never from the link.
+`date-start-timestamp`. The h2h link does not follow home and away (one normalized URL per team pair, §1:
+`arsenal-.../brighton-...` for Brighton at home), so they come from `home-name` and `away-name`. The shown score
+gives a shoot-out winner one more goal (PSG 2:1 Arsenal for a 1:1 draw won 4:3 on penalties); `partialresult`
+(`0:1, 1:0, 0:0, 4:3`) holds the periods, the shoot-out last. International rows tag names with a country and a
+trailing space (`Arsenal (Eng) `).
 
 The rendered results rows also hold the §28 trap row (hex ids, no fragment). The payload never carries it.
 
@@ -2421,13 +2424,18 @@ The rendered results rows also hold the §28 trap row (hex ids, no fragment). Th
 
 An unknown team id answers 200 with `"searchData":{"total":0,"pagination":[]}`, exactly what a quiet team returns.
 Its sibling prop `"searchStringUrl"` is `""` and the heading reads "Search Results for: " with no name; for a real
-team both hold the team's name. Key the check on an empty `searchStringUrl`, and treat a missing key as unknown
-rather than as an error, so a renamed prop does not turn every team into an unknown one.
+team both hold the team's name. Key the check on an empty `searchStringUrl`. A missing key means the check cannot
+tell, never that the team is unknown, so a renamed prop does not turn every team into an unknown one.
+
+A results page past the first is served with its own rows in the payload (`searchData.page` 2 for `/page/2/`,
+checked live on 2026-10-08). Should it ever serve page 1 again, the rows would repeat and a dedup on event id
+would hide it, so the parser compares `searchData.page` with the page asked for.
 
 ### Fix pattern
 
 - `core/search/search_parser.py` reads only the payload; `parse_matches` raises `PageNotFoundError` ("does not
-  exist on OddsPortal") on an empty `searchStringUrl`.
+  exist on OddsPortal") on an empty `searchStringUrl`, and `ParsingError` when `searchData.page` is not the page
+  asked for.
 - `core/search/search_scraper.py` fails the whole call when one page fails: a partial list would tell a caller that
   a match is not there when a page was only missing.
 

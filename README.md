@@ -40,6 +40,10 @@ oddsharvester live -s tennis -m match_winner --headless
 
 # Scrape community data (top predictions here; also --user profiles and --match-url votes)
 oddsharvester community -s football --headless
+
+# Find a team by name, then list its matches by the team_id it returns
+oddsharvester search --query "Nacional Potosi" -s football --headless
+oddsharvester search --team-id hUyau0Vc --headless
 ```
 
 ---
@@ -53,6 +57,7 @@ oddsharvester community -s football --headless
 | **Live**         | Snapshot in-play odds   | One-shot capture of matches in play, with live score, period and scrape timestamp |
 | **Community**    | Scrape community data   | Top predictions, tipster profiles (stats + picks), and per-match community votes |
 | **Team**         | Scrape team metadata    | Identity, venue, coach and recent form for a team id, with the name used in match lists |
+| **Search**       | Find a team's matches   | Find a team by name without knowing its league, then list its upcoming matches and results |
 | **Multi-market** | Advanced parsing        | Structured data: dates, teams, scores, venues, and per-bookmaker odds      |
 | **Blocked odds** | Detect pulled markets   | Flags which outcomes a bookmaker has stopped offering (struck-through odds) |
 | **Storage**      | Flexible output         | JSON, CSV (local), or direct upload to AWS S3                              |
@@ -289,8 +294,10 @@ oddsharvester search --team-id hUyau0Vc --max-pages 3 --headless -o matches.json
 A `--query` row carries `team_id`, `name`, `country`, `sport` and `team_url`, most relevant first; a common name returns
 several teams (19 for "Nacional"), so pick by `country`. A `--team-id` row carries `match_link` and `kickoff_utc`, in the
 same shape as `--links-only` rows, then `tab` (`next` or `results`), `home_team`, `home_team_id`, `away_team`,
-`away_team_id`, `home_score` and `away_score` (empty for a match to come), `tournament`, `league_url`, `country` and
-`sport`. Upcoming matches come first, then results, newest first.
+`away_team_id`, `home_score` and `away_score` (empty for a match to come), `partial_results` (the period scores, as on
+`historic` rows), `tournament`, `league_url`, `country` and `sport`. Upcoming matches come first, then results, newest
+first. The scores are the ones OddsPortal shows: after a penalty shoot-out the winner gets one more goal, so a 1:1
+draw won on penalties reads 2:1; `partial_results` (`(0:1, 1:0, 0:0, 4:3)`) holds the shoot-out as its last pair.
 
 The command exits 0 whenever the pages were read, and writes `[]` when nothing matched. It exits 1 on a refused page
 (`rate limited by OddsPortal`), a team id the site does not know (`does not exist on OddsPortal`), any page that fails,
@@ -630,7 +637,7 @@ The options in the table below can also be set through an environment variable, 
 
 | Variable           | CLI Option        | Description                  |
 | ------------------ | ----------------- | ---------------------------- |
-| `OH_SPORT`         | `--sport`         | Sport to scrape              |
+| `OH_SPORT`         | `--sport`         | Sport to scrape (not read by `search`, whose `--sport` is refused with `--team-id`) |
 | `OH_LEAGUES`       | `--league`        | Comma-separated leagues      |
 | `OH_MARKETS`       | `--market`        | Comma-separated markets      |
 | `OH_STORAGE`       | `--storage`       | Storage type (local/remote)  |
@@ -646,7 +653,7 @@ The options in the table below can also be set through an environment variable, 
 | `OH_STREAM_NDJSON` | `--stream-ndjson` | Emit each match as an NDJSON line on stdout while scraping |
 | `OH_HEADLESS`      | `--headless`      | Run in headless mode         |
 | `OH_CONCURRENCY`   | `--concurrency`   | Number of concurrent tasks   |
-| `OH_REQUEST_DELAY` | `--request-delay` | Delay between match pages, listings and team pages (sec) |
+| `OH_REQUEST_DELAY` | `--request-delay` | Delay between match pages, listings, team pages and search pages (sec) |
 | `OH_PROXY_URL`     | `--proxy-url`     | Proxy server URL(s) — space-separated for multiple proxies |
 | `OH_PROXY_USER`    | `--proxy-user`    | Proxy username               |
 | `OH_PROXY_PASS`    | `--proxy-pass`    | Proxy password               |
