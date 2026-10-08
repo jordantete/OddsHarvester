@@ -298,6 +298,11 @@ def validate_teams_file(ctx, param, value):
     return list(dict.fromkeys(_to_team_id(entry) for entry in entries)) or None
 
 
+def validate_team_id(ctx, param, value):
+    """Validate one team reference, a bare id or a team page URL, and return the id."""
+    return _to_team_id(value) if value else None
+
+
 def warn_ignored_odds_format(ctx, param, value):
     """--odds-format never reached the scraper: odds are always decimal."""
     if value is not None and value is not OddsFormat.DECIMAL_ODDS:

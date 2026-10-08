@@ -5,7 +5,7 @@ import logging
 import click
 
 from oddsharvester import __version__
-from oddsharvester.cli.commands import community, historic, live, team, upcoming
+from oddsharvester.cli.commands import community, historic, live, search, team, upcoming
 from oddsharvester.utils.setup_logging import setup_logger
 
 
@@ -16,8 +16,9 @@ from oddsharvester.utils.setup_logging import setup_logger
 def cli(verbose, quiet):
     """OddsHarvester - Scrape sports betting odds from OddsPortal.
 
-    Five commands: 'upcoming' (matches to come), 'historic' (past seasons), 'live' (matches in play),
-    'community' (community predictions and votes) and 'team' (team pages).
+    Six commands: 'upcoming' (matches to come), 'historic' (past seasons), 'live' (matches in play),
+    'community' (community predictions and votes), 'team' (team pages) and 'search' (a team by name,
+    then its matches).
 
     Examples (YYYYMMDD stands for a date, today or later):
 
@@ -28,6 +29,8 @@ def cli(verbose, quiet):
         oddsharvester community -s football -o top_predictions.json
 
         oddsharvester team --team lId4TMwf -o teams.json
+
+        oddsharvester search --query "Nacional" -s football -o teams.json
     """
     # Configure logging based on verbosity
     if quiet:
@@ -46,6 +49,7 @@ cli.add_command(historic)
 cli.add_command(community)
 cli.add_command(live)
 cli.add_command(team)
+cli.add_command(search)
 
 
 def main():

@@ -2,8 +2,9 @@
 
 The odds collector reads only whether the output file exists. tipster_watch reads the exit code (0 or 1) and
 greps the output for "rate limited by OddsPortal" and "does not exist on OddsPortal". upcoming and historic
-exit 1 on an empty result; live exits 0 on an empty snapshot. Each test runs the real command and the real
-run_scraper against FakeScraper, so none depends on how the CLI reaches the core.
+exit 1 on an empty result; live exits 0 on an empty snapshot, and search writes [] and exits 0 when it finds
+nothing. Each test runs the real command, and the real run_scraper against FakeScraper for the odds commands,
+so none depends on how the CLI reaches the core.
 """
 
 import json
@@ -392,19 +393,20 @@ BROWSER_KWARGS = {
     "browser_timezone_id": "Europe/London",
     "base_url": "https://www.centroquote.it",
 }
-COMMUNITY_AND_TEAM = [
+OWN_RUNNERS = [
     (["community", "--sport", "football"], "community.run_top_predictions", lambda: [{"match_url": M1}]),
     (
         ["team", "--team", "lId4TMwf"],
         "team.run_teams",
         lambda: ScrapeResult(success=[{"team_id": "lId4TMwf"}], stats=ScrapeStats(total_urls=1, successful=1)),
     ),
+    (["search", "--team-id", "hUyau0Vc"], "search.run_search", lambda: [{"match_link": M1}]),
 ]
 
 
-@pytest.mark.parametrize(("args", "target", "answer"), COMMUNITY_AND_TEAM, ids=["community", "team"])
+@pytest.mark.parametrize(("args", "target", "answer"), OWN_RUNNERS, ids=["community", "team", "search"])
 @pytest.mark.parametrize("given_as", ["flags", "environment"])
-def test_community_and_team_take_the_output_and_browser_options(tmp_path, args, target, answer, given_as):
+def test_commands_with_their_own_runner_take_the_output_and_browser_options(tmp_path, args, target, answer, given_as):
     out = tmp_path / "out.csv"
     flags = BROWSER_FLAGS if given_as == "flags" else []
     env = BROWSER_ENV if given_as == "environment" else {}
@@ -417,3 +419,43 @@ def test_community_and_team_take_the_output_and_browser_options(tmp_path, args, 
     assert (first.exit_code, second.exit_code) == (0, 0), first.output + second.output
     assert {key: run.await_args.kwargs[key] for key in BROWSER_KWARGS} == BROWSER_KWARGS
     assert len(out.read_text(encoding="utf-8").splitlines()) == 3
+
+
+SEARCH_SHAPES = {
+    "tipster search teams": ["search", "--query", "Nacional Potosi", "-s", "football"],
+    "tipster search matches": ["search", "--team-id", "hUyau0Vc"],
+}
+
+
+@pytest.mark.parametrize("name", list(SEARCH_SHAPES))
+def test_a_search_that_finds_nothing_exits_0_and_writes_an_empty_list(tmp_path, name):
+    out = tmp_path / "out.json"
+    with patch("oddsharvester.cli.commands.search.run_search", new_callable=AsyncMock, return_value=[]):
+        result = _invoke(SEARCH_SHAPES[name], out)
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(out.read_text(encoding="utf-8")) == []
+
+
+@pytest.mark.parametrize("name", list(SEARCH_SHAPES))
+def test_a_rate_limited_search_exits_1_and_says_so(tmp_path, caplog, name):
+    error = RateLimitError("rate limited by OddsPortal: HTTP 429 on page x", url="x", retry_after=0)
+    out = tmp_path / "out.json"
+    with patch("oddsharvester.cli.commands.search.run_search", new_callable=AsyncMock, side_effect=error):
+        result = _invoke(SEARCH_SHAPES[name], out)
+
+    assert result.exit_code == 1, result.output
+    assert not out.exists()
+    assert "rate limited by OddsPortal" in caplog.text
+    assert "Traceback" not in caplog.text, "tipster_watch reads a traceback as a crash"
+
+
+def test_a_team_id_oddsportal_does_not_know_exits_1_and_says_so(tmp_path, caplog):
+    error = PageNotFoundError("Team id zzzzzzzz does not exist on OddsPortal: its search page names no team.", "x")
+    out = tmp_path / "out.json"
+    with patch("oddsharvester.cli.commands.search.run_search", new_callable=AsyncMock, side_effect=error):
+        result = _invoke(["search", "--team-id", "zzzzzzzz"], out)
+
+    assert result.exit_code == 1, result.output
+    assert not out.exists()
+    assert "does not exist on OddsPortal" in caplog.text

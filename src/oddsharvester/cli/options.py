@@ -60,8 +60,8 @@ request_delay_option = click.option(
     type=float,
     default=DEFAULT_REQUEST_DELAY_S,
     envvar="OH_REQUEST_DELAY",
-    help="Delay in seconds between match pages, between league/season listings and between team pages "
-    "(default: 1.0). The result pages of one listing keep their own pause.",
+    help="Delay in seconds between match pages, between league/season listings, between team pages and between "
+    "search pages (default: 1.0). The result pages of one listing keep their own pause.",
 )
 
 

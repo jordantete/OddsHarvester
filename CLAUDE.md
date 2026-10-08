@@ -67,6 +67,8 @@ uv run oddsharvester upcoming --sport football --date $(date +%Y%m%d) --market 1
 uv run oddsharvester historic --sport football --league england-premier-league --season 2022-2023 --market 1x2
 uv run oddsharvester live --sport tennis --market match_winner --output live.json
 uv run oddsharvester team --team lId4TMwf --output teams.json
+uv run oddsharvester search --query "Nacional" --sport football --output teams.json
+uv run oddsharvester search --team-id hUyau0Vc --output matches.json
 uv run oddsharvester community --sport football --output top_predictions.json
 uv run oddsharvester community --user BLAPRO --output profile.json
 uv run oddsharvester community --match-url "https://www.oddsportal.com/football/h2h/.../" --output match_votes.json
@@ -100,6 +102,7 @@ Four-layer flow: `CLI (cli/) → Core (core/) → Data (utils/) → Storage (sto
 - `browser/`: one module per page concern: `cookies` (`CookieDismisser`), `hydration` (`hydrate_match_view`), `market_navigation` (`MarketTabNavigator`, `switch_view`), `pagination` (`PaginationWalker`), `scrolling` (`PageScroller`), `selection` (`SelectionManager`, `PeriodSelector`), `session` (`browser_session`, `open_page`, `raise_if_rate_limited`), `view_data` (the view data hook), `waits` (capped waits), `warm_up` (`set_odds_format`, `warm_up_page`)
 - `community/`: the three `community` modes (top predictions, user profile, match votes), each a scraper and a pure parser, plus the row helpers they share
 - `team/`: the `team` command's scraper and team page parser
+- `search/`: the `search` command's scraper and its parser of the search pages' `searchData` payload
 - `odds_portal_market_extractor.py` + `market_extraction/` — odds extraction, submarket grouping, odds history, navigation
 - `url_builder.py`, `sport_market_registry.py`, `sport_period_registry.py`, `odds_portal_selectors.py`
 - `retry.py` — **canonical location for `TRANSIENT_ERROR_KEYWORDS`** and retry/backoff utilities

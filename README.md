@@ -89,7 +89,7 @@ oddsharvester community -s football --headless
 
 ## CLI Usage
 
-OddsHarvester has five commands: **`upcoming`**, **`historic`**, **`live`**, **`community`** and **`team`**. The [CLI Options Reference](#cli-options-reference) gives, for each option, the commands that take it.
+OddsHarvester has six commands: **`upcoming`**, **`historic`**, **`live`**, **`community`**, **`team`** and **`search`**. The [CLI Options Reference](#cli-options-reference) gives, for each option, the commands that take it.
 
 ### `oddsharvester upcoming`
 
@@ -271,9 +271,38 @@ returns builds its heading from the URL and otherwise looks valid.
 Team pages are loaded one after the other, `--request-delay` seconds apart (default `1.0`), so a
 run of N teams takes about N seconds more than the pages themselves.
 
+### `oddsharvester search`
+
+Find a team without knowing its league, then list its matches. OddsPortal's search runs in two steps, one call each.
+
+```bash
+# 1. The teams whose name matches, within one sport
+oddsharvester search --query "Nacional" --sport football --headless -o teams.json
+
+# 2. One team's matches, by the team_id step 1 returned (or any team id or team page URL)
+oddsharvester search --team-id hUyau0Vc --headless -o matches.json
+
+# Further back in its history: 20 matches per results page
+oddsharvester search --team-id hUyau0Vc --max-pages 3 --headless -o matches.json
+```
+
+A `--query` row carries `team_id`, `name`, `country`, `sport` and `team_url`, most relevant first; a common name returns
+several teams (19 for "Nacional"), so pick by `country`. A `--team-id` row carries `match_link` and `kickoff_utc`, in the
+same shape as `--links-only` rows, then `tab` (`next` or `results`), `home_team`, `home_team_id`, `away_team`,
+`away_team_id`, `home_score` and `away_score` (empty for a match to come), `tournament`, `league_url`, `country` and
+`sport`. Upcoming matches come first, then results, newest first.
+
+The command exits 0 whenever the pages were read, and writes `[]` when nothing matched. It exits 1 on a refused page
+(`rate limited by OddsPortal`), a team id the site does not know (`does not exist on OddsPortal`), any page that fails,
+or an output it cannot write. A `--team-id` call that loses one page writes nothing rather than a partial list.
+
+**Limitations:** the upcoming tab lists only the matches your IP's selected bookmakers price, so a small club's next
+match can be missing until its odds open; it shows in the results once played. Only the first page of upcoming matches
+is read.
+
 ### CLI Options Reference
 
-The **Commands** column names the commands that take each option; `all` stands for all five.
+The **Commands** column names the commands that take each option; `all` stands for all six.
 
 #### Global Options
 
@@ -289,7 +318,7 @@ Given before the command name, e.g. `oddsharvester -v upcoming ...`.
 
 | Option         | Short | Commands | Description                                                                | Default    |
 | -------------- | ----- | -------- | -------------------------------------------------------------------------- | ---------- |
-| `--sport`      | `-s`  | upcoming, historic, live, community | Sport to scrape (`football`, `tennis`, `basketball`, etc.). On `community` it selects the top-predictions mode, one of three | _required_ on upcoming, historic and live |
+| `--sport`      | `-s`  | upcoming, historic, live, community, search | Sport to scrape (`football`, `tennis`, `basketball`, etc.). On `community` it selects the top-predictions mode, one of three. On `search` it is needed with `--query` and refused with `--team-id` | _required_ on upcoming, historic and live |
 | `--date`       | `-d`  | upcoming | Target date in `YYYYMMDD` format. Refused only once that date is over in every timezone (UTC-12 included), so the machine's timezone does not matter | —          |
 | `--league`     | `-l`  | upcoming, historic, live | Comma-separated league slugs (e.g. `england-premier-league`), or league paths for leagues outside the built-in list (e.g. `football/bhutan/premier-league`, or the full oddsportal.com URL) | —          |
 | `--market`     | `-m`  | upcoming, historic, live | Comma-separated markets (e.g. `1x2,btts`)                                  | —          |
@@ -305,12 +334,12 @@ Given before the command name, e.g. `oddsharvester -v upcoming ...`.
 | `--include-started`      | upcoming | Also return matches that have already started or finished (`--no-include-started` to opt out explicitly) | `--no-include-started` |
 | `--kickoff-within-hours` | upcoming | Only scrape matches kicking off within this many hours from now (a number above 0) | no limit |
 
-**`historic` only:**
+**`historic` only** (`--max-pages` also applies to `search`):
 
 | Option        | Commands | Description                               | Default    |
 | ------------- | -------- | ----------------------------------------- | ---------- |
 | `--season`    | historic | Comma-separated seasons to scrape (`YYYY`, `YYYY-YYYY`, or `current`). Scraped as the cartesian product with `--league`. Duplicates are ignored. With `--match-link`, optional: one season, written into the records. | _required_ with `--league` |
-| `--max-pages` | historic | Max number of result pages to scrape. Applies per league/season combo, not per run. | unlimited  |
+| `--max-pages` | historic, search | Max number of result pages to scrape. On `historic` it applies per league/season combo, not per run; on `search`, to the team's results, 20 matches per page | unlimited (`search`: `1`) |
 
 `historic` needs `--league` or `--match-link`; without either it exits 2 before the browser starts.
 
@@ -323,7 +352,7 @@ exposes no history and no period selector. `--links-only` cannot be combined wit
 either form works. When every match fails to scrape the command exits non-zero, which is
 what lets a scheduled sampler tell a blocked run apart from a genuinely empty one.
 
-#### Community and Team Options
+#### Community, Team and Search Options
 
 | Option         | Commands  | Description                                                                 |
 | -------------- | --------- | --------------------------------------------------------------------------- |
@@ -331,8 +360,10 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 | `--match-url`  | community | Match-community mode: an OddsPortal match URL                               |
 | `--team`       | team      | Team to scrape, as an OddsPortal team id or a team page URL. Comma-separated and/or repeated |
 | `--teams-file` | team      | File with teams to scrape, one id or URL per line. Combines with `--team`   |
+| `--query`      | search    | Name to search for within `--sport`; lists the matching teams              |
+| `--team-id`    | search    | A team id or team page URL; lists the team's upcoming matches and latest results |
 
-`community` takes exactly one of `--sport`, `--user` and `--match-url`; `team` needs `--team` or `--teams-file`. Both exit 2 before the browser starts otherwise.
+`community` takes exactly one of `--sport`, `--user` and `--match-url`; `team` needs `--team` or `--teams-file`; `search` takes exactly one of `--query` and `--team-id`. All three exit 2 before the browser starts otherwise.
 
 #### Output Options
 
@@ -389,7 +420,7 @@ what lets a scheduled sampler tell a blocked run apart from a genuinely empty on
 | ----------------- | ----- | -------- | ----------------------------------------- | ------- |
 | `--headless`      |       | all      | Run browser in headless mode              | `False` |
 | `--concurrency`   | `-c`  | upcoming, historic, live | Concurrent scraping tasks: match pages, and league listings when several leagues are given. On `historic` each parallel listing walks its own result pages, so `-c` also multiplies the listing-page request rate; lower it for large league/season products. | `3`     |
-| `--request-delay` |       | upcoming, historic, live, team | Delay (sec) between match pages, between league/season listings (one per combo) and between team pages. The result pages of one listing keep their own 6 to 8 s pause | `1.0`   |
+| `--request-delay` |       | upcoming, historic, live, team, search | Delay (sec) between match pages, between league/season listings (one per combo), between team pages and between search pages. The result pages of one listing keep their own 6 to 8 s pause | `1.0`   |
 | `--user-agent`    |       | all      | Custom browser user agent                 | the browser's own, `HeadlessChrome` renamed `Chrome` |
 | `--locale`        |       | all      | Browser locale (e.g. `fr-BE`), also sent as Accept-Language | `en-US` |
 | `--timezone`      |       | all      | Browser timezone (e.g. `Europe/Brussels`) | —       |
