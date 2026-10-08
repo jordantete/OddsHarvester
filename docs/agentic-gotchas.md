@@ -2422,7 +2422,9 @@ like a team with no match). Verified live on 2026-10-08 from a French IP while b
 ### Two steps, three URLs
 
 - `/search/results/<name>/<sport>/` lists the **teams** whose name matches, never matches: 19 for "Nacional"
-  (Portugal, Uruguay, Bolivia, U20 and women's sides), 1 for "Nacional Potosi".
+  (Portugal, Uruguay, Bolivia, U20 and women's sides), 1 for "Nacional Potosi". It lists every team on one page,
+  with `total` equal to their count and no pagination: 246 for "United", 91 for "Real", 48 for "Sporting" in
+  football (2026-10-08).
 - `/search/results/:<teamId>/` lists the team's past matches, 20 a page, newest first; later pages sit at
   `/search/results/%3A<teamId>/page/<N>/`.
 - `/search/:<teamId>/` lists its upcoming matches, but only those the selected bookmakers price: Nacional Potosi
@@ -2430,11 +2432,13 @@ like a team with no match). Verified live on 2026-10-08 from a French IP while b
 
 ### The data is in the payload
 
-Every search page ships a `searchData` object in the Next flight payload, whole inside one
-`self.__next_f.push([1,"..."])` chunk. Decode the chunk as a JSON string, then `raw_decode` from the key: a brace
+Every search page ships a `searchData` object in the Next flight payload. Every page seen held it whole inside one
+`self.__next_f.push([1,"..."])` chunk with `searchStringUrl` just after it, up to 110 KB for "United", but nothing
+promises where a chunk ends. Decode each chunk as a JSON string, join them, then `raw_decode` from the key: a brace
 inside a team name then cannot cut the object short. The name search holds `participants`, keyed by numeric id, so
 the payload order is not the page's; rank by `score`. A team tab holds `total`, `rows` and, when it paginates,
-`pagination.pageCount`. Empty collections arrive as `[]` (`"pagination":[]`), not as objects. A row's league is
+`pagination.pageCount`. Neither count holds still across pages: Arsenal's results tab announced 387 matches on 20
+pages from page 1, then 919 on 46 from page 2, so the scraper reads `pageCount` from every page it loads. Empty collections arrive as `[]` (`"pagination":[]`), not as objects. A row's league is
 `breadcrumbs.tournament.url`; `tournament-url` is only the slug. The rendered date shows no year (`03/Oct`); use
 `date-start-timestamp`. The h2h link does not follow home and away (one normalized URL per team pair, §1:
 `arsenal-.../brighton-...` for Brighton at home), so they come from `home-name` and `away-name`. The shown score
@@ -2443,6 +2447,10 @@ gives a shoot-out winner one more goal (PSG 2:1 Arsenal for a 1:1 draw won 4:3 o
 trailing space (`Arsenal (Eng) `).
 
 The rendered results rows also hold the §28 trap row (hex ids, no fragment). The payload never carries it.
+
+A broad name search the site has not cached yet takes 15 to 22 s to serve its document, and a first load of "United"
+passed Playwright's 30 s goto timeout; once cached the same page came back in 0.2 s. The scraper retries a timeout,
+which covers it.
 
 ### Detection signal
 
@@ -2457,7 +2465,7 @@ would hide it, so the parser compares `searchData.page` with the page asked for.
 
 ### Fix pattern
 
-- `core/search/search_parser.py` reads only the payload; `parse_matches` raises `PageNotFoundError` ("does not
+- `core/search/search_parser.py` reads only the payload, from the chunks joined; `parse_matches` raises `PageNotFoundError` ("does not
   exist on OddsPortal") on an empty `searchStringUrl`, and `ParsingError` when `searchData.page` is not the page
   asked for.
 - `core/search/search_scraper.py` fails the whole call when one page fails: a partial list would tell a caller that
