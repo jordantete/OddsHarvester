@@ -27,6 +27,7 @@ from oddsharvester.utils.constants import (
     ODDSPORTAL_BASE_URL,
     RESULTS_PAGE_SIZE,
 )
+from oddsharvester.utils.period_constants import FootballPeriod
 from oddsharvester.utils.proxy_manager import ProxyManager
 
 
@@ -859,6 +860,15 @@ async def test_scrape_live_with_match_links_normalizes_urls(scraper, site):
     assert kwargs["match_links"] == ["https://www.oddsportal.com/football/spain/laliga/real-betis-abc/inplay-odds/"]
     assert kwargs["live_mode"] is True
     assert site.reads == [], "the listing is never read"
+
+
+async def test_scrape_live_passes_its_period_to_each_match(scraper, site):
+    site.serve(1, live_now(("/football/england/premier-league/", [inplay("a")])))
+    scraper.extract_match_odds = AsyncMock(return_value=ScrapeResult())
+
+    await scraper.scrape_live(sport="football", markets=["1x2"], period=FootballPeriod.FIRST_HALF)
+
+    assert scraper.extract_match_odds.call_args.kwargs["period"] is FootballPeriod.FIRST_HALF
 
 
 async def test_scrape_live_never_scrapes_odds_history(scraper, site):

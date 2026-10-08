@@ -47,24 +47,24 @@ def test_live_rejects_odds_history(runner):
     assert "not supported" in result.output
 
 
-@pytest.mark.parametrize(("sport", "period"), [("football", "full_time"), ("basketball", "full_including_ot")])
+@pytest.mark.parametrize(
+    ("sport", "period"),
+    [("football", "1st_half"), ("football", "2nd_half"), ("basketball", "1st_quarter"), ("football", "full_time")],
+)
 @patch("oddsharvester.cli.commands._output.store_data")
-def test_live_accepts_the_full_match_period_as_a_no_op(store_mock, runner, mock_live_run, sport, period):
+def test_live_takes_any_period_of_the_sport(store_mock, runner, mock_live_run, sport, period):
     result = runner.invoke(cli, ["live", "--sport", sport, "--period", period])
 
     assert result.exit_code == 0, result.output
-    assert mock_live_run.called
+    [options] = mock_live_run.call_args.args
+    assert options.period.value == period
 
 
-@pytest.mark.parametrize(
-    ("sport", "period", "accepted"),
-    [("football", "1st_half", "full_time"), ("basketball", "1st_quarter", "full_including_ot")],
-)
-def test_live_rejects_any_other_period(runner, sport, period, accepted):
-    result = runner.invoke(cli, ["live", "--sport", sport, "--period", period])
+def test_live_rejects_a_period_the_sport_lacks(runner):
+    result = runner.invoke(cli, ["live", "--sport", "football", "--period", "1st_quarter"])
 
     assert result.exit_code == 2
-    assert f"--period accepts only {accepted} for live scraping" in result.output
+    assert "Invalid period '1st_quarter' for sport 'football'" in result.output
 
 
 def test_live_rejects_links_only_with_local_kickoff(runner):

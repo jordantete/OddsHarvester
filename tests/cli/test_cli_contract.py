@@ -319,6 +319,7 @@ def test_live_options_reach_the_scraper(fake_scraper, tmp_path):
             "match_links": None,
             "target_bookmaker": "bet365",
             "bookies_filter": BookiesFilter.CLASSIC,
+            "period": None,
             "request_delay": 1.5,
             "concurrent_scraping_task": 2,
             "links_only": False,

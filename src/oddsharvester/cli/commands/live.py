@@ -8,7 +8,6 @@ import click
 from oddsharvester.cli.commands._output import write_output
 from oddsharvester.cli.commands._scrape import run, scrape_options
 from oddsharvester.cli.options import common_options, merged_match_links
-from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 from oddsharvester.utils.command_enum import CommandEnum
 
 logger = logging.getLogger(__name__)
@@ -20,13 +19,6 @@ def live(**kwargs):
     """Scrape a one-shot snapshot of in-play odds for currently live matches."""
     if kwargs.get("scrape_odds_history"):
         raise click.UsageError("--odds-history is not supported for live scraping.")
-
-    # The in-play view has no period selector: only the sport's full-match period, its default, describes it.
-    full_match = SportPeriodRegistry.get_default_period(kwargs["sport"].value).value
-    if kwargs.get("period") not in (None, full_match):
-        raise click.UsageError(
-            f"--period accepts only {full_match} for live scraping (the in-play view has no period)."
-        )
 
     leagues = kwargs.get("leagues")
     if leagues and len(leagues) > 1:

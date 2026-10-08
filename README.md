@@ -178,10 +178,9 @@ Notes:
   ever contains genuinely live matches.
 - **In-play bookmaker coverage is thinner than pre-match** (often 2 to 4
   bookmakers instead of 15 to 20) and varies by region.
-- `--odds-history` is rejected, and `--period` accepts only the sport's
-  full-match period (`full_time`, or `full_including_ot` where that is the
-  default), which changes nothing: the in-play view has no history and no
-  period selector.
+- `--odds-history` is rejected: the in-play view has no history. `--period`
+  takes any period of the sport and reads that period's in-play odds; a period
+  the in-play view does not offer for a market leaves that market empty.
 - **For repeated sampling, schedule the command externally** (cron or similar).
   Keep at least 60 seconds between snapshots, and prefer `--match-link` to
   re-sample a known match without re-reading the listing. The command itself
@@ -352,8 +351,8 @@ Given before the command name, e.g. `oddsharvester -v upcoming ...`.
 
 **`live` only:** no `--date` and no `--season`; the command always reads whatever is in
 play at the moment it runs. `--league` accepts **at most one** slug. `--odds-history` is
-rejected and `--period` accepts only the sport's full-match period, because the in-play view
-exposes no history and no period selector. `--links-only` cannot be combined with
+rejected, because the in-play view exposes no history; `--period` selects the period in the
+in-play view's own period bar. `--links-only` cannot be combined with
 `--local-kickoff`, as on `upcoming` and `historic`. A
 `--match-link` given in classic form is normalized to its in-play URL automatically, so
 either form works. When every match fails to scrape the command exits non-zero, which is
@@ -465,7 +464,7 @@ Matches are dispatched round-robin across the proxies; a proxy that fails 3 time
 | `--odds-history`     | upcoming, historic, live | Include historical odds movement per match; `live` refuses it | `False`        |
 | `--preview-only`     | upcoming, historic, live | Read the best odds of each submarket line instead of every bookmaker's (faster); a market without lines, such as 1X2, falls back to the full bookmaker table. `--full-scrape` asks for the full mode | `--full-scrape` |
 | `--bookies-filter`   | upcoming, historic, live | Bookmaker filter: `all`, `classic`, or `crypto`        | `all`          |
-| `--period`           | upcoming, historic, live | Match period (sport-specific: full-time, halves, etc.); `live` accepts only the full-match period | sport default  |
+| `--period`           | upcoming, historic, live | Match period (sport-specific: full-time, halves, etc.) | sport default  |
 
 > **Deprecated:** `--odds-format` never changed anything: odds are always decimal. It is
 > hidden from `--help`, a non-decimal value prints a warning, and it will be removed in a

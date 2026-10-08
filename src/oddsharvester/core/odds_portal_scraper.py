@@ -229,6 +229,7 @@ class OddsPortalScraper(BaseScraper):
         match_links: list[str] | None = None,
         target_bookmaker: str | None = None,
         bookies_filter: BookiesFilter = BookiesFilter.ALL,
+        period: Enum | None = None,
         request_delay: float = DEFAULT_REQUEST_DELAY_S,
         concurrent_scraping_task: int = 3,
         links_only: bool = False,
@@ -248,6 +249,7 @@ class OddsPortalScraper(BaseScraper):
             markets (Optional[List[str]]): List of markets.
             match_links (Optional[List[str]]): Scrape these matches directly.
             target_bookmaker (str): If set, only scrape odds for this bookmaker.
+            period (Optional[Enum]): The period selected on each in-play view; None keeps the full match it opens on.
             links_only (bool): If True, return collected live links without odds.
 
         Returns:
@@ -295,7 +297,7 @@ class OddsPortalScraper(BaseScraper):
             concurrent_scraping_task=concurrent_scraping_task,
             preview_submarkets_only=self.preview_submarkets_only,
             bookies_filter=bookies_filter,
-            period=None,
+            period=period,
             request_delay=request_delay,
             live_mode=True,
         )

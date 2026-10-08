@@ -261,6 +261,14 @@ async def test_a_live_run_with_match_links_stays_on_the_in_play_flow(fake_scrape
     assert fake_scraper.called("scrape_matches") == []
 
 
+@pytest.mark.parametrize(("period", "passed"), [(None, None), ("full_time", None), ("1st_half", "1st_half")])
+async def test_a_live_run_passes_only_a_period_other_than_the_full_match(fake_scraper, period, passed):
+    await run_scraper(command="scrape_live", sport="football", match_links=[M1], markets=["1x2"], period=period)
+
+    sent = fake_scraper.called("scrape_live")[0]["period"]
+    assert (sent.value if sent else None) == passed
+
+
 async def test_a_single_league_whose_listing_failed_returns_an_errored_result(fake_scraper):
     """Not None: both CLIs report the errored combo and exit 1 on it."""
     fake_scraper.answers["collect_upcoming_links"] = ValueError("Season page redirected")
@@ -912,8 +920,8 @@ LISTED = ListingResult(rows=[{"match_link": M1}])
     [
         (
             {"command": "scrape_live", "sport": "football"},
-            {"date": "20991231", "seasons": ["2024"], "max_pages": 2, "period": "1st_half",
-             "scrape_odds_history": True, "include_started": True, "kickoff_within_hours": 6},
+            {"date": "20991231", "seasons": ["2024"], "max_pages": 2, "scrape_odds_history": True,
+             "include_started": True, "kickoff_within_hours": 6},
             ["scrape_live"],
         ),
         (

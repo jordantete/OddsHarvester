@@ -16,6 +16,7 @@ from oddsharvester.core.retry import OPERATION_RETRY_CONFIG, RequestPacer, is_re
 from oddsharvester.core.scrape_options import ScrapeOptions
 from oddsharvester.core.scrape_result import ErrorType, FailedUrl, ScrapeResult
 from oddsharvester.core.sport_market_registry import SportMarketRegistrar
+from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 from oddsharvester.utils.command_enum import CommandEnum
 from oddsharvester.utils.proxy_manager import ProxyManager
 
@@ -162,8 +163,11 @@ def _check(options: ScrapeOptions) -> None:
 async def _scrape_live(scraper: OddsPortalScraper, options: ScrapeOptions) -> ScrapeResult:
     logger.info(
         f"Scraping live matches for sport={options.sport}, leagues={options.leagues}, markets={options.markets}, "
-        f"target_bookmaker={options.target_bookmaker}, bookies_filter={options.bookies_filter.value}"
+        f"target_bookmaker={options.target_bookmaker}, bookies_filter={options.bookies_filter.value}, "
+        f"period={options.period}"
     )
+    # ScrapeOptions turns a missing --period into the full match, which the in-play view opens on.
+    full_match = SportPeriodRegistry.get_default_period(options.sport)
     return await retry_scrape(
         scraper.scrape_live,
         sport=options.sport,
@@ -172,6 +176,7 @@ async def _scrape_live(scraper: OddsPortalScraper, options: ScrapeOptions) -> Sc
         match_links=list(options.match_links) if options.match_links else None,
         target_bookmaker=options.target_bookmaker,
         bookies_filter=options.bookies_filter,
+        period=None if options.period == full_match else options.period,
         request_delay=options.request_delay,
         concurrent_scraping_task=options.concurrency_tasks,
         links_only=options.links_only,
