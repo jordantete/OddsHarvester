@@ -51,6 +51,9 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
             2019: "proximus-league",
             2021: "1b-pro-league",
         },
+        "bolivia-division-profesional": {
+            2016: "liga-de-futbol-prof",
+        },
         "brazil-copa-do-brasil": {
             2023: "copa-do-brasil",
         },
@@ -114,6 +117,9 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
             2013: "the-skrill-premier",
             2014: "vanarama-conference",
         },
+        "england-wsl": {
+            2024: "women-s-super-league",
+        },
         "europa-league": {
             2008: "uefa-cup",
         },
@@ -130,6 +136,9 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
             2008: "landsbankadeild",
             2021: "pepsideild",
         },
+        "indonesia-championship": {
+            2024: "liga-2",
+        },
         "indonesia-super-league": {
             2015: "super-liga",
             2016: "isc",
@@ -137,6 +146,9 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         },
         "japan-j1-league": {
             2014: "j-league",
+        },
+        "japan-j2-league": {
+            2014: "j-league-division-2",
         },
         "jupiler-pro-league": {
             2020: "jupiler-league",
@@ -236,6 +248,9 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         },
         "uzbekistan-super-league": {
             2017: "professional-football-league",
+        },
+        "venezuela-primera-division": {
+            2022: "primera-division",
         },
         "wales-cymru-premier": {
             2013: "premier",

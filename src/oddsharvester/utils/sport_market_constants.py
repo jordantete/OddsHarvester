@@ -121,6 +121,7 @@ class FootballAsianHandicapMarket(Enum):
     HANDICAP_PLUS_1_5 = "asian_handicap_+1_5"
     HANDICAP_PLUS_1_75 = "asian_handicap_+1_75"
     HANDICAP_PLUS_2 = "asian_handicap_+2"
+    HANDICAP_PLUS_2_5 = "asian_handicap_+2_5"
 
 
 FOOTBALL_UMBRELLA_MARKETS: dict[str, str] = {
