@@ -190,7 +190,7 @@ def test_every_period_of_every_sport_has_a_scope_code():
         period_enum = SportPeriodRegistry.get_period_enum(sport.value)
         pairs += [(sport.value, period_enum.get_internal_value(period)) for period in period_enum]
 
-    assert len(pairs) == 41
+    assert len(pairs) == 44
     assert [pair for pair in pairs if OddsPortalSelectors.period_scope_code(pair[1]) is None] == []
 
 

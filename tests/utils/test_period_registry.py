@@ -115,9 +115,10 @@ class TestSportPeriodRegistry:
         """Test that basketball has the correct CLI values."""
         cli_values = SportPeriodRegistry.get_all_cli_values("basketball")
         assert "full_including_ot" in cli_values
+        assert "full_time" in cli_values
         assert "1st_quarter" in cli_values
         assert "4th_quarter" in cli_values
-        assert len(cli_values) == 7
+        assert len(cli_values) == 8
 
     def test_get_unregistered_sport_returns_none(self):
         """Test that getting an unregistered sport returns None."""
@@ -136,17 +137,19 @@ class TestSportPeriodRegistry:
         """Test that american football has the correct CLI values."""
         cli_values = SportPeriodRegistry.get_all_cli_values("american-football")
         assert "full_including_ot" in cli_values
+        assert "full_time" in cli_values
         assert "1st_quarter" in cli_values
         assert "4th_quarter" in cli_values
-        assert len(cli_values) == 7
+        assert len(cli_values) == 8
 
     def test_ice_hockey_cli_values(self):
         """Test that ice hockey has the correct CLI values."""
         cli_values = SportPeriodRegistry.get_all_cli_values("ice-hockey")
+        assert "full_including_ot" in cli_values
         assert "full_time" in cli_values
         assert "1st_period" in cli_values
         assert "3rd_period" in cli_values
-        assert len(cli_values) == 4
+        assert len(cli_values) == 5
 
     def test_baseball_cli_values(self):
         """Test that baseball has the correct CLI values."""

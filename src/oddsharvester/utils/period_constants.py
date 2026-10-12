@@ -61,6 +61,7 @@ class BasketballPeriod(Enum):
     """Periods available for basketball matches."""
 
     FULL_INCLUDING_OT = "full_including_ot"
+    FULL_TIME = "full_time"
     FIRST_HALF = "1st_half"
     SECOND_HALF = "2nd_half"
     FIRST_QUARTER = "1st_quarter"
@@ -73,6 +74,7 @@ class BasketballPeriod(Enum):
         """Get the display label for OddsPortal UI."""
         labels = {
             cls.FULL_INCLUDING_OT: "FT including OT",
+            cls.FULL_TIME: "Full Time",
             cls.FIRST_HALF: "1st Half",
             cls.SECOND_HALF: "2nd Half",
             cls.FIRST_QUARTER: "1st Quarter",
@@ -87,6 +89,7 @@ class BasketballPeriod(Enum):
         """Get the internal value used in scraper functions."""
         internal_values = {
             cls.FULL_INCLUDING_OT: "FullIncludingOT",
+            cls.FULL_TIME: "FullTime",
             cls.FIRST_HALF: "FirstHalf",
             cls.SECOND_HALF: "SecondHalf",
             cls.FIRST_QUARTER: "FirstQuarter",
@@ -151,6 +154,7 @@ class AmericanFootballPeriod(Enum):
     """Periods available for american football matches."""
 
     FULL_INCLUDING_OT = "full_including_ot"
+    FULL_TIME = "full_time"
     FIRST_HALF = "1st_half"
     SECOND_HALF = "2nd_half"
     FIRST_QUARTER = "1st_quarter"
@@ -163,6 +167,7 @@ class AmericanFootballPeriod(Enum):
         """Get the display label for OddsPortal UI."""
         labels = {
             cls.FULL_INCLUDING_OT: "FT including OT",
+            cls.FULL_TIME: "Full Time",
             cls.FIRST_HALF: "1st Half",
             cls.SECOND_HALF: "2nd Half",
             cls.FIRST_QUARTER: "1st Quarter",
@@ -177,6 +182,7 @@ class AmericanFootballPeriod(Enum):
         """Get the internal value used in scraper functions."""
         internal_values = {
             cls.FULL_INCLUDING_OT: "FullIncludingOT",
+            cls.FULL_TIME: "FullTime",
             cls.FIRST_HALF: "FirstHalf",
             cls.SECOND_HALF: "SecondHalf",
             cls.FIRST_QUARTER: "FirstQuarter",
@@ -190,6 +196,7 @@ class AmericanFootballPeriod(Enum):
 class IceHockeyPeriod(Enum):
     """Periods available for ice hockey matches."""
 
+    FULL_INCLUDING_OT = "full_including_ot"
     FULL_TIME = "full_time"
     FIRST_PERIOD = "1st_period"
     SECOND_PERIOD = "2nd_period"
@@ -199,6 +206,7 @@ class IceHockeyPeriod(Enum):
     def get_display_label(cls, period: "IceHockeyPeriod") -> str:
         """Get the display label for OddsPortal UI."""
         labels = {
+            cls.FULL_INCLUDING_OT: "FT including OT",
             cls.FULL_TIME: "Full Time",
             cls.FIRST_PERIOD: "1st Period",
             cls.SECOND_PERIOD: "2nd Period",
@@ -210,6 +218,7 @@ class IceHockeyPeriod(Enum):
     def get_internal_value(cls, period: "IceHockeyPeriod") -> str:
         """Get the internal value used in scraper functions."""
         internal_values = {
+            cls.FULL_INCLUDING_OT: "FullIncludingOT",
             cls.FULL_TIME: "FullTime",
             cls.FIRST_PERIOD: "FirstPeriod",
             cls.SECOND_PERIOD: "SecondPeriod",

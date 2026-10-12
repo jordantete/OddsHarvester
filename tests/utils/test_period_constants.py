@@ -60,6 +60,7 @@ class TestBasketballPeriod:
     def test_enum_values(self):
         """Test that enum values are correct."""
         assert BasketballPeriod.FULL_INCLUDING_OT.value == "full_including_ot"
+        assert BasketballPeriod.FULL_TIME.value == "full_time"
         assert BasketballPeriod.FIRST_HALF.value == "1st_half"
         assert BasketballPeriod.FIRST_QUARTER.value == "1st_quarter"
         assert BasketballPeriod.FOURTH_QUARTER.value == "4th_quarter"
@@ -67,12 +68,14 @@ class TestBasketballPeriod:
     def test_get_display_label(self):
         """Test getting display labels for UI."""
         assert BasketballPeriod.get_display_label(BasketballPeriod.FULL_INCLUDING_OT) == "FT including OT"
+        assert BasketballPeriod.get_display_label(BasketballPeriod.FULL_TIME) == "Full Time"
         assert BasketballPeriod.get_display_label(BasketballPeriod.FIRST_HALF) == "1st Half"
         assert BasketballPeriod.get_display_label(BasketballPeriod.FIRST_QUARTER) == "1st Quarter"
 
     def test_get_internal_value(self):
         """Test getting internal values for scraper functions."""
         assert BasketballPeriod.get_internal_value(BasketballPeriod.FULL_INCLUDING_OT) == "FullIncludingOT"
+        assert BasketballPeriod.get_internal_value(BasketballPeriod.FULL_TIME) == "FullTime"
         assert BasketballPeriod.get_internal_value(BasketballPeriod.FIRST_HALF) == "FirstHalf"
         assert BasketballPeriod.get_internal_value(BasketballPeriod.FIRST_QUARTER) == "FirstQuarter"
 
@@ -121,18 +124,21 @@ class TestAmericanFootballPeriod:
     def test_enum_values(self):
         """Test that enum values are correct."""
         assert AmericanFootballPeriod.FULL_INCLUDING_OT.value == "full_including_ot"
+        assert AmericanFootballPeriod.FULL_TIME.value == "full_time"
         assert AmericanFootballPeriod.FIRST_HALF.value == "1st_half"
         assert AmericanFootballPeriod.FIRST_QUARTER.value == "1st_quarter"
 
     def test_get_display_label(self):
         """Test getting display labels for UI."""
         assert AmericanFootballPeriod.get_display_label(AmericanFootballPeriod.FULL_INCLUDING_OT) == "FT including OT"
+        assert AmericanFootballPeriod.get_display_label(AmericanFootballPeriod.FULL_TIME) == "Full Time"
         assert AmericanFootballPeriod.get_display_label(AmericanFootballPeriod.FIRST_HALF) == "1st Half"
         assert AmericanFootballPeriod.get_display_label(AmericanFootballPeriod.FIRST_QUARTER) == "1st Quarter"
 
     def test_get_internal_value(self):
         """Test getting internal values for scraper functions."""
         assert AmericanFootballPeriod.get_internal_value(AmericanFootballPeriod.FULL_INCLUDING_OT) == "FullIncludingOT"
+        assert AmericanFootballPeriod.get_internal_value(AmericanFootballPeriod.FULL_TIME) == "FullTime"
         assert AmericanFootballPeriod.get_internal_value(AmericanFootballPeriod.FIRST_HALF) == "FirstHalf"
         assert AmericanFootballPeriod.get_internal_value(AmericanFootballPeriod.FIRST_QUARTER) == "FirstQuarter"
 
@@ -142,18 +148,21 @@ class TestIceHockeyPeriod:
 
     def test_enum_values(self):
         """Test that enum values are correct."""
+        assert IceHockeyPeriod.FULL_INCLUDING_OT.value == "full_including_ot"
         assert IceHockeyPeriod.FULL_TIME.value == "full_time"
         assert IceHockeyPeriod.FIRST_PERIOD.value == "1st_period"
         assert IceHockeyPeriod.THIRD_PERIOD.value == "3rd_period"
 
     def test_get_display_label(self):
         """Test getting display labels for UI."""
+        assert IceHockeyPeriod.get_display_label(IceHockeyPeriod.FULL_INCLUDING_OT) == "FT including OT"
         assert IceHockeyPeriod.get_display_label(IceHockeyPeriod.FULL_TIME) == "Full Time"
         assert IceHockeyPeriod.get_display_label(IceHockeyPeriod.FIRST_PERIOD) == "1st Period"
         assert IceHockeyPeriod.get_display_label(IceHockeyPeriod.THIRD_PERIOD) == "3rd Period"
 
     def test_get_internal_value(self):
         """Test getting internal values for scraper functions."""
+        assert IceHockeyPeriod.get_internal_value(IceHockeyPeriod.FULL_INCLUDING_OT) == "FullIncludingOT"
         assert IceHockeyPeriod.get_internal_value(IceHockeyPeriod.FULL_TIME) == "FullTime"
         assert IceHockeyPeriod.get_internal_value(IceHockeyPeriod.FIRST_PERIOD) == "FirstPeriod"
         assert IceHockeyPeriod.get_internal_value(IceHockeyPeriod.THIRD_PERIOD) == "ThirdPeriod"
