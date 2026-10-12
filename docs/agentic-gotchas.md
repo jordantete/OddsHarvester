@@ -654,9 +654,10 @@ Time, and `Home/Away`, whose first tab is FT including OT, identical on
 `cuotasahora.com`). The clicks also replace the market code in the URL with the
 page's own label (`Home/Away`, `Local/Visitante`), which only the scope parse
 reads afterwards. It reads no label itself, so it holds on mirrors. The default
-period keeps the URL check alone (the collector's path). After a `False`, the
-extractor still tries the English tab label, which finds no tab for a period
-the match lacks and fails on mirrors, and then returns the market empty.
+period keeps the URL check alone (the collector's path), once the offered-periods
+check below has passed. After a `False`, the extractor still tries the English
+tab label, which finds no tab for a period the match lacks and fails on mirrors,
+and then returns the market empty.
 `select_by_scope` also returns `None` on `/inplay-odds/` pages, like the market
 navigator, so the period is chosen by its tab label there.
 
@@ -667,6 +668,23 @@ earlier version of this section said baseball `FirstHalf` rendered as
 `1st Inning`; the probe of 2026-09-29 disproved it). Give a new period its code
 by clicking its tab on a live, in-play or finished match detail page and
 reading `location.hash`; the `/results/` listings lazy-load their match links.
+
+**The URL is not enough for the default period either (issue #96).** A market
+that lacks the scope asked for shows its first period under that scope in the
+URL, and the `sc` of its view data repeats the scope asked for, so neither tells.
+The view data do: their `nav`, `{<market id>: {<scope>: [<bookmaker id>, ...]}}`,
+lists every period of every market of the match. Probe of 2026-10-12 from a
+French IP: NHL `Home/Away` listed scopes 1, 5, 6, 7 (no Full Time), NBA and MLB
+`1X2` listed Full Time and no FT including OT. With the URL check alone, the
+NHL `Home/Away` FT including OT odds came back labelled `FullTime`, and the NBA
+`1X2` Full Time odds labelled `FullIncludingOT` (a draw at 15.75 in the
+committed golden). `VIEW_DATA_HOOK_JS` now records each offered market's scopes
+(`periods`), and `PeriodSelector.offers_period` refuses a period its market
+lists no bookmaker under, before any selection or label fallback, so the market
+comes back empty, without a click. Those lists follow the bookmakers the site
+shows to the requesting IP: the reporter of issue #96 saw a Full Time tab on
+NHL `Home/Away` as well, so a period offered from one country can be missing
+from another.
 
 ### The odds-history tooltip header has the same trap (issue #70 follow-up)
 

@@ -487,6 +487,15 @@ Matches are dispatched round-robin across the proxies; a proxy that fails 3 time
 > `2nd_half` or baseball `full_time` on a match without that tab) comes back empty
 > instead of carrying the default period's odds.
 
+> **Breaking change:** the sport's default period is checked too, against the
+> periods the match's data list bookmakers under for the market. A market without
+> it comes back empty, with a warning naming the `--period` values it has, instead
+> of carrying another period's odds under the default's label: basketball and
+> American football `1x2` (listed under Full Time only, while their default is
+> `full_including_ot`), or an ice hockey `home_away` listed under FT including OT
+> only. Ice hockey now takes `--period full_including_ot`, basketball and American
+> football `--period full_time`.
+
 <details>
 <summary><strong>Preview Mode vs Full Mode</strong></summary>
 <br>
