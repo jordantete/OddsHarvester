@@ -249,7 +249,7 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         "uzbekistan-super-league": {
             2017: "professional-football-league",
         },
-        "venezuela--primera-division": {
+        "venezuela-primera-division": {
             2022: "primera-division",
         },
         "wales-cymru-premier": {
