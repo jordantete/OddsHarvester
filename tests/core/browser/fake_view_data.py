@@ -53,13 +53,16 @@ def _loaded_view(url: str) -> dict:
     }
 
 
-def serve_view_data(page, status=200, requested=None, rendered=None, offered=None, decrypted=True) -> None:
+def serve_view_data(
+    page, status=200, requested=None, rendered=None, offered=None, periods=None, decrypted=True
+) -> None:
     """Answer every hash switch on `page`, and record each hash written by an evaluate of HASH_SWITCH_JS.
 
     `status` is the HTTP status of the data answer (None: never sent, NO_RESPONSE: failed), `requested` the
     market id the view asks for (None: the code's), `rendered` the market id the decrypted data carries (None:
-    the one requested), `offered` the markets the match offers (None: all), `decrypted=False` a view whose
-    data the hook never recorded. Before any switch, the data are those of the view the page's URL names.
+    the one requested), `offered` the markets the match offers (None: all), `periods` the scopes each market lists
+    a bookmaker under (None: none recorded), `decrypted=False` a view whose data the hook never recorded. Before
+    any switch, the data are those of the view the page's URL names.
     Install after the page's own wait_for_function and evaluate mocks.
     """
     page.inside_data_wait = False
@@ -76,6 +79,7 @@ def serve_view_data(page, status=200, requested=None, rendered=None, offered=Non
                 "market": market,
                 "scope": written["scope"],
                 "offered": offered or ALL_MARKETS,
+                "periods": periods or {},
             }
         ]
 

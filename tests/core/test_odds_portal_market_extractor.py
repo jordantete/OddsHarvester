@@ -917,6 +917,26 @@ class TestOddsPortalMarketExtractor:
 
         assert len(result) == 1
 
+    async def test_a_period_its_market_does_not_offer_returns_no_odds_even_as_the_default(
+        self, extractor, page_mock, selection_manager_mock
+    ):
+        """Hockey Home/Away without a Full Time tab: its FT including OT odds must not come back labelled FullTime."""
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.odds_parser.parse_market_odds = MagicMock(
+            return_value=[{"1": "2.08", "2": "1.58", "bookmaker_name": "B1", "period": "FullTime"}]
+        )
+        extractor.period_selector.offers_period = AsyncMock(return_value=False)
+        extractor.period_selector.select_by_scope = AsyncMock(return_value=True)
+
+        result = await extractor.extract_market_odds(
+            page=page_mock, main_market="Home/Away", odds_labels=["1", "2"], sport="ice-hockey", period="FullTime"
+        )
+
+        assert result == []
+        extractor.period_selector.offers_period.assert_awaited_once_with(page_mock, "ice-hockey", "FullTime")
+        extractor.period_selector.select_by_scope.assert_not_awaited()
+        selection_manager_mock.ensure_selected.assert_not_awaited()
+
     async def test_label_fallback_on_the_default_period_keeps_the_odds(
         self, extractor, page_mock, selection_manager_mock, caplog
     ):

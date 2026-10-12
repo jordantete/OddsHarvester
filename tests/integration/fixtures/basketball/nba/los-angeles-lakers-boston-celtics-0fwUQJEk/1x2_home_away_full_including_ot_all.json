@@ -14,40 +14,7 @@
         "venue_town": null,
         "venue_country": null,
         "match_info": null,
-        "1x2_market": [
-            {
-                "1": "2.91",
-                "X": "15.75",
-                "2": "1.42",
-                "bookmaker_name": "Betclic.fr",
-                "period": "FullIncludingOT",
-                "submarket_name": "1X2"
-            },
-            {
-                "1": "2.80",
-                "X": "11.00",
-                "2": "1.36",
-                "bookmaker_name": "bwin.fr",
-                "period": "FullIncludingOT",
-                "submarket_name": "1X2"
-            },
-            {
-                "1": "3.00",
-                "X": "16.00",
-                "2": "1.43",
-                "bookmaker_name": "Unibet.fr",
-                "period": "FullIncludingOT",
-                "submarket_name": "1X2"
-            },
-            {
-                "1": "3.10",
-                "X": "17.00",
-                "2": "1.42",
-                "bookmaker_name": "Winamax",
-                "period": "FullIncludingOT",
-                "submarket_name": "1X2"
-            }
-        ],
+        "1x2_market": [],
         "home_away_market": [
             {
                 "1": "2.80",

@@ -81,7 +81,9 @@ class TestTheHook:
 
         assert all(result["returned"] for name, result in out.items() if name != "rejected")
         assert out["rejected"] is True
-        assert out["gzip"]["recorded"] == [{"event": "EVT", "market": 13, "scope": 2, "offered": [1, 13]}]
+        assert out["gzip"]["recorded"] == [
+            {"event": "EVT", "market": 13, "scope": 2, "offered": [1, 13], "periods": {"1": [2], "13": [2]}}
+        ]
         assert [r["market"] for r in out["plain"]["recorded"]] == [4]
         assert [r["market"] for r in out["gzip twice"]["recorded"]] == [5]
         assert [r["market"] for r in out["trailing bytes"]["recorded"]] == [2]
@@ -94,6 +96,14 @@ class TestTheHook:
         out = await page.evaluate(DECRYPT_CASES_JS, {"empty lists": {"body": _view(1, nav), "gzip": 1}})
 
         assert out["empty lists"]["recorded"][0]["offered"] == [1]
+
+    async def test_each_offered_market_lists_the_periods_that_list_a_bookmaker(self, page):
+        """A market lacking the period asked for shows another one instead, so the guard needs each market's periods."""
+        nav = {"1": {"2": ["141"], "5": [], "6": ["141"]}, "3": {"1": ["141", "909"], "5": ["141"]}, "13": {"2": []}}
+
+        out = await page.evaluate(DECRYPT_CASES_JS, {"periods": {"body": _view(1, nav), "gzip": 1}})
+
+        assert out["periods"]["recorded"][0]["periods"] == {"1": [2, 6], "3": [1, 5]}
 
     async def test_frames_other_than_the_view_keep_the_native_decrypt(self, page):
         """The view decrypts in the top frame; a third-party frame must not see a wrapped decrypt."""

@@ -501,6 +501,45 @@ class TestPeriodSelector:
 
         page.evaluate.assert_not_awaited()
 
+    async def test_a_period_its_market_lists_no_bookmaker_under_is_not_offered(self, selector, caplog):
+        """Hockey Home/Away without a Full Time tab shows FT including OT under scope 2, the default included."""
+        page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:home-away;2")
+        serve_view_data(page, periods={"1": [2, 5], "3": [1, 5, 6, 7]})
+
+        with caplog.at_level("WARNING"):
+            assert await selector.offers_period(page, "ice-hockey", "FullTime") is False
+
+        assert "--period full_including_ot, 1st_period, 2nd_period, 3rd_period" in caplog.text
+
+    async def test_a_period_its_market_lists_a_bookmaker_under_is_offered(self, selector):
+        page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:home-away;2")
+        serve_view_data(page, periods={"3": [1, 2, 5]})
+
+        assert await selector.offers_period(page, "ice-hockey", "FullTime") is True
+
+    async def test_a_period_is_kept_when_no_view_data_were_recorded(self, selector):
+        page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:home-away;2")
+        serve_view_data(page, periods={"3": [1]}, decrypted=False)
+
+        assert await selector.offers_period(page, "ice-hockey", "FullTime") is True
+
+    @pytest.mark.parametrize(
+        ("url", "period"),
+        [
+            ("https://www.oddsportal.com/x/h2h/a/b/inplay-odds/#id1:home-away;2", "FullTime"),
+            ("https://www.oddsportal.com/x/h2h/a/b/#id1:home-away;2", "NotAPeriod"),
+            ("https://www.oddsportal.com/x/h2h/a/b/#id1", "FullTime"),
+        ],
+        ids=["in-play", "no-scope-code", "no-market-fragment"],
+    )
+    async def test_a_period_is_kept_without_reading_the_view_data(self, selector, url, period):
+        page = self._page(url)
+        serve_view_data(page, periods={"3": [1]})
+
+        assert await selector.offers_period(page, "ice-hockey", period) is True
+
+        page.evaluate.assert_not_awaited()
+
     async def test_returns_false_when_scope_never_applies(self, selector):
         page = self._page("https://www.oddsportal.com/x/h2h/a/b/#id1:1X2;2")
         assert await selector.select_by_scope(page, "football", "FirstHalf") is False

@@ -396,6 +396,8 @@ class OddsPortalMarketExtractor:
 
     async def _select_period(self, page: Page, sport: str, period: str, period_enum: Enum) -> bool:
         """Select the period; True when the odds on the page can be trusted to be that period's."""
+        if not await self.period_selector.offers_period(page, sport, period):
+            return False
         if await self.period_selector.select_by_scope(page=page, sport=sport, internal_period=period) is True:
             return True
         # In play a label click is never waited for, and the labels can be localized (gotchas §16).

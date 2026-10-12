@@ -1,13 +1,15 @@
 """What the data a match view rendered says about itself: its market, its period and the markets the match offers.
 
 The view decrypts each data answer with WebCrypto and renders it; a gzip JSON body
-`{"d": {"bt": <market id>, "sc": <scope>, "nav": {<market id>: ...}, "encodeventId": <event id>}}`.
+`{"d": {"bt": <market id>, "sc": <scope>, "nav": {<market id>: {<scope>: [<bookmaker id>, ...]}},
+"encodeventId": <event id>}}`. `sc` is the scope asked for: for a period its market lacks, the view shows another.
 """
 
 # Installed in every browser context, it records a summary of each decrypted view data answer in
 # window.__ohViewData, read as the view reads it: up to three gzip layers, JSON cut at a trailing error, and a
-# market offered when one of its periods lists a bookmaker. Only the top frame, where the view decrypts, is wrapped;
-# the Proxy keeps decrypt's arguments, `this` and returned promise, and the summary is built after the view got it.
+# market offered, with its periods, when one of its periods lists a bookmaker. Only the top frame, where the view
+# decrypts, is wrapped; the Proxy keeps decrypt's arguments, `this` and returned promise, and the summary is built
+# after the view got it.
 VIEW_DATA_HOOK_JS = """
 (() => {
     if (window !== window.top) return;
@@ -33,14 +35,19 @@ VIEW_DATA_HOOK_JS = """
             }
             const data = parse(new TextDecoder().decode(bytes)).d;
             if (!data || data.bt === undefined || !data.encodeventId) return;
-            const offered = Object.entries(data.nav || {})
-                .filter(([, periods]) => Object.values(periods || {}).some((ids) => Array.isArray(ids) && ids.length))
-                .map(([market]) => Number(market));
+            const periods = {};
+            for (const [market, scopes] of Object.entries(data.nav || {})) {
+                const listed = Object.entries(scopes || {})
+                    .filter(([, ids]) => Array.isArray(ids) && ids.length)
+                    .map(([scope]) => Number(scope));
+                if (listed.length) periods[market] = listed;
+            }
             (window.__ohViewData ||= []).push({
                 event: data.encodeventId,
                 market: Number(data.bt),
                 scope: Number(data.sc),
-                offered,
+                offered: Object.keys(periods).map(Number),
+                periods,
             });
         } catch (e) {}
     };

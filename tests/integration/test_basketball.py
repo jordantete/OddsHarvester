@@ -36,7 +36,7 @@ class TestBasketballBasicMarkets:
         )
 
     def test_bb_002_home_away_1x2(self, har_for_match, tmp_path):
-        """BB-002: Test home_away and 1x2 markets."""
+        """BB-002: Test home_away and 1x2 markets; 1X2 has no FT including OT period, so it comes back empty."""
         replay_and_compare(
             har_for_match,
             tmp_path,

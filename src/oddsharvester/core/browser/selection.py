@@ -9,6 +9,7 @@ from playwright.async_api import ElementHandle, Page
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from oddsharvester.core.browser.market_navigation import VIEW_DATA_CAP_MS, switch_view
+from oddsharvester.core.browser.view_data import VIEW_DATA_RECORDED_JS
 from oddsharvester.core.browser.waits import SIGNAL_POLL_MS, wait_for_signal
 from oddsharvester.core.exceptions import MarketDataError
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
@@ -178,6 +179,18 @@ def _is_default_period(sport: str | None, internal_period: str) -> bool:
     return default is not None and type(default).get_internal_value(default) == internal_period
 
 
+def _cli_periods(sport: str | None, scopes: list[int]) -> list[str]:
+    """The sport's --period values whose scope is among `scopes`."""
+    period_enum = SportPeriodRegistry.get_period_enum(sport or "")
+    if period_enum is None:
+        return []
+    return [
+        period.value
+        for period in period_enum
+        if OddsPortalSelectors.period_scope_code(period_enum.get_internal_value(period)) in scopes
+    ]
+
+
 class PeriodSelector:
     """Select a match period by its language-independent URL-fragment scope code.
 
@@ -235,6 +248,29 @@ class PeriodSelector:
         if _is_default_period(sport, internal_period):
             return True
         return await self._period_is_on_screen(page, target, internal_period)
+
+    async def offers_period(self, page: Page, sport: str | None, internal_period: str) -> bool:
+        """False when the view data list no bookmaker under the period for the market in the URL, else True.
+
+        A market lacking the period shows another one under the period's scope in the URL, the sport's default
+        period included (gotchas §7). In play, the period bar decides instead (_select_inplay).
+        """
+        target = OddsPortalSelectors.period_scope_code(internal_period)
+        fragment = OddsPortalSelectors.event_id_from_url(page.url)
+        market = OddsPortalSelectors.MARKET_FEED_IDS.get(OddsPortalSelectors.market_code_from_url(page.url))
+        if target is None or not fragment or market is None or "/inplay-odds/" in page.url:
+            return True
+
+        records = await page.evaluate(VIEW_DATA_RECORDED_JS, fragment)
+        offered = records[-1]["periods"].get(str(market)) if records else None
+        if offered is None or target in offered:
+            return True
+        choices = ", ".join(_cli_periods(sport, offered)) or "none of this sport's"
+        self.logger.warning(
+            f"Period scope {target} for '{internal_period}' is not offered: market {market} lists bookmakers "
+            f"under scopes {offered} only (--period {choices})."
+        )
+        return False
 
     async def _select_inplay(self, page: Page, sport: str | None, target: int, internal_period: str) -> bool:
         """Click the in-play period bar by position until a tab's data request carries the target scope.
