@@ -53,6 +53,21 @@ class TestGetLeagueSlugForSeason:
             (Sport.FOOTBALL, "bulgaria-parva-liga", "2023-2024", "parva-liga"),
             (Sport.FOOTBALL, "bulgaria-parva-liga", "2024-2025", "parva-liga"),
             (Sport.FOOTBALL, "bulgaria-parva-liga", "2025-2026", None),
+            # Bolivia: liga-de-futbol-prof until 2016-2017, then division-profesional from 2018
+            (Sport.FOOTBALL, "bolivia-division-profesional", "2016-2017", "liga-de-futbol-prof"),
+            (Sport.FOOTBALL, "bolivia-division-profesional", "2018", None),
+            # England women: women-s-super-league until 2024-2025, then wsl
+            (Sport.FOOTBALL, "england-wsl", "2024-2025", "women-s-super-league"),
+            (Sport.FOOTBALL, "england-wsl", "2025-2026", None),
+            # Indonesia second tier: liga-2 until 2024-2025, then championship
+            (Sport.FOOTBALL, "indonesia-championship", "2024-2025", "liga-2"),
+            (Sport.FOOTBALL, "indonesia-championship", "2025-2026", None),
+            # Japan second tier: j-league-division-2 until 2014, then j2-league
+            (Sport.FOOTBALL, "japan-j2-league", "2014", "j-league-division-2"),
+            (Sport.FOOTBALL, "japan-j2-league", "2015", None),
+            # Venezuela: primera-division until 2022, then liga-futve
+            (Sport.FOOTBALL, "venezuela-primera-division", "2022", "primera-division"),
+            (Sport.FOOTBALL, "venezuela-primera-division", "2023", None),
             # Single year format
             (Sport.FOOTBALL, "czech-republic-chance-liga", "2023", "fortuna-liga"),
             (Sport.FOOTBALL, "czech-republic-chance-liga", "2024", None),

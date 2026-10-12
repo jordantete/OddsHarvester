@@ -29,6 +29,11 @@ _TEST_LEAGUE_MAPPING = {
         "brazil-serie-a": f"{ODDSPORTAL_BASE_URL}/football/brazil/serie-a-betano",
         "south-africa-premiership": f"{ODDSPORTAL_BASE_URL}/football/south-africa/betway-premiership",
         "bulgaria-parva-liga": f"{ODDSPORTAL_BASE_URL}/football/bulgaria/efbet-league",
+        "bolivia-division-profesional": f"{ODDSPORTAL_BASE_URL}/football/bolivia/division-profesional/",
+        "england-wsl": f"{ODDSPORTAL_BASE_URL}/football/england/wsl/",
+        "indonesia-championship": f"{ODDSPORTAL_BASE_URL}/football/indonesia/championship",
+        "japan-j2-league": f"{ODDSPORTAL_BASE_URL}/football/japan/j2-league/",
+        "venezuela-primera-division": f"{ODDSPORTAL_BASE_URL}/football/venezuela/liga-futve/",
     },
     Sport.TENNIS: {
         "atp-tour": f"{ODDSPORTAL_BASE_URL}/tennis/atp-tour",
@@ -364,6 +369,71 @@ def test_get_league_url_cricket():
             "bulgaria-parva-liga",
             "2025-2026",
             f"{ODDSPORTAL_BASE_URL}/football/bulgaria/efbet-league-2025-2026/results/",
+        ),
+        # Bolivia: liga-de-futbol-prof for old seasons, division-profesional from 2018
+        (
+            "football",
+            "bolivia-division-profesional",
+            "2016-2017",
+            f"{ODDSPORTAL_BASE_URL}/football/bolivia/liga-de-futbol-prof-2016-2017/results/",
+        ),
+        (
+            "football",
+            "bolivia-division-profesional",
+            "2018",
+            f"{ODDSPORTAL_BASE_URL}/football/bolivia/division-profesional-2018/results/",
+        ),
+        # England women: women-s-super-league for old seasons, wsl for new
+        (
+            "football",
+            "england-wsl",
+            "2024-2025",
+            f"{ODDSPORTAL_BASE_URL}/football/england/women-s-super-league-2024-2025/results/",
+        ),
+        (
+            "football",
+            "england-wsl",
+            "2025-2026",
+            f"{ODDSPORTAL_BASE_URL}/football/england/wsl-2025-2026/results/",
+        ),
+        # Indonesia second tier: liga-2 for old seasons, championship for new
+        (
+            "football",
+            "indonesia-championship",
+            "2024-2025",
+            f"{ODDSPORTAL_BASE_URL}/football/indonesia/liga-2-2024-2025/results/",
+        ),
+        (
+            "football",
+            "indonesia-championship",
+            "2025-2026",
+            f"{ODDSPORTAL_BASE_URL}/football/indonesia/championship-2025-2026/results/",
+        ),
+        # Japan second tier: j-league-division-2 for old seasons, j2-league for new
+        (
+            "football",
+            "japan-j2-league",
+            "2014",
+            f"{ODDSPORTAL_BASE_URL}/football/japan/j-league-division-2-2014/results/",
+        ),
+        (
+            "football",
+            "japan-j2-league",
+            "2015",
+            f"{ODDSPORTAL_BASE_URL}/football/japan/j2-league-2015/results/",
+        ),
+        # Venezuela: primera-division for old seasons, liga-futve for new
+        (
+            "football",
+            "venezuela-primera-division",
+            "2022",
+            f"{ODDSPORTAL_BASE_URL}/football/venezuela/primera-division-2022/results/",
+        ),
+        (
+            "football",
+            "venezuela-primera-division",
+            "2023",
+            f"{ODDSPORTAL_BASE_URL}/football/venezuela/liga-futve-2023/results/",
         ),
         # No alias - current season uses canonical URL
         (

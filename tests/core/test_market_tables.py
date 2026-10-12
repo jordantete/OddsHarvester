@@ -11,7 +11,7 @@ from oddsharvester.utils.utils import get_supported_markets
 
 # Measured before the duplicated rugby and ice hockey members went; a new market updates its sport's count.
 ACCEPTED_TOKEN_COUNTS = {
-    Sport.FOOTBALL: 65,
+    Sport.FOOTBALL: 66,
     Sport.TENNIS: 148,
     Sport.BASKETBALL: 214,
     Sport.RUGBY_LEAGUE: 42,
