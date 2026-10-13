@@ -1,0 +1,235 @@
+[
+    {
+        "scraped_date": "2026-10-13 14:31:25 UTC",
+        "match_date": "2026-10-12 16:00:00 UTC",
+        "season": null,
+        "match_link": "https://www.oddsportal.com/hockey/h2h/bars-kazan-v320kOMr/sochi-zu1IGfCr/#bVwZOEbc",
+        "home_team": "Bars Kazan",
+        "away_team": "Sochi",
+        "league_name": "KHL",
+        "home_score": "2",
+        "away_score": "3",
+        "partial_results": "(0:2, 1:0, 1:1)",
+        "venue": "Tatneft Arena",
+        "venue_town": "Kazan",
+        "venue_country": "Russia",
+        "match_info": null,
+        "over_under_2_5_market": [
+            {
+                "odds_over": "1.05",
+                "odds_under": "4.82",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
+            },
+            {
+                "odds_over": "1.05",
+                "odds_under": "4.80",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +2.5"
+            }
+        ],
+        "over_under_3_5_market": [
+            {
+                "odds_over": "1.17",
+                "odds_under": "3.30",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +3.5"
+            },
+            {
+                "odds_over": "1.21",
+                "odds_under": "3.80",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +3.5"
+            },
+            {
+                "odds_over": "1.16",
+                "odds_under": "3.30",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +3.5"
+            }
+        ],
+        "over_under_4_0_market": [
+            {
+                "odds_over": "1.29",
+                "odds_under": "3.35",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +4"
+            }
+        ],
+        "over_under_4_5_market": [
+            {
+                "odds_over": "1.44",
+                "odds_under": "2.14",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +4.5"
+            },
+            {
+                "odds_over": "1.53",
+                "odds_under": "2.40",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +4.5"
+            },
+            {
+                "odds_over": "1.45",
+                "odds_under": "2.10",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +4.5"
+            }
+        ],
+        "over_under_5_0_market": [
+            {
+                "odds_over": "1.72",
+                "odds_under": "2.03",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +5"
+            },
+            {
+                "odds_over": "1.60",
+                "odds_under": "1.90",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +5"
+            }
+        ],
+        "over_under_5_5_market": [
+            {
+                "odds_over": "1.88",
+                "odds_under": "1.59",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +5.5"
+            },
+            {
+                "odds_over": "2.07",
+                "odds_under": "1.70",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +5.5"
+            },
+            {
+                "odds_over": "1.90",
+                "odds_under": "1.60",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +5.5"
+            }
+        ],
+        "over_under_6_0_market": [
+            {
+                "odds_over": "2.59",
+                "odds_under": "1.45",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +6"
+            }
+        ],
+        "over_under_6_5_market": [
+            {
+                "odds_over": "2.66",
+                "odds_under": "1.28",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +6.5"
+            },
+            {
+                "odds_over": "3.00",
+                "odds_under": "1.35",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +6.5"
+            },
+            {
+                "odds_over": "2.60",
+                "odds_under": "1.28",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +6.5"
+            }
+        ],
+        "over_under_7_0_market": [
+            {
+                "odds_over": "4.25",
+                "odds_under": "1.20",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +7"
+            }
+        ],
+        "over_under_7_5_market": [
+            {
+                "odds_over": "3.73",
+                "odds_under": "1.12",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +7.5"
+            },
+            {
+                "odds_over": "4.60",
+                "odds_under": "1.15",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +7.5"
+            },
+            {
+                "odds_over": "3.70",
+                "odds_under": "1.12",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +7.5"
+            }
+        ],
+        "over_under_8_5_market": [
+            {
+                "odds_over": "5.00",
+                "odds_under": "1.04",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +8.5"
+            },
+            {
+                "odds_over": "4.80",
+                "odds_under": "1.05",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +8.5"
+            }
+        ],
+        "over_under_9_5_market": [
+            {
+                "odds_over": "5.85",
+                "odds_under": "1.01",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +9.5"
+            }
+        ],
+        "over_under_10_5_market": [
+            {
+                "odds_over": "6.15",
+                "odds_under": "1.01",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +10.5"
+            }
+        ],
+        "over_under_11_5_market": [
+            {
+                "odds_over": "6.25",
+                "odds_under": "1.01",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +11.5"
+            }
+        ]
+    }
+]

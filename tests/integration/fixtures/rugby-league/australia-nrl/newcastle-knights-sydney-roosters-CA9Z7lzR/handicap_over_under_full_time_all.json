@@ -1,0 +1,741 @@
+[
+    {
+        "scraped_date": "2026-10-13 14:29:29 UTC",
+        "match_date": "2026-10-04 08:30:00 UTC",
+        "season": null,
+        "match_link": "https://www.oddsportal.com/rugby-league/h2h/newcastle-knights-YqPIXNl6/sydney-roosters-AHjFxceb/#CA9Z7lzR",
+        "home_team": "Sydney Roosters",
+        "away_team": "Newcastle Knights",
+        "league_name": "NRL",
+        "home_score": "19",
+        "away_score": "18",
+        "partial_results": "(6:12, 13:6)",
+        "venue": "Accor Stadium",
+        "venue_town": "Sydney",
+        "venue_country": "Australia",
+        "match_info": null,
+        "over_under_35_5_market": [
+            {
+                "odds_over": "1.25",
+                "odds_under": "2.40",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +35.5"
+            }
+        ],
+        "over_under_36_5_market": [
+            {
+                "odds_over": "1.33",
+                "odds_under": "2.55",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +36.5"
+            }
+        ],
+        "over_under_37_5_market": [
+            {
+                "odds_over": "1.30",
+                "odds_under": "2.50",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +37.5"
+            },
+            {
+                "odds_over": "1.38",
+                "odds_under": "2.40",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +37.5"
+            }
+        ],
+        "over_under_38_5_market": [
+            {
+                "odds_over": "1.42",
+                "odds_under": "2.20",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +38.5"
+            },
+            {
+                "odds_over": "1.45",
+                "odds_under": "2.20",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +38.5"
+            },
+            {
+                "odds_over": "1.42",
+                "odds_under": "2.25",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +38.5"
+            }
+        ],
+        "over_under_39_5_market": [
+            {
+                "odds_over": "1.40",
+                "odds_under": "2.20",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +39.5"
+            },
+            {
+                "odds_over": "1.42",
+                "odds_under": "2.30",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +39.5"
+            },
+            {
+                "odds_over": "1.41",
+                "odds_under": "2.30",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +39.5"
+            }
+        ],
+        "over_under_40_5_market": [
+            {
+                "odds_over": "1.58",
+                "odds_under": "1.95",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +40.5"
+            },
+            {
+                "odds_over": "1.66",
+                "odds_under": "2.10",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +40.5"
+            },
+            {
+                "odds_over": "1.60",
+                "odds_under": "1.95",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +40.5"
+            },
+            {
+                "odds_over": "1.56",
+                "odds_under": "1.96",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +40.5"
+            }
+        ],
+        "over_under_41_5_market": [
+            {
+                "odds_over": "1.52",
+                "odds_under": "1.95",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +41.5"
+            },
+            {
+                "odds_over": "1.64",
+                "odds_under": "2.13",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +41.5"
+            },
+            {
+                "odds_over": "1.55",
+                "odds_under": "2.00",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +41.5"
+            },
+            {
+                "odds_over": "1.54",
+                "odds_under": "2.00",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +41.5"
+            }
+        ],
+        "over_under_42_5_market": [
+            {
+                "odds_over": "1.70",
+                "odds_under": "1.78",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +42.5"
+            },
+            {
+                "odds_over": "1.81",
+                "odds_under": "1.89",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +42.5"
+            },
+            {
+                "odds_over": "1.72",
+                "odds_under": "1.78",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +42.5"
+            },
+            {
+                "odds_over": "1.70",
+                "odds_under": "1.76",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +42.5"
+            }
+        ],
+        "over_under_43_5_market": [
+            {
+                "odds_over": "1.68",
+                "odds_under": "1.75",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +43.5"
+            },
+            {
+                "odds_over": "1.82",
+                "odds_under": "1.88",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +43.5"
+            },
+            {
+                "odds_over": "1.72",
+                "odds_under": "1.78",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +43.5"
+            },
+            {
+                "odds_over": "1.70",
+                "odds_under": "1.76",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +43.5"
+            }
+        ],
+        "over_under_44_5_market": [
+            {
+                "odds_over": "1.95",
+                "odds_under": "1.58",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +44.5"
+            },
+            {
+                "odds_over": "2.08",
+                "odds_under": "1.67",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +44.5"
+            },
+            {
+                "odds_over": "1.95",
+                "odds_under": "1.60",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +44.5"
+            },
+            {
+                "odds_over": "1.94",
+                "odds_under": "1.56",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +44.5"
+            }
+        ],
+        "over_under_45_5_market": [
+            {
+                "odds_over": "1.88",
+                "odds_under": "1.58",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +45.5"
+            },
+            {
+                "odds_over": "2.05",
+                "odds_under": "1.69",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +45.5"
+            },
+            {
+                "odds_over": "1.90",
+                "odds_under": "1.62",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +45.5"
+            },
+            {
+                "odds_over": "1.92",
+                "odds_under": "1.58",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +45.5"
+            }
+        ],
+        "over_under_46_5_market": [
+            {
+                "odds_over": "2.20",
+                "odds_under": "1.45",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +46.5"
+            },
+            {
+                "odds_over": "2.20",
+                "odds_under": "1.45",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +46.5"
+            },
+            {
+                "odds_over": "2.20",
+                "odds_under": "1.44",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +46.5"
+            }
+        ],
+        "over_under_47_5_market": [
+            {
+                "odds_over": "2.10",
+                "odds_under": "1.45",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +47.5"
+            },
+            {
+                "odds_over": "2.15",
+                "odds_under": "1.48",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +47.5"
+            },
+            {
+                "odds_over": "2.15",
+                "odds_under": "1.45",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +47.5"
+            }
+        ],
+        "over_under_48_5_market": [
+            {
+                "odds_over": "2.50",
+                "odds_under": "1.33",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +48.5"
+            }
+        ],
+        "over_under_49_5_market": [
+            {
+                "odds_over": "2.35",
+                "odds_under": "1.33",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +49.5"
+            }
+        ],
+        "handicap_-17_5_market": [
+            {
+                "handicap_team_1": "2.90",
+                "handicap_team_2": "1.22",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -17.5"
+            }
+        ],
+        "handicap_-16_5_market": [
+            {
+                "handicap_team_1": "2.75",
+                "handicap_team_2": "1.25",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -16.5"
+            }
+        ],
+        "handicap_-15_5_market": [
+            {
+                "handicap_team_1": "2.60",
+                "handicap_team_2": "1.28",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -15.5"
+            }
+        ],
+        "handicap_-14_5_market": [
+            {
+                "handicap_team_1": "2.40",
+                "handicap_team_2": "1.35",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -14.5"
+            }
+        ],
+        "handicap_-13_5_market": [
+            {
+                "handicap_team_1": "2.30",
+                "handicap_team_2": "1.38",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -13.5"
+            }
+        ],
+        "handicap_-12_5_market": [
+            {
+                "handicap_team_1": "2.10",
+                "handicap_team_2": "1.45",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -12.5"
+            }
+        ],
+        "handicap_-11_5_market": [
+            {
+                "handicap_team_1": "2.00",
+                "handicap_team_2": "1.50",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -11.5"
+            }
+        ],
+        "handicap_-10_5_market": [
+            {
+                "handicap_team_1": "1.95",
+                "handicap_team_2": "1.55",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -10.5"
+            }
+        ],
+        "handicap_-9_5_market": [
+            {
+                "handicap_team_1": "1.90",
+                "handicap_team_2": "1.60",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -9.5"
+            }
+        ],
+        "handicap_-8_5_market": [
+            {
+                "handicap_team_1": "1.77",
+                "handicap_team_2": "1.65",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -8.5"
+            },
+            {
+                "handicap_team_1": "1.82",
+                "handicap_team_2": "1.78",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "submarket_name": "Handicap -8.5"
+            },
+            {
+                "handicap_team_1": "1.72",
+                "handicap_team_2": "1.72",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -8.5"
+            }
+        ],
+        "handicap_-7_5_market": [
+            {
+                "handicap_team_1": "1.72",
+                "handicap_team_2": "1.70",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -7.5"
+            },
+            {
+                "handicap_team_1": "1.76",
+                "handicap_team_2": "1.85",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -7.5"
+            },
+            {
+                "handicap_team_1": "1.65",
+                "handicap_team_2": "1.80",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -7.5"
+            }
+        ],
+        "handicap_-6_5_market": [
+            {
+                "handicap_team_1": "1.72",
+                "handicap_team_2": "1.70",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -6.5"
+            },
+            {
+                "handicap_team_1": "1.82",
+                "handicap_team_2": "1.79",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -6.5"
+            },
+            {
+                "handicap_team_1": "1.60",
+                "handicap_team_2": "1.90",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -6.5"
+            }
+        ],
+        "handicap_-5_5_market": [
+            {
+                "handicap_team_1": "1.55",
+                "handicap_team_2": "1.95",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -5.5"
+            }
+        ],
+        "handicap_-4_5_market": [
+            {
+                "handicap_team_1": "1.45",
+                "handicap_team_2": "2.10",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -4.5"
+            }
+        ],
+        "handicap_-3_5_market": [
+            {
+                "handicap_team_1": "1.42",
+                "handicap_team_2": "2.20",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -3.5"
+            }
+        ],
+        "handicap_-2_5_market": [
+            {
+                "handicap_team_1": "1.35",
+                "handicap_team_2": "2.40",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -2.5"
+            }
+        ],
+        "handicap_-1_5_market": [
+            {
+                "handicap_team_1": "1.32",
+                "handicap_team_2": "2.50",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -1.5"
+            }
+        ],
+        "handicap_-0_5_market": [
+            {
+                "handicap_team_1": "1.28",
+                "handicap_team_2": "2.60",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -0.5"
+            }
+        ],
+        "handicap_+0_5_market": [
+            {
+                "handicap_team_1": "1.25",
+                "handicap_team_2": "2.75",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap +0.5"
+            }
+        ],
+        "handicap_+1_5_market": [
+            {
+                "handicap_team_1": "1.20",
+                "handicap_team_2": "3.00",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap +1.5"
+            }
+        ],
+        "handicap_+2_5_market": [
+            {
+                "handicap_team_1": "1.18",
+                "handicap_team_2": "3.20",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap +2.5"
+            }
+        ]
+    }
+]

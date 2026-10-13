@@ -1,0 +1,1982 @@
+[
+    {
+        "scraped_date": "2026-10-13 14:27:29 UTC",
+        "match_date": "2026-10-12 00:20:00 UTC",
+        "season": null,
+        "match_link": "https://www.oddsportal.com/american-football/h2h/atlanta-falcons-hClIiQIR/baltimore-ravens-pUern3T0/#U7cApaRH",
+        "home_team": "Atlanta Falcons",
+        "away_team": "Baltimore Ravens",
+        "league_name": "NFL",
+        "home_score": "23",
+        "away_score": "30",
+        "partial_results": null,
+        "venue": "Mercedes-Benz Stadium",
+        "venue_town": "Atlanta, GA",
+        "venue_country": "USA",
+        "match_info": null,
+        "over_under_28_5_market": [
+            {
+                "odds_over": "1.06",
+                "odds_under": "4.60",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +28.5"
+            }
+        ],
+        "over_under_29_5_market": [
+            {
+                "odds_over": "1.08",
+                "odds_under": "4.25",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +29.5"
+            }
+        ],
+        "over_under_30_5_market": [
+            {
+                "odds_over": "1.10",
+                "odds_under": "3.95",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +30.5"
+            }
+        ],
+        "over_under_31_5_market": [
+            {
+                "odds_over": "1.13",
+                "odds_under": "3.70",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +31.5"
+            }
+        ],
+        "over_under_32_5_market": [
+            {
+                "odds_over": "1.14",
+                "odds_under": "3.50",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +32.5"
+            }
+        ],
+        "over_under_33_5_market": [
+            {
+                "odds_over": "1.18",
+                "odds_under": "3.20",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +33.5"
+            }
+        ],
+        "over_under_34_5_market": [
+            {
+                "odds_over": "1.21",
+                "odds_under": "3.00",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +34.5"
+            }
+        ],
+        "over_under_35_5_market": [
+            {
+                "odds_over": "1.23",
+                "odds_under": "2.85",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +35.5"
+            }
+        ],
+        "over_under_36_5_market": [
+            {
+                "odds_over": "1.34",
+                "odds_under": "3.40",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +36.5"
+            },
+            {
+                "odds_over": "1.27",
+                "odds_under": "2.70",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +36.5"
+            }
+        ],
+        "over_under_37_5_market": [
+            {
+                "odds_over": "1.40",
+                "odds_under": "3.05",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +37.5"
+            },
+            {
+                "odds_over": "1.33",
+                "odds_under": "2.45",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +37.5"
+            }
+        ],
+        "over_under_38_5_market": [
+            {
+                "odds_over": "1.45",
+                "odds_under": "2.83",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +38.5"
+            },
+            {
+                "odds_over": "1.49",
+                "odds_under": "2.55",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +38.5"
+            },
+            {
+                "odds_over": "1.37",
+                "odds_under": "2.30",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +38.5"
+            }
+        ],
+        "over_under_39_5_market": [
+            {
+                "odds_over": "1.52",
+                "odds_under": "2.60",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +39.5"
+            },
+            {
+                "odds_over": "1.51",
+                "odds_under": "2.50",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +39.5"
+            },
+            {
+                "odds_over": "1.41",
+                "odds_under": "2.20",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +39.5"
+            }
+        ],
+        "over_under_40_5_market": [
+            {
+                "odds_over": "1.59",
+                "odds_under": "2.42",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +40.5"
+            },
+            {
+                "odds_over": "1.58",
+                "odds_under": "2.33",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +40.5"
+            },
+            {
+                "odds_over": "1.48",
+                "odds_under": "2.05",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +40.5"
+            }
+        ],
+        "over_under_41_0_market": [
+            {
+                "odds_over": "1.62",
+                "odds_under": "2.25",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +41"
+            }
+        ],
+        "over_under_41_5_market": [
+            {
+                "odds_over": "1.64",
+                "odds_under": "2.32",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +41.5"
+            },
+            {
+                "odds_over": "1.67",
+                "odds_under": "2.17",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +41.5"
+            },
+            {
+                "odds_over": "1.55",
+                "odds_under": "1.94",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +41.5"
+            }
+        ],
+        "over_under_42_0_market": [
+            {
+                "odds_over": "1.66",
+                "odds_under": "2.28",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +42"
+            }
+        ],
+        "over_under_42_5_market": [
+            {
+                "odds_over": "1.73",
+                "odds_under": "2.15",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +42.5"
+            },
+            {
+                "odds_over": "1.72",
+                "odds_under": "2.09",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +42.5"
+            },
+            {
+                "odds_over": "1.59",
+                "odds_under": "1.88",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +42.5"
+            }
+        ],
+        "over_under_43_0_market": [
+            {
+                "odds_over": "1.77",
+                "odds_under": "2.09",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +43"
+            }
+        ],
+        "over_under_43_5_market": [
+            {
+                "odds_over": "1.84",
+                "odds_under": "2.01",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +43.5"
+            },
+            {
+                "odds_over": "1.84",
+                "odds_under": "1.94",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +43.5"
+            },
+            {
+                "odds_over": "1.69",
+                "odds_under": "1.76",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +43.5"
+            }
+        ],
+        "over_under_44_0_market": [
+            {
+                "odds_over": "1.91",
+                "odds_under": "1.93",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +44"
+            }
+        ],
+        "over_under_44_5_market": [
+            {
+                "odds_over": "1.97",
+                "odds_under": "1.87",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +44.5"
+            },
+            {
+                "odds_over": "1.95",
+                "odds_under": "1.83",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +44.5"
+            },
+            {
+                "odds_over": "1.78",
+                "odds_under": "1.67",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +44.5"
+            }
+        ],
+        "over_under_45_0_market": [
+            {
+                "odds_over": "2.05",
+                "odds_under": "1.80",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +45"
+            },
+            {
+                "odds_over": "1.84",
+                "odds_under": "1.87",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +45"
+            }
+        ],
+        "over_under_45_5_market": [
+            {
+                "odds_over": "2.11",
+                "odds_under": "1.76",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +45.5"
+            },
+            {
+                "odds_over": "2.05",
+                "odds_under": "1.75",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +45.5"
+            },
+            {
+                "odds_over": "1.86",
+                "odds_under": "1.61",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +45.5"
+            }
+        ],
+        "over_under_46_0_market": [
+            {
+                "odds_over": "2.20",
+                "odds_under": "1.70",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +46"
+            },
+            {
+                "odds_over": "1.87",
+                "odds_under": "1.84",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +46"
+            }
+        ],
+        "over_under_46_5_market": [
+            {
+                "odds_over": "2.25",
+                "odds_under": "1.67",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +46.5"
+            },
+            {
+                "odds_over": "2.15",
+                "odds_under": "1.68",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +46.5"
+            },
+            {
+                "odds_over": "1.94",
+                "odds_under": "1.55",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +46.5"
+            }
+        ],
+        "over_under_47_0_market": [
+            {
+                "odds_over": "2.47",
+                "odds_under": "1.57",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +47"
+            },
+            {
+                "odds_over": "1.88",
+                "odds_under": "1.82",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +47"
+            }
+        ],
+        "over_under_47_5_market": [
+            {
+                "odds_over": "2.50",
+                "odds_under": "1.56",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +47.5"
+            },
+            {
+                "odds_over": "2.32",
+                "odds_under": "1.59",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +47.5"
+            },
+            {
+                "odds_over": "2.05",
+                "odds_under": "1.48",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +47.5"
+            }
+        ],
+        "over_under_48_5_market": [
+            {
+                "odds_over": "2.64",
+                "odds_under": "1.51",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +48.5"
+            },
+            {
+                "odds_over": "2.44",
+                "odds_under": "1.54",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +48.5"
+            },
+            {
+                "odds_over": "2.15",
+                "odds_under": "1.43",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +48.5"
+            }
+        ],
+        "over_under_49_5_market": [
+            {
+                "odds_over": "2.83",
+                "odds_under": "1.45",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +49.5"
+            },
+            {
+                "odds_over": "1.85",
+                "odds_under": "1.85",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +49.5"
+            },
+            {
+                "odds_over": "2.30",
+                "odds_under": "1.38",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +49.5"
+            }
+        ],
+        "over_under_50_5_market": [
+            {
+                "odds_over": "2.95",
+                "odds_under": "1.42",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +50.5"
+            },
+            {
+                "odds_over": "2.40",
+                "odds_under": "1.34",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +50.5"
+            }
+        ],
+        "over_under_51_5_market": [
+            {
+                "odds_over": "3.20",
+                "odds_under": "1.37",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +51.5"
+            },
+            {
+                "odds_over": "2.60",
+                "odds_under": "1.29",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +51.5"
+            }
+        ],
+        "over_under_52_5_market": [
+            {
+                "odds_over": "2.87",
+                "odds_under": "1.36",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +52.5"
+            },
+            {
+                "odds_over": "2.75",
+                "odds_under": "1.26",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +52.5"
+            }
+        ],
+        "over_under_53_5_market": [
+            {
+                "odds_over": "2.90",
+                "odds_under": "1.23",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +53.5"
+            }
+        ],
+        "over_under_54_5_market": [
+            {
+                "odds_over": "3.05",
+                "odds_under": "1.20",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +54.5"
+            }
+        ],
+        "over_under_55_5_market": [
+            {
+                "odds_over": "3.25",
+                "odds_under": "1.17",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +55.5"
+            }
+        ],
+        "over_under_56_5_market": [
+            {
+                "odds_over": "3.40",
+                "odds_under": "1.15",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +56.5"
+            }
+        ],
+        "over_under_57_5_market": [
+            {
+                "odds_over": "3.65",
+                "odds_under": "1.13",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +57.5"
+            }
+        ],
+        "over_under_58_5_market": [
+            {
+                "odds_over": "3.90",
+                "odds_under": "1.11",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +58.5"
+            }
+        ],
+        "over_under_59_5_market": [
+            {
+                "odds_over": "4.05",
+                "odds_under": "1.09",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +59.5"
+            }
+        ],
+        "over_under_60_5_market": [
+            {
+                "odds_over": "3.80",
+                "odds_under": "1.09",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +60.5"
+            }
+        ],
+        "asian_handicap_-18_5_market": [
+            {
+                "1": "4.35",
+                "2": "1.07",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -18.5"
+            }
+        ],
+        "asian_handicap_-17_5_market": [
+            {
+                "1": "4.15",
+                "2": "1.09",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -17.5"
+            }
+        ],
+        "asian_handicap_-16_5_market": [
+            {
+                "1": "3.85",
+                "2": "1.11",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -16.5"
+            }
+        ],
+        "asian_handicap_-15_5_market": [
+            {
+                "1": "3.65",
+                "2": "1.13",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -15.5"
+            }
+        ],
+        "asian_handicap_-14_5_market": [
+            {
+                "1": "3.50",
+                "2": "1.15",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -14.5"
+            }
+        ],
+        "asian_handicap_-14_0_market": [
+            {
+                "1": "4.20",
+                "2": "1.12",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -14"
+            }
+        ],
+        "asian_handicap_-13_5_market": [
+            {
+                "1": "3.80",
+                "2": "1.15",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -13.5"
+            },
+            {
+                "1": "3.15",
+                "2": "1.19",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -13.5"
+            }
+        ],
+        "asian_handicap_-13_0_market": [
+            {
+                "1": "3.75",
+                "2": "1.16",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -13"
+            }
+        ],
+        "asian_handicap_-12_5_market": [
+            {
+                "1": "3.50",
+                "2": "1.18",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -12.5"
+            },
+            {
+                "1": "3.00",
+                "2": "1.21",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -12.5"
+            }
+        ],
+        "asian_handicap_-12_0_market": [
+            {
+                "1": "3.50",
+                "2": "1.18",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -12"
+            }
+        ],
+        "asian_handicap_-11_5_market": [
+            {
+                "1": "3.40",
+                "2": "1.19",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -11.5"
+            },
+            {
+                "1": "2.85",
+                "2": "1.24",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -11.5"
+            }
+        ],
+        "asian_handicap_-11_0_market": [
+            {
+                "1": "3.30",
+                "2": "1.20",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -11"
+            }
+        ],
+        "asian_handicap_-10_5_market": [
+            {
+                "1": "3.67",
+                "2": "1.30",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -10.5"
+            },
+            {
+                "1": "3.10",
+                "2": "1.22",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -10.5"
+            },
+            {
+                "1": "2.75",
+                "2": "1.26",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -10.5"
+            }
+        ],
+        "asian_handicap_-10_0_market": [
+            {
+                "1": "3.10",
+                "2": "1.23",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -10"
+            }
+        ],
+        "asian_handicap_-9_5_market": [
+            {
+                "1": "2.85",
+                "2": "1.27",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -9.5"
+            },
+            {
+                "1": "2.50",
+                "2": "1.32",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -9.5"
+            }
+        ],
+        "asian_handicap_-9_0_market": [
+            {
+                "1": "2.80",
+                "2": "1.27",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -9"
+            }
+        ],
+        "asian_handicap_-8_5_market": [
+            {
+                "1": "2.75",
+                "2": "1.28",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -8.5"
+            },
+            {
+                "1": "2.40",
+                "2": "1.34",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -8.5"
+            }
+        ],
+        "asian_handicap_-8_0_market": [
+            {
+                "1": "2.70",
+                "2": "1.30",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -8"
+            }
+        ],
+        "asian_handicap_-7_5_market": [
+            {
+                "1": "3.10",
+                "2": "1.39",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -7.5"
+            },
+            {
+                "1": "2.55",
+                "2": "1.34",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -7.5"
+            },
+            {
+                "1": "2.65",
+                "2": "1.47",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -7.5"
+            },
+            {
+                "1": "2.30",
+                "2": "1.37",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -7.5"
+            }
+        ],
+        "asian_handicap_-7_0_market": [
+            {
+                "1": "2.40",
+                "2": "1.38",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -7"
+            }
+        ],
+        "asian_handicap_-6_5_market": [
+            {
+                "1": "2.57",
+                "2": "1.53",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -6.5"
+            },
+            {
+                "1": "2.15",
+                "2": "1.46",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -6.5"
+            },
+            {
+                "1": "2.31",
+                "2": "1.59",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -6.5"
+            },
+            {
+                "1": "2.05",
+                "2": "1.48",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -6.5"
+            }
+        ],
+        "asian_handicap_-6_0_market": [
+            {
+                "1": "2.35",
+                "2": "1.62",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -6"
+            },
+            {
+                "1": "2.10",
+                "2": "1.49",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -6"
+            }
+        ],
+        "asian_handicap_-5_5_market": [
+            {
+                "1": "2.32",
+                "2": "1.64",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -5.5"
+            },
+            {
+                "1": "2.00",
+                "2": "1.53",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -5.5"
+            },
+            {
+                "1": "2.13",
+                "2": "1.69",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -5.5"
+            },
+            {
+                "1": "1.92",
+                "2": "1.56",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -5.5"
+            }
+        ],
+        "asian_handicap_-5_0_market": [
+            {
+                "1": "2.20",
+                "2": "1.70",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -5"
+            },
+            {
+                "1": "1.95",
+                "2": "1.57",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -5"
+            }
+        ],
+        "asian_handicap_-4_5_market": [
+            {
+                "1": "2.19",
+                "2": "1.71",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -4.5"
+            },
+            {
+                "1": "1.90",
+                "2": "1.60",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -4.5"
+            },
+            {
+                "1": "2.06",
+                "2": "1.74",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -4.5"
+            },
+            {
+                "1": "1.86",
+                "2": "1.61",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -4.5"
+            }
+        ],
+        "asian_handicap_-4_0_market": [
+            {
+                "1": "2.07",
+                "2": "1.79",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -4"
+            },
+            {
+                "1": "1.85",
+                "2": "1.65",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -4"
+            }
+        ],
+        "asian_handicap_-3_5_market": [
+            {
+                "1": "2.03",
+                "2": "1.82",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -3.5"
+            },
+            {
+                "1": "1.80",
+                "2": "1.70",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -3.5"
+            },
+            {
+                "1": "1.94",
+                "2": "1.83",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -3.5"
+            },
+            {
+                "1": "1.77",
+                "2": "1.68",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -3.5"
+            }
+        ],
+        "asian_handicap_-3_0_market": [
+            {
+                "1": "1.80",
+                "2": "2.05",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -3"
+            },
+            {
+                "1": "1.66",
+                "2": "1.83",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -3"
+            }
+        ],
+        "asian_handicap_-2_5_market": [
+            {
+                "1": "1.71",
+                "2": "2.19",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -2.5"
+            },
+            {
+                "1": "1.57",
+                "2": "1.95",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -2.5"
+            },
+            {
+                "1": "1.66",
+                "2": "2.18",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -2.5"
+            },
+            {
+                "1": "1.54",
+                "2": "1.96",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -2.5"
+            }
+        ],
+        "asian_handicap_-2_0_market": [
+            {
+                "1": "1.64",
+                "2": "2.32",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -2"
+            },
+            {
+                "1": "1.53",
+                "2": "2.00",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -2"
+            }
+        ],
+        "asian_handicap_-1_5_market": [
+            {
+                "1": "1.64",
+                "2": "2.32",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -1.5"
+            },
+            {
+                "1": "1.51",
+                "2": "2.05",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap -1.5"
+            },
+            {
+                "1": "1.61",
+                "2": "2.28",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -1.5"
+            },
+            {
+                "1": "1.50",
+                "2": "2.05",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -1.5"
+            }
+        ],
+        "asian_handicap_-0_5_market": [
+            {
+                "1": "1.56",
+                "2": "2.46",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -0.5"
+            },
+            {
+                "1": "1.44",
+                "2": "2.15",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -0.5"
+            }
+        ],
+        "asian_handicap_+0_5_market": [
+            {
+                "1": "1.56",
+                "2": "2.46",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +0.5"
+            },
+            {
+                "1": "1.44",
+                "2": "2.15",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +0.5"
+            }
+        ],
+        "asian_handicap_+1_5_market": [
+            {
+                "1": "1.52",
+                "2": "2.60",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +1.5"
+            },
+            {
+                "1": "1.37",
+                "2": "2.40",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +1.5"
+            },
+            {
+                "1": "1.74",
+                "2": "2.06",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +1.5"
+            },
+            {
+                "1": "1.40",
+                "2": "2.25",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +1.5"
+            }
+        ],
+        "asian_handicap_+2_0_market": [
+            {
+                "1": "1.63",
+                "2": "2.33",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +2"
+            },
+            {
+                "1": "1.34",
+                "2": "2.50",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +2"
+            }
+        ],
+        "asian_handicap_+2_5_market": [
+            {
+                "1": "1.47",
+                "2": "2.76",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +2.5"
+            },
+            {
+                "1": "1.33",
+                "2": "2.55",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +2.5"
+            },
+            {
+                "1": "1.75",
+                "2": "2.05",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +2.5"
+            },
+            {
+                "1": "1.37",
+                "2": "2.30",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +2.5"
+            }
+        ],
+        "asian_handicap_+3_0_market": [
+            {
+                "1": "1.54",
+                "2": "2.55",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +3"
+            },
+            {
+                "1": "1.25",
+                "2": "2.95",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +3"
+            }
+        ],
+        "asian_handicap_+3_5_market": [
+            {
+                "1": "1.33",
+                "2": "3.45",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +3.5"
+            },
+            {
+                "1": "1.23",
+                "2": "3.10",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +3.5"
+            },
+            {
+                "1": "1.56",
+                "2": "2.40",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +3.5"
+            },
+            {
+                "1": "1.26",
+                "2": "2.70",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +3.5"
+            }
+        ],
+        "asian_handicap_+4_0_market": [
+            {
+                "1": "1.20",
+                "2": "3.30",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +4"
+            }
+        ],
+        "asian_handicap_+4_5_market": [
+            {
+                "1": "1.36",
+                "2": "3.25",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +4.5"
+            },
+            {
+                "1": "1.19",
+                "2": "3.40",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +4.5"
+            },
+            {
+                "1": "1.53",
+                "2": "2.47",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +4.5"
+            },
+            {
+                "1": "1.23",
+                "2": "2.90",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +4.5"
+            }
+        ],
+        "asian_handicap_+5_0_market": [
+            {
+                "1": "1.17",
+                "2": "3.60",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +5"
+            }
+        ],
+        "asian_handicap_+5_5_market": [
+            {
+                "1": "1.36",
+                "2": "3.25",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +5.5"
+            },
+            {
+                "1": "1.17",
+                "2": "3.60",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +5.5"
+            },
+            {
+                "1": "1.52",
+                "2": "2.50",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +5.5"
+            },
+            {
+                "1": "1.21",
+                "2": "3.00",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +5.5"
+            }
+        ],
+        "asian_handicap_+6_0_market": [
+            {
+                "1": "1.14",
+                "2": "3.90",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +6"
+            }
+        ],
+        "asian_handicap_+6_5_market": [
+            {
+                "1": "1.39",
+                "2": "3.10",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +6.5"
+            },
+            {
+                "1": "1.14",
+                "2": "4.00",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +6.5"
+            },
+            {
+                "1": "1.80",
+                "2": "1.91",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +6.5"
+            },
+            {
+                "1": "1.17",
+                "2": "3.25",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +6.5"
+            }
+        ],
+        "asian_handicap_+7_0_market": [
+            {
+                "1": "1.10",
+                "2": "4.75",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +7"
+            }
+        ],
+        "asian_handicap_+7_5_market": [
+            {
+                "1": "1.40",
+                "2": "3.05",
+                "bookmaker_name": "Bets.io",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +7.5"
+            },
+            {
+                "1": "1.09",
+                "2": "4.80",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +7.5"
+            },
+            {
+                "1": "1.12",
+                "2": "3.70",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +7.5"
+            }
+        ],
+        "asian_handicap_+8_0_market": [
+            {
+                "1": "1.09",
+                "2": "5.00",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +8"
+            }
+        ],
+        "asian_handicap_+8_5_market": [
+            {
+                "1": "1.10",
+                "2": "4.75",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +8.5"
+            },
+            {
+                "1": "1.11",
+                "2": "3.90",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +8.5"
+            }
+        ],
+        "asian_handicap_+9_0_market": [
+            {
+                "1": "1.15",
+                "2": "3.90",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +9"
+            }
+        ],
+        "asian_handicap_+9_5_market": [
+            {
+                "1": "1.16",
+                "2": "3.75",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +9.5"
+            },
+            {
+                "1": "1.10",
+                "2": "4.00",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +9.5"
+            }
+        ],
+        "asian_handicap_+10_0_market": [
+            {
+                "1": "1.13",
+                "2": "4.20",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +10"
+            }
+        ],
+        "asian_handicap_+10_5_market": [
+            {
+                "1": "1.12",
+                "2": "4.20",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +10.5"
+            },
+            {
+                "1": "1.07",
+                "2": "4.40",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +10.5"
+            }
+        ],
+        "asian_handicap_+11_0_market": [
+            {
+                "1": "1.11",
+                "2": "4.50",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +11"
+            }
+        ],
+        "asian_handicap_+11_5_market": [
+            {
+                "1": "1.11",
+                "2": "4.60",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +11.5"
+            },
+            {
+                "1": "1.06",
+                "2": "4.60",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +11.5"
+            }
+        ],
+        "asian_handicap_+12_0_market": [
+            {
+                "1": "1.12",
+                "2": "4.33",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +12"
+            }
+        ],
+        "asian_handicap_+12_5_market": [
+            {
+                "1": "1.11",
+                "2": "4.40",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +12.5"
+            },
+            {
+                "1": "1.19",
+                "2": "2.95",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +12.5"
+            }
+        ],
+        "asian_handicap_+13_0_market": [
+            {
+                "1": "1.10",
+                "2": "4.60",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +13"
+            }
+        ],
+        "asian_handicap_+13_5_market": [
+            {
+                "1": "1.12",
+                "2": "4.33",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +13.5"
+            },
+            {
+                "1": "1.16",
+                "2": "3.15",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +13.5"
+            }
+        ],
+        "asian_handicap_+14_0_market": [
+            {
+                "1": "1.11",
+                "2": "4.50",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +14"
+            }
+        ],
+        "asian_handicap_+14_5_market": [
+            {
+                "1": "1.13",
+                "2": "3.45",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +14.5"
+            }
+        ],
+        "asian_handicap_+15_5_market": [
+            {
+                "1": "1.11",
+                "2": "3.60",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +15.5"
+            }
+        ],
+        "asian_handicap_+16_5_market": [
+            {
+                "1": "1.10",
+                "2": "3.75",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +16.5"
+            }
+        ],
+        "asian_handicap_+17_5_market": [
+            {
+                "1": "1.08",
+                "2": "4.00",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +17.5"
+            }
+        ],
+        "asian_handicap_+18_5_market": [
+            {
+                "1": "1.06",
+                "2": "4.20",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +18.5"
+            }
+        ],
+        "asian_handicap_+19_5_market": [
+            {
+                "1": "1.08",
+                "2": "3.95",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +19.5"
+            }
+        ],
+        "asian_handicap_+20_5_market": [
+            {
+                "1": "1.09",
+                "2": "3.85",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +20.5"
+            }
+        ],
+        "asian_handicap_+21_5_market": [
+            {
+                "1": "1.07",
+                "2": "4.05",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "1",
+                    "2"
+                ],
+                "submarket_name": "Asian Handicap +21.5"
+            }
+        ]
+    }
+]

@@ -1,0 +1,170 @@
+[
+    {
+        "scraped_date": "2026-10-13 14:27:09 UTC",
+        "match_date": "2026-10-12 00:00:00 UTC",
+        "season": null,
+        "match_link": "https://www.oddsportal.com/baseball/h2h/los-angeles-dodgers-nwPDBpVc/milwaukee-brewers-CGzqC60o/#M5I1QVL8",
+        "home_team": "Milwaukee Brewers",
+        "away_team": "Los Angeles Dodgers",
+        "league_name": "MLB",
+        "home_score": "2",
+        "away_score": "1",
+        "partial_results": null,
+        "venue": null,
+        "venue_town": null,
+        "venue_country": null,
+        "match_info": null,
+        "over_under_6_5_market": [
+            {
+                "odds_over": "1.90",
+                "odds_under": "1.60",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +6.5"
+            },
+            {
+                "odds_over": "2.10",
+                "odds_under": "1.72",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +6.5"
+            },
+            {
+                "odds_over": "1.90",
+                "odds_under": "1.55",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +6.5"
+            }
+        ],
+        "over_under_7_0_market": [
+            {
+                "odds_over": "2.25",
+                "odds_under": "1.42",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +7"
+            },
+            {
+                "odds_over": "2.47",
+                "odds_under": "1.53",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +7"
+            }
+        ],
+        "over_under_7_5_market": [
+            {
+                "odds_over": "2.50",
+                "odds_under": "1.34",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +7.5"
+            },
+            {
+                "odds_over": "2.75",
+                "odds_under": "1.43",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +7.5"
+            },
+            {
+                "odds_over": "2.40",
+                "odds_under": "1.35",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +7.5"
+            }
+        ],
+        "over_under_8_0_market": [
+            {
+                "odds_over": "2.95",
+                "odds_under": "1.24",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +8"
+            }
+        ],
+        "over_under_8_5_market": [
+            {
+                "odds_over": "3.00",
+                "odds_under": "1.22",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +8.5"
+            },
+            {
+                "odds_over": "3.30",
+                "odds_under": "1.32",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +8.5"
+            },
+            {
+                "odds_over": "2.75",
+                "odds_under": "1.25",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +8.5"
+            }
+        ],
+        "over_under_9_0_market": [
+            {
+                "odds_over": "3.70",
+                "odds_under": "1.14",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +9"
+            }
+        ],
+        "over_under_9_5_market": [
+            {
+                "odds_over": "3.90",
+                "odds_under": "1.12",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +9.5"
+            }
+        ],
+        "over_under_10_0_market": [
+            {
+                "odds_over": "4.50",
+                "odds_under": "1.08",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +10"
+            }
+        ],
+        "over_under_10_5_market": [
+            {
+                "odds_over": "4.60",
+                "odds_under": "1.07",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +10.5"
+            }
+        ],
+        "over_under_11_0_market": [
+            {
+                "odds_over": "5.50",
+                "odds_under": "1.03",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +11"
+            }
+        ],
+        "over_under_11_5_market": [
+            {
+                "odds_over": "5.50",
+                "odds_under": "1.03",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +11.5"
+            }
+        ]
+    }
+]

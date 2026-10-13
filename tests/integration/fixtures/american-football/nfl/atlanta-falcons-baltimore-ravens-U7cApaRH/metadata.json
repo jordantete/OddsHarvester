@@ -1,0 +1,19 @@
+{
+    "match_id": "U7cApaRH",
+    "match_url": "https://www.oddsportal.com/american-football/h2h/atlanta-falcons-hClIiQIR/baltimore-ravens-pUern3T0/#U7cApaRH",
+    "sport": "american-football",
+    "league": "nfl",
+    "home_team": "Atlanta Falcons",
+    "away_team": "Baltimore Ravens",
+    "final_score": {
+        "home": "23",
+        "away": "30"
+    },
+    "match_date": "2026-10-12 00:20:00 UTC",
+    "notes": "",
+    "captured_at": "2026-10-13T14:29:25.435440+00:00",
+    "oddsharvester_version": "0.18.0",
+    "available_fixtures": [
+        "asian_handicap_over_under_full_including_ot_all.json"
+    ]
+}

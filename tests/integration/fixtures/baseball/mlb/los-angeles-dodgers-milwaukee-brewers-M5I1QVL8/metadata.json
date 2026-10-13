@@ -1,0 +1,19 @@
+{
+    "match_id": "M5I1QVL8",
+    "match_url": "https://www.oddsportal.com/baseball/h2h/los-angeles-dodgers-nwPDBpVc/milwaukee-brewers-CGzqC60o/#M5I1QVL8",
+    "sport": "baseball",
+    "league": "mlb",
+    "home_team": "Milwaukee Brewers",
+    "away_team": "Los Angeles Dodgers",
+    "final_score": {
+        "home": "2",
+        "away": "1"
+    },
+    "match_date": "2026-10-12 00:00:00 UTC",
+    "notes": "",
+    "captured_at": "2026-10-13T14:27:17.376420+00:00",
+    "oddsharvester_version": "0.18.0",
+    "available_fixtures": [
+        "over_under_full_including_ot_all.json"
+    ]
+}

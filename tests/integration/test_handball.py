@@ -52,3 +52,22 @@ class TestHandballBasicMarkets:
             period="full_time",
             bookies_filter="all",
         )
+
+    def test_hb_002_umbrellas(self, har_for_match, tmp_path):
+        """HB-002: over_under and asian_handicap open every rendered line, whole lines included (issue #115)."""
+        actual = replay_and_compare(
+            har_for_match,
+            tmp_path,
+            BUNDESLIGA_MATCH,
+            "asian_handicap_over_under_full_time_all.json",
+            markets=["over_under", "asian_handicap"],
+            period="full_time",
+        )
+        lines = {key: value for key, value in actual[0].items() if key.endswith("_market")}
+
+        assert "over_under_market" not in lines
+        assert "asian_handicap_market" not in lines
+        assert [key for key, value in lines.items() if not value] == []
+        assert any(key.startswith("over_under_") for key in lines)
+        assert any(key.startswith("handicap_") for key in lines)
+        assert lines.get("over_under_62_0_market")

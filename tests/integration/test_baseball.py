@@ -6,13 +6,20 @@ Covers issue #60 — H2H fragment match_date correctness on MLB historic scrapes
 import pytest
 
 from tests.integration.helpers.comparison import compare_golden
-from tests.integration.helpers.replay import is_live, load_golden, run_replay
+from tests.integration.helpers.replay import is_live, load_golden, replay_and_compare, run_replay
 
 ROYALS_MARINERS = {
     "sport": "baseball",
     "league": "mlb",
     "match_id": "kansas-city-royals-IL2QbgJ4-seattle-mariners-txYPhSac",
     "url": ("https://www.oddsportal.com/baseball/h2h/kansas-city-royals-IL2QbgJ4/seattle-mariners-txYPhSac/#WbDmMwm1"),
+}
+
+DODGERS_BREWERS = {
+    "sport": "baseball",
+    "league": "mlb",
+    "match_id": "los-angeles-dodgers-milwaukee-brewers-M5I1QVL8",
+    "url": "https://www.oddsportal.com/baseball/h2h/los-angeles-dodgers-nwPDBpVc/milwaukee-brewers-CGzqC60o/#M5I1QVL8",
 }
 
 
@@ -49,3 +56,22 @@ class TestBaseballH2HFragment:
         live = is_live(har_for_match, ROYALS_MARINERS, fixture_name)
         result = compare_golden(actual[0], golden, live=live)
         assert result.passed, str(result)
+
+
+@pytest.mark.integration
+class TestBaseballUmbrella:
+    def test_bb_mlb_002_over_under_umbrella(self, har_for_match, tmp_path):
+        """over_under opens every rendered line, whole lines included (issue #115)."""
+        actual = replay_and_compare(
+            har_for_match,
+            tmp_path,
+            DODGERS_BREWERS,
+            "over_under_full_including_ot_all.json",
+            markets=["over_under"],
+            period="full_including_ot",
+        )
+        lines = {key: value for key, value in actual[0].items() if key.endswith("_market")}
+
+        assert "over_under_market" not in lines
+        assert [key for key, value in lines.items() if not value] == []
+        assert lines.get("over_under_8_0_market")

@@ -1,0 +1,224 @@
+[
+    {
+        "scraped_date": "2026-10-13 14:22:12 UTC",
+        "match_date": "2026-05-10 14:30:00 UTC",
+        "season": null,
+        "match_link": "https://www.oddsportal.com/handball/h2h/hsv-hamburg-2XSOzhbr/sc-magdeburg-t8qpYkr1/#vglQ4eEN",
+        "home_team": "SC Magdeburg",
+        "away_team": "Hamburg",
+        "league_name": "Bundesliga",
+        "home_score": "41",
+        "away_score": "28",
+        "partial_results": "(21:12, 20:16)",
+        "venue": null,
+        "venue_town": null,
+        "venue_country": null,
+        "match_info": null,
+        "over_under_60_5_market": [
+            {
+                "odds_over": "1.48",
+                "odds_under": "2.10",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +60.5"
+            }
+        ],
+        "over_under_61_5_market": [
+            {
+                "odds_over": "1.59",
+                "odds_under": "2.00",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +61.5"
+            },
+            {
+                "odds_over": "1.59",
+                "odds_under": "2.21",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +61.5"
+            },
+            {
+                "odds_over": "1.66",
+                "odds_under": "2.14",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +61.5"
+            },
+            {
+                "odds_over": "1.54",
+                "odds_under": "1.98",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +61.5"
+            }
+        ],
+        "over_under_62_0_market": [
+            {
+                "odds_over": "1.67",
+                "odds_under": "2.07",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +62"
+            }
+        ],
+        "over_under_62_5_market": [
+            {
+                "odds_over": "1.74",
+                "odds_under": "1.80",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +62.5"
+            },
+            {
+                "odds_over": "1.78",
+                "odds_under": "1.92",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +62.5"
+            },
+            {
+                "odds_over": "1.75",
+                "odds_under": "1.75",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +62.5"
+            },
+            {
+                "odds_over": "1.83",
+                "odds_under": "1.91",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +62.5"
+            },
+            {
+                "odds_over": "1.70",
+                "odds_under": "1.76",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +62.5"
+            }
+        ],
+        "over_under_63_0_market": [
+            {
+                "odds_over": "1.92",
+                "odds_under": "1.78",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +63"
+            }
+        ],
+        "over_under_63_5_market": [
+            {
+                "odds_over": "1.93",
+                "odds_under": "1.64",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +63.5"
+            },
+            {
+                "odds_over": "2.08",
+                "odds_under": "1.66",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +63.5"
+            },
+            {
+                "odds_over": "2.04",
+                "odds_under": "1.72",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +63.5"
+            },
+            {
+                "odds_over": "1.88",
+                "odds_under": "1.60",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +63.5"
+            }
+        ],
+        "over_under_64_5_market": [
+            {
+                "odds_over": "2.10",
+                "odds_under": "1.48",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +64.5"
+            }
+        ],
+        "handicap_-7_5_market": [
+            {
+                "handicap_team_1": "2.20",
+                "handicap_team_2": "1.62",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -7.5"
+            }
+        ],
+        "handicap_-7_0_market": [
+            {
+                "handicap_team_1": "2.02",
+                "handicap_team_2": "1.70",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Asian Handicap -7"
+            }
+        ],
+        "handicap_-6_5_market": [
+            {
+                "handicap_team_1": "1.82",
+                "handicap_team_2": "1.88",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -6.5"
+            },
+            {
+                "handicap_team_1": "1.88",
+                "handicap_team_2": "1.86",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -6.5"
+            }
+        ],
+        "handicap_-6_0_market": [
+            {
+                "handicap_team_1": "1.76",
+                "handicap_team_2": "1.94",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Asian Handicap -6"
+            }
+        ],
+        "handicap_-5_5_market": [
+            {
+                "handicap_team_1": "1.64",
+                "handicap_team_2": "2.18",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -5.5"
+            }
+        ],
+        "handicap_-4_5_market": [
+            {
+                "handicap_team_1": "1.55",
+                "handicap_team_2": "2.31",
+                "bookmaker_name": "Stake.com",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Asian Handicap -4.5"
+            }
+        ]
+    }
+]

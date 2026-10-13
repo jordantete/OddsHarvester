@@ -1,0 +1,19 @@
+{
+    "match_id": "fXeSq7ek",
+    "match_url": "https://www.oddsportal.com/rugby-union/h2h/aviron-bayonnais-8E1xxyQA/stade-toulousain-2LK4pW1j/#fXeSq7ek",
+    "sport": "rugby-union",
+    "league": "france-top-14",
+    "home_team": "Stade Toulousain",
+    "away_team": "Aviron Bayonnais",
+    "final_score": {
+        "home": "45",
+        "away": "34"
+    },
+    "match_date": "2026-10-11 19:05:00 UTC",
+    "notes": "",
+    "captured_at": "2026-10-13T14:29:57.229704+00:00",
+    "oddsharvester_version": "0.18.0",
+    "available_fixtures": [
+        "handicap_over_under_full_time_all.json"
+    ]
+}

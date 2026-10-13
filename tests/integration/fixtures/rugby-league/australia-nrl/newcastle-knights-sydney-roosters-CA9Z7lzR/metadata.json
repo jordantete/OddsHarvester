@@ -1,0 +1,19 @@
+{
+    "match_id": "CA9Z7lzR",
+    "match_url": "https://www.oddsportal.com/rugby-league/h2h/newcastle-knights-YqPIXNl6/sydney-roosters-AHjFxceb/#CA9Z7lzR",
+    "sport": "rugby-league",
+    "league": "australia-nrl",
+    "home_team": "Sydney Roosters",
+    "away_team": "Newcastle Knights",
+    "final_score": {
+        "home": "19",
+        "away": "18"
+    },
+    "match_date": "2026-10-04 08:30:00 UTC",
+    "notes": "",
+    "captured_at": "2026-10-13T14:29:46.839517+00:00",
+    "oddsharvester_version": "0.18.0",
+    "available_fixtures": [
+        "handicap_over_under_full_time_all.json"
+    ]
+}

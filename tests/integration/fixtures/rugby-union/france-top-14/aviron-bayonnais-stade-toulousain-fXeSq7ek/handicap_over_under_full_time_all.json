@@ -1,0 +1,101 @@
+[
+    {
+        "scraped_date": "2026-10-13 14:29:50 UTC",
+        "match_date": "2026-10-11 19:05:00 UTC",
+        "season": null,
+        "match_link": "https://www.oddsportal.com/rugby-union/h2h/aviron-bayonnais-8E1xxyQA/stade-toulousain-2LK4pW1j/#fXeSq7ek",
+        "home_team": "Stade Toulousain",
+        "away_team": "Aviron Bayonnais",
+        "league_name": "Top 14",
+        "home_score": "45",
+        "away_score": "34",
+        "partial_results": "(24:20, 21:14)",
+        "venue": null,
+        "venue_town": null,
+        "venue_country": null,
+        "match_info": null,
+        "over_under_53_5_market": [
+            {
+                "odds_over": "1.19",
+                "odds_under": "3.60",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +53.5"
+            }
+        ],
+        "over_under_54_5_market": [
+            {
+                "odds_over": "1.20",
+                "odds_under": "3.45",
+                "bookmaker_name": "Winamax",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +54.5"
+            }
+        ],
+        "over_under_55_5_market": [
+            {
+                "odds_over": "1.30",
+                "odds_under": "3.00",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +55.5"
+            }
+        ],
+        "handicap_-17_5_market": [
+            {
+                "handicap_team_1": "1.30",
+                "handicap_team_2": "3.00",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Handicap -17.5"
+            }
+        ],
+        "handicap_-16_5_market": [
+            {
+                "handicap_team_1": "1.25",
+                "handicap_team_2": "3.30",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Handicap -16.5"
+            }
+        ],
+        "handicap_-15_5_market": [
+            {
+                "handicap_team_1": "1.22",
+                "handicap_team_2": "3.50",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Handicap -15.5"
+            },
+            {
+                "handicap_team_1": "1.27",
+                "handicap_team_2": "3.40",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Handicap -15.5"
+            }
+        ],
+        "handicap_-14_5_market": [
+            {
+                "handicap_team_1": "1.20",
+                "handicap_team_2": "3.70",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Handicap -14.5"
+            }
+        ],
+        "handicap_-13_5_market": [
+            {
+                "handicap_team_1": "1.18",
+                "handicap_team_2": "3.90",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Handicap -13.5"
+            }
+        ]
+    }
+]
