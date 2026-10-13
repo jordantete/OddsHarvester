@@ -42,6 +42,26 @@ def test_a_line_maps_to_its_sport_s_token(sport, main, name, expected):
     assert line_name_to_token(sport, main, name) == expected
 
 
+@pytest.mark.parametrize(
+    ("sport", "main", "name", "expected"),
+    [
+        ("basketball", "Over/Under", "Over/Under +161", "over_under_games_161_0"),
+        ("basketball", "Over/Under", "Más/Menos de +161", "over_under_games_161_0"),
+        ("basketball", "Asian Handicap", "Asian Handicap -5", "asian_handicap_games_-5_0_games"),
+        ("basketball", "Asian Handicap", "Asian Handicap +13", "asian_handicap_games_+13_0_games"),
+        ("basketball", "Asian Handicap", "Asian Handicap 0", "asian_handicap_games_0_games"),
+        ("basketball", "Asian Handicap", "Asian Handicap -0.5", "asian_handicap_games_-0_5_games"),
+        ("american-football", "Over/Under", "Over/Under +45", "over_under_45_0"),
+        ("handball", "Asian Handicap", "Asian Handicap +3", "handicap_+3_0"),
+        ("ice-hockey", "Over/Under", "Over/Under +5", "over_under_5_0"),
+        ("rugby-union", "Handicap", "Asian Handicap -2.5", "handicap_-2_5"),
+        ("rugby-league", "Over/Under", "Over/Under +33.5", "over_under_33_5"),
+    ],
+)
+def test_a_whole_or_filled_line_maps_to_its_token(sport, main, name, expected):
+    assert line_name_to_token(sport, main, name) == expected
+
+
 def test_a_line_two_tokens_share_maps_to_none():
     """Tennis sets and games both register Over/Under +6.5, and the page does not say which row it is (§8)."""
     assert line_name_to_token("tennis", "Over/Under", "Over/Under +6.5") is None

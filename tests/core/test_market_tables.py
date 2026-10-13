@@ -13,13 +13,13 @@ from oddsharvester.utils.utils import get_supported_markets
 ACCEPTED_TOKEN_COUNTS = {
     Sport.FOOTBALL: 66,
     Sport.TENNIS: 148,
-    Sport.BASKETBALL: 214,
-    Sport.RUGBY_LEAGUE: 42,
-    Sport.RUGBY_UNION: 42,
-    Sport.ICE_HOCKEY: 16,
+    Sport.BASKETBALL: 426,
+    Sport.RUGBY_LEAGUE: 122,
+    Sport.RUGBY_UNION: 122,
+    Sport.ICE_HOCKEY: 26,
     Sport.BASEBALL: 13,
-    Sport.AMERICAN_FOOTBALL: 149,
-    Sport.HANDBALL: 55,
+    Sport.AMERICAN_FOOTBALL: 208,
+    Sport.HANDBALL: 104,
     Sport.VOLLEYBALL: 113,
     Sport.CRICKET: 1,
 }
@@ -28,10 +28,21 @@ RUGBY_TOKENS = {
     "home_away",
     "dnb",
     "double_chance",
-    *(f"over_under_{n}_5" for n in (32, 35, 36, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 55)),
-    *(f"handicap_{sign}{n}_5" for sign in "+-" for n in (4, 5, 8, 9, 10, 11, 12, 13, 16, 17)),
+    *(f"over_under_{n}_5" for n in range(32, 56)),
+    *(f"over_under_{n}_0" for n in range(33, 56)),
+    *(f"handicap_{sign}{n}_5" for sign in "+-" for n in range(18)),
+    *(f"handicap_{sign}{n}_0" for sign in "+-" for n in range(1, 18)),
+    "handicap_0",
 }
-ICE_HOCKEY_TOKENS = {"1x2", "home_away", "dnb", "btts", "double_chance", *(f"over_under_{n}_5" for n in range(1, 12))}
+ICE_HOCKEY_TOKENS = {
+    "1x2",
+    "home_away",
+    "dnb",
+    "btts",
+    "double_chance",
+    *(f"over_under_{n}_5" for n in range(1, 12)),
+    *(f"over_under_{n}_0" for n in range(2, 12)),
+}
 
 
 @pytest.fixture(scope="module")
@@ -61,7 +72,7 @@ def test_each_sport_accepts_as_many_tokens_as_before(sport):
     ("sport", "tokens"),
     [(Sport.RUGBY_LEAGUE, RUGBY_TOKENS), (Sport.RUGBY_UNION, RUGBY_TOKENS), (Sport.ICE_HOCKEY, ICE_HOCKEY_TOKENS)],
 )
-def test_rugby_and_ice_hockey_accept_the_tokens_they_accepted_before(sport, tokens):
+def test_rugby_and_ice_hockey_accept_exactly_their_tokens(sport, tokens):
     assert set(get_supported_markets(sport)) == tokens
 
 
@@ -91,6 +102,20 @@ def test_an_umbrella_token_is_never_a_concrete_token(sport, registry):
 def test_every_umbrella_tab_has_a_tab_code():
     tabs = {tab for umbrellas in UMBRELLA_MARKETS.values() for tab in umbrellas.values()}
     assert tabs - set(OddsPortalSelectors.MARKET_TAB_CODES) == set()
+
+
+@pytest.mark.parametrize("sport", [sport for sport in UMBRELLA_MARKETS if sport is not Sport.FOOTBALL])
+def test_each_umbrella_ladder_steps_by_half_a_point(sport, registry):
+    """An umbrella opens only lines that have a token, so a gap in a ladder is a line it skips."""
+    for tab in UMBRELLA_MARKETS[sport].values():
+        values = {
+            float(spec.specific_market.rsplit(" ", 1)[-1])
+            for spec in registry[sport].values()
+            if spec.main_market == tab
+        }
+        lo, hi = min(values), max(values)
+        expected = {lo + step / 2 for step in range(round((hi - lo) * 2) + 1)}
+        assert sorted(expected - values) == [], f"{sport.value} {tab} misses lines"
 
 
 def test_default_market_codes_name_sports_and_tab_codes():
