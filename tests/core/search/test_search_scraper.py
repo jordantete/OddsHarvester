@@ -139,6 +139,19 @@ async def test_a_match_shifted_onto_the_next_results_page_is_kept_once():
     assert [_event(row) for row in rows] == ["PAGE0001"]
 
 
+async def test_rows_without_link_are_all_kept():
+    """A results row can come without url, so it has no event id to deduplicate on."""
+    unlinked = {**search_match(), "url": None}
+    manager = _manager_with(
+        search_page(EMPTY_SEARCH_TAB),
+        search_page(search_results([search_match(), {**unlinked, "home-name": "A"}, {**unlinked, "home-name": "B"}])),
+    )
+
+    rows = await _scraper(manager).team_matches(_TEAM, max_pages=1)
+
+    assert [row["home_team"] for row in rows] == ["Nacional Potosi", "A", "B"]
+
+
 async def test_a_failing_results_page_fails_the_whole_call():
     manager = _manager_with(
         search_page(EMPTY_SEARCH_TAB),

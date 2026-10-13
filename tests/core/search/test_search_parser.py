@@ -136,6 +136,25 @@ def test_a_zero_score_stays_a_score(zero):
     assert (row["home_score"], row["away_score"]) == ("0", "0")
 
 
+def test_results_rows_keyed_by_match_id_are_read_in_payload_order():
+    """Since 2026-10-12 the results tab has also served its rows as an object keyed by match id."""
+    html = search_page(
+        search_results([search_match(event_id="OLDER001"), search_match(event_id="NEWER001")], keyed=True)
+    )
+
+    rows = parse_matches(html, url=_RESULTS_URL, team_id=_TEAM, tab="results").rows
+
+    assert [row["match_link"].rsplit("#", 1)[-1] for row in rows] == ["OLDER001", "NEWER001"]
+
+
+def test_a_row_without_url_keeps_its_match_without_link():
+    match = {**search_match(), "url": None, "homeParticipantUrl": None, "awayParticipantUrl": None}
+
+    [row] = parse_matches(search_page(search_results([match])), url=_RESULTS_URL, team_id=_TEAM, tab="results").rows
+
+    assert (row["match_link"], row["home_team_id"], row["home_team"]) == (None, None, "Nacional Potosi")
+
+
 def test_a_results_page_gives_its_total_and_page_count():
     html = search_page(search_results([search_match()], total=79, page_count=4))
 

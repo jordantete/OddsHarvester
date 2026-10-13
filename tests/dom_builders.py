@@ -476,13 +476,15 @@ def search_match(
     }
 
 
-def search_results(rows: list[dict], total: int | None = None, page: int = 1, page_count: int = 1) -> dict:
-    """The searchData of a results tab page, paginated 20 rows a page."""
+def search_results(
+    rows: list[dict], total: int | None = None, page: int = 1, page_count: int = 1, keyed: bool = False
+) -> dict:
+    """The searchData of a results tab page, paginated 20 rows a page; ``keyed`` serves the rows as an object."""
     return {
         "total": total if total is not None else len(rows),
         "onePage": 20,
         "page": page,
-        "rows": rows,
+        "rows": {str(11328597 + n): row for n, row in enumerate(rows)} if keyed else rows,
         "pagination": {"pageCount": page_count, "activePage": page, "hasPagination": page_count > 1},
     }
 

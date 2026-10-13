@@ -74,8 +74,11 @@ def parse_matches(
         raise ParsingError(f"Search results: asked for page {page}, the payload holds page {served}", url)
     pagination = data.get("pagination")
     page_count = pagination.get("pageCount") if isinstance(pagination, dict) else None
+    rows = data.get("rows") or []
+    # The results tab has served its rows both as a list and as an object keyed by match id.
+    entries = rows.values() if isinstance(rows, dict) else rows
     return MatchPage(
-        rows=[_match_row(row, tab, base_url) for row in data.get("rows") or []],
+        rows=[_match_row(row, tab, base_url) for row in entries],
         total=data.get("total") or 0,
         page_count=page_count or 1,
     )

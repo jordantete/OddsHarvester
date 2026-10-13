@@ -91,8 +91,9 @@ def _merge(upcoming: list[dict], results: list[dict]) -> list[dict]:
     return merged
 
 
-def _event_id(row: dict) -> str:
-    return urldefrag(row["match_link"]).fragment
+def _event_id(row: dict) -> str | int:
+    """A row without link has no event id, so it only ever matches itself."""
+    return urldefrag(row["match_link"]).fragment if row["match_link"] else id(row)
 
 
 async def run_search(
