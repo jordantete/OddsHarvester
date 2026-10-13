@@ -26,7 +26,7 @@ from oddsharvester.core.market_extraction.odds_parser import empty_history_block
 from oddsharvester.core.sport_market_registry import SportMarketRegistry
 from oddsharvester.core.sport_period_registry import SportPeriodRegistry
 from oddsharvester.utils.bookies_filter_enum import BookiesFilter
-from oddsharvester.utils.sport_market_constants import FOOTBALL_UMBRELLA_MARKETS, Sport
+from oddsharvester.utils.sport_market_constants import UMBRELLA_MARKETS
 
 
 class OddsPortalMarketExtractor:
@@ -96,9 +96,10 @@ class OddsPortalMarketExtractor:
         # Expand umbrella tokens (e.g. "over_under") into the concrete per-line tokens
         # actually rendered on the page (e.g. "over_under_2_5", "over_under_3_5") before
         # running the normal per-market extraction loop below.
+        umbrellas = next((tabs for s, tabs in UMBRELLA_MARKETS.items() if s.value == sport), {})
         expanded_markets: list[str] = []
         for market in markets:
-            umbrella_main_market = FOOTBALL_UMBRELLA_MARKETS.get(market) if sport == Sport.FOOTBALL.value else None
+            umbrella_main_market = umbrellas.get(market)
             if umbrella_main_market is None:
                 if market not in expanded_markets:
                     expanded_markets.append(market)
@@ -109,15 +110,21 @@ class OddsPortalMarketExtractor:
                     page=page, main_market=umbrella_main_market, period=period, bookies_filter=bookies_filter
                 )
                 line_tokens: list[str] = []
+                untokenized: list[str] = []
                 for line_name in line_names:
-                    token = line_name_to_token(umbrella_main_market, line_name)
-                    if token is not None and token not in line_tokens:
+                    token = line_name_to_token(sport, umbrella_main_market, line_name)
+                    if token is None:
+                        untokenized.append(line_name)
+                    elif token not in line_tokens:
                         line_tokens.append(token)
             except MarketDataError:
                 raise
             except Exception as e:
                 self.logger.warning(f"Error discovering lines for umbrella market '{market}': {e}")
                 continue
+
+            if untokenized:
+                self.logger.warning(f"Umbrella market '{market}' skipped lines with no token: {', '.join(untokenized)}")
 
             if not line_tokens:
                 self.logger.warning(f"Umbrella market '{market}' discovered no lines on the page; skipping.")

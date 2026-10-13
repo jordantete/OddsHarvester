@@ -124,11 +124,17 @@ class FootballAsianHandicapMarket(Enum):
     HANDICAP_PLUS_2_5 = "asian_handicap_+2_5"
 
 
-FOOTBALL_UMBRELLA_MARKETS: dict[str, str] = {
-    "over_under": "Over/Under",
-    "asian_handicap": "Asian Handicap",
+UMBRELLA_MARKETS: dict[Sport, dict[str, str]] = {
+    Sport.FOOTBALL: {"over_under": "Over/Under", "asian_handicap": "Asian Handicap"},
+    Sport.BASKETBALL: {"over_under": "Over/Under", "asian_handicap": "Asian Handicap"},
+    Sport.AMERICAN_FOOTBALL: {"over_under": "Over/Under", "asian_handicap": "Asian Handicap"},
+    Sport.HANDBALL: {"over_under": "Over/Under", "asian_handicap": "Asian Handicap"},
+    Sport.ICE_HOCKEY: {"over_under": "Over/Under"},
+    Sport.BASEBALL: {"over_under": "Over/Under"},
+    Sport.RUGBY_LEAGUE: {"over_under": "Over/Under", "handicap": "Handicap"},
+    Sport.RUGBY_UNION: {"over_under": "Over/Under", "handicap": "Handicap"},
 }
-"""Umbrella tokens for football that expand to all lines of a market family."""
+"""Umbrella tokens per sport, each mapped to the tab whose rendered lines it expands to."""
 
 
 class TennisMarket(Enum):

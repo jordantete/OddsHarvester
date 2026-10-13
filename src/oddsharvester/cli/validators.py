@@ -11,7 +11,7 @@ from oddsharvester.core.url_builder import URLBuilder
 from oddsharvester.utils.odds_format_enum import OddsFormat
 from oddsharvester.utils.proxy_manager import ProxyManager
 from oddsharvester.utils.sport_league_constants import SPORTS_LEAGUES_URLS_MAPPING
-from oddsharvester.utils.sport_market_constants import FOOTBALL_UMBRELLA_MARKETS, Sport
+from oddsharvester.utils.sport_market_constants import UMBRELLA_MARKETS, Sport
 from oddsharvester.utils.utils import get_supported_markets
 
 
@@ -114,7 +114,7 @@ def validate_markets(ctx, param, value):
             return value
 
     supported = get_supported_markets(sport)
-    umbrella_tokens = FOOTBALL_UMBRELLA_MARKETS if sport is Sport.FOOTBALL else {}
+    umbrella_tokens = UMBRELLA_MARKETS.get(sport, {})
     invalid = [m for m in value if m not in supported and m not in umbrella_tokens]
 
     if invalid:

@@ -15,9 +15,21 @@ def test_accepts_regular_markets_for_football():
     assert validate_markets(_Ctx("football"), None, ["1x2", "btts"]) == ["1x2", "btts"]
 
 
-def test_accepts_umbrella_tokens_for_football():
-    value = ["over_under", "asian_handicap"]
-    assert validate_markets(_Ctx("football"), None, value) == value
+@pytest.mark.parametrize(
+    ("sport", "umbrellas"),
+    [
+        ("football", ["over_under", "asian_handicap"]),
+        ("basketball", ["over_under", "asian_handicap"]),
+        ("american-football", ["over_under", "asian_handicap"]),
+        ("handball", ["over_under", "asian_handicap"]),
+        ("ice-hockey", ["over_under"]),
+        ("baseball", ["over_under"]),
+        ("rugby-league", ["over_under", "handicap"]),
+        ("rugby-union", ["over_under", "handicap"]),
+    ],
+)
+def test_accepts_the_umbrella_tokens_of_each_sport(sport, umbrellas):
+    assert validate_markets(_Ctx(sport), None, umbrellas) == umbrellas
 
 
 def test_rejects_unknown_market_for_football():
@@ -25,9 +37,20 @@ def test_rejects_unknown_market_for_football():
         validate_markets(_Ctx("football"), None, ["definitely_not_a_market"])
 
 
-def test_rejects_umbrella_tokens_for_non_football_sport():
+@pytest.mark.parametrize(
+    ("sport", "market"),
+    [
+        ("tennis", "over_under"),
+        ("volleyball", "over_under"),
+        ("cricket", "over_under"),
+        ("ice-hockey", "asian_handicap"),
+        ("baseball", "asian_handicap"),
+        ("rugby-league", "asian_handicap"),
+    ],
+)
+def test_rejects_an_umbrella_token_the_sport_does_not_offer(sport, market):
     with pytest.raises(click.BadParameter):
-        validate_markets(_Ctx("tennis"), None, ["over_under"])
+        validate_markets(_Ctx(sport), None, [market])
 
 
 @pytest.mark.parametrize("sport", ["rugby-league", "rugby-union", "ice-hockey"])

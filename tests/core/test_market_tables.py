@@ -6,7 +6,7 @@ from oddsharvester.core.browser.hydration import DEFAULT_MARKET_CODE_BY_SPORT, d
 from oddsharvester.core.market_extraction.line_tokens import line_name_to_token
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.core.sport_market_registry import SportMarketRegistrar, SportMarketRegistry
-from oddsharvester.utils.sport_market_constants import FOOTBALL_UMBRELLA_MARKETS, Sport
+from oddsharvester.utils.sport_market_constants import UMBRELLA_MARKETS, Sport
 from oddsharvester.utils.utils import get_supported_markets
 
 # Measured before the duplicated rugby and ice hockey members went; a new market updates its sport's count.
@@ -72,17 +72,25 @@ def test_every_main_market_has_a_tab_code(sport, registry):
     assert main_markets - set(OddsPortalSelectors.MARKET_TAB_CODES) == set()
 
 
-def test_football_line_tokens_round_trip(registry):
-    lines = {
-        token: spec
-        for token, spec in registry[Sport.FOOTBALL].items()
-        if spec.main_market in FOOTBALL_UMBRELLA_MARKETS.values()
-    }
+@pytest.mark.parametrize("sport", list(UMBRELLA_MARKETS))
+def test_umbrella_line_tokens_round_trip(sport, registry):
+    tabs = set(UMBRELLA_MARKETS[sport].values())
+    lines = {token: spec for token, spec in registry[sport].items() if spec.main_market in tabs}
 
-    assert lines
-    assert {token: line_name_to_token(spec.main_market, spec.specific_market) for token, spec in lines.items()} == {
-        token: token for token in lines
-    }
+    assert {spec.main_market for spec in lines.values()} == tabs
+    assert {
+        token: line_name_to_token(sport.value, spec.main_market, spec.specific_market) for token, spec in lines.items()
+    } == {token: token for token in lines}
+
+
+@pytest.mark.parametrize("sport", list(UMBRELLA_MARKETS))
+def test_an_umbrella_token_is_never_a_concrete_token(sport, registry):
+    assert set(UMBRELLA_MARKETS[sport]) & set(registry[sport]) == set()
+
+
+def test_every_umbrella_tab_has_a_tab_code():
+    tabs = {tab for umbrellas in UMBRELLA_MARKETS.values() for tab in umbrellas.values()}
+    assert tabs - set(OddsPortalSelectors.MARKET_TAB_CODES) == set()
 
 
 def test_default_market_codes_name_sports_and_tab_codes():

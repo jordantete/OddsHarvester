@@ -486,6 +486,59 @@ class TestOddsPortalMarketExtractor:
 
         assert set(result) == {"over_under_2_5_market", "over_under_3_5_market"}
 
+    async def test_scrape_markets_expands_a_basketball_umbrella_with_whole_lines(self, extractor, page_mock):
+        extractor.extract_market_odds = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor._discover_line_names = AsyncMock(return_value=["Over/Under +161", "Over/Under +161.5"])
+        mapping = {"over_under_games_161_0": over_under("161"), "over_under_games_161_5": over_under("161.5")}
+
+        with patch.object(SportMarketRegistry, "get_market_mapping", return_value=mapping):
+            result = await extractor.scrape_markets(page=page_mock, sport="basketball", markets=["over_under"])
+
+        assert set(result) == {"over_under_games_161_0_market", "over_under_games_161_5_market"}
+
+    async def test_scrape_markets_expands_the_rugby_handicap_umbrella_from_its_tab(self, extractor, page_mock):
+        extractor.extract_market_odds = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor._discover_line_names = AsyncMock(return_value=["Asian Handicap -4.5", "Asian Handicap +4.5"])
+        mapping = {
+            f"handicap_{line.replace('.', '_')}": MarketSpec(
+                "Handicap", f"Handicap {line}", ("handicap_team_1", "handicap_team_2")
+            )
+            for line in ("-4.5", "+4.5")
+        }
+
+        with patch.object(SportMarketRegistry, "get_market_mapping", return_value=mapping):
+            result = await extractor.scrape_markets(page=page_mock, sport="rugby-league", markets=["handicap"])
+
+        assert set(result) == {"handicap_-4_5_market", "handicap_+4_5_market"}
+        extractor._discover_line_names.assert_called_once_with(
+            page=page_mock, main_market="Handicap", period="FullTime", bookies_filter=None
+        )
+
+    async def test_scrape_markets_logs_the_lines_an_umbrella_has_no_token_for(self, extractor, page_mock, caplog):
+        extractor.extract_market_odds = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor._discover_line_names = AsyncMock(return_value=["Over/Under +2.5", "Over/Under +7", "Over/Under +8"])
+
+        with (
+            patch.object(SportMarketRegistry, "get_market_mapping", return_value={"over_under_2_5": over_under("2.5")}),
+            caplog.at_level("WARNING"),
+        ):
+            result = await extractor.scrape_markets(page=page_mock, sport="football", markets=["over_under"])
+
+        assert set(result) == {"over_under_2_5_market"}
+        assert "Umbrella market 'over_under' skipped lines with no token: Over/Under +7, Over/Under +8" in caplog.text
+
+    async def test_scrape_markets_opens_a_line_the_page_lists_twice_once(self, extractor, page_mock):
+        extractor.extract_market_odds = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor._discover_line_names = AsyncMock(return_value=["Over/Under +2.5", "Más/Menos de +2.5"])
+
+        with patch.object(
+            SportMarketRegistry, "get_market_mapping", return_value={"over_under_2_5": over_under("2.5")}
+        ):
+            result = await extractor.scrape_markets(page=page_mock, sport="football", markets=["over_under"])
+
+        assert set(result) == {"over_under_2_5_market"}
+        assert extractor.extract_market_odds.await_count == 1
+
     async def test_scrape_markets_skips_the_umbrella_when_no_name_ends_with_a_line(self, extractor, page_mock, caplog):
         extractor._discover_line_names = AsyncMock(return_value=["Más/Menos de +2.5 Goles"])
 
@@ -512,23 +565,14 @@ class TestOddsPortalMarketExtractor:
         assert "btts_market" in result
         extractor._discover_line_names.assert_not_called()
 
-    async def test_scrape_markets_umbrella_gated_to_football_only(self, extractor, page_mock):
-        """Test that umbrella expansion never triggers for a non-football sport.
-
-        Umbrella tokens (over_under, asian_handicap) are football-only. Calling scrape_markets
-        directly with sport="tennis" must not expand "over_under" using the football umbrella
-        enums; it should fall through to the normal unsupported-market path instead.
-        """
-        # Arrange
+    @pytest.mark.parametrize("sport", ["tennis", "volleyball", "cricket", "curling"])
+    async def test_scrape_markets_offers_no_umbrella_to_a_sport_without_one(self, extractor, page_mock, sport):
+        """Tennis and volleyball lines do not say their axis, cricket has no line market, an unknown sport has none."""
         extractor._discover_line_names = AsyncMock()
 
-        with patch.object(SportMarketRegistry, "get_market_mapping") as mock_get_mapping:
-            mock_get_mapping.return_value = {}
+        with patch.object(SportMarketRegistry, "get_market_mapping", return_value={}):
+            result = await extractor.scrape_markets(page=page_mock, sport=sport, markets=["over_under"])
 
-            # Act
-            result = await extractor.scrape_markets(page=page_mock, sport="tennis", markets=["over_under"])
-
-        # Assert
         extractor._discover_line_names.assert_not_called()
         assert not any(key.startswith("over_under_") for key in result)
 
