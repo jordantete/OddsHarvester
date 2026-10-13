@@ -56,6 +56,13 @@ def test_a_line_maps_to_its_sport_s_token(sport, main, name, expected):
         ("ice-hockey", "Over/Under", "Over/Under +5", "over_under_5_0"),
         ("rugby-union", "Handicap", "Asian Handicap -2.5", "handicap_-2_5"),
         ("rugby-league", "Over/Under", "Over/Under +33.5", "over_under_33_5"),
+        ("rugby-union", "Handicap", "Asian Handicap -40.5", "handicap_-40_5"),
+        ("rugby-union", "Over/Under", "Over/Under +79.5", "over_under_79_5"),
+        ("rugby-league", "Handicap", "Asian Handicap -18.5", "handicap_-18_5"),
+        ("american-football", "Over/Under", "Over/Under +64.5", "over_under_64_5"),
+        ("baseball", "Over/Under", "Over/Under +1.5", "over_under_1_5"),
+        ("baseball", "Over/Under", "Over/Under +14", "over_under_14_0"),
+        ("handball", "Over/Under", "Over/Under +30.5", "over_under_30_5"),
     ],
 )
 def test_a_whole_or_filled_line_maps_to_its_token(sport, main, name, expected):
