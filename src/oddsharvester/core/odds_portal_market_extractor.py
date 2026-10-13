@@ -107,7 +107,11 @@ class OddsPortalMarketExtractor:
 
             try:
                 line_names = await self._discover_line_names(
-                    page=page, main_market=umbrella_main_market, period=period, bookies_filter=bookies_filter
+                    page=page,
+                    main_market=umbrella_main_market,
+                    period=period,
+                    sport=sport,
+                    bookies_filter=bookies_filter,
                 )
                 line_tokens: list[str] = []
                 untokenized: list[str] = []
@@ -218,7 +222,12 @@ class OddsPortalMarketExtractor:
         return market_data
 
     async def _discover_line_names(
-        self, page: Page, main_market: str, period: str, bookies_filter: BookiesFilter | None = None
+        self,
+        page: Page,
+        main_market: str,
+        period: str,
+        sport: str | None = None,
+        bookies_filter: BookiesFilter | None = None,
     ) -> list[str]:
         """
         Navigate to a main-market tab and enumerate the rendered line names (e.g. "Over/Under +2.5").
@@ -226,14 +235,18 @@ class OddsPortalMarketExtractor:
         Args:
             page (Page): The Playwright page instance.
             main_market (str): The main market name (e.g., "Over/Under", "Asian Handicap").
-            period (str): The match period (e.g., "FullTime").
+            period (str): The match period (e.g., "FullTime"), selected before the lines are read.
+            sport (str, optional): The sport, needed to select the period.
             bookies_filter (BookiesFilter, optional): The bookmaker panel the lines are read with.
 
         Returns:
-            list[str]: The rendered submarket names currently visible on the page.
+            list[str]: The rendered submarket names of that period, [] when the period cannot be verified.
         """
         if not await self.navigation_manager.navigate_to_market_tab(page=page, market_tab_name=main_market):
             self.logger.warning(f"Failed to find or click {main_market} tab while discovering lines")
+            return []
+
+        if not await self._period_is_shown(page, sport, period, main_market):
             return []
 
         await self._show_bookies(page, bookies_filter)
@@ -290,20 +303,8 @@ class OddsPortalMarketExtractor:
                 self.logger.error(f"Failed to find or click {main_market} tab")
                 return []
 
-            # Ensure correct period is selected after market switch. Prefer the
-            # language-independent scope code (works on localized mirrors, §7);
-            # fall back to localized-label matching when no scope is verified.
-            if sport:
-                period_enum = SportPeriodRegistry.from_internal_value(period, sport)
-                if period_enum:
-                    if not await self._select_period(page, sport, period, period_enum):
-                        self.logger.error(
-                            f"Could not verify period '{period}' for {main_market}; "
-                            "returning no odds rather than another period's."
-                        )
-                        return []
-                else:
-                    self.logger.debug(f"Period selection skipped for sport: {sport}")
+            if not await self._period_is_shown(page, sport, period, main_market):
+                return []
 
             await self._show_bookies(page, bookies_filter)
 
@@ -400,6 +401,25 @@ class OddsPortalMarketExtractor:
         if modal_html is None:
             return empty_history_block()
         return self.odds_parser.parse_odds_history_modal(modal_html, reference=reference, tz_name=tz_name)
+
+    async def _period_is_shown(self, page: Page, sport: str | None, period: str, main_market: str) -> bool:
+        """Select the period after a market switch; False when the view cannot be trusted to show it.
+
+        Prefers the language-independent scope code (works on localized mirrors, §7) and falls back to
+        localized-label matching when no scope is verified.
+        """
+        if not sport:
+            return True
+        period_enum = SportPeriodRegistry.from_internal_value(period, sport)
+        if not period_enum:
+            self.logger.debug(f"Period selection skipped for sport: {sport}")
+            return True
+        if await self._select_period(page, sport, period, period_enum):
+            return True
+        self.logger.error(
+            f"Could not verify period '{period}' for {main_market}; returning no odds rather than another period's."
+        )
+        return False
 
     async def _select_period(self, page: Page, sport: str, period: str, period_enum: Enum) -> bool:
         """Select the period; True when the odds on the page can be trusted to be that period's."""

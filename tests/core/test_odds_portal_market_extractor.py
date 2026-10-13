@@ -471,7 +471,11 @@ class TestOddsPortalMarketExtractor:
         assert "over_under_market" not in result
         assert extractor.extract_market_odds.await_count == 2
         extractor._discover_line_names.assert_called_once_with(
-            page=page_mock, main_market="Over/Under", period="FullTime", bookies_filter=BookiesFilter.ALL
+            page=page_mock,
+            main_market="Over/Under",
+            period="FullTime",
+            sport="football",
+            bookies_filter=BookiesFilter.ALL,
         )
 
     async def test_scrape_markets_expands_the_umbrella_from_localized_line_names(self, extractor, page_mock):
@@ -511,7 +515,7 @@ class TestOddsPortalMarketExtractor:
 
         assert set(result) == {"handicap_-4_5_market", "handicap_+4_5_market"}
         extractor._discover_line_names.assert_called_once_with(
-            page=page_mock, main_market="Handicap", period="FullTime", bookies_filter=None
+            page=page_mock, main_market="Handicap", period="FullTime", sport="rugby-league", bookies_filter=None
         )
 
     async def test_scrape_markets_logs_the_lines_an_umbrella_has_no_token_for(self, extractor, page_mock, caplog):
@@ -1195,6 +1199,32 @@ class TestBookiesFilterAfterEachSwitch:
         )
 
         assert events == ["switch", "click All Bookies", "read"]
+
+    async def test_umbrella_lines_are_read_under_the_requested_period(self):
+        """A basketball tab opens on Full Time (scope 2), while the umbrella asks for FT including OT (scope 1)."""
+        extractor, page, _tabs, events = self._setup(shown="Classic Bookies")
+        extractor._select_period = AsyncMock(side_effect=lambda *args: events.append("period") or True)
+
+        await extractor._discover_line_names(
+            page=page,
+            main_market="Over/Under",
+            period="FullIncludingOT",
+            sport="basketball",
+            bookies_filter=BookiesFilter.ALL,
+        )
+
+        assert events == ["switch", "period", "click All Bookies", "read"]
+
+    async def test_no_umbrella_line_is_read_when_the_period_cannot_be_verified(self):
+        extractor, page, _tabs, events = self._setup(shown="Classic Bookies")
+        extractor._select_period = AsyncMock(return_value=False)
+
+        result = await extractor._discover_line_names(
+            page=page, main_market="Over/Under", period="FirstHalf", sport="football"
+        )
+
+        assert result == []
+        assert "read" not in events
 
 
 class TestAMarketWithoutItsData:
