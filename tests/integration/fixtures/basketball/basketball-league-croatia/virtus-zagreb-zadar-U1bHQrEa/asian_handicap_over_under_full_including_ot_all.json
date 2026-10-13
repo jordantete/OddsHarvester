@@ -1,0 +1,71 @@
+[
+    {
+        "scraped_date": "2026-10-13 14:19:16 UTC",
+        "match_date": "2026-10-12 16:00:00 UTC",
+        "season": null,
+        "match_link": "https://www.oddsportal.com/basketball/h2h/virtus-zagreb-Wlg8DmGL/zadar-4Itk3GMs/#U1bHQrEa",
+        "home_team": "Virtus Zagreb",
+        "away_team": "Zadar",
+        "league_name": "Premijer liga",
+        "home_score": "56",
+        "away_score": "87",
+        "partial_results": "(10:27, 12:21, 18:21, 16:18)",
+        "venue": null,
+        "venue_town": null,
+        "venue_country": null,
+        "match_info": null,
+        "over_under_games_162_5_market": [
+            {
+                "odds_over": "1.87",
+                "odds_under": "1.84",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +162.5"
+            }
+        ],
+        "over_under_games_163_5_market": [
+            {
+                "odds_over": "1.83",
+                "odds_under": "1.81",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +163.5"
+            }
+        ],
+        "asian_handicap_games_+8_5_games_market": [
+            {
+                "handicap_team_1": "1.88",
+                "handicap_team_2": "1.76",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Asian Handicap +8.5"
+            }
+        ],
+        "asian_handicap_games_+9_5_games_market": [
+            {
+                "handicap_team_1": "1.91",
+                "handicap_team_2": "1.80",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +9.5"
+            }
+        ],
+        "asian_handicap_games_+10_5_games_market": [
+            {
+                "handicap_team_1": "1.80",
+                "handicap_team_2": "1.90",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap +10.5"
+            }
+        ]
+    }
+]

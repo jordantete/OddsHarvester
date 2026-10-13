@@ -1,0 +1,19 @@
+{
+    "match_id": "U1bHQrEa",
+    "match_url": "https://www.oddsportal.com/basketball/h2h/virtus-zagreb-Wlg8DmGL/zadar-4Itk3GMs/#U1bHQrEa",
+    "sport": "basketball",
+    "league": "basketball-league-croatia",
+    "home_team": "Virtus Zagreb",
+    "away_team": "Zadar",
+    "final_score": {
+        "home": "56",
+        "away": "87"
+    },
+    "match_date": "2026-10-12 16:00:00 UTC",
+    "notes": "",
+    "captured_at": "2026-10-13T14:19:18.855807+00:00",
+    "oddsharvester_version": "0.18.0",
+    "available_fixtures": [
+        "asian_handicap_over_under_full_including_ot_all.json"
+    ]
+}

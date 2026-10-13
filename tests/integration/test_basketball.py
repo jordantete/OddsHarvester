@@ -19,6 +19,20 @@ LAKERS_WARRIORS = {
     "url": "https://www.oddsportal.com/basketball/h2h/golden-state-warriors-SxUtXqch/los-angeles-lakers-ngegZ8bg/#jZvOnVBk",
 }
 
+BURSASPOR_GALATASARAY = {
+    "sport": "basketball",
+    "league": "super-lig-turkey",
+    "match_id": "bursaspor-durmazlar-galatasaray-Ymj4jlAE",
+    "url": "https://www.oddsportal.com/basketball/h2h/bursaspor-durmazlar-O2jT8AmT/galatasaray-QR2OmUw1/#Ymj4jlAE",
+}
+
+VIRTUS_ZAGREB_ZADAR = {
+    "sport": "basketball",
+    "league": "basketball-league-croatia",
+    "match_id": "virtus-zagreb-zadar-U1bHQrEa",
+    "url": "https://www.oddsportal.com/basketball/h2h/virtus-zagreb-Wlg8DmGL/zadar-4Itk3GMs/#U1bHQrEa",
+}
+
 
 @pytest.mark.integration
 class TestBasketballBasicMarkets:
@@ -92,3 +106,28 @@ class TestBasketballPeriods:
             markets=["home_away"],
             period="1st_half",
         )
+
+
+@pytest.mark.integration
+class TestBasketballUmbrellas:
+    """Issue #115: the umbrellas open the lines rendered under FT including OT, and only those."""
+
+    @pytest.mark.parametrize("match", [BURSASPOR_GALATASARAY, VIRTUS_ZAGREB_ZADAR], ids=["bursaspor", "virtus-zagreb"])
+    def test_bb_007_umbrellas_open_the_rendered_lines(self, har_for_match, tmp_path, match):
+        """BB-007: every line the umbrellas expand to carries odds; lines read under another period came back empty."""
+        actual = replay_and_compare(
+            har_for_match,
+            tmp_path,
+            match,
+            "asian_handicap_over_under_full_including_ot_all.json",
+            markets=["over_under", "asian_handicap"],
+            period="full_including_ot",
+        )
+        record = actual[0]
+        lines = {key: value for key, value in record.items() if key.endswith("_market")}
+
+        assert "over_under_market" not in lines
+        assert "asian_handicap_market" not in lines
+        assert any(key.startswith("over_under_games_") for key in lines)
+        assert any(key.startswith("asian_handicap_games_") for key in lines)
+        assert [key for key, value in lines.items() if not value] == []

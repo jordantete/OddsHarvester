@@ -1,0 +1,156 @@
+[
+    {
+        "scraped_date": "2026-10-13 14:18:46 UTC",
+        "match_date": "2026-10-12 16:00:00 UTC",
+        "season": null,
+        "match_link": "https://www.oddsportal.com/basketball/h2h/bursaspor-durmazlar-O2jT8AmT/galatasaray-QR2OmUw1/#Ymj4jlAE",
+        "home_team": "Galatasaray",
+        "away_team": "Bursaspor",
+        "league_name": "Super Lig",
+        "home_score": "88",
+        "away_score": "93",
+        "partial_results": "(20:20, 21:25, 19:21, 28:27)",
+        "venue": null,
+        "venue_town": null,
+        "venue_country": null,
+        "match_info": null,
+        "over_under_games_163_5_market": [
+            {
+                "odds_over": "1.75",
+                "odds_under": "1.75",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +163.5"
+            },
+            {
+                "odds_over": "1.83",
+                "odds_under": "1.87",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +163.5"
+            }
+        ],
+        "over_under_games_164_5_market": [
+            {
+                "odds_over": "1.87",
+                "odds_under": "1.83",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +164.5"
+            }
+        ],
+        "over_under_games_165_5_market": [
+            {
+                "odds_over": "1.90",
+                "odds_under": "1.62",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +165.5"
+            }
+        ],
+        "over_under_games_167_5_market": [
+            {
+                "odds_over": "2.10",
+                "odds_under": "1.50",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Over/Under +167.5"
+            }
+        ],
+        "asian_handicap_games_-11_5_games_market": [
+            {
+                "handicap_team_1": "1.87",
+                "handicap_team_2": "1.65",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Asian Handicap -11.5"
+            }
+        ],
+        "asian_handicap_games_-10_5_games_market": [
+            {
+                "handicap_team_1": "2.05",
+                "handicap_team_2": "1.53",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -10.5"
+            }
+        ],
+        "asian_handicap_games_-9_5_games_market": [
+            {
+                "handicap_team_1": "1.95",
+                "handicap_team_2": "1.60",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -9.5"
+            }
+        ],
+        "asian_handicap_games_-8_5_games_market": [
+            {
+                "handicap_team_1": "1.80",
+                "handicap_team_2": "1.70",
+                "bookmaker_name": "bwin.fr",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -8.5"
+            },
+            {
+                "handicap_team_1": "1.88",
+                "handicap_team_2": "1.76",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Asian Handicap -8.5"
+            }
+        ],
+        "asian_handicap_games_-7_5_games_market": [
+            {
+                "handicap_team_1": "1.83",
+                "handicap_team_2": "1.87",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -7.5"
+            }
+        ],
+        "asian_handicap_games_-6_5_games_market": [
+            {
+                "handicap_team_1": "1.80",
+                "handicap_team_2": "1.90",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "submarket_name": "Asian Handicap -6.5"
+            }
+        ],
+        "asian_handicap_games_-5_5_games_market": [
+            {
+                "handicap_team_1": "1.80",
+                "handicap_team_2": "1.84",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Asian Handicap -5.5"
+            }
+        ],
+        "asian_handicap_games_-4_5_games_market": [
+            {
+                "handicap_team_1": "1.79",
+                "handicap_team_2": "1.85",
+                "bookmaker_name": "Stake.com",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Asian Handicap -4.5"
+            }
+        ]
+    }
+]

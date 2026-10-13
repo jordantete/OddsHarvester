@@ -1,0 +1,19 @@
+{
+    "match_id": "Ymj4jlAE",
+    "match_url": "https://www.oddsportal.com/basketball/h2h/bursaspor-durmazlar-O2jT8AmT/galatasaray-QR2OmUw1/#Ymj4jlAE",
+    "sport": "basketball",
+    "league": "super-lig-turkey",
+    "home_team": "Galatasaray",
+    "away_team": "Bursaspor",
+    "final_score": {
+        "home": "88",
+        "away": "93"
+    },
+    "match_date": "2026-10-12 16:00:00 UTC",
+    "notes": "",
+    "captured_at": "2026-10-13T14:18:49.758894+00:00",
+    "oddsharvester_version": "0.18.0",
+    "available_fixtures": [
+        "asian_handicap_over_under_full_including_ot_all.json"
+    ]
+}
