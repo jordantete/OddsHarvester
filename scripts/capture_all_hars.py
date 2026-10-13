@@ -36,6 +36,7 @@ CAPTURE_MODULE = ("uv", "run", "python", "-m", "tests.integration.helpers.captur
 ODDSHARVESTER = ("uv", "run", "oddsharvester")
 
 from oddsharvester.cli.options import _get_all_periods  # noqa: E402
+from oddsharvester.utils.sport_market_constants import UMBRELLA_MARKETS  # noqa: E402
 from oddsharvester.utils.utils import SPORT_MARKETS_MAPPING  # noqa: E402
 
 
@@ -204,6 +205,8 @@ def _all_market_values() -> tuple[str, ...]:
         for enum_class in enum_classes:
             for m in enum_class:
                 seen.add(m.value)
+    for umbrellas in UMBRELLA_MARKETS.values():
+        seen.update(umbrellas)
     return tuple(sorted(seen, key=lambda s: -len(s)))
 
 

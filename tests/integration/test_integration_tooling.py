@@ -194,3 +194,16 @@ def test_a_successful_special_capture_replaces_both_files(tmp_path, monkeypatch)
     assert capture_all_hars.capture_special(special) is True
     assert (tmp_path / "community" / "x.har").read_text() == "new har"
     assert json.loads((tmp_path / "community" / "x.json").read_text()) == [{"username": "BLAPRO"}]
+
+
+@pytest.mark.parametrize(
+    ("name", "markets"),
+    [
+        ("asian_handicap_over_under_full_including_ot_all.json", ["asian_handicap", "over_under"]),
+        ("handicap_over_under_full_time_all.json", ["handicap", "over_under"]),
+        ("over_under_full_time_all.json", ["over_under"]),
+        ("over_under_1_5_over_under_2_5_full_time_all.json", ["over_under_1_5", "over_under_2_5"]),
+    ],
+)
+def test_a_golden_named_after_umbrellas_derives_its_capture(name, markets):
+    assert capture_all_hars.parse_fixture_filename(name)[0] == markets
