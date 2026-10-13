@@ -2466,6 +2466,22 @@ trailing space (`Arsenal (Eng) `).
 
 The rendered results rows also hold the §28 trap row (hex ids, no fragment). The payload never carries it.
 
+### A results tab can serve its rows as an object
+
+Since 2026-10-12 a team's results tab can hold `rows` as an object keyed by numeric match id (`"10930355": {...}`)
+instead of a list, which crashed 0.17.0 on its first row. Bergs Z. (`SbeTx1o8`, tennis) served an object on
+2026-10-12 and 2026-10-13, a football search crashed the same way on 2026-10-12, and Arsenal's pages 1 and 2 were
+still lists on 2026-10-13. Nothing in the payload announces the form: the list pages carry `onePage` too, and the same
+Bergs page was a list at 08:29 UTC on 2026-10-12, then an object at 12:56 UTC. The upcoming tab stayed a list. The
+object's keys come in ascending match id, so its rows run oldest first, unlike the newest first the page shows;
+nothing depends on that order and the parser keeps it as served.
+
+The object pages seen also held rows whose `url`, `homeParticipantUrl` and `awayParticipantUrl` are null: 1 of 20 on
+Bergs' page 1 on both days, 4 of 40 over pages 1 and 2 on 2026-10-13. It is never the same row from one load to the
+next (Lehecka - Bergs had no url on 10-12 and had one on 10-13, Neumayer - Bergs the other way round), and the list
+pages seen held none. Such a row keeps its teams, kickoff and score with `match_link` null; with no event id to
+deduplicate on, the merge across tabs and pages keeps every one of them.
+
 A broad name search the site has not cached yet takes 15 to 22 s to serve its document, and a first load of "United"
 passed Playwright's 30 s goto timeout; once cached the same page came back in 0.2 s. The scraper retries a timeout,
 which covers it.
@@ -2488,6 +2504,7 @@ would hide it, so the parser compares `searchData.page` with the page asked for.
   asked for.
 - `core/search/search_scraper.py` fails the whole call when one page fails: a partial list would tell a caller that
   a match is not there when a page was only missing.
+- `parse_matches` reads `rows` as a list or as an object's values; `_merge` never deduplicates a row without link.
 
 ### References
 
