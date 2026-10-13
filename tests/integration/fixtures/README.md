@@ -13,8 +13,9 @@ fixtures/
 │   ├── metadata.json
 │   ├── <markets>_<period>_<bookies>.json
 │   └── <markets>_<period>_<bookies>.har
+├── american-football/nfl/
 ├── baseball/mlb/
-├── basketball/nba/
+├── basketball/                         nba/, super-lig-turkey/, basketball-league-croatia/
 ├── community/                          top predictions, the BLAPRO profile, two match-vote pages
 ├── cricket/one-day-international/
 ├── football/
@@ -25,6 +26,9 @@ fixtures/
 │   │   └── upcoming-listing/                       upcoming_listing.json and .har, a league listing
 │   └── super-cup-2025/
 ├── handball/germany-bundesliga/
+├── ice-hockey/khl/
+├── rugby-league/australia-nrl/
+├── rugby-union/france-top-14/
 ├── team/                               teams.json and .har
 ├── tennis/australian-open/
 └── volleyball/italy-superlega/

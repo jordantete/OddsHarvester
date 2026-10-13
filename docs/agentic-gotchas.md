@@ -598,11 +598,30 @@ first (the same for `-2`, `-3`, `-4`), and a missing `+2` would have opened
   comes back empty. ATP Beijing showed `+1.5` twice in its Asian Handicap list,
   a sets row and a games row, neither labelled (§8).
 
-The umbrella tokens (`over_under`, `asian_handicap`) read their lines the same
-way: `line_name_to_token` takes the last whitespace token of the rendered name
-as the line, so `Más/Menos de +2.5` and `Over/Under +2.5` both give
-`over_under_2_5`. It used to require the English prefix, and `-m over_under`
-found no line at all on `cuotasahora.com`.
+The umbrella tokens (`UMBRELLA_MARKETS`: `over_under`, `asian_handicap`, rugby's
+`handicap`) read their lines the same way: `line_name_to_token` takes the last
+whitespace token of the rendered name as the line and looks it up among the
+sport's registry labels under that tab, keyed by `submarket_match_text`, so
+`Más/Menos de +2.5` and `Over/Under +2.5` both give `over_under_2_5`. It used to
+require the English prefix, and `-m over_under` found no line at all on
+`cuotasahora.com`.
+
+An umbrella reads its lines under the period asked for. A market tab opens on
+the scope the URL already holds, not on the requested period: basketball's
+Over/Under and Asian Handicap tabs fetched scope 2 (Full Time) while FT
+including OT is scope 1, so a discovery that read the tab as it opened sent 46
+lines to the row click, 34 of them absent under scope 1, each a 20 s row wait
+(Bursaspor-Galatasaray, 2026-10-13: 11 minutes, against 7 seconds once fixed). `_discover_line_names` selects the period
+with `_period_is_shown`, the check `extract_market_odds` runs, before it reads.
+
+An umbrella opens only lines that have a token. The #115 reporter saw whole
+basketball lines (`+161`, `-5`) between the .5 ones; from a French IP the same
+two matches showed .5 lines only, while handball, baseball, KHL and NFL pages
+did render whole lines. Every umbrella ladder but football's now steps by 0.5
+(`test_each_umbrella_ladder_steps_by_half_a_point`), and a rendered line with no
+token is logged: `Umbrella market '<token>' skipped lines with no token: ...`.
+Lines outside the ladders do render (Top 14 handicaps down to `-40.5`, MLB
+totals from `+1.5`, quarter lines on KHL totals); the warning names them.
 
 ### The period selector has the same trap — fixed via the fragment scope code
 
