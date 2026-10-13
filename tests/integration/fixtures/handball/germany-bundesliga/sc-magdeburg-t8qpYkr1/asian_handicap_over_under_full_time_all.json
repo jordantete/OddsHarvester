@@ -1,6 +1,6 @@
 [
     {
-        "scraped_date": "2026-10-13 14:22:12 UTC",
+        "scraped_date": "2026-10-13 15:18:14 UTC",
         "match_date": "2026-05-10 14:30:00 UTC",
         "season": null,
         "match_link": "https://www.oddsportal.com/handball/h2h/hsv-hamburg-2XSOzhbr/sc-magdeburg-t8qpYkr1/#vglQ4eEN",
@@ -14,6 +14,24 @@
         "venue_town": null,
         "venue_country": null,
         "match_info": null,
+        "over_under_30_5_market": [
+            {
+                "odds_over": "1.68",
+                "odds_under": "1.84",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +30.5"
+            }
+        ],
+        "over_under_31_5_market": [
+            {
+                "odds_over": "1.92",
+                "odds_under": "1.64",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +31.5"
+            }
+        ],
         "over_under_60_5_market": [
             {
                 "odds_over": "1.48",

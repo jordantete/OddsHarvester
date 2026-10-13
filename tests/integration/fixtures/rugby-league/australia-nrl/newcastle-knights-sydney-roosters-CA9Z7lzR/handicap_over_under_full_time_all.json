@@ -1,6 +1,6 @@
 [
     {
-        "scraped_date": "2026-10-13 14:29:29 UTC",
+        "scraped_date": "2026-10-13 15:13:11 UTC",
         "match_date": "2026-10-04 08:30:00 UTC",
         "season": null,
         "match_link": "https://www.oddsportal.com/rugby-league/h2h/newcastle-knights-YqPIXNl6/sydney-roosters-AHjFxceb/#CA9Z7lzR",
@@ -400,6 +400,19 @@
                 "bookmaker_name": "Betclic.fr",
                 "period": "FullTime",
                 "submarket_name": "Over/Under +49.5"
+            }
+        ],
+        "handicap_-18_5_market": [
+            {
+                "handicap_team_1": "3.00",
+                "handicap_team_2": "1.20",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "blocked_outcomes": [
+                    "handicap_team_1",
+                    "handicap_team_2"
+                ],
+                "submarket_name": "Handicap -18.5"
             }
         ],
         "handicap_-17_5_market": [

@@ -75,3 +75,4 @@ class TestBaseballUmbrella:
         assert "over_under_market" not in lines
         assert [key for key, value in lines.items() if not value] == []
         assert lines.get("over_under_8_0_market")
+        assert lines.get("over_under_2_5_market")

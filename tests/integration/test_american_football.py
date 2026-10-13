@@ -31,3 +31,4 @@ class TestAmericanFootballUmbrellas:
         assert [key for key, value in lines.items() if not value] == []
         assert any(key.startswith("asian_handicap_") for key in lines)
         assert lines.get("over_under_44_0_market")
+        assert lines.get("over_under_64_5_market")

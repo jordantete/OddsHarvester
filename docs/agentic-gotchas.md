@@ -620,8 +620,20 @@ two matches showed .5 lines only, while handball, baseball, KHL and NFL pages
 did render whole lines. Every umbrella ladder but football's now steps by 0.5
 (`test_each_umbrella_ladder_steps_by_half_a_point`), and a rendered line with no
 token is logged: `Umbrella market '<token>' skipped lines with no token: ...`.
-Lines outside the ladders do render (Top 14 handicaps down to `-40.5`, MLB
-totals from `+1.5`, quarter lines on KHL totals); the warning names them.
+The first captures rendered lines past the old ladder ends (Top 14 handicaps
+down to `-40.5` and totals up to `+79.5`, NRL `-18.5`, NFL totals up to
+`+64.5`, MLB totals from `+1.5` to `+14.5`, handball `+30.5`), so those ladders
+now span rugby totals `+20.5` to `+90.5` and handicaps `±45.5`, NFL totals to
+`+70.5`, MLB totals `+0.5` to `+15.5` and handball totals from `+30.5`. Quarter
+lines on KHL totals (`+4.75`) still have no token.
+
+Discovery reads the page once, without waiting, and a late answer can still
+replace the view under it. Clicking the bookies panel on the opening 1X2 view
+refetches 1X2; when that answer lands with the Over/Under switch (both requests
+sent in the same millisecond), the read finds a single `Over/Under 0` row and
+the umbrella logs that it discovered no lines (Top 14 and handball recaptures,
+2026-10-13, 2 of 5 runs; a rerun read 27 and 9 totals). Not fixed: a discovery
+that waits for the line rows to settle would close it.
 
 ### The period selector has the same trap — fixed via the fragment scope code
 

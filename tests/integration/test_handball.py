@@ -71,3 +71,4 @@ class TestHandballBasicMarkets:
         assert any(key.startswith("over_under_") for key in lines)
         assert any(key.startswith("handicap_") for key in lines)
         assert lines.get("over_under_62_0_market")
+        assert lines.get("over_under_30_5_market")

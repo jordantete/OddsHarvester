@@ -22,12 +22,15 @@ TOP_14_MATCH = {
 @pytest.mark.integration
 class TestRugbyUmbrellas:
     @pytest.mark.parametrize(
-        ("match", "filled_gap"),
-        [(NRL_MATCH, "handicap_-2_5_market"), (TOP_14_MATCH, "over_under_53_5_market")],
+        ("match", "new_lines"),
+        [
+            (NRL_MATCH, ("handicap_-2_5_market", "handicap_-18_5_market")),
+            (TOP_14_MATCH, ("over_under_53_5_market", "handicap_-40_5_market", "over_under_79_5_market")),
+        ],
         ids=["rugby-league", "rugby-union"],
     )
-    def test_rg_001_umbrellas(self, har_for_match, tmp_path, match, filled_gap):
-        """RG-001: over_under and handicap open every rendered line, the .5 lines the ladder used to miss included."""
+    def test_rg_001_umbrellas(self, har_for_match, tmp_path, match, new_lines):
+        """RG-001: over_under and handicap open every rendered line, the ones the old ladder missed included."""
         actual = replay_and_compare(
             har_for_match,
             tmp_path,
@@ -43,4 +46,4 @@ class TestRugbyUmbrellas:
         assert [key for key, value in lines.items() if not value] == []
         assert any(key.startswith("over_under_") for key in lines)
         assert any(key.startswith("handicap_") for key in lines)
-        assert lines.get(filled_gap)
+        assert [key for key in new_lines if not lines.get(key)] == []

@@ -1,6 +1,6 @@
 [
     {
-        "scraped_date": "2026-10-13 14:27:29 UTC",
+        "scraped_date": "2026-10-13 15:13:39 UTC",
         "match_date": "2026-10-12 00:20:00 UTC",
         "season": null,
         "match_link": "https://www.oddsportal.com/american-football/h2h/atlanta-falcons-hClIiQIR/baltimore-ravens-pUern3T0/#U7cApaRH",
@@ -636,6 +636,58 @@
                     "odds_under"
                 ],
                 "submarket_name": "Over/Under +60.5"
+            }
+        ],
+        "over_under_61_5_market": [
+            {
+                "odds_over": "3.75",
+                "odds_under": "1.10",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +61.5"
+            }
+        ],
+        "over_under_62_5_market": [
+            {
+                "odds_over": "3.35",
+                "odds_under": "1.13",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +62.5"
+            }
+        ],
+        "over_under_63_5_market": [
+            {
+                "odds_over": "3.55",
+                "odds_under": "1.11",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +63.5"
+            }
+        ],
+        "over_under_64_5_market": [
+            {
+                "odds_over": "3.75",
+                "odds_under": "1.10",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullIncludingOT",
+                "blocked_outcomes": [
+                    "odds_over",
+                    "odds_under"
+                ],
+                "submarket_name": "Over/Under +64.5"
             }
         ],
         "asian_handicap_-18_5_market": [
