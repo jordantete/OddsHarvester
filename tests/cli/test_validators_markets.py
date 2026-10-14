@@ -90,6 +90,17 @@ def test_the_bad_market_message_gives_a_family_its_lowest_and_highest_line():
     assert "asian_handicap_-8_5_games ... asian_handicap_+8_5_games (14)" in _bad_market_message("tennis")
 
 
+@pytest.mark.parametrize("sport", ["tennis", "volleyball"])
+def test_the_bad_market_message_lists_each_correct_score(sport):
+    """A correct score is not a line: 6:4 and 3:1 cannot be told from a range's ends."""
+    message = _bad_market_message(sport)
+
+    scores = [token for token in get_supported_markets(sport) if token.startswith("correct_score_")]
+    assert scores
+    assert all(score in message for score in scores)
+    assert " ... correct_score_" not in message
+
+
 @pytest.mark.parametrize("sport", [sport.value for sport in Sport])
 def test_the_bad_market_message_counts_each_supported_token_once_and_stays_short(sport):
     message = _bad_market_message(sport)

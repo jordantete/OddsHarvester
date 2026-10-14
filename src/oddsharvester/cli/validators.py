@@ -124,7 +124,8 @@ def validate_markets(ctx, param, value):
     return value
 
 
-_LINE_TOKEN_RE = re.compile(r"^(?P<family>.+?_)(?P<line>[-+]?\d+(?:_\d+)?)(?P<axis>_[a-z]+)?$")
+# Correct scores are listed whole, since a range's ends would hide 6:4.
+_LINE_TOKEN_RE = re.compile(r"^(?!correct_score_)(?P<family>.+?_)(?P<line>[-+]?\d+(?:_\d+)?)(?P<axis>_[a-z]+)?$")
 
 
 def _bad_markets_message(sport: Sport, invalid: list[str], supported: list[str], umbrellas: list[str]) -> str:
