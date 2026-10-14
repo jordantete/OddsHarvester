@@ -71,6 +71,7 @@ class FootballOverUnderMarket(Enum):
     """Over/Under market values for football."""
 
     OVER_UNDER_0_5 = "over_under_0_5"
+    OVER_UNDER_0_75 = "over_under_0_75"
     OVER_UNDER_1 = "over_under_1"
     OVER_UNDER_1_25 = "over_under_1_25"
     OVER_UNDER_1_5 = "over_under_1_5"
@@ -95,7 +96,12 @@ class FootballOverUnderMarket(Enum):
     OVER_UNDER_6_25 = "over_under_6_25"
     OVER_UNDER_6_5 = "over_under_6_5"
     OVER_UNDER_6_75 = "over_under_6_75"
+    OVER_UNDER_7 = "over_under_7"
+    OVER_UNDER_7_25 = "over_under_7_25"
     OVER_UNDER_7_5 = "over_under_7_5"
+    OVER_UNDER_7_75 = "over_under_7_75"
+    OVER_UNDER_8 = "over_under_8"
+    OVER_UNDER_8_25 = "over_under_8_25"
     OVER_UNDER_8_5 = "over_under_8_5"
 
 
@@ -116,6 +122,9 @@ class FootballAsianHandicapMarket(Enum):
     """Asian Handicap market values for football (including quarters)."""
 
     HANDICAP_MINUS_5 = "asian_handicap_-5"
+    HANDICAP_MINUS_4_75 = "asian_handicap_-4_75"
+    HANDICAP_MINUS_4_5 = "asian_handicap_-4_5"
+    HANDICAP_MINUS_4_25 = "asian_handicap_-4_25"
     HANDICAP_MINUS_4 = "asian_handicap_-4"
     HANDICAP_MINUS_3_75 = "asian_handicap_-3_75"
     HANDICAP_MINUS_3_5 = "asian_handicap_-3_5"
@@ -141,7 +150,18 @@ class FootballAsianHandicapMarket(Enum):
     HANDICAP_PLUS_1_5 = "asian_handicap_+1_5"
     HANDICAP_PLUS_1_75 = "asian_handicap_+1_75"
     HANDICAP_PLUS_2 = "asian_handicap_+2"
+    HANDICAP_PLUS_2_25 = "asian_handicap_+2_25"
     HANDICAP_PLUS_2_5 = "asian_handicap_+2_5"
+    HANDICAP_PLUS_2_75 = "asian_handicap_+2_75"
+    HANDICAP_PLUS_3 = "asian_handicap_+3"
+    HANDICAP_PLUS_3_25 = "asian_handicap_+3_25"
+    HANDICAP_PLUS_3_5 = "asian_handicap_+3_5"
+    HANDICAP_PLUS_3_75 = "asian_handicap_+3_75"
+    HANDICAP_PLUS_4 = "asian_handicap_+4"
+    HANDICAP_PLUS_4_25 = "asian_handicap_+4_25"
+    HANDICAP_PLUS_4_5 = "asian_handicap_+4_5"
+    HANDICAP_PLUS_4_75 = "asian_handicap_+4_75"
+    HANDICAP_PLUS_5 = "asian_handicap_+5"
 
 
 UMBRELLA_MARKETS: dict[Sport, dict[str, str]] = {

@@ -11,7 +11,7 @@ from oddsharvester.utils.utils import get_supported_markets
 
 # Measured before the duplicated rugby and ice hockey members went; a new market updates its sport's count.
 ACCEPTED_TOKEN_COUNTS = {
-    Sport.FOOTBALL: 66,
+    Sport.FOOTBALL: 86,
     Sport.TENNIS: 148,
     Sport.BASKETBALL: 426,
     Sport.RUGBY_LEAGUE: 328,
@@ -116,6 +116,16 @@ def test_each_umbrella_ladder_steps_by_half_a_point(sport, registry):
         lo, hi = min(values), max(values)
         expected = {lo + step / 2 for step in range(round((hi - lo) * 2) + 1)}
         assert sorted(expected - values) == [], f"{sport.value} {tab} misses lines"
+
+
+@pytest.mark.parametrize(("tab", "lo", "hi"), [("Over/Under", 0.5, 8.5), ("Asian Handicap", -5, 5)])
+def test_football_umbrella_ladders_step_by_a_quarter(tab, lo, hi, registry):
+    values = {
+        float(spec.specific_market.rsplit(" ", 1)[-1])
+        for spec in registry[Sport.FOOTBALL].values()
+        if spec.main_market == tab
+    }
+    assert values == {lo + step / 4 for step in range(round((hi - lo) * 4) + 1)}
 
 
 def test_default_market_codes_name_sports_and_tab_codes():
