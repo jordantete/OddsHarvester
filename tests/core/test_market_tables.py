@@ -16,7 +16,7 @@ ACCEPTED_TOKEN_COUNTS = {
     Sport.BASKETBALL: 426,
     Sport.RUGBY_LEAGUE: 328,
     Sport.RUGBY_UNION: 328,
-    Sport.ICE_HOCKEY: 26,
+    Sport.ICE_HOCKEY: 49,
     Sport.BASEBALL: 33,
     Sport.AMERICAN_FOOTBALL: 228,
     Sport.HANDBALL: 124,
@@ -42,6 +42,9 @@ ICE_HOCKEY_TOKENS = {
     "double_chance",
     *(f"over_under_{n}_5" for n in range(1, 12)),
     *(f"over_under_{n}_0" for n in range(2, 12)),
+    *(f"asian_handicap_{sign}{n}_5" for sign in "+-" for n in range(6)),
+    *(f"asian_handicap_{sign}{n}_0" for sign in "+-" for n in range(1, 6)),
+    "asian_handicap_0",
 }
 
 

@@ -169,7 +169,7 @@ UMBRELLA_MARKETS: dict[Sport, dict[str, str]] = {
     Sport.BASKETBALL: {"over_under": "Over/Under", "asian_handicap": "Asian Handicap"},
     Sport.AMERICAN_FOOTBALL: {"over_under": "Over/Under", "asian_handicap": "Asian Handicap"},
     Sport.HANDBALL: {"over_under": "Over/Under", "asian_handicap": "Asian Handicap"},
-    Sport.ICE_HOCKEY: {"over_under": "Over/Under"},
+    Sport.ICE_HOCKEY: {"over_under": "Over/Under", "asian_handicap": "Asian Handicap"},
     Sport.BASEBALL: {"over_under": "Over/Under"},
     Sport.RUGBY_LEAGUE: {"over_under": "Over/Under", "handicap": "Handicap"},
     Sport.RUGBY_UNION: {"over_under": "Over/Under", "handicap": "Handicap"},
@@ -1184,6 +1184,34 @@ class IceHockeyOverUnderMarket(Enum):
     OVER_UNDER_10_5 = "over_under_10_5"
     OVER_UNDER_11_0 = "over_under_11_0"
     OVER_UNDER_11_5 = "over_under_11_5"
+
+
+class IceHockeyAsianHandicapMarket(Enum):
+    """Asian Handicap market values for ice hockey."""
+
+    HANDICAP_MINUS_5_5 = "asian_handicap_-5_5"
+    HANDICAP_MINUS_5_0 = "asian_handicap_-5_0"
+    HANDICAP_MINUS_4_5 = "asian_handicap_-4_5"
+    HANDICAP_MINUS_4_0 = "asian_handicap_-4_0"
+    HANDICAP_MINUS_3_5 = "asian_handicap_-3_5"
+    HANDICAP_MINUS_3_0 = "asian_handicap_-3_0"
+    HANDICAP_MINUS_2_5 = "asian_handicap_-2_5"
+    HANDICAP_MINUS_2_0 = "asian_handicap_-2_0"
+    HANDICAP_MINUS_1_5 = "asian_handicap_-1_5"
+    HANDICAP_MINUS_1_0 = "asian_handicap_-1_0"
+    HANDICAP_MINUS_0_5 = "asian_handicap_-0_5"
+    HANDICAP_ZERO = "asian_handicap_0"
+    HANDICAP_PLUS_0_5 = "asian_handicap_+0_5"
+    HANDICAP_PLUS_1_0 = "asian_handicap_+1_0"
+    HANDICAP_PLUS_1_5 = "asian_handicap_+1_5"
+    HANDICAP_PLUS_2_0 = "asian_handicap_+2_0"
+    HANDICAP_PLUS_2_5 = "asian_handicap_+2_5"
+    HANDICAP_PLUS_3_0 = "asian_handicap_+3_0"
+    HANDICAP_PLUS_3_5 = "asian_handicap_+3_5"
+    HANDICAP_PLUS_4_0 = "asian_handicap_+4_0"
+    HANDICAP_PLUS_4_5 = "asian_handicap_+4_5"
+    HANDICAP_PLUS_5_0 = "asian_handicap_+5_0"
+    HANDICAP_PLUS_5_5 = "asian_handicap_+5_5"
 
 
 class AmericanFootballMarket(Enum):

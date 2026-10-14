@@ -25,6 +25,7 @@ from oddsharvester.utils.sport_market_constants import (
     FootballEuropeanHandicapMarket,
     FootballMarket,
     FootballOverUnderMarket,
+    IceHockeyAsianHandicapMarket,
     IceHockeyMarket,
     IceHockeyOverUnderMarket,
     RugbyHandicapMarket,
@@ -78,6 +79,7 @@ EXPECTED_MARKETS = {
     Sport.ICE_HOCKEY: [
         *[market.value for market in IceHockeyMarket],
         *[market.value for market in IceHockeyOverUnderMarket],
+        *[market.value for market in IceHockeyAsianHandicapMarket],
     ],
     Sport.BASEBALL: [
         *[market.value for market in BaseballMarket],

@@ -63,6 +63,9 @@ def test_a_line_maps_to_its_sport_s_token(sport, main, name, expected):
         ("baseball", "Over/Under", "Over/Under +1.5", "over_under_1_5"),
         ("baseball", "Over/Under", "Over/Under +14", "over_under_14_0"),
         ("handball", "Over/Under", "Over/Under +30.5", "over_under_30_5"),
+        ("ice-hockey", "Asian Handicap", "Asian Handicap -1.5", "asian_handicap_-1_5"),
+        ("ice-hockey", "Asian Handicap", "Asian Handicap -2", "asian_handicap_-2_0"),
+        ("ice-hockey", "Asian Handicap", "Asian Handicap 0", "asian_handicap_0"),
     ],
 )
 def test_a_whole_or_filled_line_maps_to_its_token(sport, main, name, expected):
@@ -75,7 +78,7 @@ def test_a_line_two_tokens_share_maps_to_none():
 
 
 def test_a_tab_the_sport_does_not_register_maps_to_none():
-    assert line_name_to_token("ice-hockey", "Asian Handicap", "Asian Handicap -1.5") is None
+    assert line_name_to_token("baseball", "Asian Handicap", "Asian Handicap -1.5") is None
 
 
 def test_a_name_made_of_a_bare_number_maps_to_none():

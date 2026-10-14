@@ -12,6 +12,7 @@ from oddsharvester.utils.sport_market_constants import (
     FootballOverUnderMarket,
     HandballAsianHandicapMarket,
     HandballOverUnderMarket,
+    IceHockeyAsianHandicapMarket,
     IceHockeyOverUnderMarket,
     RugbyHandicapMarket,
     RugbyOverUnderMarket,
@@ -384,6 +385,20 @@ class SportMarketRegistrar:
                         main_market="Over/Under",
                         specific_market=f"Over/Under +{numeric_part}",
                         odds_labels=("odds_over", "odds_under"),
+                    )
+                },
+            )
+
+        # Asian Handicap Markets
+        for handicap in IceHockeyAsianHandicapMarket:
+            numeric_part = format_line_number(handicap.value.replace("asian_handicap_", ""))
+            SportMarketRegistry.register(
+                Sport.ICE_HOCKEY,
+                {
+                    handicap.value: MarketSpec(
+                        main_market="Asian Handicap",
+                        specific_market=f"Asian Handicap {numeric_part}",
+                        odds_labels=("handicap_team_1", "handicap_team_2"),
                     )
                 },
             )
