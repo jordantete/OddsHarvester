@@ -82,13 +82,15 @@ oddsharvester search --team-id hUyau0Vc --headless
 | 🏐 Volleyball        | `home_away` `total_sets_over/under` `total_points_over/under` `asian_handicap` `correct_score` |
 | 🏏 Cricket           | `home_away`                                                                                    |
 
-> **Umbrella tokens:** pass one as `--market` and it expands at scrape time to every line OddsPortal renders for that match under the period asked for (e.g. `over_under_1_5_market`, `over_under_2_5_market`, …), instead of listing each line by hand. It opens only lines that have a token, and names the rendered lines it skipped in a warning. Outside football a whole line ends in `_0` (`over_under_games_161_0`, `handicap_+3_0`) and the 0 line has no suffix.
+> **Umbrella tokens:** pass one as `--market` and it expands at scrape time to every line OddsPortal renders for that match under the period asked for (e.g. `over_under_1_5_market`, `over_under_2_5_market`, …), instead of listing each line by hand. It opens only lines that have a token, and names the rendered lines it skipped in a warning. Outside football a whole line is written `<n>_0` (`over_under_games_161_0`, `asian_handicap_games_-5_0_games`, `handicap_+3_0`), except the 0 line (`handicap_0`, `asian_handicap_games_0_games`).
 >
 > | Sport | Umbrella tokens |
 > |---|---|
 > | Football, basketball, American football, handball | `over_under`, `asian_handicap` |
 > | Ice hockey, baseball | `over_under` |
 > | Rugby league, rugby union | `over_under`, `handicap` |
+>
+> Handball's `asian_handicap` expands to `handicap_*` keys, and rugby's handicap umbrella is `handicap`, read from the Asian Handicap tab.
 
 > **Tennis and volleyball lines:** OddsPortal prints no `Sets`, `Games` or `Points` word on a line, and each axis's ladder can show any value in its range, so a line whose value falls within the other axis's range cannot be told apart on the page. Refused: every tennis sets Asian Handicap line; tennis games AH `-2.5` and `+2.5`; tennis O/U sets and games from `6.5` to `10.5`, whole games lines `7` to `10` included; volleyball sets and points AH `-2.5`, `-1.5`, `+1.5`, `+2.5`. They come back empty with a warning naming the other axis.
 
