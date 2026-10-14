@@ -1,6 +1,7 @@
 """Click callback validators for OddsHarvester CLI."""
 
 from datetime import UTC, datetime, timedelta
+import difflib
 import re
 from urllib.parse import urlsplit
 
@@ -118,11 +119,42 @@ def validate_markets(ctx, param, value):
     invalid = [m for m in value if m not in supported and m not in umbrella_tokens]
 
     if invalid:
-        raise click.BadParameter(
-            f"Invalid market(s) for {sport.value}: {', '.join(invalid)}. Supported: {', '.join(supported)}"
-        )
+        raise click.BadParameter(_bad_markets_message(sport, invalid, supported, list(umbrella_tokens)))
 
     return value
+
+
+_LINE_TOKEN_RE = re.compile(r"^(?P<family>.+?_)(?P<line>[-+]?\d+(?:_\d+)?)(?P<axis>_[a-z]+)?$")
+
+
+def _bad_markets_message(sport: Sport, invalid: list[str], supported: list[str], umbrellas: list[str]) -> str:
+    """The closest tokens, the sport's umbrellas, then the supported tokens with each line family cut to its ends."""
+    closest = dict.fromkeys(
+        match for market in invalid for match in difflib.get_close_matches(market, supported + umbrellas, n=3)
+    )
+    singles: list[str] = []
+    families: dict[tuple[str, str], list[tuple[float, str]]] = {}
+    for token in supported:
+        line = _LINE_TOKEN_RE.match(token)
+        if line:
+            key = (line["family"], line["axis"] or "")
+            families.setdefault(key, []).append((float(line["line"].replace("_", ".")), token))
+        else:
+            singles.append(token)
+    ranges = []
+    for lines in families.values():
+        if len(lines) == 1:
+            singles.append(lines[0][1])
+        else:
+            ranges.append(f"{min(lines)[1]} ... {max(lines)[1]} ({len(lines)})")
+
+    lines = [f"Invalid market(s) for {sport.value}: {', '.join(invalid)}."]
+    if closest:
+        lines.append(f"Closest: {', '.join(closest)}.")
+    if umbrellas:
+        lines.append(f"Umbrellas (every line on the page): {', '.join(umbrellas)}.")
+    lines.append("Supported: " + ",\n  ".join(([", ".join(singles)] if singles else []) + ranges) + ".")
+    return "\n".join(lines)
 
 
 def _is_league_path_of(sport: Sport, league: str) -> bool:
