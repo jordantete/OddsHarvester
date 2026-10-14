@@ -1317,6 +1317,35 @@ class TestAMarketWithoutItsData:
         )
         extractor.odds_history_extractor.extract_odds_history_for_bookmaker.assert_not_awaited()
 
+    async def test_a_line_hidden_by_another_markets_late_answer_raises(self, extractor, page_mock):
+        """The 1X2 answer renders a lone 'Over/Under 0' row, so '+2.5' is never found (gotchas §27)."""
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.select_specific_market = AsyncMock(return_value=False)
+        extractor.navigation_manager.raise_if_another_market_shown = AsyncMock(side_effect=MarketDataError("1X2"))
+
+        with pytest.raises(MarketDataError):
+            await extractor.extract_market_odds(
+                page=page_mock,
+                main_market="Over/Under",
+                specific_market="Over/Under +2.5",
+                odds_labels=["odds_over", "odds_under"],
+            )
+
+    async def test_a_preview_line_hidden_by_another_markets_late_answer_raises(self, extractor, page_mock):
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.submarket_extractor.extract_visible_submarkets_passive = AsyncMock(return_value=[])
+        extractor.navigation_manager.select_specific_market = AsyncMock(return_value=False)
+        extractor.navigation_manager.raise_if_another_market_shown = AsyncMock(side_effect=MarketDataError("1X2"))
+
+        with pytest.raises(MarketDataError):
+            await extractor.extract_market_odds(
+                page=page_mock,
+                main_market="Over/Under",
+                specific_market="Over/Under +2.5",
+                odds_labels=["odds_over", "odds_under"],
+                preview_submarkets_only=True,
+            )
+
     async def test_a_preview_read_under_another_markets_late_answer_raises(self, extractor, page_mock):
         extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
         extractor.navigation_manager.raise_if_another_market_shown = AsyncMock(side_effect=MarketDataError("1X2"))

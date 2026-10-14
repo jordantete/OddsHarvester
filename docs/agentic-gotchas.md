@@ -2360,9 +2360,14 @@ asked again on a page whose URL already names it, where the switch is skipped
 since writing the same hash renders nothing, and the data the view already
 holds are checked the same way.
 
+After the read, and after a line it could not select, `extract_market_odds`
+checks the last answer recorded once more (`raise_if_another_market_shown`, the
+check an umbrella's line discovery runs, §7), so another market's answer that
+rendered before the read fails the match too.
+
 Not covered: the tab-click path (in-play views, markets without a hash code);
 and the refresh polls of a match not started (`requestPreMatch.refresh`, every
-15 s by default), which re-render the table from answers no switch checks.
+15 s by default) that land after the read.
 
 `tests/integration/test_football.py::TestAMarketWhoseDataDidNotCome` replays
 each case by editing a HAR (replays abort a request the HAR does not hold).
@@ -2370,7 +2375,8 @@ each case by editing a HAR (replays abort a request the HAR does not hold).
 ### References
 
 - `core/browser/view_data.py`: `VIEW_DATA_HOOK_JS`, `VIEW_DATA_JS`.
-- `core/browser/market_navigation.py`: `switch_view`, `loaded_view`, `MarketTabNavigator._navigate_by_hash`.
+- `core/browser/market_navigation.py`: `switch_view`, `loaded_view`, `MarketTabNavigator._navigate_by_hash`,
+  `MarketTabNavigator.raise_if_another_market_shown`.
 - `core/odds_portal_selectors.py`: `MARKET_FEED_IDS`.
 - `core/exceptions.py`: `MarketDataError`.
 - §23 (429 on data requests), §26 (the panel every switch resets).

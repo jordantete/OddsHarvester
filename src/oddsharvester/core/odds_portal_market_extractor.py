@@ -324,6 +324,9 @@ class OddsPortalMarketExtractor:
                     if specific_market and not await self.navigation_manager.select_specific_market(
                         page=page, specific_market=specific_market, main_market=main_market
                     ):
+                        await self.navigation_manager.raise_if_another_market_shown(
+                            page=page, market_tab_name=main_market
+                        )
                         self.logger.error(f"Failed to find or select {specific_market} within {main_market}")
                         return []
 
@@ -340,6 +343,7 @@ class OddsPortalMarketExtractor:
                 if specific_market and not await self.navigation_manager.select_specific_market(
                     page=page, specific_market=specific_market, main_market=main_market
                 ):
+                    await self.navigation_manager.raise_if_another_market_shown(page=page, market_tab_name=main_market)
                     self.logger.error(f"Failed to find or select {specific_market} within {main_market}")
                     return []
 
