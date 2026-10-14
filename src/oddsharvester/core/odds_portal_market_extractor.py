@@ -348,6 +348,8 @@ class OddsPortalMarketExtractor:
                     html_content=html_content, period=period, odds_labels=odds_labels, target_bookmaker=target_bookmaker
                 )
 
+            await self.navigation_manager.raise_if_another_market_shown(page=page, market_tab_name=main_market)
+
             # Stamp the market onto each dict (issue #78): the line for a submarket, the
             # market label itself otherwise, so every cell is self-describing. Passive rows
             # always carry their own name, so setdefault never overwrites them.

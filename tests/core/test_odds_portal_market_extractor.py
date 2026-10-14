@@ -1276,6 +1276,46 @@ class TestAMarketWithoutItsData:
 
         page_mock.content.assert_not_awaited()
 
+    async def test_a_line_read_under_another_markets_late_answer_raises(self, extractor, page_mock):
+        """A 1X2 answer landing with the switch shows 'Asian Handicap 0' carrying the 1X2 odds (gotchas §27)."""
+        read_before_check = []
+
+        async def another_market_shown(page, market_tab_name):
+            read_before_check.append(page_mock.content.await_count == 1)
+            raise MarketDataError("1X2")
+
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.select_specific_market = AsyncMock(return_value=True)
+        extractor.navigation_manager.raise_if_another_market_shown = AsyncMock(side_effect=another_market_shown)
+        extractor.odds_history_extractor.extract_odds_history_for_bookmaker = AsyncMock()
+
+        with pytest.raises(MarketDataError):
+            await extractor.extract_market_odds(
+                page=page_mock,
+                main_market="Asian Handicap",
+                specific_market="Asian Handicap 0",
+                odds_labels=["1", "2"],
+                scrape_odds_history=True,
+            )
+
+        assert read_before_check == [True]
+        extractor.navigation_manager.raise_if_another_market_shown.assert_awaited_once_with(
+            page=page_mock, market_tab_name="Asian Handicap"
+        )
+        extractor.odds_history_extractor.extract_odds_history_for_bookmaker.assert_not_awaited()
+
+    async def test_a_preview_read_under_another_markets_late_answer_raises(self, extractor, page_mock):
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.raise_if_another_market_shown = AsyncMock(side_effect=MarketDataError("1X2"))
+        extractor.submarket_extractor.extract_visible_submarkets_passive = AsyncMock(
+            return_value=[{"submarket_name": "Asian Handicap 0", "bookmaker_name": "B1"}]
+        )
+
+        with pytest.raises(MarketDataError):
+            await extractor.extract_market_odds(
+                page=page_mock, main_market="Asian Handicap", odds_labels=["1", "2"], preview_submarkets_only=True
+            )
+
     async def test_the_next_markets_are_not_read_once_one_lost_its_data(self, extractor, page_mock):
         extractor.extract_market_odds = AsyncMock(side_effect=[[{"bookmaker_name": "B1"}], MarketDataError("no data")])
 

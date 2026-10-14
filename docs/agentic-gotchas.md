@@ -638,7 +638,9 @@ token there. `_market_shown` lets a switch through once any recorded answer is
 the requested market, so after its read the discovery calls
 `raise_if_another_market_shown`: the last answer recorded for the match must be
 the tab's market (when the match offers it), else `MarketDataError` fails the
-match and the run retries it.
+match and the run retries it. `extract_market_odds` runs the same check after it
+reads a table, so a line asked for by name (`-m asian_handicap_0`) cannot keep
+the 1X2 odds either.
 
 ### The period selector has the same trap — fixed via the fragment scope code
 
