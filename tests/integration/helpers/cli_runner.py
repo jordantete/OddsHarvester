@@ -14,7 +14,7 @@ def run_historic(
     bookies_filter: str = "all",
     output_format: str = "json",
     season: str | None = None,
-    timeout: int = 300,
+    timeout: int = 600,
     har_path: Path | None = None,
     local_kickoff: bool = False,
     extra_args: list[str] | None = None,

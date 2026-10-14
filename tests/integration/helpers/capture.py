@@ -132,7 +132,7 @@ def capture_fixture(
     bookies_filter: str = "all",
     output_format: str = "json",
     headless: bool = True,
-    timeout: int = 300,
+    timeout: int = 600,
     season: str | None = None,
     capture_har: bool = False,
     proxy_url: str | None = None,
@@ -313,7 +313,7 @@ Examples:
     parser.add_argument("--period", default="full_time", help="Period (default: full_time)")
     parser.add_argument("--bookies-filter", default="all", choices=["all", "classic", "crypto"], help="Bookies filter")
     parser.add_argument("--no-headless", action="store_true", help="Run browser with GUI (for debugging)")
-    parser.add_argument("--timeout", type=int, default=300, help="Timeout in seconds (default: 300)")
+    parser.add_argument("--timeout", type=int, default=600, help="Timeout in seconds (default: 600)")
     parser.add_argument("--season", default=None, help="Season written into the record (e.g., 2024-2025)")
     parser.add_argument(
         "--capture-har",
