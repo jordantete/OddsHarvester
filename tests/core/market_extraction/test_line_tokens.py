@@ -66,6 +66,8 @@ def test_a_line_maps_to_its_sport_s_token(sport, main, name, expected):
         ("ice-hockey", "Asian Handicap", "Asian Handicap -1.5", "asian_handicap_-1_5"),
         ("ice-hockey", "Asian Handicap", "Asian Handicap -2", "asian_handicap_-2_0"),
         ("ice-hockey", "Asian Handicap", "Asian Handicap 0", "asian_handicap_0"),
+        ("ice-hockey", "Asian Handicap", "Asian Handicap -1.75", "asian_handicap_-1_75"),
+        ("ice-hockey", "Over/Under", "Over/Under +4.75", "over_under_4_75"),
     ],
 )
 def test_a_whole_or_filled_line_maps_to_its_token(sport, main, name, expected):

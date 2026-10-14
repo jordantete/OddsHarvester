@@ -16,7 +16,7 @@ ACCEPTED_TOKEN_COUNTS = {
     Sport.BASKETBALL: 426,
     Sport.RUGBY_LEAGUE: 328,
     Sport.RUGBY_UNION: 328,
-    Sport.ICE_HOCKEY: 49,
+    Sport.ICE_HOCKEY: 99,
     Sport.BASEBALL: 33,
     Sport.AMERICAN_FOOTBALL: 228,
     Sport.HANDBALL: 124,
@@ -42,8 +42,11 @@ ICE_HOCKEY_TOKENS = {
     "double_chance",
     *(f"over_under_{n}_5" for n in range(1, 12)),
     *(f"over_under_{n}_0" for n in range(2, 12)),
-    *(f"asian_handicap_{sign}{n}_5" for sign in "+-" for n in range(6)),
-    *(f"asian_handicap_{sign}{n}_0" for sign in "+-" for n in range(1, 6)),
+    *(f"over_under_{n}_25" for n in range(2, 12)),
+    *(f"over_under_{n}_75" for n in range(1, 11)),
+    *(f"asian_handicap_{sign}{n}_{part}" for sign in "+-" for n in range(7) for part in ("25", "5")),
+    *(f"asian_handicap_{sign}{n}_{part}" for sign in "+-" for n in range(6) for part in ("75",)),
+    *(f"asian_handicap_{sign}{n}_0" for sign in "+-" for n in range(1, 7)),
     "asian_handicap_0",
 }
 
@@ -121,12 +124,18 @@ def test_each_umbrella_ladder_steps_by_half_a_point(sport, registry):
         assert sorted(expected - values) == [], f"{sport.value} {tab} misses lines"
 
 
-@pytest.mark.parametrize(("tab", "lo", "hi"), [("Over/Under", 0.5, 8.5), ("Asian Handicap", -5, 5)])
-def test_football_umbrella_ladders_step_by_a_quarter(tab, lo, hi, registry):
+@pytest.mark.parametrize(
+    ("sport", "tab", "lo", "hi"),
+    [
+        (Sport.FOOTBALL, "Over/Under", 0.5, 8.5),
+        (Sport.FOOTBALL, "Asian Handicap", -5, 5),
+        (Sport.ICE_HOCKEY, "Over/Under", 1.5, 11.5),
+        (Sport.ICE_HOCKEY, "Asian Handicap", -6.5, 6.5),
+    ],
+)
+def test_quarter_line_ladders_step_by_a_quarter(sport, tab, lo, hi, registry):
     values = {
-        float(spec.specific_market.rsplit(" ", 1)[-1])
-        for spec in registry[Sport.FOOTBALL].values()
-        if spec.main_market == tab
+        float(spec.specific_market.rsplit(" ", 1)[-1]) for spec in registry[sport].values() if spec.main_market == tab
     }
     assert values == {lo + step / 4 for step in range(round((hi - lo) * 4) + 1)}
 
