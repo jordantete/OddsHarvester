@@ -4,6 +4,7 @@ import pytest
 
 from oddsharvester.core.browser.market_navigation import MarketTabNavigator
 from oddsharvester.core.browser.scrolling import PageScroller
+from oddsharvester.core.exceptions import MarketDataError
 from oddsharvester.core.market_extraction.navigation_manager import NavigationManager
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import DEFAULT_MARKET_TIMEOUT_MS, MARKET_SWITCH_WAIT_TIME_MS, SCROLL_PAUSE_TIME_MS
@@ -60,6 +61,14 @@ class TestNavigationManager:
 
         # Assert
         assert result is False
+
+    async def test_the_view_check_is_the_tab_navigator_s(self, navigation_manager, page_mock, tab_navigator_mock):
+        tab_navigator_mock.raise_if_another_market_shown = AsyncMock(side_effect=MarketDataError("1X2"))
+
+        with pytest.raises(MarketDataError):
+            await navigation_manager.raise_if_another_market_shown(page_mock, "Asian Handicap")
+
+        tab_navigator_mock.raise_if_another_market_shown.assert_awaited_once_with(page_mock, "Asian Handicap")
 
     @staticmethod
     def _row(page, line):

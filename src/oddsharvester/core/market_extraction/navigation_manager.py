@@ -23,6 +23,10 @@ class NavigationManager:
             page=page, market_tab_name=market_tab_name, timeout=DEFAULT_MARKET_TIMEOUT_MS
         )
 
+    async def raise_if_another_market_shown(self, page: Page, market_tab_name: str) -> None:
+        """Raise MarketDataError when the view now shows another market than the tab's."""
+        await self.tab_navigator.raise_if_another_market_shown(page, market_tab_name)
+
     async def select_specific_market(self, page: Page, specific_market: str, main_market: str | None = None) -> bool:
         """Open a specific submarket within the main market and wait for its bookmaker rows.
 

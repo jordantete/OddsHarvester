@@ -369,3 +369,46 @@ class TestTheDataOfASwitch:
             await navigator.navigate_to_tab(page, "Double Chance")
 
         assert caplog.text.count("No decrypted data recorded") == 1
+
+
+class TestTheViewAfterARead:
+    """A late answer for another market can render over a view its switch already checked (gotchas §7, §27)."""
+
+    @pytest.fixture
+    def navigator(self):
+        return MarketTabNavigator()
+
+    @staticmethod
+    def _page(url: str, *markets: int, offered: tuple[int, ...] = (1, 2, 5)):
+        page = MagicMock()
+        page.url = url
+        page.evaluate = AsyncMock(
+            return_value=[{"event": "UNC9hLMj", "market": m, "scope": 2, "offered": list(offered)} for m in markets]
+        )
+        return page
+
+    @pytest.mark.parametrize("tab", ["Asian Handicap", "Handicap"])
+    async def test_a_late_answer_of_another_market_fails_the_read(self, navigator, tab):
+        page = self._page("https://www.oddsportal.com/rugby-union/h2h/a-x/b-y/#UNC9hLMj:ah;2", 5, 1)
+
+        with pytest.raises(MarketDataError, match="OddsPortal sent the data of market 1 for the view 'ah'"):
+            await navigator.raise_if_another_market_shown(page, tab)
+
+    @pytest.mark.parametrize(
+        ("markets", "offered"),
+        [((1, 5), (1, 2, 5)), ((), (1, 2, 5)), ((5, 1), (1, 2))],
+        ids=["requested last", "nothing recorded", "market not offered"],
+    )
+    async def test_the_read_stands_when_the_last_answer_is_the_market_or_no_other_could_be(
+        self, navigator, markets, offered
+    ):
+        page = self._page("https://www.oddsportal.com/handball/h2h/a-x/b-y/#UNC9hLMj:ah;2", *markets, offered=offered)
+
+        await navigator.raise_if_another_market_shown(page, "Asian Handicap")
+
+    async def test_an_in_play_view_is_not_checked(self, navigator):
+        page = self._page("https://www.oddsportal.com/inplay-odds/football/a-x/b-y/#UNC9hLMj", 5, 1)
+
+        await navigator.raise_if_another_market_shown(page, "Asian Handicap")
+
+        page.evaluate.assert_not_awaited()

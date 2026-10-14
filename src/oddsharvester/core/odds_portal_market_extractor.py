@@ -253,6 +253,7 @@ class OddsPortalMarketExtractor:
         submarkets = await self.submarket_extractor.extract_visible_submarkets_passive(
             page=page, main_market=main_market, period=period
         )
+        await self.navigation_manager.raise_if_another_market_shown(page=page, market_tab_name=main_market)
         return [submarket["submarket_name"] for submarket in submarkets if submarket.get("submarket_name")]
 
     async def extract_market_odds(

@@ -176,6 +176,20 @@ class MarketTabNavigator:
         self.logger.error(f"Failed to reach the {market_tab_name} tab (hash and tab-click paths).")
         return False
 
+    async def raise_if_another_market_shown(self, page: Page, market_tab_name: str) -> None:
+        """Raise MarketDataError when the last data the view rendered are another market the match offers.
+
+        A late answer for another market, such as a 1X2 refetch sent with the switch, renders over a view the
+        switch already checked (gotchas §7). In-play views and views with no recorded data are not checked.
+        """
+        code = OddsPortalSelectors.MARKET_TAB_CODES.get(market_tab_name)
+        fragment = OddsPortalSelectors.event_id_from_url(page.url)
+        if not code or not fragment or "/inplay-odds/" in page.url:
+            return
+        records = await page.evaluate(VIEW_DATA_RECORDED_JS, fragment)
+        if records:
+            _market_shown(records[-1:], OddsPortalSelectors.MARKET_FEED_IDS.get(code), f"'{code}'", page.url)
+
     async def _navigate_by_hash(self, page: Page, code: str, timeout: int) -> bool | None:
         """True once the view shows `code`; None when the match does not offer it; False to try the tab click."""
         fragment = OddsPortalSelectors.event_id_from_url(page.url)

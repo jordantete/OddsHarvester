@@ -699,6 +699,21 @@ class TestOddsPortalMarketExtractor:
             page=page_mock, market_tab_name="Over/Under"
         )
 
+    async def test_discover_line_names_fails_when_another_market_rendered_over_its_lines(self, extractor, page_mock):
+        """A 1X2 answer landing with the switch shows 'Asian Handicap 0' carrying the 1X2 odds (gotchas §27)."""
+        extractor.navigation_manager.navigate_to_market_tab = AsyncMock(return_value=True)
+        extractor.navigation_manager.raise_if_another_market_shown = AsyncMock(side_effect=MarketDataError("1X2"))
+        extractor.submarket_extractor.extract_visible_submarkets_passive = AsyncMock(
+            return_value=[{"submarket_name": "Asian Handicap 0"}]
+        )
+
+        with pytest.raises(MarketDataError):
+            await extractor._discover_line_names(page=page_mock, main_market="Asian Handicap", period="FullTime")
+
+        extractor.navigation_manager.raise_if_another_market_shown.assert_awaited_once_with(
+            page=page_mock, market_tab_name="Asian Handicap"
+        )
+
     async def test_discover_line_names_tab_not_found_returns_empty(self, extractor, page_mock):
         """Test that _discover_line_names returns [] when the market tab can't be found."""
         # Arrange

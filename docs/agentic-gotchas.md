@@ -632,8 +632,13 @@ replace the view under it. Clicking the bookies panel on the opening 1X2 view
 refetches 1X2; when that answer lands with the Over/Under switch (both requests
 sent in the same millisecond), the read finds a single `Over/Under 0` row and
 the umbrella logs that it discovered no lines (Top 14 and handball recaptures,
-2026-10-13, 2 of 5 runs; a rerun read 27 and 9 totals). Not fixed: a discovery
-that waits for the line rows to settle would close it.
+2026-10-13, 2 of 5 runs; a rerun read 27 and 9 totals). On a handicap tab the
+same answer renders `Asian Handicap 0` with the 1X2 odds (§27), and `0` is a
+token there. `_market_shown` lets a switch through once any recorded answer is
+the requested market, so after its read the discovery calls
+`raise_if_another_market_shown`: the last answer recorded for the match must be
+the tab's market (when the match offers it), else `MarketDataError` fails the
+match and the run retries it.
 
 ### The period selector has the same trap — fixed via the fragment scope code
 
