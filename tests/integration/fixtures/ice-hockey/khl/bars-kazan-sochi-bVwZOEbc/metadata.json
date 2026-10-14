@@ -11,9 +11,10 @@
     },
     "match_date": "2026-10-12 16:00:00 UTC",
     "notes": "",
-    "captured_at": "2026-10-13T14:31:31.989312+00:00",
-    "oddsharvester_version": "0.18.0",
+    "captured_at": "2026-10-14T12:39:24.851451+00:00",
+    "oddsharvester_version": "0.20.0",
     "available_fixtures": [
+        "asian_handicap_full_time_all.json",
         "over_under_full_time_all.json"
     ]
 }

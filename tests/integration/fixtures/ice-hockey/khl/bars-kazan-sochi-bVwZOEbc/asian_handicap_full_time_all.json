@@ -1,0 +1,227 @@
+[
+    {
+        "scraped_date": "2026-10-14 12:39:04 UTC",
+        "match_date": "2026-10-12 16:00:00 UTC",
+        "season": null,
+        "match_link": "https://www.oddsportal.com/hockey/h2h/bars-kazan-v320kOMr/sochi-zu1IGfCr/#bVwZOEbc",
+        "home_team": "Bars Kazan",
+        "away_team": "Sochi",
+        "league_name": "KHL",
+        "home_score": "2",
+        "away_score": "3",
+        "partial_results": "(0:2, 1:0, 1:1)",
+        "venue": "Tatneft Arena",
+        "venue_town": "Kazan",
+        "venue_country": "Russia",
+        "match_info": null,
+        "asian_handicap_-5_5_market": [
+            {
+                "handicap_team_1": "5.80",
+                "handicap_team_2": "1.01",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -5.5"
+            }
+        ],
+        "asian_handicap_-4_5_market": [
+            {
+                "handicap_team_1": "4.85",
+                "handicap_team_2": "1.05",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -4.5"
+            },
+            {
+                "handicap_team_1": "5.25",
+                "handicap_team_2": "1.05",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -4.5"
+            }
+        ],
+        "asian_handicap_-4_0_market": [
+            {
+                "handicap_team_1": "5.70",
+                "handicap_team_2": "1.11",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -4"
+            }
+        ],
+        "asian_handicap_-3_5_market": [
+            {
+                "handicap_team_1": "3.92",
+                "handicap_team_2": "1.15",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -3.5"
+            },
+            {
+                "handicap_team_1": "3.90",
+                "handicap_team_2": "1.22",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -3.5"
+            },
+            {
+                "handicap_team_1": "3.70",
+                "handicap_team_2": "1.15",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -3.5"
+            }
+        ],
+        "asian_handicap_-3_0_market": [
+            {
+                "handicap_team_1": "3.40",
+                "handicap_team_2": "1.28",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -3"
+            }
+        ],
+        "asian_handicap_-2_5_market": [
+            {
+                "handicap_team_1": "2.26",
+                "handicap_team_2": "1.43",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -2.5"
+            },
+            {
+                "handicap_team_1": "2.50",
+                "handicap_team_2": "1.48",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -2.5"
+            },
+            {
+                "handicap_team_1": "2.20",
+                "handicap_team_2": "1.45",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -2.5"
+            }
+        ],
+        "asian_handicap_-2_25_market": [
+            {
+                "handicap_team_1": "2.10",
+                "handicap_team_2": "1.65",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -2.25"
+            }
+        ],
+        "asian_handicap_-2_0_market": [
+            {
+                "handicap_team_1": "2.11",
+                "handicap_team_2": "1.66",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -2"
+            }
+        ],
+        "asian_handicap_-1_75_market": [
+            {
+                "handicap_team_1": "1.85",
+                "handicap_team_2": "1.85",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -1.75"
+            }
+        ],
+        "asian_handicap_-1_5_market": [
+            {
+                "handicap_team_1": "1.75",
+                "handicap_team_2": "1.98",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -1.5"
+            },
+            {
+                "handicap_team_1": "1.65",
+                "handicap_team_2": "1.85",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -1.5"
+            }
+        ],
+        "asian_handicap_-1_25_market": [
+            {
+                "handicap_team_1": "1.65",
+                "handicap_team_2": "2.10",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -1.25"
+            }
+        ],
+        "asian_handicap_-1_0_market": [
+            {
+                "handicap_team_1": "1.54",
+                "handicap_team_2": "2.34",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -1"
+            }
+        ],
+        "asian_handicap_-0_5_market": [
+            {
+                "handicap_team_1": "1.44",
+                "handicap_team_2": "2.62",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -0.5"
+            },
+            {
+                "handicap_team_1": "1.38",
+                "handicap_team_2": "2.40",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap -0.5"
+            }
+        ],
+        "asian_handicap_0_market": [
+            {
+                "handicap_team_1": "1.18",
+                "handicap_team_2": "4.38",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap 0"
+            }
+        ],
+        "asian_handicap_+0_5_market": [
+            {
+                "handicap_team_1": "1.13",
+                "handicap_team_2": "5.00",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap +0.5"
+            },
+            {
+                "handicap_team_1": "1.12",
+                "handicap_team_2": "4.00",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap +0.5"
+            }
+        ],
+        "asian_handicap_+1_5_market": [
+            {
+                "handicap_team_1": "1.04",
+                "handicap_team_2": "5.50",
+                "bookmaker_name": "Unibet.fr",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap +1.5"
+            }
+        ],
+        "asian_handicap_+2_5_market": [
+            {
+                "handicap_team_1": "1.01",
+                "handicap_team_2": "10.75",
+                "bookmaker_name": "Betclic.fr",
+                "period": "FullTime",
+                "submarket_name": "Asian Handicap +2.5"
+            }
+        ]
+    }
+]

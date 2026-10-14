@@ -1,6 +1,6 @@
 [
     {
-        "scraped_date": "2026-10-13 14:31:25 UTC",
+        "scraped_date": "2026-10-14 12:39:16 UTC",
         "match_date": "2026-10-12 16:00:00 UTC",
         "season": null,
         "match_link": "https://www.oddsportal.com/hockey/h2h/bars-kazan-v320kOMr/sochi-zu1IGfCr/#bVwZOEbc",
@@ -85,6 +85,15 @@
                 "submarket_name": "Over/Under +4.5"
             }
         ],
+        "over_under_4_75_market": [
+            {
+                "odds_over": "1.55",
+                "odds_under": "2.30",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +4.75"
+            }
+        ],
         "over_under_5_0_market": [
             {
                 "odds_over": "1.72",
@@ -99,6 +108,15 @@
                 "bookmaker_name": "Unibet.fr",
                 "period": "FullTime",
                 "submarket_name": "Over/Under +5"
+            }
+        ],
+        "over_under_5_25_market": [
+            {
+                "odds_over": "1.85",
+                "odds_under": "1.85",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +5.25"
             }
         ],
         "over_under_5_5_market": [
@@ -122,6 +140,15 @@
                 "bookmaker_name": "Unibet.fr",
                 "period": "FullTime",
                 "submarket_name": "Over/Under +5.5"
+            }
+        ],
+        "over_under_5_75_market": [
+            {
+                "odds_over": "2.25",
+                "odds_under": "1.57",
+                "bookmaker_name": "Bets.io",
+                "period": "FullTime",
+                "submarket_name": "Over/Under +5.75"
             }
         ],
         "over_under_6_0_market": [

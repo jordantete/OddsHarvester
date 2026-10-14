@@ -617,19 +617,20 @@ with `_ensure_period`, the check `extract_market_odds` runs, before it reads.
 An umbrella opens only lines that have a token. The #115 reporter saw whole
 basketball lines (`+161`, `-5`) between the .5 ones; from a French IP the same
 two matches showed .5 lines only, while handball, baseball, KHL and NFL pages
-did render whole lines. Every umbrella ladder but football's now steps by 0.5
-(`test_each_umbrella_ladder_steps_by_half_a_point`). Football's steps by 0.25,
-totals `+0.5` to `+8.5` and handicaps `-5` to `+5`
-(`test_football_umbrella_ladders_step_by_a_quarter`). Its handicaps used to stop
-at `+2.5`, and Man City - PSG (2026-10-14) rendered `+2.25`, `+2.75` and a
-`+0.75` total that had no token. A rendered line with no token is logged:
+did render whole lines. Every umbrella ladder now steps by 0.5
+(`test_each_umbrella_ladder_steps_by_half_a_point`), and football's and ice
+hockey's by 0.25 (`test_quarter_line_ladders_step_by_a_quarter`): football totals
+`+0.5` to `+8.5` and handicaps `-5` to `+5`, hockey totals `+1.5` to `+11.5` and
+handicaps `-6.5` to `+6.5`. Football's handicaps used to stop at `+2.5`, and Man
+City - PSG (2026-10-14) rendered `+2.25`, `+2.75` and a `+0.75` total that had
+no token; Bars Kazan - Sochi (KHL) renders handicaps `-2.25` to `-1.25` and
+totals `+4.75` to `+5.75`. A rendered line with no token is logged:
 `Umbrella market '<token>' skipped lines with no token: ...`.
 The first captures rendered lines past the old ladder ends (Top 14 handicaps
 down to `-40.5` and totals up to `+79.5`, NRL `-18.5`, NFL totals up to
 `+64.5`, MLB totals from `+1.5` to `+14.5`, handball `+30.5`), so those ladders
 now span rugby totals `+20.5` to `+90.5` and handicaps `±45.5`, NFL totals to
-`+70.5`, MLB totals `+0.5` to `+15.5` and handball totals from `+30.5`. Quarter
-lines on KHL totals (`+4.75`) still have no token.
+`+70.5`, MLB totals `+0.5` to `+15.5` and handball totals from `+30.5`.
 
 Discovery reads the page once, without waiting, and a late answer can still
 replace the view under it. Clicking the bookies panel on the opening 1X2 view

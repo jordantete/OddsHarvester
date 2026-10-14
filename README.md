@@ -75,7 +75,7 @@ oddsharvester search --team-id hUyau0Vc --headless
 | 🏀 Basketball        | `1x2` `moneyline` `asian_handicap` `over/under`                                                |
 | 🏉 Rugby League      | `1x2` `home_away` `double_chance` `draw_no_bet` `over/under` `handicap`                        |
 | 🏉 Rugby Union       | `1x2` `home_away` `double_chance` `draw_no_bet` `over/under` `handicap`                        |
-| 🏒 Ice Hockey        | `1x2` `home_away` `double_chance` `draw_no_bet` `btts` `over/under`                            |
+| 🏒 Ice Hockey        | `1x2` `home_away` `double_chance` `draw_no_bet` `btts` `over/under` `asian_handicap`           |
 | ⚾ Baseball          | `moneyline` `over/under`                                                                       |
 | 🏈 American Football | `1x2` `moneyline` `over/under` `asian_handicap`                                                |
 | 🤾 Handball          | `1x2` `home_away` `double_chance` `draw_no_bet` `over/under` `handicap`                        |
@@ -86,11 +86,11 @@ oddsharvester search --team-id hUyau0Vc --headless
 >
 > | Sport | Umbrella tokens |
 > |---|---|
-> | Football, basketball, American football, handball | `over_under`, `asian_handicap` |
-> | Ice hockey, baseball | `over_under` |
+> | Football, basketball, American football, handball, ice hockey | `over_under`, `asian_handicap` |
+> | Baseball | `over_under` |
 > | Rugby league, rugby union | `over_under`, `handicap` |
 >
-> Handball's `asian_handicap` expands to `handicap_*` keys, and rugby's handicap umbrella is `handicap`, read from the Asian Handicap tab.
+> Handball's `asian_handicap` expands to `handicap_*` keys, and rugby's handicap umbrella is `handicap`, read from the Asian Handicap tab. Football and ice hockey lines go by quarters (`asian_handicap_-1_75`, `over_under_4_75`). Ice hockey handicaps are listed under Full Time, the default period. On the KHL match checked, FT including OT listed `-1.5` only.
 
 > **Tennis and volleyball lines:** OddsPortal prints no `Sets`, `Games` or `Points` word on a line, and each axis's ladder can show any value in its range, so a line whose value falls within the other axis's range cannot be told apart on the page. Refused: every tennis sets Asian Handicap line; tennis games AH `-2.5` and `+2.5`; tennis O/U sets and games from `6.5` to `10.5`, whole games lines `7` to `10` included; volleyball sets and points AH `-2.5`, `-1.5`, `+1.5`, `+2.5`. They come back empty with a warning naming the other axis.
 
