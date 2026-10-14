@@ -45,5 +45,5 @@ class TestRugbyUmbrellas:
         assert "handicap_market" not in lines
         assert [key for key, value in lines.items() if not value] == []
         assert any(key.startswith("over_under_") for key in lines)
-        assert any(key.startswith("handicap_") for key in lines)
+        assert any(key.startswith("handicap_") and key != "handicap_0_market" for key in lines)
         assert [key for key in new_lines if not lines.get(key)] == []

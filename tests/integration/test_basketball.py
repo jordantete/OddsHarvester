@@ -129,5 +129,7 @@ class TestBasketballUmbrellas:
         assert "over_under_market" not in lines
         assert "asian_handicap_market" not in lines
         assert any(key.startswith("over_under_games_") for key in lines)
-        assert any(key.startswith("asian_handicap_games_") for key in lines)
+        assert any(
+            key.startswith("asian_handicap_games_") and key != "asian_handicap_games_0_games_market" for key in lines
+        )
         assert [key for key, value in lines.items() if not value] == []

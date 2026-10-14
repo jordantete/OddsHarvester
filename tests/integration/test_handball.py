@@ -69,6 +69,6 @@ class TestHandballBasicMarkets:
         assert "asian_handicap_market" not in lines
         assert [key for key, value in lines.items() if not value] == []
         assert any(key.startswith("over_under_") for key in lines)
-        assert any(key.startswith("handicap_") for key in lines)
+        assert any(key.startswith("handicap_") and key != "handicap_0_market" for key in lines)
         assert lines.get("over_under_62_0_market")
         assert lines.get("over_under_30_5_market")
