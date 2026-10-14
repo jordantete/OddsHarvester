@@ -305,6 +305,8 @@ same shape as `--links-only` rows, then `tab` (`next` or `results`), `home_team`
 `historic` rows), `tournament`, `league_url`, `country` and `sport`. Upcoming matches come first, then results, newest
 first. The scores are the ones OddsPortal shows: after a penalty shoot-out the winner gets one more goal, so a 1:1
 draw won on penalties reads 2:1; `partial_results` (`(0:1, 1:0, 0:0, 4:3)`) holds the shoot-out as its last pair.
+In tennis, here and in `historic`, a lost tie-break's points follow the loser's games: `(6:3, 6 3 :7, 6:3)` is a 6:7
+second set whose tie-break the home player lost with 3 points, and `7:6 4` one the away player lost with 4.
 
 The command exits 0 whenever the pages were read, and writes `[]` when nothing matched. It exits 1 on a refused page
 (`rate limited by OddsPortal`), a team id the site does not know (`does not exist on OddsPortal`), any page that fails,

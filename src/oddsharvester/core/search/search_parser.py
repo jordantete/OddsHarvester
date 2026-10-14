@@ -148,8 +148,11 @@ def _score(value) -> str | None:
 
 
 def _partial(text: str | None) -> str | None:
-    """Period scores in historic's shape, "(1:1, 0:0, 4:3)"; a shoot-out shows as the last pair."""
-    periods = " ".join((text or "").split())
+    """Period scores in historic's shape, "(1:1, 0:0, 4:3)"; a shoot-out shows as the last pair.
+
+    A lost tie-break's points come marked up; like historic, they stay as a bare number after the games: "6 3 :7".
+    """
+    periods = " ".join(html_lib.unescape(_TAG_RE.sub(" ", text or "")).split())
     return f"({periods})" if periods else None
 
 

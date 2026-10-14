@@ -117,6 +117,23 @@ def test_a_shoot_out_keeps_its_period_scores():
     assert (row["home_score"], row["away_score"], row["partial_results"]) == ("2", "1", "(0:1, 1:0, 0:0, 4:3)")
 
 
+@pytest.mark.parametrize(
+    ("partial_result", "expected"),
+    [
+        ("6:3, 6<div><sup>3</sup></div>:7, 6:3", "(6:3, 6 3 :7, 6:3)"),
+        ("1:6, 2:6, 7:6<div><sup>6</sup></div>, 3:6", "(1:6, 2:6, 7:6 6 , 3:6)"),
+        ("6:3, 6:4, 7:6<div><sup>4</sup></div>", "(6:3, 6:4, 7:6 4)"),
+    ],
+)
+def test_tie_break_points_are_written_as_historic_writes_them(partial_result, expected):
+    """The tab marks a lost tie-break's points up in HTML; historic writes them as a bare number after the games."""
+    html = search_page(search_results([search_match(home_result="2", away_result="1", partial_result=partial_result)]))
+
+    [row] = parse_matches(html, url=_RESULTS_URL, team_id=_TEAM, tab="results").rows
+
+    assert row["partial_results"] == expected
+
+
 def test_team_names_lose_the_trailing_space_of_their_country_tag():
     """International competitions show "Arsenal (Eng) " with a trailing space."""
     match = search_match(home=("Arsenal (Eng) ", "arsenal", "hA1Zm19f"), away=("Como (Ita) ", "como", "6qzGmfXS"))
