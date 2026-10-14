@@ -16,7 +16,7 @@ The gotchas, by section:
 - **§4**: League slugs change over time; the season selector is the slug map.
 - **§5**: CLI options are normalized at the lowest layer, never in the CLI.
 - **§6**: Anti-bot detection: tell the symptom from the cause.
-- **§7**: Regional mirrors and `--base-url`: the same structure, localized labels.
+- **§7**: Regional mirrors and `--base-url`: the same structure, localized labels; how umbrellas read their lines.
 - **§8**: Volleyball O/U and AH each split into a Sets axis and a Points axis.
 - **§9**: Listings return started and finished matches under "upcoming".
 - **§10**: Listing dates and shown times follow the browser's timezone.
@@ -612,7 +612,7 @@ Over/Under and Asian Handicap tabs fetched scope 2 (Full Time) while FT
 including OT is scope 1, so a discovery that read the tab as it opened sent 46
 lines to the row click, 34 of them absent under scope 1, each a 20 s row wait
 (Bursaspor-Galatasaray, 2026-10-13: 11 minutes, against 7 seconds once fixed). `_discover_line_names` selects the period
-with `_period_is_shown`, the check `extract_market_odds` runs, before it reads.
+with `_ensure_period`, the check `extract_market_odds` runs, before it reads.
 
 An umbrella opens only lines that have a token. The #115 reporter saw whole
 basketball lines (`+161`, `-5`) between the .5 ones; from a French IP the same
@@ -631,7 +631,7 @@ Discovery reads the page once, without waiting, and a late answer can still
 replace the view under it. Clicking the bookies panel on the opening 1X2 view
 refetches 1X2; when that answer lands with the Over/Under switch (both requests
 sent in the same millisecond), the read finds a single `Over/Under 0` row and
-the umbrella logs that it discovered no lines (Top 14 and handball recaptures,
+the umbrella logs that it has no line to open (Top 14 and handball recaptures,
 2026-10-13, 2 of 5 runs; a rerun read 27 and 9 totals). On a handicap tab the
 same answer renders `Asian Handicap 0` with the 1X2 odds (§27), and `0` is a
 token there. `_market_shown` lets a switch through once any recorded answer is
@@ -2267,10 +2267,10 @@ panel.
 `OddsPortalMarketExtractor` shows the requested panel after the last
 navigation step and before every read (`_show_bookies`, through
 `SelectionManager.ensure_selected`): after the market switch and the period
-selection in `extract_market_odds`, and after the switch of an umbrella's line
-discovery. It clicks nothing when the panel shown is the one requested, so
-`classic` costs no click. A panel that cannot be shown logs a warning and the
-market is read as shown.
+selection in `extract_market_odds`, and after the switch and the period
+selection of an umbrella's line discovery. It clicks nothing when the panel
+shown is the one requested, so `classic` costs no click. A panel that cannot be
+shown logs a warning and the market is read as shown.
 
 ### References
 

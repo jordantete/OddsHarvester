@@ -118,7 +118,8 @@ class OddsPortalMarketExtractor:
                 for line_name in line_names:
                     token = line_name_to_token(sport, umbrella_main_market, line_name)
                     if token is None:
-                        untokenized.append(line_name)
+                        if line_name not in untokenized:
+                            untokenized.append(line_name)
                     elif token not in line_tokens:
                         line_tokens.append(token)
             except MarketDataError:
@@ -131,7 +132,7 @@ class OddsPortalMarketExtractor:
                 self.logger.warning(f"Umbrella market '{market}' skipped lines with no token: {', '.join(untokenized)}")
 
             if not line_tokens:
-                self.logger.warning(f"Umbrella market '{market}' discovered no lines on the page; skipping.")
+                self.logger.warning(f"Umbrella market '{market}' has no line to open; skipping.")
                 continue
 
             for token in line_tokens:
@@ -246,7 +247,7 @@ class OddsPortalMarketExtractor:
             self.logger.warning(f"Failed to find or click {main_market} tab while discovering lines")
             return []
 
-        if not await self._period_is_shown(page, sport, period, main_market):
+        if not await self._ensure_period(page, sport, period, main_market):
             return []
 
         await self._show_bookies(page, bookies_filter)
@@ -304,7 +305,7 @@ class OddsPortalMarketExtractor:
                 self.logger.error(f"Failed to find or click {main_market} tab")
                 return []
 
-            if not await self._period_is_shown(page, sport, period, main_market):
+            if not await self._ensure_period(page, sport, period, main_market):
                 return []
 
             await self._show_bookies(page, bookies_filter)
@@ -405,7 +406,7 @@ class OddsPortalMarketExtractor:
             return empty_history_block()
         return self.odds_parser.parse_odds_history_modal(modal_html, reference=reference, tz_name=tz_name)
 
-    async def _period_is_shown(self, page: Page, sport: str | None, period: str, main_market: str) -> bool:
+    async def _ensure_period(self, page: Page, sport: str | None, period: str, main_market: str) -> bool:
         """Select the period after a market switch; False when the view cannot be trusted to show it.
 
         Prefers the language-independent scope code (works on localized mirrors, §7) and falls back to

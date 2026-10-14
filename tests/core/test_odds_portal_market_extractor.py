@@ -531,6 +531,19 @@ class TestOddsPortalMarketExtractor:
         assert set(result) == {"over_under_2_5_market"}
         assert "Umbrella market 'over_under' skipped lines with no token: Over/Under +7, Over/Under +8" in caplog.text
 
+    async def test_scrape_markets_names_a_line_with_no_token_once(self, extractor, page_mock, caplog):
+        """ATP Beijing listed +1.5 twice under Asian Handicap, a sets row and a games row (gotchas §8)."""
+        extractor.extract_market_odds = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
+        extractor._discover_line_names = AsyncMock(return_value=["Over/Under +2.5", "Over/Under +7", "Over/Under +7"])
+
+        with (
+            patch.object(SportMarketRegistry, "get_market_mapping", return_value={"over_under_2_5": over_under("2.5")}),
+            caplog.at_level("WARNING"),
+        ):
+            await extractor.scrape_markets(page=page_mock, sport="football", markets=["over_under"])
+
+        assert "Umbrella market 'over_under' skipped lines with no token: Over/Under +7\n" in caplog.text
+
     async def test_scrape_markets_opens_a_line_the_page_lists_twice_once(self, extractor, page_mock):
         extractor.extract_market_odds = AsyncMock(return_value=[{"bookmaker_name": "Bookmaker1"}])
         extractor._discover_line_names = AsyncMock(return_value=["Over/Under +2.5", "Más/Menos de +2.5"])
@@ -550,7 +563,7 @@ class TestOddsPortalMarketExtractor:
             result = await extractor.scrape_markets(page=page_mock, sport="football", markets=["over_under"])
 
         assert result == {}
-        assert "Umbrella market 'over_under' discovered no lines on the page; skipping." in caplog.text
+        assert "Umbrella market 'over_under' has no line to open; skipping." in caplog.text
 
     async def test_scrape_markets_non_umbrella_markets_unchanged(self, extractor, page_mock):
         """Test that non-umbrella markets bypass line discovery entirely."""

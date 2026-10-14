@@ -29,6 +29,7 @@ fixtures/
 ├── ice-hockey/khl/
 ├── rugby-league/australia-nrl/
 ├── rugby-union/france-top-14/
+├── search/                             candidates.json and team_matches.json, each with its .har
 ├── team/                               teams.json and .har
 ├── tennis/australian-open/
 └── volleyball/italy-superlega/
@@ -77,13 +78,13 @@ order) and any other URL its last path segment. Captures run the browser in
 
 `scripts/capture_all_hars.py` recaptures every fixture: match fixtures are derived from each `metadata.json` and
 fixture name, and `SPECIAL_FIXTURES` holds the exact command of the others (community, team, the live-now listing,
-the upcoming league listing, the historic season listing, odds history, preview).
+the upcoming league listing, the historic season listing, the search pages, odds history, preview).
 
 ```bash
 # Every fixture
 uv run python scripts/capture_all_hars.py
 
-# One kind: matches, community, team, live or listing
+# One kind: matches, community, team, live, listing or search
 uv run python scripts/capture_all_hars.py --only community
 
 # One sport or one match directory (matches only)
