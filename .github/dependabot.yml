@@ -3,7 +3,7 @@ updates:
   - package-ecosystem: "uv"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     ignore:
       ## reason: "Temporary compatibility issues. Revisit after migration to Python 3.13."
       - dependency-name: "playwright"
@@ -14,13 +14,13 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
   # npm manifests are transient Playwright artifacts, not dependencies of this Python project.
   # This only suppresses update PRs. Alerts come from the dependency graph and must be dismissed by hand.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     ignore:
       - dependency-name: "*"
