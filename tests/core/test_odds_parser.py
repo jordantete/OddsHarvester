@@ -209,7 +209,10 @@ class TestOddsParser:
     def test_parse_odds_history_modal_reads_every_time_at_the_page_offset(self, odds_parser):
         html = self._history_html([("4 Jan, 17:58", "1.46")], opening=("27 Dec, 18:08", "1.60"))
 
-        with patch("oddsharvester.utils.page_time.datetime", frozen_clock(SUMMER_NOW)):
+        with (
+            patch("oddsharvester.utils.page_time.datetime", frozen_clock(SUMMER_NOW)),
+            patch("oddsharvester.core.market_extraction.odds_parser.datetime", frozen_clock(SUMMER_NOW)),
+        ):
             result = odds_parser.parse_odds_history_modal(
                 html, reference=datetime(2026, 1, 4, 17, 30), tz_name="Europe/London"
             )

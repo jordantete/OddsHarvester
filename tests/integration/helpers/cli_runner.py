@@ -1,8 +1,14 @@
 """Run the oddsharvester CLI for integration tests."""
 
+import json
 import os
 from pathlib import Path
 import subprocess
+
+
+def har_capture_moment(har_path: Path) -> str:
+    """The instant the HAR's first request was recorded, as ISO 8601."""
+    return json.loads(har_path.read_text())["log"]["entries"][0]["startedDateTime"]
 
 
 def run_historic(
@@ -20,10 +26,13 @@ def run_historic(
     extra_args: list[str] | None = None,
 ) -> tuple[int, str, str]:
     """Run `oddsharvester historic --match-link` and return (exit_code, stdout, stderr)."""
+    # The parser reads the page's offset from the clock, and a replay shows times at the capture moment's offset.
+    if har_path is not None:
+        launcher = ["uv", "run", "python", "-m", "tests.integration.helpers.frozen_cli", har_capture_moment(har_path)]
+    else:
+        launcher = ["uv", "run", "oddsharvester"]
     cmd = [
-        "uv",
-        "run",
-        "oddsharvester",
+        *launcher,
         "historic",
         "--sport",
         sport,

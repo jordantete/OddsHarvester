@@ -98,16 +98,27 @@ def test_run_historic_forwards_extra_args_and_replay_env(monkeypatch, tmp_path):
         return subprocess.CompletedProcess(cmd, 0, "out", "err")
 
     monkeypatch.setattr(cli_runner.subprocess, "run", fake_run)
+    har = tmp_path / "match.har"
+    har.write_text(json.dumps({"log": {"entries": [{"startedDateTime": "2026-10-01T13:34:18.515Z"}]}}))
     result = cli_runner.run_historic(
         sport="football",
         match_link="https://www.oddsportal.com/football/h2h/a-AAAAAAAA/b-BBBBBBBB/#CCCCCCCC",
         markets=["1x2", "over_under_2_5"],
         output_path=tmp_path / "output",
         season="2025-2026",
-        har_path=tmp_path / "match.har",
+        har_path=har,
         extra_args=["--odds-history", "--timezone", "Europe/London"],
     )
     assert result == (0, "out", "err")
+    assert calls["cmd"][:7] == [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "tests.integration.helpers.frozen_cli",
+        "2026-10-01T13:34:18.515Z",
+        "historic",
+    ]
     assert calls["cmd"][-3:] == ["--odds-history", "--timezone", "Europe/London"]
     assert calls["cmd"].count("--timezone") == 1
     assert "1x2,over_under_2_5" in calls["cmd"]

@@ -986,8 +986,13 @@ one day off.
 Integration replays and captures still run the browser in `UTC`
 (`tests/integration/helpers/cli_runner.py`, `capture.py`): HARs captured
 before 2026-09-25 carry the old rendering, which the parser would read an hour
-off in a DST zone. The odds-history replay runs in `Europe/London`; its HAR
-dates from 2026-09-25, so its golden holds the true times in any season.
+off in a DST zone. The odds-history replay runs in `Europe/London`. A HAR
+replays the times at the offset of its capture moment, whatever the replay
+date: captured in BST, the page shows every time at +1, and a parser reading
+the winter clock (+0) put them all an hour late (seen 2026-11-01, after the
+25 Oct switch). `run_historic` therefore runs every replay through
+`tests/integration/helpers/frozen_cli.py`, which freezes the parser's clock
+at the HAR's first `startedDateTime`.
 The community replays and their `SPECIAL_FIXTURES` captures pass
 `--timezone UTC` as well. A community row dated within a day of the day the
 page is read says `Yest.`, `Today` or `Tomorr.` (replayed under a fixed
