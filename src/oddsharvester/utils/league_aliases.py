@@ -123,6 +123,9 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         "europa-league": {
             2008: "uefa-cup",
         },
+        "faroe-islands-premier-league": {
+            2010: "formuladeildin",
+        },
         "france-ligue-1": {
             2001: "division-1",
         },
@@ -143,6 +146,15 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
             2015: "super-liga",
             2016: "isc",
             2024: "liga-1",
+        },
+        "italy-serie-c-group-a": {
+            2016: "lega-pro-group-a",
+        },
+        "italy-serie-c-group-b": {
+            2016: "lega-pro-group-b",
+        },
+        "italy-serie-c-group-c": {
+            2016: "lega-pro-group-c",
         },
         "japan-j1-league": {
             2014: "j-league",
