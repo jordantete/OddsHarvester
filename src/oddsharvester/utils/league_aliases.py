@@ -117,6 +117,18 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
             2013: "the-skrill-premier",
             2014: "vanarama-conference",
         },
+        "england-national-league-north": {
+            2009: "blue-square-north",
+            2012: "blue-square-bet-north",
+            2013: "the-skrill-north",
+            2014: "vanarama-conference-north",
+        },
+        "england-national-league-south": {
+            2009: "blue-square-south",    
+            2012: "blue-square-bet-south",
+            2013: "the-skrill-south",
+            2014: "vanarama-conference-south",
+        },
         "england-wsl": {
             2024: "women-s-super-league",
         },
@@ -270,6 +282,15 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         },
         "world-cup": {
             2022: "world-cup",
+        },
+    },
+    Sport.BASKETBALL: {
+        "aba-league-europe": {
+            2010: "nlb",
+            2024: "aba-league",
+        },
+        "b-league-premier-japan": {
+            2025: "b-league",
         },
     },
 }
