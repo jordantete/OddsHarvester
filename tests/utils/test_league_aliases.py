@@ -68,6 +68,21 @@ class TestGetLeagueSlugForSeason:
             # Venezuela: primera-division until 2022, then liga-futve
             (Sport.FOOTBALL, "venezuela-primera-division", "2022", "primera-division"),
             (Sport.FOOTBALL, "venezuela-primera-division", "2023", None),
+            # England sixth tier: four sponsor slugs before national-league-north/south
+            (Sport.FOOTBALL, "england-national-league-north", "2009-2010", "blue-square-north"),
+            (Sport.FOOTBALL, "england-national-league-north", "2010-2011", "blue-square-bet-north"),
+            (Sport.FOOTBALL, "england-national-league-north", "2014-2015", "vanarama-conference-north"),
+            (Sport.FOOTBALL, "england-national-league-north", "2015-2016", None),
+            (Sport.FOOTBALL, "england-national-league-south", "2013-2014", "the-skrill-south"),
+            (Sport.FOOTBALL, "england-national-league-south", "2015-2016", None),
+            # ABA League: nlb until 2010-2011, aba-league until 2024-2025, then admiralbet-aba-league
+            (Sport.BASKETBALL, "liga-aba", "2010-2011", "nlb"),
+            (Sport.BASKETBALL, "liga-aba", "2011-2012", "aba-league"),
+            (Sport.BASKETBALL, "liga-aba", "2024-2025", "aba-league"),
+            (Sport.BASKETBALL, "liga-aba", "2025-2026", None),
+            # Japan: b-league until 2025-2026, then b-league-premier
+            (Sport.BASKETBALL, "b-league-premier-japan", "2025-2026", "b-league"),
+            (Sport.BASKETBALL, "b-league-premier-japan", "2026-2027", None),
             # Single year format
             (Sport.FOOTBALL, "czech-republic-chance-liga", "2023", "fortuna-liga"),
             (Sport.FOOTBALL, "czech-republic-chance-liga", "2024", None),

@@ -124,7 +124,7 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
             2014: "vanarama-conference-north",
         },
         "england-national-league-south": {
-            2009: "blue-square-south",    
+            2009: "blue-square-south",
             2012: "blue-square-bet-south",
             2013: "the-skrill-south",
             2014: "vanarama-conference-south",
@@ -285,7 +285,7 @@ LEAGUE_SEASON_ALIASES: dict[Sport, dict[str, dict[int, str]]] = {
         },
     },
     Sport.BASKETBALL: {
-        "aba-league-europe": {
+        "liga-aba": {
             2010: "nlb",
             2024: "aba-league",
         },
