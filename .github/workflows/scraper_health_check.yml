@@ -7,7 +7,7 @@ on:
 jobs:
   test_scraper:
     name: Run Scraper Health Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     steps:
