@@ -264,15 +264,27 @@ class OddsPortalSelectors:
                 return tail
         return specific_market
 
+    # Untranslated on every mirror; football and the other sports print no such word (gotchas §8).
+    LINE_AXIS_WORDS = ("Points", "Sets", "Games")
+
+    @staticmethod
+    def line_label_tokens(label: str) -> list[str]:
+        """The label's whitespace tokens, without the axis word that ends a basketball, volleyball or tennis line."""
+        tokens = label.split()
+        if len(tokens) > 1 and tokens[-1] in OddsPortalSelectors.LINE_AXIS_WORDS:
+            return tokens[:-1]
+        return tokens
+
     @staticmethod
     def line_label_matches(label: str, line: str) -> bool:
-        """True when the label's last whitespace tokens are the line's tokens.
+        """True when the label's last whitespace tokens, before any axis word, are the line's tokens.
 
-        '-1' matches 'Asian Handicap -1' and 'Hándicap asiático -1', never '-1.75'.
+        '-1' matches 'Asian Handicap -1' and 'Hándicap asiático -1', never '-1.75';
+        '+160.5' matches 'Over/Under +160.5 Points'.
         A label made of the line alone matches only when the line is not a bare
         number: every line row also carries its bookmaker count as a lone number.
         """
-        label_tokens, line_tokens = label.split(), line.split()
+        label_tokens, line_tokens = OddsPortalSelectors.line_label_tokens(label), line.split()
         if not line_tokens or label_tokens[-len(line_tokens) :] != line_tokens:
             return False
         return len(label_tokens) > len(line_tokens) or not line.strip().isdigit()

@@ -17,7 +17,7 @@ The gotchas, by section:
 - **§5**: CLI options are normalized at the lowest layer, never in the CLI.
 - **§6**: Anti-bot detection: tell the symptom from the cause.
 - **§7**: Regional mirrors and `--base-url`: the same structure, localized labels; how umbrellas read their lines.
-- **§8**: Volleyball O/U and AH each split into a Sets axis and a Points axis.
+- **§8**: Volleyball O/U and AH each split into a Sets axis and a Points axis; the axis word that may end a line.
 - **§9**: Listings return started and finished matches under "upcoming".
 - **§10**: Listing dates and shown times follow the browser's timezone.
 - **§11**: Each proxy context needs its own warm-up.
@@ -829,9 +829,27 @@ The rule compares value ranges, not equal labels, because an axis's ladder
 shows values its enum does not list: the Gea - Machac games AH ladder of
 2026-09-29 read `-1.5` to `+3.5`, inside the sets range. Lines outside the
 other axis's range (volleyball O/U sets stop at `4.5`, points start at `150.5`)
-are matched on their exact value (§7). If the page brings the axis word back,
-restore it in `sport_market_registry.py`; the refusals then disappear on their
-own.
+are matched on their exact value (§7).
+
+**The word came back (issue #125).** Since 2026-11-18 at the latest the rows end
+with their axis word again: basketball `Over/Under +160.5 Points` and `Asian
+Handicap -23.5 Points` (one axis, but a word all the same), volleyball `+3.5
+Sets` and `+189.5 Points`, tennis `+2.5 Sets` and `+18.5 Games`, and whole lines
+without `.0` (`Asian Handicap -2 Sets`). Football, ice hockey, handball, NFL,
+MLB and rugby print no word. The word stays English on every mirror, only the
+prefix is translated (`Más/Menos de +160.5 Points`, `Acima/Abaixo +3.5 Sets`,
+probe of 2026-11-19 on `cuotasahora.com`, `centroquote.it` and
+`oddsagora.com.br`). Every line matcher read the last token as the line, so
+it read `Points`: the basketball umbrellas opened no line, and a line named
+by hand waited 20 s for a row and came back empty, in all three sports.
+
+The registry labels stay without the word, since the site has dropped it once.
+`OddsPortalSelectors.line_label_tokens` drops a trailing `LINE_AXIS_WORDS` token
+(`Points`, `Sets`, `Games`) before the label is compared, in `line_label_matches`,
+`line_name_to_token` and `_LINE_ROW_JS` (which gets the words in its args), so
+both forms match. The list is closed on purpose: a trailing `Goles` still makes
+a football name match no line. The refusals above do not read the word and
+still apply when the page prints it.
 
 Volleyball also has NO draw-based markets (no `1X2`, `DNB`, `Double Chance`) —
 only `Home/Away`. Periods are `Full Time` + `1st`–`5th Set`. `Correct Score`

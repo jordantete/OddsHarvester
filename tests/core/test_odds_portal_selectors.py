@@ -145,6 +145,24 @@ def test_line_label_matches_the_exact_line_at_the_end(label, line, expected):
     assert OddsPortalSelectors.line_label_matches(label, line) is expected
 
 
+@pytest.mark.parametrize(
+    ("label", "line", "expected"),
+    [
+        ("Over/Under +160.5 Points", "+160.5", True),
+        ("Más/Menos de +160.5 Points", "+160.5", True),
+        ("Acima/Abaixo +3.5 Sets", "+3.5", True),
+        ("Asian Handicap -6.5 Games", "-6.5", True),
+        ("Asian Handicap -2 Sets", "-2", True),
+        ("Over/Under +1160.5 Points", "+160.5", False),
+        ("Over/Under +2.5 Goles", "+2.5", False),
+        ("Points", "", False),
+    ],
+)
+def test_line_label_matches_a_line_followed_by_its_axis_word(label, line, expected):
+    """Since 2026-11-18 basketball, volleyball and tennis lines end with an English axis word on every mirror (§8)."""
+    assert OddsPortalSelectors.line_label_matches(label, line) is expected
+
+
 def test_period_scope_from_url_extracts_scope():
     # Period scope is the ';<scope>' segment of the fragment (gotchas §7).
     assert OddsPortalSelectors.period_scope_from_url("https://x/#IXkNtYcL:over-under;2") == 2

@@ -91,6 +91,7 @@ def _line_args(line, want):
     return {
         "selector": OddsPortalSelectors.SUB_MARKET_SELECTOR,
         "tokens": line.split(),
+        "axisWords": ["Points", "Sets", "Games"],
         "bareNumber": line.strip().isdigit(),
         "ancestor": OddsPortalSelectors.SUB_MARKET_CLICK_ANCESTOR,
         "bookmakerRow": OddsPortalSelectors.BOOKMAKER_ROW_WITH_NAME_CSS,

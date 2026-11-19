@@ -66,7 +66,7 @@ class SportMarketRegistry:
     def ambiguous_markets(cls, sport: str) -> dict[str, tuple[str, ...]]:
         """Each market whose line value falls in another axis's range, mapped to those axes.
 
-        The page prints no Sets/Games/Points word, and an axis's ladder can show a value its own
+        The page has printed lines without their Sets/Games/Points word, and an axis's ladder can show a value its own
         enum never lists (tennis 'asian_handicap_+0_5_sets' may be a games row), so a market is
         ambiguous when its value lies within [min, max] of another axis of the same main market.
         """
@@ -514,7 +514,7 @@ class SportMarketRegistrar:
 
         Modelled on register_tennis_markets: Home/Away winner, Over/Under and
         Asian Handicap each on a Sets axis and a Points axis, plus Correct Score.
-        The page shows no Sets / Points word on a line (verified 2026-09-29), so
+        The page has shown lines without their Sets / Points word (2026-09-29), so
         a sets line and a points line of the same value share one label.
         """
         SportMarketRegistry.register(

@@ -35,7 +35,8 @@ _LINE_ROW_JS = """
     const rows = [];
     for (const element of document.querySelectorAll(args.selector)) {
         if (element.getClientRects().length === 0) continue;
-        const label = (element.textContent || "").split(/\\s+/).filter(Boolean);
+        let label = (element.textContent || "").split(/\\s+/).filter(Boolean);
+        if (label.length > 1 && args.axisWords.includes(label[label.length - 1])) label = label.slice(0, -1);
         if (!args.tokens.length || label.length < args.tokens.length) continue;
         if (label.slice(label.length - args.tokens.length).join(" ") !== args.tokens.join(" ")) continue;
         if (label.length === args.tokens.length && args.bareNumber) continue;
@@ -167,6 +168,7 @@ class PageScroller:
         return {
             "selector": selector,
             "tokens": line.split(),
+            "axisWords": list(OddsPortalSelectors.LINE_AXIS_WORDS),
             "bareNumber": line.strip().isdigit(),
             "ancestor": click_ancestor,
             "bookmakerRow": OddsPortalSelectors.BOOKMAKER_ROW_WITH_NAME_CSS,

@@ -74,6 +74,21 @@ def test_a_whole_or_filled_line_maps_to_its_token(sport, main, name, expected):
     assert line_name_to_token(sport, main, name) == expected
 
 
+@pytest.mark.parametrize(
+    ("main", "name", "expected"),
+    [
+        ("Over/Under", "Over/Under +160.5 Points", "over_under_games_160_5"),
+        ("Over/Under", "Acima/Abaixo +160.5 Points", "over_under_games_160_5"),
+        ("Over/Under", "Over/Under +161 Points", "over_under_games_161_0"),
+        ("Asian Handicap", "Asian Handicap -23.5 Points", "asian_handicap_games_-23_5_games"),
+        ("Asian Handicap", "Hándicap asiático -23.5 Points", "asian_handicap_games_-23_5_games"),
+    ],
+)
+def test_a_line_followed_by_its_axis_word_maps_to_its_token(main, name, expected):
+    """The umbrellas opened no basketball line once the page added 'Points' after each one."""
+    assert line_name_to_token("basketball", main, name) == expected
+
+
 def test_a_line_two_tokens_share_maps_to_none():
     """Tennis sets and games both register Over/Under +6.5, and the page does not say which row it is (§8)."""
     assert line_name_to_token("tennis", "Over/Under", "Over/Under +6.5") is None

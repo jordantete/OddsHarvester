@@ -7,11 +7,11 @@ from oddsharvester.core.sport_market_registry import SportMarketRegistry
 def line_name_to_token(sport: str, main_market: str, line_name: str) -> str | None:
     """Map a rendered line name (e.g. "Over/Under +2.5") to its CLI token (e.g. "over_under_2_5").
 
-    The line is the name's last whitespace token, so a localized name ("Más/Menos de +2.5") maps to the
-    same token. Returns None when no token of `sport` under `main_market` has that line, when two do, or
-    when the name is a bare number (a row's bookmaker count).
+    The line is the name's last whitespace token before any axis word ("Over/Under +160.5 Points"), so a
+    localized name ("Más/Menos de +2.5") maps to the same token. Returns None when no token of `sport` under
+    `main_market` has that line, when two do, or when the name is a bare number (a row's bookmaker count).
     """
-    words = line_name.split()
+    words = OddsPortalSelectors.line_label_tokens(line_name)
     if not words or line_name.strip().isdigit():
         return None
     return _tokens_by_line(sport, main_market).get(words[-1])

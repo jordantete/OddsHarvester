@@ -54,6 +54,25 @@ async def test_the_js_finds_a_line_exactly_where_line_label_matches_does(page, l
     assert found is any(OddsPortalSelectors.line_label_matches(text, line) for text in shown)
 
 
+AXIS_LABELS = ["Over/Under +160.5 Points", "Over/Under +161.5 Points", "Más/Menos de +3.5 Sets"]
+
+
+@pytest.mark.parametrize("line", ["+160.5", "+161.5", "+3.5", "+60.5", "Points", "Sets"])
+async def test_the_js_finds_a_line_followed_by_its_axis_word_where_line_label_matches_does(page, line):
+    await page.set_content("<table>" + "".join(_row(label) for label in AXIS_LABELS) + "</table>")
+    shown = [text for label in AXIS_LABELS for text in (label, COUNT)]
+
+    found = await page.evaluate(_LINE_ROW_JS, _args(line))
+
+    assert found is any(OddsPortalSelectors.line_label_matches(text, line) for text in shown)
+
+
+async def test_the_js_finds_the_line_of_a_label_that_ends_with_its_axis_word(page):
+    await page.set_content("<table>" + "".join(_row(label) for label in AXIS_LABELS) + "</table>")
+
+    assert await page.evaluate(_LINE_ROW_JS, _args("+160.5")) is True
+
+
 @pytest.mark.parametrize(("line", "rows"), [("-1", 1), ("+1.5", 2), ("-2", 0)])
 async def test_the_js_opens_only_a_line_one_row_holds(page, line, rows):
     """'open' needs exactly one row of the line, whose next row holds a bookmaker row."""
