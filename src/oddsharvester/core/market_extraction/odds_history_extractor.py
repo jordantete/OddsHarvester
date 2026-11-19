@@ -4,7 +4,7 @@ import time
 from playwright.async_api import ElementHandle, Page, Response
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
-from oddsharvester.core.browser.waits import wait_for_signal
+from oddsharvester.core.browser.waits import wait_for_element, wait_for_signal
 from oddsharvester.core.market_extraction.bookmaker_name import bookmaker_match_key, resolve_bookmaker_name
 from oddsharvester.core.odds_portal_selectors import OddsPortalSelectors
 from oddsharvester.utils.constants import (
@@ -90,6 +90,11 @@ class OddsHistoryExtractor:
 
     async def _hover_modal(self, page: Page, cell: ElementHandle, bookmaker_name: str, index: int) -> str | None:
         try:
+            if not await self._close_tooltip(page):
+                self.logger.warning(
+                    f"An earlier odds-history tooltip stays open; skipping {bookmaker_name}, outcome {index}."
+                )
+                return None
             settled = await self._hover_until_settled(page, cell)
             if settled is not None:
                 return settled
@@ -105,6 +110,18 @@ class OddsHistoryExtractor:
         except Exception as e:
             self.logger.warning(f"Failed to read odds history for {bookmaker_name}, outcome {index}: {e}")
             return None
+
+    @staticmethod
+    async def _close_tooltip(page: Page) -> bool:
+        """Move the mouse off the table; True once no tooltip is left that a read could mistake for this hover's."""
+        await page.mouse.move(0, 0)
+        return await wait_for_element(
+            page,
+            OddsPortalSelectors.ODDS_MOVEMENT_HEADER,
+            ODDS_HISTORY_HOVER_WAIT_MS,
+            "closed odds-history tooltip",
+            state="detached",
+        )
 
     async def _hover_until_settled(self, page: Page, cell: ElementHandle) -> str | None:
         """Hover the cell; the tooltip HTML once its history request answered and its spinner went, else None.

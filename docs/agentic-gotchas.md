@@ -756,6 +756,15 @@ and exchange variant), sharing class `text-sm font-semibold uppercase leading-6
 text-[#2F2F2F]`. No section-title `<h3>` exists, so the class match is unambiguous
 and only one tooltip is shown per hover.
 
+**A header on the page is not proof it belongs to the cell just hovered.** The
+header selector matches whatever tooltip is open, so a read after a hover whose
+request came late can return the tooltip of an earlier cell. On the CI run of
+2026-11-19 every cell after Bets.io's first one got that cell's history, with
+no warning and no empty block. The tooltip leaves the DOM as soon as the mouse
+leaves its cell (probe of 2026-11-19: gone at the first poll), so
+`OddsHistoryExtractor` moves the mouse to (0, 0) and waits for the header to be
+detached before each hover; a cell whose earlier tooltip stays open gets `None`.
+
 **The dates inside the tooltip are *not* localized** — do not "fix" the
 `"%d %b, %H:%M"` parse. The client renders them via `phpJsDate("d M, H:i", …)`,
 whose month/day arrays are hardcoded English in the bundle, so `"10 Jun, 14:30"`

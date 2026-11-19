@@ -87,6 +87,24 @@ def _modal_headers(htmls):
     return headers
 
 
+def _header_waits(headers=(), error=None):
+    """page.wait_for_selector: the earlier tooltip is already closed, then one modal header per fallback read."""
+    pending = list(headers)
+
+    async def wait_for_selector(selector, state="visible", timeout=None):
+        if state == "detached":
+            return None
+        if error is not None:
+            raise error
+        return pending.pop(0)
+
+    return AsyncMock(side_effect=wait_for_selector)
+
+
+def _header_reads(page):
+    return [c for c in page.wait_for_selector.await_args_list if c.kwargs.get("state") != "detached"]
+
+
 class TestOddsHistoryExtractor:
     @pytest.fixture
     def extractor(self):
@@ -97,6 +115,7 @@ class TestOddsHistoryExtractor:
         page = AsyncMock()
         page.wait_for_timeout = AsyncMock()
         page.expect_response = MagicMock(side_effect=lambda *args, **kwargs: _HistoryResponse())
+        page.wait_for_selector = _header_waits()
         return page
 
     def test_leaf_row_selector_excludes_rows_that_wrap_a_table(self):
@@ -111,7 +130,7 @@ class TestOddsHistoryExtractor:
         assert result == ["<a/>", "<b/>", "<c/>"]
         page.query_selector_all.assert_awaited_once_with(LEAF_BOOKMAKER_ROW_CSS)
         page.wait_for_timeout.assert_not_awaited()
-        page.wait_for_selector.assert_not_awaited()
+        assert _header_reads(page) == []
 
     async def test_a_hover_is_read_once_its_response_came_and_its_spinner_went(self, extractor, page):
         """R16: the history response, then the tooltip without its spinner, both within ODDS_HISTORY_HOVER_WAIT_MS."""
@@ -132,7 +151,7 @@ class TestOddsHistoryExtractor:
         page.query_selector_all = AsyncMock(return_value=[_row("Bookmaker1", cells=1)])
         page.expect_response = MagicMock(return_value=_HistoryResponse(arrives=False))
         page.wait_for_function = AsyncMock()
-        page.wait_for_selector = AsyncMock(side_effect=_modal_headers(["<loading/>"]))
+        page.wait_for_selector = _header_waits(_modal_headers(["<loading/>"]))
 
         with caplog.at_level("WARNING"):
             assert await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 1) == ["<loading/>"]
@@ -144,12 +163,43 @@ class TestOddsHistoryExtractor:
         """The response came, but the tooltip still shows its spinner: the header is read as before."""
         page.query_selector_all = AsyncMock(return_value=[_row("Bookmaker1", cells=1)])
         page.wait_for_function = AsyncMock(side_effect=_tooltips([None]))
-        page.wait_for_selector = AsyncMock(side_effect=_modal_headers(["<loading/>"]))
+        page.wait_for_selector = _header_waits(_modal_headers(["<loading/>"]))
 
         with caplog.at_level("WARNING"):
             assert await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 1) == ["<loading/>"]
 
         assert "No settled odds-history tooltip within" in caplog.text
+
+    async def test_each_hover_waits_for_the_earlier_tooltip_to_close(self, extractor, page):
+        """A tooltip left from an earlier hover would be read as this cell's history (CI run of 2026-11-19)."""
+        row = _row("Bookmaker1", cells=2)
+        page.query_selector_all = AsyncMock(return_value=[row])
+        page.wait_for_function = AsyncMock(side_effect=_tooltips(["<a/>", "<b/>"]))
+        calls = MagicMock()
+        calls.attach_mock(page.mouse.move, "move")
+        calls.attach_mock(page.wait_for_selector, "wait")
+        for i, cell in enumerate(row.query_selector_all.return_value):
+            calls.attach_mock(cell.hover, f"hover{i}")
+
+        assert await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 2) == ["<a/>", "<b/>"]
+
+        names = [c[0] for c in calls.mock_calls]
+        assert names == ["move", "wait", "hover0", "move", "wait", "hover1"]
+        assert page.mouse.move.await_args.args == (0, 0)
+        wait = page.wait_for_selector.await_args
+        assert wait.args == (OddsPortalSelectors.ODDS_MOVEMENT_HEADER,)
+        assert wait.kwargs["state"] == "detached"
+
+    async def test_a_tooltip_that_stays_open_gives_none_without_hovering(self, extractor, page, caplog):
+        row = _row("Bookmaker1", cells=1)
+        page.query_selector_all = AsyncMock(return_value=[row])
+        page.wait_for_selector = AsyncMock(side_effect=PlaywrightTimeoutError("Timeout exceeded."))
+
+        with caplog.at_level("WARNING"):
+            assert await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 1) == [None]
+
+        row.query_selector_all.return_value[0].hover.assert_not_awaited()
+        assert "An earlier odds-history tooltip stays open" in caplog.text
 
     def test_only_the_history_request_answers_a_hover(self):
         history = MagicMock(url="https://www.oddsportal.com/proxy/match-event-history/1-lMp9YMye-1-2-0-141/?geo=BG")
@@ -215,7 +265,7 @@ class TestOddsHistoryExtractor:
     async def test_failed_cell_keeps_its_slot(self, extractor, page):
         page.query_selector_all = AsyncMock(return_value=[_row("Bookmaker1", cells=3)])
         page.wait_for_function = AsyncMock(side_effect=_tooltips(["<a/>", None, "<c/>"]))
-        page.wait_for_selector = AsyncMock(side_effect=TimeoutError("no modal"))
+        page.wait_for_selector = _header_waits(error=TimeoutError("no modal"))
 
         result = await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 3)
 
@@ -224,7 +274,7 @@ class TestOddsHistoryExtractor:
     async def test_modal_without_element_gives_none(self, extractor, page):
         page.query_selector_all = AsyncMock(return_value=[_row("Bookmaker1", cells=1)])
         page.wait_for_function = AsyncMock(side_effect=_tooltips([None]))
-        page.wait_for_selector = AsyncMock(side_effect=_modal_headers([None]))
+        page.wait_for_selector = _header_waits(_modal_headers([None]))
 
         result = await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 1)
 
