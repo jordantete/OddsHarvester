@@ -113,8 +113,23 @@ class OddsHistoryExtractor:
 
     @staticmethod
     async def _close_tooltip(page: Page) -> bool:
-        """Move the mouse off the table; True once no tooltip is left that a read could mistake for this hover's."""
+        """Move the mouse off the table; True once no tooltip is left that a read could mistake for this hover's.
+
+        A tooltip that missed its mouseleave stays open wherever the mouse goes; hovering its cell again and leaving
+        closes it.
+        """
+        header = OddsPortalSelectors.ODDS_MOVEMENT_HEADER
         await page.mouse.move(0, 0)
+        try:
+            await page.wait_for_selector(header, state="detached", timeout=ODDS_HISTORY_HOVER_WAIT_MS)
+            return True
+        except PlaywrightTimeoutError:
+            pass
+        stuck = await page.query_selector(header)
+        cell = None if stuck is None else (await stuck.evaluate_handle("node => node.closest('td')")).as_element()
+        if cell is not None:
+            await cell.hover(force=True)
+            await page.mouse.move(0, 0)
         return await wait_for_element(
             page,
             OddsPortalSelectors.ODDS_MOVEMENT_HEADER,

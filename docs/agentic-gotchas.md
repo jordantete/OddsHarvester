@@ -764,6 +764,11 @@ no warning and no empty block. The tooltip leaves the DOM as soon as the mouse
 leaves its cell (probe of 2026-11-19: gone at the first poll), so
 `OddsHistoryExtractor` moves the mouse to (0, 0) and waits for the header to be
 detached before each hover; a cell whose earlier tooltip stays open gets `None`.
+On a slow Linux host (2-CPU container, GitHub runner) a tooltip sometimes misses
+its mouseleave: it stays open in its `td` with only `html` and `body` under
+`:hover`, and every later hover is lost. Hovering that `td` again and leaving
+closes it (7 stuck tooltips out of 7 in the probe of 2026-11-20); the macOS
+browser never showed it.
 
 **The dates inside the tooltip are *not* localized** — do not "fix" the
 `"%d %b, %H:%M"` parse. The client renders them via `phpJsDate("d M, H:i", …)`,

@@ -190,10 +190,28 @@ class TestOddsHistoryExtractor:
         assert wait.args == (OddsPortalSelectors.ODDS_MOVEMENT_HEADER,)
         assert wait.kwargs["state"] == "detached"
 
+    async def test_a_tooltip_that_missed_its_mouseleave_is_closed_by_hovering_its_cell_again(self, extractor, page):
+        row = _row("Bookmaker1", cells=1)
+        page.query_selector_all = AsyncMock(return_value=[row])
+        page.wait_for_function = AsyncMock(side_effect=_tooltips(["<a/>"]))
+        page.wait_for_selector = AsyncMock(side_effect=[PlaywrightTimeoutError("Timeout exceeded."), None])
+        stuck_cell = AsyncMock()
+        stuck = AsyncMock()
+        stuck.evaluate_handle = AsyncMock(return_value=MagicMock(as_element=MagicMock(return_value=stuck_cell)))
+        page.query_selector = AsyncMock(return_value=stuck)
+
+        assert await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 1) == ["<a/>"]
+
+        page.query_selector.assert_awaited_once_with(OddsPortalSelectors.ODDS_MOVEMENT_HEADER)
+        stuck_cell.hover.assert_awaited_once_with(force=True)
+        assert page.mouse.move.await_count == 2
+        row.query_selector_all.return_value[0].hover.assert_awaited_once()
+
     async def test_a_tooltip_that_stays_open_gives_none_without_hovering(self, extractor, page, caplog):
         row = _row("Bookmaker1", cells=1)
         page.query_selector_all = AsyncMock(return_value=[row])
         page.wait_for_selector = AsyncMock(side_effect=PlaywrightTimeoutError("Timeout exceeded."))
+        page.query_selector = AsyncMock(return_value=None)
 
         with caplog.at_level("WARNING"):
             assert await extractor.extract_odds_history_for_bookmaker(page, "Bookmaker1", 1) == [None]
